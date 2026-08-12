@@ -1,0 +1,55 @@
+<app-glass-card class="p-0 overflow-hidden block">
+    <div class="overflow-x-auto -mx-4">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-left border-y label-mono bg-muted/30">
+                    <th class="px-4 py-2 font-medium">Date</th>
+                    <th class="px-4 py-2 font-medium">Plan</th>
+                    <th class="px-2 py-2 font-medium">Status</th>
+                    <th class="px-4 py-2 font-medium">Validity</th>
+                    <!-- <th class="px-4 py-2 font-medium">Method</th>
+                    <th class="px-4 py-2 font-medium">Status</th> -->
+                    <th class="px-4 py-2 font-medium text-right">Amount</th>
+                    <th class="px-4 py-2 font-medium text-right">Adjustment</th>
+                    <th class="px-4 py-2 font-medium text-right">Paid</th>
+                    <th class="px-4 py-2 font-medium w-16"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y">
+                @for (p of plans(); track p.id) {
+                <tr class="hover:bg-muted/40">
+                    <td class="px-4 py-2.5 tabular-nums">{{ p.createdAtUtc  | date:'dd MMM yyyy' }}</td>
+                    <td class="px-2 py-2.5 font-mono text-xs">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
+                            [class]="commonService.planClasses(p.planName)">{{ p.planName }}</span>
+                    </td>
+                    <td class="px-2 py-2.5">
+                        <app-status-badge [status]="p.isActive ? p.status : 'Inactive' " />
+                    </td>
+                    <td class="px-4 py-2.5 font-mono text-xs">
+                        <div>{{ p.startDate | date:'dd MMM yyyy' }}</div>
+                        <div class="text-xs text-muted-foreground">
+                            → {{ p.endDate | date:'dd MMM yyyy' }}
+                        </div>
+                    </td>
+                    <!-- <td class="px-4 py-2.5 text-muted-foreground">{{ p.paymentMethod }}</td>
+                    <td class="px-4 py-2.5">
+                        <span class="inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium"
+                            [class]="commonService.payStatusClasses(p.paymentStatus)">{{ p.paymentStatus }}</span>
+                    </td> -->
+                    <td class="px-4 py-2.5 text-right tabular-nums">₹{{ p.price.toLocaleString() }}</td>
+                    <td class="px-4 py-2.5 text-right text-red-600 tabular-nums">₹{{ (p.adjustmentAmount || 0).toLocaleString() }}</td>
+                    <td class="px-4 py-2.5 text-right text-green-600 tabular-nums">₹{{ (p.paidAmount || 0).toLocaleString() }}</td>
+                    <td class="px-4 py-2.5">
+                        <button type="button" (click)="paymentSuccess()"
+                            class="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground">
+                            <svg lucideDownload class="h-3.5 w-3.5"></svg>
+                        </button>
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</app-glass-card>
+

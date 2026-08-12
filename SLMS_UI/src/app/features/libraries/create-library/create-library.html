@@ -1,0 +1,304 @@
+@if(showPageHeader()){
+<app-page-header eyebrow="Libraries" title="Library Directory"
+    description="Manage library information, branches, and operational status from a single place." />
+}
+
+<div class="min-h-screen blueprint-grid">
+    <div class="mx-auto max-w-3xl px-4 py-4 lg:px-4 lg:py-4">
+        @if(isOnboarding()){
+        <!-- Header -->
+        <div class="mb-4">
+            <p class="label-mono">
+                SETUP / STEP 3 OF 3
+            </p>
+
+            <h1 class="text-2xl font-semibold tracking-tight mt-1 mb-1">
+                Create your library
+            </h1>
+
+            <p class="text-sm leading-6 text-[var(--muted-foreground)]">
+                Complete your library setup by adding its details. You can update this information anytime from the
+                library settings.
+            </p>
+        </div>
+
+        <!-- Stepper -->
+        <div class="mb-4">
+            <ol class="flex items-center">
+
+                <!-- Institution -->
+                <li class="flex flex-1 items-center gap-3">
+                    <div
+                        class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-primary/5 text-xs font-semibold text-primary">
+                        1
+                    </div>
+
+                    <span class="text-sm font-medium text-primary">
+                        Institution
+                    </span>
+
+                    <div class="mx-2 h-px flex-1 bg-primary"></div>
+                </li>
+
+                <!-- Branch -->
+                <li class="flex flex-1 items-center gap-3">
+                    <div
+                        class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-primary/5 text-xs font-semibold text-primary">
+                        2
+                    </div>
+
+                    <span class="text-sm font-semibold text-primary">
+                        Branch
+                    </span>
+
+                    <div class="mx-2 h-px flex-1 bg-primary"></div>
+                </li>
+
+                <!-- Library -->
+                <li class="flex items-center gap-3">
+                    <div
+                        class="flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold text-muted-foreground">
+                        3
+                    </div>
+
+                    <span class="text-sm font-semibold text-primary">
+                        Library
+                    </span>
+                </li>
+
+            </ol>
+        </div>
+        }
+
+        <!-- Form Card -->
+        <div class="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur">
+
+            <form [formGroup]="librariesForm" (ngSubmit)="createlibraries()" novalidate class="space-y-4">
+
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+
+                    <!-- Library Name -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Library Name<span class="text-red-500">*</span>
+                        </label>
+                        <input name="name" formControlName="name" class="ui-input" placeholder="Enter Library name" />
+                        @if(librariesForm.get('name')?.invalid && (librariesForm.get('name')?.touched ||
+                        librariesForm.dirty))
+                        {
+                        <small class="text-red-500">
+
+                            @if(librariesForm.get('name')?.hasError('required')){
+                            Library name is required.
+                            }
+
+                            @if(librariesForm.get('name')?.hasError('minlength')){
+                            Minimum 3 characters required.
+                            }
+
+                            @if(librariesForm.get('name')?.hasError('maxlength')){
+                            Maximum 100 characters allowed.
+                            }
+
+                        </small>
+                        }
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Institution -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Institution<span class="text-red-500">*</span>
+                        </label>
+                        <select formControlName="institutionId" name="institutionId"
+                            [disabled]="disabledInstitutionSelect()"
+                            class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+                            <option value="" disabled>Select institution</option>
+                            @for (i of institutions(); track i.value) { <option [value]="i.value">{{ i.key }}
+                            </option>
+                            }
+                        </select>
+                        @if (librariesForm.controls['institutionId'].touched &&
+                        librariesForm.controls['institutionId'].hasError('required')) {
+                        <small class="text-red-500">
+                            Institution is required.
+                        </small>
+                        }
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Branch<span class="text-red-500">*</span>
+                        </label>
+                        <select formControlName="branchId" name="branchId" [disabled]="disabledBranchSelect()"
+                            class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+                            <option value="" disabled>Select Branch</option>
+                            @for (i of branches(); track i.value) { <option [value]="i.value">{{ i.key }}
+                            </option>
+                            }
+                        </select>
+                        @if (librariesForm.controls['branchId'].touched &&
+                        librariesForm.controls['branchId'].hasError('required')) {
+                        <small class="text-red-500">
+                            Branch is required.
+                        </small>
+                        }
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Email <span class="text-red-500">*</span>
+                        </label>
+
+                        <input type="email" name="email" formControlName="email" class="ui-input"
+                            placeholder="library@example.co" />
+                        @if ( librariesForm.get('email')?.invalid && (librariesForm.get('email')?.dirty ||
+                        librariesForm.get('email')?.touched )) {
+
+                        <small class="text-red-500">
+                            @if(librariesForm.get('email')?.hasError('required')){
+                            Email is required.
+                            }
+
+                            @if (librariesForm.get('email')?.hasError('email')) {
+                            Please enter a valid email.
+                            }
+
+                        </small>
+
+                        }
+                    </div>
+
+                    <!-- Phone -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Phone <span class="text-red-500">*</span>
+                        </label>
+
+                        <input name="phone" formControlName="phone" class="ui-input" placeholder="+91 9876543210" />
+                        @if (librariesForm.controls.phone.invalid && (librariesForm.controls.phone.dirty
+                        ||librariesForm.controls.phone.touched)) {
+
+                        <small class="text-red-500">
+
+                            @if (librariesForm.controls.phone.hasError('required')) {
+                            Phone number is required.
+                            }
+
+                            @if (librariesForm.controls.phone.hasError('pattern')) {
+                            Enter a valid 10-digit phone number.
+                            }
+
+                        </small>
+
+                        }
+                    </div>
+
+                </div>
+
+                <!-- Location -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Address -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Address <span class="text-red-500">*</span>
+                        </label>
+
+                        <input name="address" formControlName="address" class="ui-input" placeholder="Full address" />
+                        @if ( librariesForm.controls.address.invalid && (librariesForm.controls.address.dirty ||
+                        librariesForm.controls.address.touched)) {
+
+                        <small class="text-red-500">
+
+                            @if (librariesForm.controls.address.hasError('required')) {
+                            Address is required.
+                            }
+
+                            @if (librariesForm.controls.address.hasError('minlength')) {
+                            Minimum 5 characters required.
+                            }
+
+                        </small>
+
+                        }
+                    </div>
+
+                    <!-- City -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Floor <span class="text-red-500">*</span>
+                        </label>
+
+                        <input name="floor" type="number" formControlName="floor"
+                            class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            placeholder="Floor" />
+                        @if ( librariesForm.controls.floor.invalid && (librariesForm.controls.floor.dirty ||
+                        librariesForm.controls.floor.touched) ) {
+                        <small class="text-red-500">
+                            @if (librariesForm.controls.floor.hasError('required')) {
+                            Floor is required.
+                            }
+                        </small>
+                        }
+                    </div>
+
+
+                </div>
+                <!-- Capacity & Timing -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    <!-- Capacity -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Capacity
+                        </label>
+
+                        <input formControlName="capacity" name="capacity" type="number"
+                            class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                        @if (librariesForm.controls.capacity.invalid &&(librariesForm.controls.capacity.dirty ||
+                        librariesForm.controls.capacity.touched)) {
+
+                        <small class="text-red-500">
+
+                            @if (librariesForm.controls.capacity.hasError('min')) {
+                            Capacity must be greater than 0.
+                            }
+
+                            @if (librariesForm.controls.capacity.hasError('max')) {
+                            Capacity cannot exceed 100000.
+                            }
+
+                        </small>
+                        }
+                    </div>
+
+                </div>
+                <!-- Footer -->
+                <!-- Actions -->
+                <div class="flex gap-3 pt-2">
+                    @if(!isOnboarding()){
+                    <button type="button" class="ui-btn-outline flex-1" (click)="router.navigate(['/libraries'])">
+                        Cancel
+                    </button>
+                    }
+                    <button type="submit" class="ui-btn-primary flex-[2]"
+                        [disabled]="loader() || librariesForm.invalid">
+                        @if (loader()) {
+                        {{ isOnboarding() ? 'Creating...' : 'Saving...' }}
+                        } @else {
+                        {{ isOnboarding() ? 'Finish Setup →' : 'Save Institution' }}
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

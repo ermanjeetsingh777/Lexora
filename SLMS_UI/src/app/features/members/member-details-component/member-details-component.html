@@ -1,0 +1,795 @@
+@if(!loading()){
+@if (memberDetails(); as m) {
+<app-page-header eyebrow="Members" [title]="m.name"
+  [description]="(m.membershipNo ?? '') + ' · joined ' + (m.joinedOn | date:'dd MMM yyyy')">
+  <div actions class="flex items-center gap-2">
+    <a routerLink="/members">
+      <app-button variant="outline" size="sm">
+        <svg lucideArrowLeft class="h-4 w-4 mr-1"></svg> All members
+      </app-button>
+    </a>
+    <app-button variant="outline" size="sm" (click)="copyId(m.id)">
+      <svg lucideCopy class="h-4 w-4 mr-1"></svg> Copy ID
+    </app-button>
+
+    <!-- Actions dropdown -->
+    <div class="relative">
+      <app-button variant="outline" size="sm" (click)="actionsOpen.set(!actionsOpen())">
+        <svg lucideSettings2 class="h-4 w-4 mr-1"></svg> Actions
+      </app-button>
+      @if (actionsOpen()) {
+      <div class="fixed inset-0 z-30" (click)="actionsOpen.set(false)"></div>
+      <div class="absolute right-0 z-40 mt-1 w-52 rounded-md border bg-popover shadow-md py-1 text-sm">
+        <div class="px-3 py-1.5 text-xs font-semibold text-muted-foreground label-mono">Manage</div>
+        <div class="border-t my-1"></div>
+        <button type="button" (click)="openDialog('branch')"
+          class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+          <svg lucideArrowRightLeft class="h-4 w-4"></svg> Transfer branch
+        </button>
+        <button type="button" (click)="openDialog('seat')"
+          class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+          <svg lucideArmchair class="h-4 w-4"></svg> Reassign seat
+        </button>
+        <button type="button" (click)="openDialog('shift')"
+          class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+          <svg lucideClock class="h-4 w-4"></svg> Change shift
+        </button>
+        <button type="button" (click)="openDialog('plan')" class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+          <svg lucideBadgeDollarSign class="h-4 w-4"></svg> {{m.planStatus === planStatus.Expired ? 'Renew' : 'Upgrade'}} plan
+        </button>
+        
+      </div>
+      }
+    </div>
+  </div>
+</app-page-header>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+  <!-- Sidebar card -->
+  <app-glass-card class="lg:col-span-1 block">
+    <div class="flex items-center gap-3">
+      <span class="h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-semibold shrink-0"
+        [style.background]="commonService.avatarBg(hexNumber)">{{ commonService.initials(m.name) }}</span>
+      <div>
+        <div class="font-semibold text-lg leading-tight">{{ m.name }}</div>
+        <div class="text-xs text-muted-foreground">Member</div>
+        <div class="mt-1.5">
+          <app-status-badge [status]="m.status" />
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5 space-y-3 text-sm">
+      <!-- Email -->
+      <div class="flex items-start gap-3">
+        <svg lucideMail class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Email</div>
+          <div class="text-sm truncate">{{ m.email }}</div>
+        </div>
+      </div>
+      <!-- Phone -->
+      <div class="flex items-start gap-3">
+        <svg lucidePhone class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Phone</div>
+          <div class="text-sm truncate">{{ m.phone }}</div>
+        </div>
+      </div>
+      <!-- ID -->
+      <div class="flex items-start gap-3">
+        <svg lucideIdCard class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">ID</div>
+          <div class="font-mono text-xs truncate">{{ m.id }}</div>
+        </div>
+      </div>
+      <!-- Institution -->
+      <div class="flex items-start gap-3">
+        <svg lucideBuilding2 class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Institution</div>
+          <div class="text-sm truncate">{{ m.institution }}</div>
+        </div>
+      </div>
+      <!-- Branch -->
+      <div class="flex items-start gap-3">
+        <svg lucideBuilding2 class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Branch</div>
+          <div class="text-sm truncate">{{ m.branch }}</div>
+        </div>
+      </div>
+      <!-- Library -->
+      <div class="flex items-start gap-3">
+        <svg lucideMapPin class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Library</div>
+          <div class="text-sm truncate">{{ m.library }}</div>
+        </div>
+      </div>
+      <!-- Seat -->
+      <div class="flex items-start gap-3">
+        <svg lucideArmchair class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Seat</div>
+          <div class="text-sm truncate">{{ m.seatNumber || 'Unassigned' }}</div>
+        </div>
+      </div>
+      <!-- Shift -->
+      <div class="flex items-start gap-3">
+        <svg lucideClock class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Shift</div>
+          <div class="text-sm truncate">{{ m.shift }}</div>
+        </div>
+      </div>
+      <!-- Plan -->
+      <div class="flex items-start gap-3">
+        <svg lucideCreditCard class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Plan</div>
+          <div class="mt-0.5">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
+              [class]="commonService.planClasses(m.plan)">{{ m.plan }}</span>
+          </div>
+        </div>
+      </div>
+      <!-- Plan expires -->
+      <div class="flex items-start gap-3">
+        <svg lucideCalendar class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
+        <div class="flex-1 min-w-0">
+          <div class="label-mono">Plan expires</div>
+          <div class="text-sm truncate">{{ lifecycle().expiry }} · {{ lifecycle().state }}</div>
+        </div>
+      </div>
+    </div>
+  </app-glass-card>
+
+  <!-- Main content tabs -->
+  <div class="lg:col-span-2 space-y-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideCalendar class="h-4 w-4" [class]="lifecycle().daysLeft < 0 ? 'text-destructive' : lifecycle().daysLeft <= 7 ? 'text-amber-500' : 'text-blue-500'"></svg>
+          Plan expires
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ lifecycle().relative }}</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">{{ lifecycle().state }} · {{ lifecycle().expiry }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-emerald-50/50 to-background border-emerald-200">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideTrendingUp class="h-4 w-4 text-emerald-500"></svg>
+          Attendance
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1 text-emerald-600">{{ m.attendanceRate }}%</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">{{ m.attendanceSummary }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-blue-50/50 to-background border-blue-200">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideCalendar class="h-4 w-4 text-blue-500"></svg>
+          Visits · 30d
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1 text-blue-600">{{ m.visits30d }}</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">Last {{ m.lastVisit ? (m.lastVisit | date:'dd MMM yyyy') : '—' }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideBookOpen class="h-4 w-4 text-violet-500"></svg>
+          Books
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">0</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">0 active</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background"
+        [class]="m.feesOwed > 0 ? 'border-rose-200' : ''">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideWallet class="h-4 w-4" [class]="m.feesOwed > 0 ? 'text-rose-500' : 'text-muted-foreground'"></svg>
+          Fees due
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1" [class]="m.feesOwed > 0 ? 'text-rose-600' : ''">
+          {{ m.feesOwed > 0 ? (m.feesOwed | currency:'INR') : 'Clear' }}
+        </div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">{{ m.feesOwed > 0 ? 'Action needed' : 'All paid' }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-amber-50/50 to-background border-amber-200">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideTimer class="h-4 w-4 text-amber-500"></svg>
+          Member for
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ daysAsMember() }}d</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">Since {{ m.joinedOn | date:'dd MMM yyyy' }}</div>
+      </div>
+    </div>
+
+    @if (lifecycle().action) {
+    <div class="flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3" [class]="lifecycleBannerClass(lifecycle().tone)">
+      <svg lucideAlertTriangle class="h-4 w-4"></svg>
+      <div class="text-sm">
+        <span class="font-medium">{{ lifecycle().state }}</span>
+        <span class="opacity-80"> — plan expires {{ lifecycle().expiry }} ({{ lifecycle().relative }}). {{ lifecycle().action }}.</span>
+      </div>
+      @if (lifecycle().state !== 'New') {
+      <app-button size="sm" variant="outline" class="ml-auto" (click)="renewFromBanner()">
+        <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Renew plan
+      </app-button>
+      }
+    </div>
+    }
+
+    <div class="rounded-xl border glass shadow-elegant p-4">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-semibold flex items-center gap-2">
+            <svg lucideCalendarClock class="h-5 w-5 text-primary"></svg>
+            Today's Attendance
+          </h3>
+          <p class="text-xs text-muted-foreground mt-1">
+            Live attendance status and today's session details
+          </p>
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-muted-foreground">
+            Today
+          </div>
+          <div class="text-sm font-medium">
+            {{ today() | date:'dd MMM yyyy' }}
+          </div>
+        </div>
+      </div>
+      <!-- Status -->
+      <div class="flex items-center justify-between rounded-lg border bg-muted/20 p-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <app-status-badge
+              [status]="attendanceStatus[todayAttendance()?.status || 0] ?? 'Absent'"></app-status-badge>
+            <span class="text-sm text-muted-foreground">
+              {{todayAttendance()?.checkInAtUtc ? 'Checked in at '+(todayAttendance()?.checkInAtUtc | date:'HH:mm') :
+              'Not checked in today'}}
+            </span>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-muted-foreground">
+            Seat
+          </div>
+          <div class="font-semibold">
+            {{ m.seatNumber }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Details -->
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+        <div class="rounded-lg border bg-background p-3">
+          <div class="flex items-center gap-2 text-xs text-muted-foreground">
+            <svg lucideLogIn class="h-4 w-4 text-emerald-500"></svg>
+            Check In
+          </div>
+          <div class="mt-2 text-lg font-semibold">
+            {{ (todayAttendance()?.checkInAtUtc | date:'HH:mm') || '--' }}
+          </div>
+        </div>
+        <div class="rounded-lg border bg-background p-3">
+          <div class="flex items-center gap-2 text-xs text-muted-foreground">
+            <svg lucideLogOut class="h-4 w-4 text-rose-500"></svg>
+            Check Out
+          </div>
+          <div class="mt-2 text-lg font-semibold">
+            {{(todayAttendance()?.checkOutAtUtc | date:'HH:mm') || '--' }}
+          </div>
+        </div>
+        <div class="rounded-lg border bg-background p-3">
+          <div class="flex items-center gap-2 text-xs text-muted-foreground">
+            <svg lucideClock3 class="h-4 w-4 text-amber-500"></svg>
+            Duration
+          </div>
+          <div class="mt-2 text-lg font-semibold">
+            {{ formatDuration(todayAttendance()?.durationMinutes ?? 0) }}
+          </div>
+        </div>
+        <div class="rounded-lg border bg-background p-3">
+          <div class="flex items-center gap-2 text-xs text-muted-foreground">
+            <svg lucideSun class="h-4 w-4 text-blue-500"></svg>
+            Shift
+          </div>
+          <div class="mt-2 text-lg font-semibold">
+            {{ memberDetails()?.shift }}
+          </div>
+        </div>
+      </div>
+      <!-- Actions -->
+      <div class="flex flex-wrap justify-end gap-2 mt-5">
+        @if(!todayAttendance()?.checkInAtUtc){
+        <app-button (click)="checkIn(true)">
+          <svg lucideLogIn class="h-4 w-4 mr-1"></svg>
+          Check In
+        </app-button>
+        } @else if(!todayAttendance()?.checkOutAtUtc){
+        <app-button (click)="checkIn(false)">
+          <svg lucideLogOut class="h-4 w-4 mr-1"></svg>
+          Check Out
+        </app-button>
+        }
+
+        <app-button variant="outline">
+          <svg lucideHistory class="h-4 w-4 mr-1"></svg>
+          History
+        </app-button>
+
+        <app-button variant="ghost">
+          <svg lucidePencil class="h-4 w-4 mr-1"></svg>
+          Edit
+        </app-button>
+      </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="flex gap-1">
+      <p-selectbutton [options]="tabs" [ngModel]="activeTab()" (ngModelChange)="setTab($event)" optionLabel="label" size="small" optionValue="value"
+        aria-labelledby="basic" />
+      <!-- @for (tab of tabs; track tab.id) {
+      <button type="button" (click)="setTab(tab.id)"
+        class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors" [class]="activeTab() === tab.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'">{{ tab.label }}</button>
+      } -->
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    @if (activeTab() === 'overview') {
+    <!-- Guardian card -->
+    <div class="rounded-xl border glass shadow-elegant p-5">
+      <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-base font-semibold tracking-tight">
+            <span class="inline-flex items-center gap-2">
+              <svg lucideSparkles class="h-4 w-4 text-primary"></svg>
+              Member insights</span>
+          </h2>
+          <p class="text-xs text-muted-foreground mt-0.5">
+            Auto-computed from activity and billing</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideCrown class="h-4 w-4 text-amber-500"></svg>
+            Current plan
+          </div>
+          <div class="text-sm font-semibold mt-1 truncate text-muted-foreground">
+            {{m.plan}}
+          </div>
+        </div>
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideCreditCard class="h-4 w-4 text-primary"></svg>
+            {{m.plan}} fee
+          </div>
+          <div class="text-sm font-semibold mt-1 truncate text-primary">
+            {{m.planPrice | currency:'INR' }}
+          </div>
+        </div>
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideWallet class="h-4 w-4 text-emerald-500"></svg>
+            Lifetime spend
+          </div>
+          <div class="text-sm font-semibold mt-1 truncate text-emerald-500">
+            {{lifetimeSpend() | currency:'INR' }}
+          </div>
+        </div>
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideCalendar class="h-4 w-4 text-blue-500"></svg>
+            Next renewal
+          </div>
+          <div class="text-sm font-semibold mt-1 truncate text-blue-500">
+            {{nextRenewalDate() | date:'dd MMM yyyy'}}
+          </div>
+        </div>
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideClock class="h-4 w-4 text-violet-500"></svg>
+            Favorite shift
+          </div>
+          <div class="text-sm font-semibold mt-1 truncate text-violet-500">
+            {{m.shift}}
+          </div>
+        </div>
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideTrendingUp class="h-4 w-4 text-emerald-500"></svg>
+            Punctuality
+          </div>
+          <div class="text-sm font-semibold mt-1 truncate text-emerald-500">
+            {{m.presentDays}} / {{m.totalSessions}}
+          </div>
+        </div>
+      </div>
+    </div>
+    <app-member-contact-component [contactData]="m.contacts" (addContact)="addContact($event)" />
+
+    <app-glass-card class="block p-5">
+      <app-section-header title="Activity timeline"
+        description="Latest events across payments, attendance, plan and seat changes" />
+      @if (activityTimeline().length === 0) {
+      <p class="text-sm text-muted-foreground">No activity recorded yet.</p>
+      } @else {
+      <ol class="relative border-l ml-2 space-y-4 mt-4">
+        @for (e of activityTimeline(); track e.id) {
+        <li class="ml-4">
+          <span class="absolute -left-1.5 h-3 w-3 rounded-full ring-2 ring-background"
+            [class]="eventDot[e.type] ?? 'bg-slate-500'"></span>
+          <div class="text-sm font-medium">{{ e.title }}</div>
+          @if (e.description) {
+          <div class="text-xs text-muted-foreground">{{ e.description }}</div>
+          }
+          <div class="text-[10px] label-mono mt-0.5">{{ e.ts | date:'medium' }}</div>
+        </li>
+        }
+      </ol>
+      }
+    </app-glass-card>
+    }
+
+    <!-- ATTENDANCE TAB -->
+    @if (activeTab() === 'attendance') {
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideCheckCircle2 class="h-4 w-4 text-emerald-500"></svg> Present
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().present }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideAlertTriangle class="h-4 w-4 text-amber-500"></svg> Late
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().late }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideXCircle class="h-4 w-4 text-rose-500"></svg> Absent
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().absent }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideTrendingUp class="h-4 w-4 text-primary"></svg> Attendance
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().rate }}%</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideCalendar class="h-4 w-4 text-violet-500"></svg> Best streak
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().bestStreak }}d</div>
+      </div>
+    </div>
+
+    <app-glass-card class="block p-5">
+      <div class="flex items-center justify-between mb-3">
+        <app-section-header [title]="monthLabel()" description="Attendance calendar" />
+        <div class="flex items-center gap-1">
+          <app-button size="icon" variant="outline" class="h-8 w-8" (click)="prevMonth()">
+            <svg lucideChevronLeft class="h-4 w-4"></svg>
+          </app-button>
+          <app-button size="sm" variant="outline" class="h-8" (click)="goToday()">Today</app-button>
+          <app-button size="icon" variant="outline" class="h-8 w-8" (click)="nextMonth()">
+            <svg lucideChevronRight class="h-4 w-4"></svg>
+          </app-button>
+        </div>
+      </div>
+      <div class="grid grid-cols-7 gap-1 label-mono mb-1">
+        @for (d of weekDays; track d) {
+        <div class="text-center text-xs">{{ d }}</div>
+        }
+      </div>
+      <div class="grid grid-cols-7 gap-1">
+        @for (cell of monthCells(); track $index) {
+        <div class="aspect-square rounded-md text-xs flex flex-col items-center justify-center p-1 transition"
+          [class]="calendarCellClass(cell)" [title]="cellTitle(cell)">
+          @if (cell.date) {
+          <span class="font-mono">{{ cell.date.getDate() }}</span>
+          @if (cell.day?.durationMinutes) {
+          <span class="text-[9px] opacity-80 tabular-nums">{{ (cell.day!.durationMinutes / 60).toFixed(1) }}h</span>
+          }
+          }
+        </div>
+        }
+      </div>
+      <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-emerald-500/70"></span> Present</span>
+        <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-amber-500/70"></span> Late</span>
+        <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-rose-500/60"></span> Absent</span>
+        <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-slate-400/30"></span> Holiday</span>
+      </div>
+    </app-glass-card>
+
+    <app-glass-card class="block p-0 overflow-hidden">
+      <div class="px-4 pt-4">
+        <app-section-header title="Check-in log" description="Last 30 days" />
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left border-b label-mono bg-muted/30">
+              <th class="px-4 py-2 font-medium">Date</th>
+              <th class="px-4 py-2 font-medium">Status</th>
+              <th class="px-4 py-2 font-medium">Check in</th>
+              <th class="px-4 py-2 font-medium">Check out</th>
+              <th class="px-4 py-2 font-medium text-right">Hours</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            @for (r of attendanceLog(); track r.id) {
+            <tr class="hover:bg-muted/40">
+              <td class="px-4 py-2 tabular-nums">{{ r.attendanceDate }}</td>
+              <td class="px-4 py-2">
+                <span class="inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium capitalize"
+                  [class]="dayStatusPillClass(r.status)">{{ statusLabel(r.status) }}</span>
+              </td>
+              <td class="px-4 py-2 font-mono text-xs">{{ r.checkInAtUtc ? (r.checkInAtUtc | date:'HH:mm') : '—' }}</td>
+              <td class="px-4 py-2 font-mono text-xs">{{ r.checkOutAtUtc ? (r.checkOutAtUtc | date:'HH:mm') : '—' }}</td>
+              <td class="px-4 py-2 text-right tabular-nums">{{ r.durationMinutes ? formatDuration(r.durationMinutes) : '—' }}</td>
+            </tr>
+            }
+            @if (attendanceLog().length === 0) {
+            <tr><td colspan="5" class="py-8 text-center text-muted-foreground text-sm">No attendance records</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </app-glass-card>
+
+    <app-glass-card class="block p-5">
+      <app-section-header title="90-day heatmap" description="Hours per day — darker = more time on premises" />
+      <div class="flex gap-1 overflow-x-auto pb-2 mt-4">
+        @for (col of heatmapCols(); track $index) {
+        <div class="flex flex-col gap-1">
+          @for (cell of col; track $index) {
+          <div class="h-3.5 w-3.5 rounded-sm" [class]="heatmapCellClass(cell)"
+            [title]="cell.date ? cell.date + ' · ' + cell.status + (cell.hours > 0 ? ' · ' + cell.hours.toFixed(1) + 'h' : '') : ''"></div>
+          }
+        </div>
+        }
+      </div>
+      <div class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+        <span>Less</span>
+        <span class="h-3 w-3 rounded-sm bg-muted/40"></span>
+        <span class="h-3 w-3 rounded-sm bg-emerald-500/20"></span>
+        <span class="h-3 w-3 rounded-sm bg-emerald-500/40"></span>
+        <span class="h-3 w-3 rounded-sm bg-emerald-500/70"></span>
+        <span class="h-3 w-3 rounded-sm bg-emerald-600"></span>
+        <span>More</span>
+        <span class="ml-4 inline-flex items-center gap-1"><span class="h-3 w-3 rounded-sm bg-rose-500/40"></span> Absent</span>
+      </div>
+    </app-glass-card>
+    }
+
+    <!-- BOOKS TAB -->
+    @if (activeTab() === 'books') {
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      @for (stat of [{label:'Active',value:0,tone:'text-blue-500'},{label:'Overdue',value:0,tone:'text-rose-500'},{label:'Returned',value:0,tone:'text-emerald-500'},{label:'Total',value:0,tone:'text-foreground'}]; track stat.label) {
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="label-mono text-[10px]">{{ stat.label }}</div>
+        <div class="text-lg font-semibold tabular-nums mt-1" [class]="stat.tone">{{ stat.value }}</div>
+      </div>
+      }
+    </div>
+    <app-glass-card class="block p-8 text-center">
+      <svg lucideBookMarked class="h-10 w-10 mx-auto text-muted-foreground mb-3"></svg>
+      <p class="text-sm text-muted-foreground">No borrow history yet. Book lending will appear here once connected.</p>
+    </app-glass-card>
+    }
+
+    <!-- CONTACTS TAB -->
+    @if (activeTab() === 'contacts') {
+    <app-member-contact-component [contactData]="m.contacts" (addContact)="addContact($event)" />
+    }
+
+    <!-- Plans TAB -->
+    @if (activeTab() === 'plans' || activeTab() === 'payments' ) {
+    <!-- Payment KPIs -->
+    <!-- <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div class="border rounded-lg p-3 bg-muted/20">
+                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <svg lucideCheckCircle2 class="h-4 w-4 text-emerald-500"></svg> Total paid
+                </div>
+                <div class="text-base font-semibold tabular-nums mt-1">₹{{ paymentStats().paid.toLocaleString() }}</div>
+              </div>
+              <div class="border rounded-lg p-3 bg-muted/20">
+                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <svg lucideClock class="h-4 w-4 text-amber-500"></svg> Pending
+                </div>
+                <div class="text-base font-semibold tabular-nums mt-1">₹{{ paymentStats().pending.toLocaleString() }}</div>
+              </div>
+              <div class="border rounded-lg p-3 bg-muted/20">
+                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <svg lucideAlertTriangle class="h-4 w-4" [class]="member()!.feesOwed > 0 ? 'text-rose-500' : 'text-muted-foreground'"></svg> Outstanding
+                </div>
+                <div class="text-base font-semibold tabular-nums mt-1">₹{{ member()!.feesOwed.toLocaleString() }}</div>
+              </div>
+              <div class="border rounded-lg p-3 bg-muted/20">
+                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <svg lucideCreditCard class="h-4 w-4 text-primary"></svg> Last payment
+                </div>
+                <div class="text-base font-semibold tabular-nums mt-1">{{ paymentStats().last?.date ?? '—' }}</div>
+              </div>
+            </div> -->
+
+    <!-- Payments table -->
+    <app-member-payments-component [plans]="m.plans" [view]="activeTab()" />
+    }
+
+  </div>
+</div>
+<!-- ── DIALOGS ─────────────────────────────────────────────────────────── -->
+<!-- Change Shift -->
+@if (dialog() === 'shift' || dialog() === 'plan') {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-md rounded-xl border bg-background shadow-xl p-6 space-y-5">
+
+    <!-- Header -->
+    <div>
+      <h2 class="text-lg font-semibold">Change {{ dialog() === 'plan' ? 'plan': 'shift'}}</h2>
+      <p class="text-sm text-muted-foreground mt-0.5">
+        Update member's {{ dialog() === 'plan' ? 'current plan.': 'current shift.'}}
+      </p>
+    </div>
+
+    @if(dialog() === 'shift'){
+    <!-- Shift -->
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">Shift</label>
+
+      <select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" [ngModel]="toShift()"
+        (ngModelChange)="toShift.set($event)" name="toShift">
+
+        @for (s of commonService.shifts; track s) {
+        <option [value]="s">
+          {{ s }}
+        </option>
+        }
+
+      </select>
+
+      <p class="text-xs text-muted-foreground">
+        Current: {{ m.shift }}
+      </p>
+    </div>
+    }
+
+    @if(dialog() === 'plan' ){
+    <!-- Plan -->
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">Plan</label>
+
+      <select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" [ngModel]="selectedPlanId()"
+        (ngModelChange)="onPlanChange($event)" name="planId">
+
+        <option value="">Select plan</option>
+
+        @for (plan of plans(); track plan.id) {
+        <option [value]="plan.id">
+          {{ plan.name }} — {{ plan.price | currency:'INR' }}
+        </option>
+        }
+
+      </select>
+
+      <p class="text-xs text-muted-foreground">
+        Current: {{ m.plan || 'No plan' }}
+      </p>
+    </div>
+
+    <!-- Adjustment Preview -->
+    @if (selectedPlan()) {
+    <div class="rounded-lg border bg-muted/30 p-4 space-y-2">
+
+      <div class="flex justify-between text-sm">
+        <span class="text-muted-foreground">Current plan</span>
+        <span class="font-medium">
+          {{ m.planPrice | currency:'INR' }}
+        </span>
+      </div>
+
+      <div class="flex justify-between text-sm">
+        <span class="text-muted-foreground">Expires </span>
+        <span class="font-medium">
+          {{ m.planEndDate | date:'dd MMM yyyy'}}
+        </span>
+      </div>
+
+      <div class="flex justify-between text-sm">
+        <span class="text-muted-foreground">Remaining Days</span>
+        <span class="font-medium">
+          {{remainingDays()}} days
+        </span>
+      </div>
+
+      <div class="flex justify-between text-sm">
+        <span class="text-muted-foreground">Remaining Amount</span>
+        <span class="font-medium text-green-600">
+          - {{ adjustmentAmount().remaingingAmount| currency:'INR' }}
+        </span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-muted-foreground">Used Amount</span>
+        <span class="font-medium text-red-600">
+          {{ adjustmentAmount().usedAmount| currency:'INR' }}
+        </span>
+      </div>
+
+      <div class="border-t pt-2 flex justify-between">
+        <span class="font-medium">New Plan</span>
+
+        <span class="font-semibold">
+          {{ selectedPlan()?.price| currency:'INR' }}
+        </span>
+      </div>
+
+      <div class="flex justify-between text-sm">
+        <span class="text-muted-foreground">Remaining Amount</span>
+        <span class="font-medium text-green-600">
+          - {{ adjustmentAmount().remaingingAmount| currency:'INR' }}
+        </span>
+      </div>
+
+      <div class="border-t pt-2 flex justify-between">
+        <span class="font-medium">Amount to pay</span>
+
+        <span class="font-semibold">
+          {{ amountToPay() | currency:'INR' }}
+        </span>
+      </div>
+
+      @if (remainingDays() > 0) {
+      <p class="text-xs text-muted-foreground">
+        {{ remainingDays() }} unused days from the current plan
+        have been adjusted.
+      </p>
+      }
+
+    </div>
+    }
+    }
+
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-2 pt-2 border-t">
+
+      <app-button variant="outline" (click)="closeDialog()">
+        Cancel
+      </app-button>
+
+      <app-button [disabled]="dialogBusy() || !hasChanges()" (click)="confirmChangePlanOrShift()">
+
+        {{ dialogBusy() ? 'Saving…' : 'Save changes' }}
+
+      </app-button>
+
+    </div>
+
+  </div>
+</div>
+}
+}
+
+<app-renew-plan-dialog
+  [target]="renewTarget()"
+  [busy]="renewBusy()"
+  (confirm)="confirmRenew($event)"
+  (closed)="closeRenew()" />
+
+}@else {
+<div class="flex min-h-[calc(100vh-64px)] items-center justify-center">
+  <div class="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary">
+  </div>
+</div>
+}

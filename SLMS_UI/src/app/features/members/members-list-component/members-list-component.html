@@ -1,0 +1,821 @@
+<app-page-header eyebrow="People" title="Members" [description]="headerDescription()">
+  <div actions class="flex items-center gap-2">
+    <app-button variant="outline" size="sm">
+      <svg lucideDownload class="h-4 w-4 mr-1"></svg> Export
+    </app-button>
+    <a routerLink="/members/create">
+      <app-button size="sm">
+        <svg lucidePlus class="h-4 w-4 mr-1"></svg> Add member
+      </app-button>
+    </a>
+  </div>
+</app-page-header>
+
+<!-- KPI row -->
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+  <app-kpi-card label="Active" [value]="activeCount().toLocaleString()">
+    <svg icon lucideUsers class="h-4 w-4"></svg>
+  </app-kpi-card>
+  <button type="button" class="kpi-filter-btn" [class.kpi-filter-btn--active]="activeExpiryQuick() === 'expiring'"
+    (click)="applyExpiryQuick('expiring')" title="Filter expiring memberships">
+    <app-kpi-card label="Expiring ≤ 7d" [value]="expiringSoon().toLocaleString()">
+      <svg icon lucideCalendarClock class="h-4 w-4"></svg>
+    </app-kpi-card>
+  </button>
+  <button type="button" class="kpi-filter-btn" [class.kpi-filter-btn--active]="activeExpiryQuick() === 'expired'"
+    (click)="applyExpiryQuick('expired')" title="Filter expired memberships">
+    <app-kpi-card label="Expired" [value]="expiredCount().toLocaleString()">
+      <svg icon lucideBellRing class="h-4 w-4"></svg>
+    </app-kpi-card>
+  </button>
+  <app-kpi-card label="Fees due" [value]="'₹' + feesDue().toLocaleString()">
+    <svg icon lucideAlertCircle class="h-4 w-4"></svg>
+  </app-kpi-card>
+  <app-kpi-card label="Premium" [value]="premiumCount().toLocaleString()">
+    <svg icon lucideCrown class="h-4 w-4"></svg>
+  </app-kpi-card>
+</div>
+
+@if (actionCount() > 0 && !needsAction()) {
+<div class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-sm">
+  <svg lucideBellRing class="h-4 w-4 text-warning-foreground"></svg>
+  <span class="text-warning-foreground">
+    <b class="tabular-nums">{{ actionCount() }}</b>
+    membership{{ actionCount() === 1 ? '' : 's' }} need attention —
+    <b class="tabular-nums">{{ expiredCount() }}</b> expired,
+    <b class="tabular-nums">{{ expiringSoon() }}</b> expiring within 7 days.
+  </span>
+  <app-button size="sm" variant="outline" class="ml-auto" (click)="applyNeedsActionFilter()">
+    Review now
+  </app-button>
+</div>
+}
+
+<app-glass-card class="block">
+  <!-- Filter bar -->
+  <div class="flex flex-wrap gap-2 items-center">
+    <div class="relative flex-1 min-w-[220px]">
+      <svg lucideSearch
+        class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"></svg>
+      <input
+        class="flex h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-8 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        placeholder="Search name, email, phone…" [ngModel]="query()" (ngModelChange)="onQueryChange($event)" />
+      @if (query()) {
+      <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        (click)="onQueryChange('')" title="Clear search">
+        <svg lucideX class="h-3.5 w-3.5"></svg>
+      </button>
+      }
+    </div>
+
+    <!-- Expiry dropdown -->
+    <div class="relative">
+      <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('lifecycle')">
+        <svg lucideCalendarClock class="h-3.5 w-3.5 mr-1"></svg> Expiry
+        @if (filterCount('lifecycles') > 0 || needsAction()) {
+        <span class="ml-1.5 rounded bg-primary/15 text-primary text-[10px] px-1.5 py-0.5 tabular-nums">
+          {{ filterCount('lifecycles') + (needsAction() ? 1 : 0) }}
+        </span>
+        }
+        <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
+      </app-button>
+      @if (openFilter() === 'lifecycle') {
+      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
+      <div class="absolute left-0 z-40 mt-1 w-64 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+        <div class="flex items-center justify-between px-2 py-1">
+          <span class="label-mono">Expiry</span>
+          @if (hasExpiryFilters()) {
+          <button type="button" class="text-xs text-muted-foreground hover:text-foreground" (click)="clearExpiryFilters()">Clear</button>
+          }
+        </div>
+        @for (opt of LIFECYCLE_OPTS; track opt) {
+        <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+          <input type="checkbox" [checked]="isFilterSelected('lifecycles', opt)" (change)="toggleIn('lifecycles', opt)" />
+          <span class="truncate flex-1">{{ opt }}</span>
+          <span class="text-[10px] tabular-nums text-muted-foreground">{{ lifecycleOptionCount(opt) }}</span>
+        </label>
+        }
+        <div class="my-1 border-t"></div>
+        <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+          <input type="checkbox" [checked]="needsAction()" (change)="toggleNeedsAction()" />
+          <span class="truncate flex-1">Needs action</span>
+          <span class="text-[10px] tabular-nums text-muted-foreground">{{ actionCount() }}</span>
+        </label>
+      </div>
+      }
+    </div>
+
+    <!-- Status dropdown -->
+    <div class="relative">
+      <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('status')">
+        <svg lucideFilter class="h-3.5 w-3.5 mr-1"></svg> Status
+        @if (filterCount('statuses') > 0) {
+        <span class="ml-1.5 rounded bg-primary/15 text-primary text-[10px] px-1.5 py-0.5 tabular-nums">{{ filterCount('statuses') }}</span>
+        }
+        <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
+      </app-button>
+      @if (openFilter() === 'status') {
+      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
+      <div class="absolute left-0 z-40 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+        <div class="flex items-center justify-between px-2 py-1">
+          <span class="label-mono">Status</span>
+          @if (filterCount('statuses') > 0) {
+          <button type="button" class="text-xs text-muted-foreground hover:text-foreground" (click)="clearFilter('statuses')">Clear</button>
+          }
+        </div>
+        @for (opt of STATUS_OPTS; track opt) {
+        <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+          <input type="checkbox" [checked]="isFilterSelected('statuses', opt)" (change)="toggleIn('statuses', opt)" />
+          <span class="truncate flex-1">{{ opt }}</span>
+          <span class="text-[10px] tabular-nums text-muted-foreground">{{ statusOptionCount(opt) }}</span>
+        </label>
+        }
+      </div>
+      }
+    </div>
+
+    <!-- Plan dropdown -->
+    <div class="relative">
+      <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('plan')">
+        <svg lucideFilter class="h-3.5 w-3.5 mr-1"></svg> Plan
+        @if (filterCount('plans') > 0) {
+        <span class="ml-1.5 rounded bg-primary/15 text-primary text-[10px] px-1.5 py-0.5 tabular-nums">{{ filterCount('plans') }}</span>
+        }
+        <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
+      </app-button>
+      @if (openFilter() === 'plan') {
+      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
+      <div class="absolute left-0 z-40 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+        <div class="flex items-center justify-between px-2 py-1">
+          <span class="label-mono">Plan</span>
+          @if (filterCount('plans') > 0) {
+          <button type="button" class="text-xs text-muted-foreground hover:text-foreground" (click)="clearFilter('plans')">Clear</button>
+          }
+        </div>
+        @for (opt of PLAN_OPTS; track opt) {
+        <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+          <input type="checkbox" [checked]="isFilterSelected('plans', opt)" (change)="toggleIn('plans', opt)" />
+          <span class="truncate flex-1">{{ opt }}</span>
+          <span class="text-[10px] tabular-nums text-muted-foreground">{{ planOptionCount(opt) }}</span>
+        </label>
+        }
+      </div>
+      }
+    </div>
+
+    <!-- Branch dropdown -->
+    <div class="relative">
+      <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('branch')">
+        <svg lucideFilter class="h-3.5 w-3.5 mr-1"></svg> Branch
+        @if (filterCount('branches') > 0) {
+        <span class="ml-1.5 rounded bg-primary/15 text-primary text-[10px] px-1.5 py-0.5 tabular-nums">{{ filterCount('branches') }}</span>
+        }
+        <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
+      </app-button>
+      @if (openFilter() === 'branch') {
+      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
+      <div class="absolute left-0 z-40 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+        <div class="flex items-center justify-between px-2 py-1">
+          <span class="label-mono">Branch</span>
+          @if (filterCount('branches') > 0) {
+          <button type="button" class="text-xs text-muted-foreground hover:text-foreground" (click)="clearFilter('branches')">Clear</button>
+          }
+        </div>
+        @if (branchOptions().length === 0) {
+        <div class="px-2 py-1.5 text-xs text-muted-foreground">No options</div>
+        }
+        @for (opt of branchOptions(); track opt) {
+        <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+          <input type="checkbox" [checked]="isFilterSelected('branches', opt)" (change)="toggleIn('branches', opt)" />
+          <span class="truncate flex-1">{{ opt }}</span>
+          <span class="text-[10px] tabular-nums text-muted-foreground">{{ branchOptionCount(opt) }}</span>
+        </label>
+        }
+      </div>
+      }
+    </div>
+
+    <!-- Shift dropdown -->
+    <div class="relative">
+      <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('shift')">
+        <svg lucideFilter class="h-3.5 w-3.5 mr-1"></svg> Shift
+        @if (filterCount('shifts') > 0) {
+        <span class="ml-1.5 rounded bg-primary/15 text-primary text-[10px] px-1.5 py-0.5 tabular-nums">{{ filterCount('shifts') }}</span>
+        }
+        <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
+      </app-button>
+      @if (openFilter() === 'shift') {
+      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
+      <div class="absolute left-0 z-40 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+        <div class="flex items-center justify-between px-2 py-1">
+          <span class="label-mono">Shift</span>
+          @if (filterCount('shifts') > 0) {
+          <button type="button" class="text-xs text-muted-foreground hover:text-foreground" (click)="clearFilter('shifts')">Clear</button>
+          }
+        </div>
+        @if (shiftOptions().length === 0) {
+        <div class="px-2 py-1.5 text-xs text-muted-foreground">No options</div>
+        }
+        @for (opt of shiftOptions(); track opt) {
+        <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+          <input type="checkbox" [checked]="isFilterSelected('shifts', opt)" (change)="toggleIn('shifts', opt)" />
+          <span class="truncate flex-1">{{ opt }}</span>
+          <span class="text-[10px] tabular-nums text-muted-foreground">{{ shiftOptionCount(opt) }}</span>
+        </label>
+        }
+      </div>
+      }
+    </div>
+
+    @if (activeFilterCount() > 0 || !isSortDefault()) {
+    <app-button size="sm" variant="ghost" (click)="clearAll()">
+      <svg lucideX class="h-3.5 w-3.5 mr-1"></svg> Clear all
+    </app-button>
+    }
+
+    @if (!isSortDefault()) {
+    <app-button size="sm" variant="ghost" (click)="resetSort()">
+      <svg lucideChevronsUpDown class="h-3.5 w-3.5 mr-1"></svg> Reset sort
+    </app-button>
+    }
+
+    <div class="flex gap-1 ml-auto">
+      <app-button [variant]="view() === 'table' ? 'default' : 'outline'" size="sm" (click)="setView('table')">
+        <svg lucideList class="h-4 w-4"></svg>
+      </app-button>
+      <app-button [variant]="view() === 'grid' ? 'default' : 'outline'" size="sm" (click)="setView('grid')">
+        <svg lucideLayoutGrid class="h-4 w-4"></svg>
+      </app-button>
+    </div>
+  </div>
+
+  @if (activeFilterCount() > 0 || !isSortDefault()) {
+  <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/60">
+    <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-0.5">Active filters</span>
+    @if (!isSortDefault()) {
+    <span class="filter-chip">
+      Sort: {{ sortLabel() }}
+      <button type="button" (click)="resetSort()" class="filter-chip__remove" title="Remove sort">
+        <svg lucideX class="h-3 w-3"></svg>
+      </button>
+    </span>
+    }
+    @if (query()) {
+    <span class="filter-chip">
+      Search: "{{ query() }}"
+      <button type="button" (click)="onQueryChange('')" class="filter-chip__remove" title="Clear search">
+        <svg lucideX class="h-3 w-3"></svg>
+      </button>
+    </span>
+    }
+    @if (needsAction()) {
+    <span class="filter-chip">
+      Needs action
+      <button type="button" (click)="clearNeedsActionFilter()" class="filter-chip__remove" title="Remove filter">
+        <svg lucideX class="h-3 w-3"></svg>
+      </button>
+    </span>
+    }
+    @for (s of statuses(); track s) {
+    <span class="filter-chip">
+      Status: {{ s }}
+      <button type="button" (click)="toggleIn('statuses', s)" class="filter-chip__remove" title="Remove filter">
+        <svg lucideX class="h-3 w-3"></svg>
+      </button>
+    </span>
+    }
+    @for (l of lifecycles(); track l) {
+    <span class="filter-chip">
+      Expiry: {{ l }}
+      <button type="button" (click)="toggleIn('lifecycles', l)" class="filter-chip__remove" title="Remove filter">
+        <svg lucideX class="h-3 w-3"></svg>
+      </button>
+    </span>
+    }
+    @for (b of branches(); track b) {
+    <span class="filter-chip">
+      Branch: {{ b }}
+      <button type="button" (click)="toggleIn('branches', b)" class="filter-chip__remove" title="Remove filter">
+        <svg lucideX class="h-3 w-3"></svg>
+      </button>
+    </span>
+    }
+    @for (p of plans(); track p) {
+    <span class="filter-chip">
+      Plan: {{ p }}
+      <button type="button" (click)="toggleIn('plans', p)" class="filter-chip__remove" title="Remove filter">
+        <svg lucideX class="h-3 w-3"></svg>
+      </button>
+    </span>
+    }
+    @for (s of shifts(); track s) {
+    <span class="filter-chip">
+      Shift: {{ s }}
+      <button type="button" (click)="toggleIn('shifts', s)" class="filter-chip__remove" title="Remove filter">
+        <svg lucideX class="h-3 w-3"></svg>
+      </button>
+    </span>
+    }
+    @if (hasExpiryFilters()) {
+    <button type="button" class="text-xs text-muted-foreground hover:text-foreground ml-1" (click)="clearExpiryFilters()">
+      Clear expiry
+    </button>
+    }
+    <button type="button" class="text-xs text-muted-foreground hover:text-foreground" (click)="clearAll()">
+      Clear all
+    </button>
+    <span class="text-xs text-muted-foreground ml-auto self-center tabular-nums">
+      {{ sorted().length }} match{{ sorted().length === 1 ? '' : 'es' }}
+    </span>
+  </div>
+  }
+
+  <div class="mt-4">
+    @if (loading()) {
+    <div class="py-10 text-center text-muted-foreground text-sm">Loading…</div>
+    }
+
+    @if (!loading() && view() === 'table') {
+    <div class="overflow-x-auto -mx-4">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left border-y label-mono bg-muted/30">
+            <th class="px-4 py-2 font-medium">
+              <button type="button" (click)="onSort('name')"
+                class="inline-flex items-center gap-1 hover:text-foreground transition"
+                [class]="sortKey() === 'name' ? 'text-foreground' : 'text-muted-foreground'">
+                Member
+                @if (sortKey() === 'name') {
+                @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
+                } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
+              </button>
+            </th>
+            <th class="px-2 py-2 font-medium text-center">
+              <button type="button" (click)="onSort('status')"
+                class="inline-flex items-center justify-center gap-1 hover:text-foreground transition mx-auto"
+                [class]="sortKey() === 'status' ? 'text-foreground' : 'text-muted-foreground'">Status
+                @if (sortKey() === 'status') {
+                @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
+                } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
+              </button>
+            </th>
+            <th class="px-2 py-2 font-medium text-center">
+              <button type="button" (click)="onSort('plan')"
+                class="inline-flex items-center justify-center gap-1 hover:text-foreground transition mx-auto"
+                [class]="sortKey() === 'plan' ? 'text-foreground' : 'text-muted-foreground'">Plan
+                @if (sortKey() === 'plan') {
+                @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
+                } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
+              </button>
+            </th>
+            <th class="px-2 py-2 font-medium">
+              <button type="button" (click)="onSort('planExpiry')"
+                class="inline-flex items-center gap-1 hover:text-foreground transition"
+                [class]="sortKey() === 'planExpiry' ? 'text-foreground' : 'text-muted-foreground'">Expires
+                @if (sortKey() === 'planExpiry') {
+                @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
+                } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
+              </button>
+            </th>
+            <th class="px-2 py-2 font-medium text-center">Action required</th>
+            <th class="px-2 py-2 font-medium">
+              <button type="button" (click)="onSort('shift')"
+                class="inline-flex items-center gap-1 hover:text-foreground transition"
+                [class]="sortKey() === 'shift' ? 'text-foreground' : 'text-muted-foreground'">Shift
+                @if (sortKey() === 'shift') {
+                @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
+                } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
+              </button>
+            </th>
+            <th class="px-2 py-2 font-medium">
+              <button type="button" (click)="onSort('branch')"
+                class="inline-flex items-center gap-1 hover:text-foreground transition"
+                [class]="sortKey() === 'branch' ? 'text-foreground' : 'text-muted-foreground'">Branch
+                @if (sortKey() === 'branch') {
+                @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
+                } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
+              </button>
+            </th>
+            <th class="px-2 py-2 font-medium">
+              <button type="button" (click)="onSort('attendanceRate')"
+                class="inline-flex items-center gap-1 hover:text-foreground transition"
+                [class]="sortKey() === 'attendanceRate' ? 'text-foreground' : 'text-muted-foreground'">Attendance
+                @if (sortKey() === 'attendanceRate') {
+                @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
+                } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
+              </button>
+            </th>
+            <th class="px-2 py-2 font-medium">
+              <button type="button" (click)="onSort('feesOwed')"
+                class="inline-flex items-center gap-1 hover:text-foreground transition"
+                [class]="sortKey() === 'feesOwed' ? 'text-foreground' : 'text-muted-foreground'">Fees
+                @if (sortKey() === 'feesOwed') {
+                @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
+                } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
+              </button>
+            </th>
+            <th class="px-4 py-2 font-medium text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          @if (paged().length === 0) {
+          <tr>
+            <td colspan="10" class="py-8 text-center text-muted-foreground">No members match your filters</td>
+          </tr>
+          }
+          @for (m of paged(); track m.id; let i = $index) {
+          <tr class="hover:bg-muted/40" [class]="lifecycleRowClass(m.life.state)">
+            <td class="px-4 py-2.5">
+              <a [routerLink]="['/members', m.id]" class="flex items-center gap-2 group">
+                <span class="h-8 w-8 rounded-full flex items-center justify-center text-xs text-white font-medium shrink-0"
+                  [style.background]="commonService.avatarBg((i * 41) % 360)">
+                  {{ commonService.initials(m.name || m.userName || m.email) }}
+                </span>
+                <div>
+                  <div class="font-medium group-hover:text-primary">{{ m.name || m.userName || m.email }}</div>
+                  <div class="text-xs text-muted-foreground">{{ m.email }}</div>
+                </div>
+              </a>
+            </td>
+            <td class="px-2 py-2.5 text-center align-middle">
+              <div class="flex justify-center">
+                <button type="button" [class]="filterBadgeClass(isFilterSelected('statuses', m.status))"
+                  (click)="onFilterPillClick('statuses', m.status, $event)" [title]="'Filter by ' + m.status">
+                  <app-status-badge [status]="m.status" />
+                </button>
+              </div>
+            </td>
+            <td class="px-2 py-2.5 text-center align-middle">
+              <div class="flex flex-col gap-1 items-center justify-center">
+                <button type="button" [class]="filterBadgeClass(isFilterSelected('plans', m.plan))"
+                  (click)="onFilterPillClick('plans', m.plan, $event)" [title]="'Filter by ' + m.plan">
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
+                    [class]="commonService.planClasses(m.plan)">{{ m.plan }}</span>
+                </button>
+                <button type="button" [class]="filterBadgeClass(isFilterSelected('lifecycles', m.life.state))"
+                  (click)="onFilterPillClick('lifecycles', m.life.state, $event)" [title]="'Filter by ' + m.life.state">
+                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium whitespace-nowrap"
+                    [class]="LIFECYCLE_TONE_CLASSES[m.life.tone]">
+                    <svg lucideCalendarClock class="h-3 w-3"></svg>
+                    {{ m.life.state }}
+                  </span>
+                </button>
+              </div>
+            </td>
+            <td class="px-2 py-2.5 text-xs tabular-nums">
+              <div class="whitespace-nowrap">{{ m.life.expiry }}</div>
+              <div class="text-[11px]" [class]="lifecycleRelativeClass(m.life.daysLeft)">{{ m.life.relative }}</div>
+            </td>
+            <td class="px-2 py-2.5 text-center align-middle">
+              @if (m.life.action) {
+              <div class="flex justify-center">
+                <button type="button" [class]="filterBadgeClass(needsAction())"
+                  (click)="onNeedsActionPillClick($event)" [title]="'Filter members needing action'">
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium whitespace-nowrap max-w-[11rem] truncate"
+                    [class]="LIFECYCLE_TONE_CLASSES[m.life.tone]">
+                    <svg lucideBellRing class="h-3 w-3 shrink-0"></svg>
+                    {{ m.life.action }}
+                  </span>
+                </button>
+              </div>
+              } @else {
+              <span class="text-xs text-muted-foreground">—</span>
+              }
+            </td>
+            <td class="px-2 py-2.5 text-muted-foreground">
+              @if (m.shift && m.shift !== '—') {
+              <button type="button" class="filter-text-btn"
+                [class.filter-text-btn--active]="isFilterSelected('shifts', m.shift)"
+                (click)="onFilterPillClick('shifts', m.shift, $event)">{{ m.shift }}</button>
+              } @else {
+              {{ m.shift }}
+              }
+            </td>
+            <td class="px-2 py-2.5 text-muted-foreground text-xs">
+              @if (m.branch && m.branch !== '—') {
+              <button type="button" class="filter-text-btn"
+                [class.filter-text-btn--active]="isFilterSelected('branches', m.branch)"
+                (click)="onFilterPillClick('branches', m.branch, $event)">{{ m.branch }}</button>
+              } @else {
+              {{ m.branch }}
+              }
+            </td>
+            <td class="px-2 py-2.5 w-40">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div class="h-full rounded-full" [class]="commonService.attendanceBarClass(m.attendanceRate)"
+                    [style.width]="m.attendanceRate + '%'"></div>
+                </div>
+                <span class="text-xs tabular-nums w-8 text-right">{{ m.attendanceRate }}%</span>
+              </div>
+            </td>
+            <td class="px-2 py-2.5 text-xs tabular-nums">
+              @if (m.feesOwed > 0) {
+              <span class="text-rose-500">₹{{ m.feesOwed.toLocaleString() }}</span>
+              } @else {
+              <span class="text-muted-foreground">Clear</span>
+              }
+            </td>
+            <td class="px-4 py-2.5 text-right">
+              <div class="inline-flex items-center gap-0.5">
+                @if (m.life.needsAction && m.life.state !== 'New') {
+                <app-button variant="outline" size="sm" class="h-8 mr-1" (click)="renewPlan(m)">
+                  <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Renew
+                </app-button>
+                }
+                <button type="button" title="Copy member ID" (click)="copyId(m.id)"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+                  <svg lucideCopy class="h-4 w-4"></svg>
+                </button>
+                <button type="button" title="Quick view" (click)="openQuick(m.id)"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+                  <svg lucidePanelRightOpen class="h-4 w-4"></svg>
+                </button>
+                <div class="relative">
+                  <button type="button" (click)="toggleDropdown(m.id)"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+                    <svg lucideMoreHorizontal class="h-4 w-4"></svg>
+                  </button>
+                  @if (openDropdownId() === m.id) {
+                  <div class="fixed inset-0 z-30" (click)="closeDropdown()"></div>
+                  <div class="absolute right-0 z-40 mt-1 w-44 rounded-md border bg-popover shadow-md py-1 text-sm">
+                    <a [routerLink]="['/members', m.id]" (click)="closeDropdown()"
+                      class="flex items-center gap-2 px-3 py-1.5 hover:bg-accent cursor-pointer">
+                      <svg lucideEye class="h-4 w-4"></svg> View profile
+                    </a>
+                    <button type="button" (click)="renewPlan(m); closeDropdown()"
+                      class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+                      <svg lucideRotateCcw class="h-4 w-4"></svg> Renew plan
+                    </button>
+                    <button type="button" (click)="openQuick(m.id); closeDropdown()"
+                      class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+                      <svg lucidePanelRightOpen class="h-4 w-4"></svg> Quick view
+                    </button>
+                    <button type="button" (click)="copyId(m.id)"
+                      class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+                      <svg lucideCopy class="h-4 w-4"></svg> Copy ID
+                    </button>
+                    <a [routerLink]="['/members', m.id]" (click)="closeDropdown()"
+                      class="flex items-center gap-2 px-3 py-1.5 hover:bg-accent cursor-pointer">
+                      <svg lucideEdit class="h-4 w-4"></svg> Edit
+                    </a>
+                    <button type="button" (click)="closeDropdown()"
+                      class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+                      <svg lucideMail class="h-4 w-4"></svg> Send message
+                    </button>
+                  </div>
+                  }
+                </div>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+
+    @if (!loading() && view() === 'grid') {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      @if (paged().length === 0) {
+      <div class="col-span-full py-8 text-center text-muted-foreground text-sm">No members match your filters</div>
+      }
+      @for (m of paged(); track m.id; let i = $index) {
+      <div class="border rounded-lg p-4 hover:border-primary/60 hover:bg-muted/30 transition group relative"
+        [class]="m.life.state === 'Expired' ? 'border-destructive/40' : (m.life.state === 'Expiring soon' || m.life.state === 'Grace') ? 'border-warning/40' : ''">
+        <a [routerLink]="['/members', m.id]" class="absolute inset-0 rounded-lg" [attr.aria-label]="m.name"></a>
+        <div class="flex items-center gap-3 relative z-10">
+          <span class="h-11 w-11 rounded-full flex items-center justify-center text-white font-medium shrink-0 pointer-events-none"
+            [style.background]="commonService.avatarBg((i * 41) % 360)">
+            {{ commonService.initials(m.name || m.userName || m.email) }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium truncate group-hover:text-primary">{{ m.name || m.userName || m.email }}</div>
+            <div class="text-xs text-muted-foreground truncate">{{ m.email }}</div>
+          </div>
+          <button type="button" [class]="filterBadgeClass(isFilterSelected('plans', m.plan))"
+            (click)="onFilterPillClick('plans', m.plan, $event); $event.preventDefault()">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
+              [class]="commonService.planClasses(m.plan)">{{ m.plan }}</span>
+          </button>
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-2 relative z-10">
+          <button type="button" [class]="filterBadgeClass(isFilterSelected('statuses', m.status))"
+            (click)="onFilterPillClick('statuses', m.status, $event)">
+            <app-status-badge [status]="m.status" />
+          </button>
+          <button type="button" [class]="filterBadgeClass(isFilterSelected('lifecycles', m.life.state))"
+            (click)="onFilterPillClick('lifecycles', m.life.state, $event)">
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium whitespace-nowrap"
+              [class]="LIFECYCLE_TONE_CLASSES[m.life.tone]">
+              <svg lucideCalendarClock class="h-3 w-3"></svg>
+              {{ m.life.state }}
+            </span>
+          </button>
+          <span class="text-xs text-muted-foreground">
+            @if (m.shift && m.shift !== '—') {
+            <button type="button" class="filter-text-btn"
+              [class.filter-text-btn--active]="isFilterSelected('shifts', m.shift)"
+              (click)="onFilterPillClick('shifts', m.shift, $event)">{{ m.shift }}</button>
+            } @else { {{ m.shift }} }
+            ·
+            @if (m.branch && m.branch !== '—') {
+            <button type="button" class="filter-text-btn"
+              [class.filter-text-btn--active]="isFilterSelected('branches', m.branch)"
+              (click)="onFilterPillClick('branches', m.branch, $event)">{{ m.branch }}</button>
+            } @else { {{ m.branch }} }
+          </span>
+        </div>
+        <div class="mt-2 flex items-center justify-between text-xs relative pointer-events-none">
+          <span class="text-muted-foreground">Expires {{ m.life.expiry }}</span>
+          <span [class]="lifecycleRelativeClass(m.life.daysLeft)">{{ m.life.relative }}</span>
+        </div>
+        @if (m.life.action) {
+        <div class="mt-2 relative z-10">
+          <button type="button" [class]="filterBadgeClass(needsAction())"
+            (click)="onNeedsActionPillClick($event)">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium whitespace-nowrap"
+              [class]="LIFECYCLE_TONE_CLASSES[m.life.tone]">
+              <svg lucideBellRing class="h-3 w-3"></svg>
+              {{ m.life.action }}
+            </span>
+          </button>
+        </div>
+        }
+        <div class="mt-3 relative pointer-events-none">
+          <div class="flex justify-between text-xs text-muted-foreground mb-1">
+            <span>Attendance</span><span class="tabular-nums">{{ m.attendanceRate }}%</span>
+          </div>
+          <div class="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div class="h-full rounded-full" [class]="commonService.attendanceBarClass(m.attendanceRate)"
+              [style.width]="m.attendanceRate + '%'"></div>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center justify-between relative">
+          <span class="text-xs text-muted-foreground pointer-events-none">Last visit {{ m.lastVisit }}</span>
+          <div class="flex gap-1 relative z-10">
+            @if (m.life.needsAction && m.life.state !== 'New') {
+            <app-button variant="outline" size="sm" class="h-7 text-xs" (click)="$event.preventDefault(); renewPlan(m)">
+              <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Renew
+            </app-button>
+            }
+            <button type="button" title="Copy ID" (click)="$event.preventDefault(); copyId(m.id)"
+              class="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+              <svg lucideCopy class="h-3.5 w-3.5"></svg>
+            </button>
+            <button type="button" title="Quick view" (click)="$event.preventDefault(); openQuick(m.id)"
+              class="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+              <svg lucidePanelRightOpen class="h-3.5 w-3.5"></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+    }
+
+    @if (!loading() && sorted().length > 0) {
+    <div class="flex flex-wrap items-center justify-between gap-3 mt-4 pt-3 border-t">
+      <div class="text-xs text-muted-foreground">
+        Showing <span class="tabular-nums font-medium text-foreground">{{ pageStart() + 1 }}–{{ Math.min(pageStart() + pageSize(), sorted().length) }}</span>
+        of <span class="tabular-nums font-medium text-foreground">{{ sorted().length }}</span>
+      </div>
+      <div class="flex items-center gap-3 ml-auto">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span>Rows</span>
+          <select class="h-8 rounded border bg-background px-1.5 text-xs" [ngModel]="pageSize()"
+            (ngModelChange)="setPageSize(+$event)">
+            @for (n of PAGE_SIZE_OPTS; track n) {
+            <option [value]="n">{{ n }}</option>
+            }
+          </select>
+        </div>
+        <div class="flex items-center gap-0.5">
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(1)">
+            <svg lucideChevronsLeft class="h-4 w-4"></svg>
+          </app-button>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+            <svg lucideChevronLeft class="h-4 w-4"></svg>
+          </app-button>
+          <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ currentPage() }} / {{ totalPages() }}</span>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+            <svg lucideChevronRight class="h-4 w-4"></svg>
+          </app-button>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(totalPages())">
+            <svg lucideChevronsRight class="h-4 w-4"></svg>
+          </app-button>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+</app-glass-card>
+
+<!-- Quick-view side panel -->
+@if (quickId()) {
+<div class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity" (click)="closeQuick()"></div>
+<aside class="fixed top-0 right-0 z-50 h-screen w-full max-w-md bg-background border-l shadow-2xl overflow-y-auto transform transition-transform duration-300 ease-out">
+  @if (quickMember(); as qm) {
+  <div class="p-6">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-3">
+        <span class="h-11 w-11 rounded-full flex items-center justify-center text-white font-medium shrink-0"
+          [style.background]="commonService.avatarBg(qm.avatarHue ?? 200)">
+          {{ commonService.initials(qm.name || qm.userName || qm.email) }}
+        </span>
+        <div>
+          <div class="font-semibold">{{ qm.name || qm.userName || qm.email }}</div>
+          <div class="text-xs text-muted-foreground">{{ qm.email }}</div>
+        </div>
+      </div>
+      <button type="button" (click)="closeQuick()"
+        class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent">
+        <svg lucideX class="h-4 w-4"></svg>
+      </button>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-5">
+      <app-status-badge [status]="qm.status" />
+      <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
+        [class]="commonService.planClasses(qm.plan)">{{ qm.plan }}</span>
+      <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium whitespace-nowrap"
+        [class]="LIFECYCLE_TONE_CLASSES[qm.life.tone]">
+        <svg lucideCalendarClock class="h-3 w-3"></svg>
+        {{ qm.life.state }}
+      </span>
+      <span class="text-xs px-2 py-0.5 rounded border bg-muted/50">{{ qm.shift }}</span>
+    </div>
+
+    @if (qm.life.action) {
+    <div class="rounded-md border border-warning/30 bg-warning/10 p-3 mb-5">
+      <div class="label-mono text-[10px] text-warning-foreground">Action required</div>
+      <div class="text-sm mt-0.5">{{ qm.life.action }}</div>
+    </div>
+    }
+
+    <div class="grid grid-cols-2 gap-3 text-sm mb-5">
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Plan expires</div>
+        <div class="text-sm truncate">{{ qm.life.expiry }}</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Days left</div>
+        <div class="text-sm truncate">{{ qm.life.relative }}</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Attendance</div>
+        <div class="text-sm truncate">{{ qm.attendanceRate }}%</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Visits · 30d</div>
+        <div class="text-sm truncate">{{ qm.visits30d }}</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Fees due</div>
+        <div class="text-sm truncate">{{ qm.feesOwed > 0 ? '₹' + qm.feesOwed.toLocaleString() : 'Clear' }}</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Seat</div>
+        <div class="text-sm truncate">{{ qm.seat || qm.seatNumber || '—' }}</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Branch</div>
+        <div class="text-sm truncate">{{ qm.branch }}</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Library</div>
+        <div class="text-sm truncate">{{ qm.library }}</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Phone</div>
+        <div class="text-sm truncate">{{ qm.phone }}</div>
+      </div>
+      <div class="border rounded-md p-2">
+        <div class="label-mono text-[10px]">Joined</div>
+        <div class="text-sm truncate">{{ qm.joinDate }}</div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <app-button size="sm" variant="outline" (click)="copyId(qm.id)">
+        <svg lucideCopy class="h-3.5 w-3.5 mr-1"></svg> Copy ID
+      </app-button>
+      @if (qm.life.needsAction && qm.life.state !== 'New') {
+      <app-button size="sm" variant="outline" (click)="renewPlan(qm)">
+        <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Renew
+      </app-button>
+      }
+      <a [routerLink]="['/members', qm.id]" (click)="closeQuick()" class="flex-1">
+        <app-button size="sm" class="w-full">Open full profile</app-button>
+      </a>
+    </div>
+  </div>
+  }
+</aside>
+}
+
+<app-renew-plan-dialog
+  [target]="renewTarget()"
+  [busy]="renewBusy()"
+  (confirm)="confirmRenew($event)"
+  (closed)="closeRenew()" />

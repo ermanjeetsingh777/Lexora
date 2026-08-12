@@ -1,0 +1,67 @@
+    <!-- Hero KPI strip -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideCalendar class="h-4 w-4" [class]="lifecycle().daysLeft < 0 ? 'text-destructive' : lifecycle().daysLeft <= 7 ? 'text-amber-500' : 'text-blue-500'"></svg>
+          Plan expires
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ lifecycle().relative }}</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">{{ lifecycle().state }} · {{ lifecycle().expiry }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideTrendingUp class="h-4 w-4 text-emerald-500"></svg>
+          Attendance
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().rate }}%</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">{{ attendanceStats().present + attendanceStats().late }}/{{ attendanceStats().workDays }} days</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideCalendarCheck class="h-4 w-4 text-blue-500"></svg>
+          Visits · 30d
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ m.visits30d }}</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">Last {{ m.lastVisit ? (m.lastVisit | date:'dd MMM') : '—' }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideBookOpen class="h-4 w-4 text-violet-500"></svg>
+          Books
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">0</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">0 active</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideWallet class="h-4 w-4" [class]="m.feesOwed > 0 ? 'text-rose-500' : 'text-muted-foreground'"></svg>
+          Fees due
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ m.feesOwed > 0 ? (m.feesOwed | currency:'INR') : 'Clear' }}</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">{{ m.feesOwed > 0 ? 'Action needed' : 'All paid' }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg lucideTimer class="h-4 w-4 text-amber-500"></svg>
+          Member for
+        </div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ daysAsMember() }}d</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">Since {{ m.joinedOn ? (m.joinedOn | date:'dd MMM yyyy') : '—' }}</div>
+      </div>
+    </div>
+
+    @if (lifecycle().needsAction) {
+    <div class="flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3" [class]="lifecycleToneClass()">
+      <svg lucideAlertTriangle class="h-4 w-4 shrink-0"></svg>
+      <div class="text-sm">
+        <span class="font-medium">{{ lifecycle().state }}</span>
+        <span class="opacity-80"> — plan expires {{ lifecycle().expiry }} ({{ lifecycle().relative }}). {{ lifecycle().action }}.</span>
+      </div>
+      @if (lifecycle().state !== 'New') {
+      <app-button variant="outline" size="sm" class="ml-auto" (click)="openDialog('plan')">
+        <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
+        {{ lifecycle().state === 'No plan' ? 'Purchase plan' : 'Renew plan' }}
+      </app-button>
+      }
+    </div>
+    }

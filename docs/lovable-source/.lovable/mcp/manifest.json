@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "smartlibrary-mcp",
+      "version": "0.1.0",
+      "title": "SmartLibrary MCP"
+    },
+    "tools": [
+      {
+        "name": "list_members",
+        "title": "List members",
+        "description": "List SmartLibrary members with optional status, plan, and shift filters. Returns id, name, email, plan, status, shift, seatNumber, feesOwed.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by member status.",
+              "type": "string",
+              "enum": [
+                "Active",
+                "Inactive",
+                "Suspended"
+              ]
+            },
+            "plan": {
+              "description": "Filter by plan name (Basic, Plus, Pro, Annual).",
+              "type": "string"
+            },
+            "shift": {
+              "description": "Filter by shift.",
+              "type": "string",
+              "enum": [
+                "Morning",
+                "Afternoon",
+                "Evening",
+                "Night"
+              ]
+            },
+            "limit": {
+              "description": "Maximum rows returned. Defaults to 50.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_member",
+        "title": "Get member",
+        "description": "Fetch a single SmartLibrary member's full profile by member id.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Member id (e.g. m_012 or demo_mem_...)."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_branches",
+        "title": "List branches",
+        "description": "List institution branches with capacity, occupancy, and member counts.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "institutionId": {
+              "description": "Filter to a single institution id.",
+              "type": "string"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "occupancy_snapshot",
+        "title": "Seat occupancy snapshot",
+        "description": "Current seat occupancy summary: totals by status (available/occupied/reserved/maintenance) plus recent occupancy trend.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "days": {
+              "description": "Trend window in days. Defaults to 14.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "revenue_summary",
+        "title": "Revenue summary",
+        "description": "Revenue and renewals across a rolling window plus payment status counts (Paid, Pending, Failed) and method mix.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "days": {
+              "description": "Window size in days. Defaults to 30.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "attendance_summary",
+        "title": "Attendance summary",
+        "description": "Attendance trend across a rolling window with present/absent/late totals and attendance rate.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "days": {
+              "description": "Window size in days. Defaults to 14.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

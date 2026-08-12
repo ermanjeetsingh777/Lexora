@@ -1,0 +1,451 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+html,
+body {
+    height: 100%;
+}
+
+app-root {
+    display: block;
+    min-height: 100%;
+}
+
+.cursorPointer {
+    cursor: pointer;
+}
+
+.text-warning-foreground {
+    color: var(--warning-foreground);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ui-btn-primary:disabled {
+  opacity: .6;
+  pointer-events: none;
+}
+
+/* Smart Library — Institutional Precision (from Lovable styles.css) */
+
+@theme inline {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-border: var(--sidebar-border);
+}
+
+:root {
+    --radius: 0.5rem;
+    --background: oklch(0.99 0.003 240);
+    --foreground: oklch(0.18 0.03 250);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0.03 250);
+    --primary: oklch(0.42 0.16 258);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.965 0.01 250);
+    --muted: oklch(0.965 0.008 250);
+    --muted-foreground: oklch(0.5 0.025 250);
+    --accent: oklch(0.95 0.04 258);
+    --accent-foreground: oklch(0.3 0.12 258);
+    --destructive: oklch(0.6 0.22 25);
+    --border: oklch(0.92 0.01 250);
+    --input: oklch(0.92 0.01 250);
+    --ring: oklch(0.55 0.16 258);
+    --success: oklch(0.65 0.16 158);
+    --warning: oklch(0.78 0.16 75);
+    --sidebar: oklch(0.975 0.006 250);
+    --sidebar-foreground: oklch(0.32 0.04 258);
+    --sidebar-accent: oklch(0.94 0.03 258);
+    --sidebar-accent-foreground: oklch(0.38 0.14 258);
+    --sidebar-border: oklch(0.91 0.012 250);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.22 0.04 258);
+    --chart-1: oklch(0.55 0.18 258);
+    --chart-2: oklch(0.65 0.16 158);
+    --chart-3: oklch(0.68 0.14 230);
+    --chart-4: oklch(0.78 0.16 75);
+    --grid-line: oklch(0.85 0.01 250 / 0.35);
+    --gradient-primary: linear-gradient(135deg, oklch(0.42 0.16 258), oklch(0.55 0.18 280));
+    --gradient-surface: linear-gradient(180deg, oklch(1 0 0 / 0.6), oklch(1 0 0 / 0.2));
+    --shadow-elegant: 0 1px 2px oklch(0.2 0.04 258 / 0.04), 0 8px 30px oklch(0.2 0.04 258 / 0.06);
+    --warning-foreground: lab(7.18827% 5.26968 10.417);
+}
+
+.dark {
+    --background: oklch(0.16 0.025 258);
+    --foreground: oklch(0.96 0.005 250);
+    --card: oklch(0.2 0.03 258);
+    --card-foreground: oklch(0.96 0.005 250);
+    --primary: oklch(0.7 0.16 258);
+    --primary-foreground: oklch(0.16 0.04 258);
+    --muted: oklch(0.24 0.025 258);
+    --muted-foreground: oklch(0.68 0.02 250);
+    --accent: oklch(0.28 0.07 258);
+    --border: oklch(1 0 0 / 8%);
+    --sidebar: oklch(0.18 0.028 258);
+    --sidebar-foreground: oklch(0.92 0.01 250);
+    --sidebar-accent: oklch(0.26 0.05 258);
+    --sidebar-border: oklch(1 0 0 / 8%);
+    --grid-line: oklch(0.7 0.04 258 / 0.12);
+    --gradient-primary: linear-gradient(135deg, oklch(0.45 0.16 258), oklch(0.55 0.2 280));
+    --shadow-elegant: 0 1px 2px oklch(0 0 0 / 0.4), 0 8px 30px oklch(0 0 0 / 0.35);
+    --warning-foreground: oklch(0.92 0.01 250);
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+}
+
+@layer utilities {
+    .blueprint-grid {
+        background-image:
+            linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+        background-size: 32px 32px;
+    }
+
+    .blueprint-grid-sm {
+        background-image:
+            linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+        background-size: 16px 16px;
+    }
+
+    .glass {
+        background: var(--gradient-surface);
+        backdrop-filter: blur(12px);
+    }
+
+    .label-mono {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+    }
+
+    .shadow-elegant {
+        box-shadow: var(--shadow-elegant);
+    }
+
+    .bg-gradient-primary {
+        background-image: var(--gradient-primary);
+    }
+
+    .hover-lift {
+        transition:
+            transform 200ms ease,
+            box-shadow 200ms ease;
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elegant);
+    }
+
+    .glass-card {
+        @apply rounded-xl border border-[var(--border)];
+        background: var(--gradient-surface);
+        backdrop-filter: blur(12px);
+        box-shadow: var(--shadow-elegant);
+    }
+
+    .ui-label {
+        @apply mb-1.5 block text-sm font-medium text-[var(--foreground)];
+    }
+
+    .ui-input {
+        @apply flex h-9 w-full rounded-md border border-[var(--border)] bg-transparent px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)];
+    }
+
+    .ui-btn-primary {
+        @apply inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90;
+    }
+
+    .ui-btn-outline {
+        @apply inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors border border-[var(--border)] bg-transparent hover:bg-[var(--accent)];
+    }
+
+    .ui-btn-ghost {
+        @apply inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors hover:bg-[var(--accent)];
+    }
+
+    /* Lovable / shadcn sidebar */
+    .sidebar-expanded {
+        width: 15.5rem;
+    }
+
+    .sidebar-collapsed {
+        width: 3rem;
+    }
+
+    .sidebar-group-label {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+        padding: 0.5rem 0.5rem 0.25rem;
+        font-weight: 500;
+    }
+
+    .sidebar-menu-btn {
+        display: flex;
+        height: 2rem;
+        width: calc(100% - 0.5rem);
+        margin-inline: 0.25rem;
+        align-items: center;
+        gap: 0.5rem;
+        border-radius: 0.5rem;
+        padding: 0 0.625rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--sidebar-foreground);
+        transition:
+            background-color 150ms,
+            color 150ms;
+    }
+
+    .sidebar-menu-btn:hover {
+        background: var(--sidebar-accent);
+        color: var(--sidebar-accent-foreground);
+    }
+
+    .sidebar-collapsed .sidebar-menu-btn {
+        width: 2rem;
+        justify-content: center;
+        padding: 0;
+        margin: 0 auto;
+    }
+
+    .sidebar-menu-btn-active,
+    .sidebar-menu-btn-active:hover {
+        background: var(--sidebar-accent);
+        color: var(--sidebar-accent-foreground);
+    }
+
+    .sidebar-tooltip {
+        pointer-events: none;
+        position: absolute;
+        left: 100%;
+        top: 50%;
+        z-index: 50;
+        margin-left: 0.5rem;
+        display: none;
+        translate: 0 -50%;
+        white-space: nowrap;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border);
+        background: var(--popover);
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        box-shadow: var(--shadow-elegant);
+    }
+
+    .group\/item:hover .sidebar-tooltip {
+        display: block;
+    }
+
+    /* Dashboard tabs — Lovable */
+    .dashboard-tab {
+        display: inline-flex;
+        align-items: center;
+        border-bottom: 2px solid transparent;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+        transition: color 150ms, border-color 150ms;
+    }
+
+    .dashboard-tab:hover {
+        color: var(--foreground);
+    }
+
+    .dashboard-tab-active {
+        border-bottom-color: var(--primary);
+        color: var(--foreground);
+    }
+
+    /* Topbar — Lovable */
+    .topbar-icon-btn {
+        display: inline-flex;
+        height: 2rem;
+        width: 2rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: calc(var(--radius) - 2px);
+        color: var(--foreground);
+        transition: background-color 150ms;
+    }
+
+    .topbar-icon-btn:hover {
+        background: var(--accent);
+    }
+
+    .topbar-page-icon {
+        display: inline-flex;
+        height: 2rem;
+        width: 2rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: calc(var(--radius) - 2px);
+        border: 1px solid var(--border);
+        background: var(--muted);
+        color: var(--foreground);
+    }
+
+    .topbar-search {
+        display: flex;
+        height: 2.25rem;
+        width: 100%;
+        border-radius: calc(var(--radius));
+        border: 1px solid var(--border);
+        background: color-mix(in oklch, var(--muted) 55%, transparent);
+        padding-left: 2.25rem;
+        padding-right: 0.75rem;
+        font-size: 0.875rem;
+        outline: none;
+        transition:
+            border-color 150ms,
+            box-shadow 150ms;
+    }
+
+    .topbar-search::placeholder {
+        color: var(--muted-foreground);
+    }
+
+    .topbar-search:focus {
+        border-color: color-mix(in oklch, var(--ring) 50%, var(--border));
+        box-shadow: 0 0 0 2px color-mix(in oklch, var(--ring) 25%, transparent);
+    }
+
+    .topbar-user-chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: calc(var(--radius));
+        border: 1px solid var(--border);
+        background: color-mix(in oklch, var(--muted) 40%, transparent);
+        padding: 0.375rem 0.75rem;
+        transition: background-color 150ms;
+    }
+
+    .topbar-user-chip:hover {
+        background: color-mix(in oklch, var(--muted) 65%, transparent);
+    }
+
+    .topbar-popover {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 0.375rem);
+        z-index: 50;
+        overflow: hidden;
+        border-radius: calc(var(--radius));
+        border: 1px solid var(--border);
+        background: var(--popover);
+        color: var(--popover-foreground);
+        box-shadow: var(--shadow-elegant);
+    }
+
+    .topbar-notif-popover {
+        width: 20rem;
+    }
+
+    .topbar-user-popover {
+        width: 14rem;
+    }
+
+    .topbar-menu-item {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        gap: 0.5rem;
+        border-radius: calc(var(--radius) - 4px);
+        padding: 0.5rem 0.625rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--foreground);
+        transition: background-color 150ms;
+    }
+
+    .topbar-menu-item:hover {
+        background: var(--accent);
+    }
+}
+
+.bg-popover{
+    background-color: var(--background);
+}
+
+.animate-fade-up {
+    animation: fadeUp 0.4s ease-out both;
+}
+
+.page-enter {
+    animation: fadeUp 0.25s ease-out;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mono-label {
+    font-family: var(--font-mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    font-size: .6875rem
+}
+
+@layer base {
+    * {
+        border-color: var(--color-border);
+    }
+}
+

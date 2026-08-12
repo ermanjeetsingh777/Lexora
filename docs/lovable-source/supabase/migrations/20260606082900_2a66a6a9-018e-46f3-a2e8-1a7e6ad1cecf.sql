@@ -1,0 +1,1 @@
+ALTER TABLE public.libraries ADD COLUMN IF NOT EXISTS hours_exceptions jsonb NOT NULL DEFAULT '[]'::jsonb;

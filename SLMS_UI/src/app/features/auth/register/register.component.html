@@ -1,0 +1,98 @@
+<app-auth-layout eyebrow="Organization Setup" title="Create your workspace"
+    subtitle="Register your organization to securely manage library operations, users, circulation, inventory, and reporting from a centralized platform."
+    [hasFooter]="true">
+    <form #registerForm="ngForm" class="space-y-4" (ngSubmit)="submit()" novalidate>
+        <div class="space-y-1.5">
+            <label appLabel for="name">Organization Name  <span class="text-red-500">*</span></label>
+            <input appInput id="name" name="name" [(ngModel)]="name" #nameCtrl="ngModel" required minlength="3"
+                maxlength="50" />
+            @if(nameCtrl.invalid && (nameCtrl.touched || registerForm.submitted)){
+            <div class="text-sm text-red-500">
+                @if(nameCtrl.errors?.['required']){
+                <div>Organization name is required.</div>
+                }
+                @if(nameCtrl.errors?.['minlength']){
+                <div>Organization name must be at least 3 characters.</div>
+                }
+                @if(nameCtrl.errors?.['maxlength']){
+                <div>Organization name cannot exceed 50 characters.</div>
+                }
+            </div>
+            }
+        </div>
+        <div class="space-y-1.5">
+            <label class="ui-label" for="email">Work email <span class="text-red-500">*</span></label>
+            <input id="email" class="ui-input" type="email" [(ngModel)]="email" name="email" #emailCtrl="ngModel"
+                required maxlength="100" email />
+            @if(emailCtrl.invalid && (emailCtrl.touched || registerForm.submitted)){
+            <div class="text-sm text-red-500">
+                @if(emailCtrl.errors?.['required']){
+                <div>Email is required.</div>
+                }
+                @if(emailCtrl.errors?.['email']){
+                <div>Enter a valid email address.</div>
+                }
+                @if(emailCtrl.errors?.['maxlength']){
+                <div>Email cannot exceed 100 characters.</div>
+                }
+            </div>
+            }
+        </div>
+        <div class="space-y-1.5">
+            <label class="ui-label" for="password">Password <span class="text-red-500">*</span></label>
+            <input id="password" class="ui-input" type="password" [(ngModel)]="password" name="password"
+                #passwordCtrl="ngModel" required minlength="6" maxlength="30" />
+            <p class="text-xs text-[var(--muted-foreground)]">At least 6 characters</p>
+
+            @if(passwordCtrl.invalid && (passwordCtrl.touched || registerForm.submitted)){
+            <div class="text-sm text-red-500">
+                @if(passwordCtrl.errors?.['required']){
+                <div>Password is required.</div>
+                }
+                @if(passwordCtrl.errors?.['minlength']){
+                <div>Password must be at least 6 characters.</div>
+                }
+                @if(passwordCtrl.errors?.['maxlength']){
+                <div>Password cannot exceed 30 characters.</div>
+                }
+            </div>
+            }
+
+        </div>
+        <div class="space-y-1.5">
+            <label class="ui-label" for="confirm">Confirm password <span class="text-red-500">*</span></label>
+            <input id="confirm" class="ui-input" type="password" [(ngModel)]="confirmPassword" name="confirm"
+                #confirmCtrl="ngModel" required />
+            @if(confirmCtrl.invalid && (confirmCtrl.touched || registerForm.submitted)){
+            <div class="text-sm text-red-500">
+                Confirm password is required.
+            </div>
+            }
+
+            @if(confirmPassword() && password() !== confirmPassword()){
+            <div class="text-sm text-red-500">
+                Passwords do not match.
+            </div>
+            }
+        </div>
+        <label class="flex items-start gap-2 text-xs text-[var(--muted-foreground)]">
+            <input type="checkbox" [(ngModel)]="terms" name="terms" class="mt-0.5 rounded border-[var(--border)]"
+                #termsCtrl="ngModel" required />
+            I agree to the terms of service and privacy policy for institutional data processing.
+        </label>
+        @if(termsCtrl.invalid && registerForm.submitted){
+        <div class="text-sm text-red-500">
+            You must accept the terms.
+        </div>
+        }
+        <button type="submit" class="ui-btn-primary w-full cursorPointer"
+            [disabled]="busy() || registerForm.invalid || password() !== confirmPassword()">
+            {{ busy() ? 'Creating workspace…' : 'Create account' }}
+        </button>
+    </form>
+
+    <p footer class="text-center text-sm text-[var(--muted-foreground)]">
+        Already have an account?
+        <a routerLink="/login" class="text-[var(--primary)] hover:underline">Sign in</a>
+    </p>
+</app-auth-layout>

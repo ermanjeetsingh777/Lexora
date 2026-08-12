@@ -1,0 +1,6 @@
+namespace SLMS_API.Application.Contracts.Auth.Requests;
+
+public class RefreshTokenRequest
+{
+    public string RefreshToken { get; set; } = string.Empty;
+}

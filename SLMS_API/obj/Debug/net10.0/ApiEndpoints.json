@@ -1,0 +1,2405 @@
+[
+  {
+    "ContainingType": "SLMS_API.Controllers.TestAttendanceController",
+    "Method": "Get",
+    "RelativePath": "api/test",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.TestAttendanceController",
+    "Method": "CheckIn",
+    "RelativePath": "api/test/members/{memberId}/check-in",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CheckInRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "GetAuditLogs",
+    "RelativePath": "api/v1/admin/audit-logs",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminAuditLogResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "Backup",
+    "RelativePath": "api/v1/admin/backup",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.MessageResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "GetPermissions",
+    "RelativePath": "api/v1/admin/permissions",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Admin.Responses.PermissionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "GetRoles",
+    "RelativePath": "api/v1/admin/roles",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminRoleResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "CreateRole",
+    "RelativePath": "api/v1/admin/roles",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Admin.Requests.AdminCreateRoleRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminRoleResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "UpdateRole",
+    "RelativePath": "api/v1/admin/roles/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Admin.Requests.AdminUpdateRoleRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminRoleResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "GetRolePermissions",
+    "RelativePath": "api/v1/admin/roles/{id}/permissions",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminRolePermissionsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "AssignRolePermissions",
+    "RelativePath": "api/v1/admin/roles/{id}/permissions",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Admin.Requests.AdminAssignRolePermissionsRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminRolePermissionsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "SystemHealth",
+    "RelativePath": "api/v1/admin/system-health",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "GetUsers",
+    "RelativePath": "api/v1/admin/users",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminUserResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "CreateUser",
+    "RelativePath": "api/v1/admin/users",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Admin.Requests.AdminCreateUserRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminUserResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "GetUserById",
+    "RelativePath": "api/v1/admin/users/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminUserResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "UpdateUser",
+    "RelativePath": "api/v1/admin/users/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Admin.Requests.AdminUpdateUserRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminUserResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "DeleteUser",
+    "RelativePath": "api/v1/admin/users/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.MessageResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AdminController",
+    "Method": "AssignRoles",
+    "RelativePath": "api/v1/admin/users/{id}/roles",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Admin.Requests.AdminAssignRolesRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Admin.Responses.AdminUserResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AttendanceController",
+    "Method": "GetAttendanceCalendar",
+    "RelativePath": "api/v1/attendance/members/{memberId}/calendar",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "month",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "year",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyList\u00601[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AttendanceController",
+    "Method": "CheckIn",
+    "RelativePath": "api/v1/attendance/members/{memberId}/check-in",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CheckInRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AttendanceController",
+    "Method": "CheckOut",
+    "RelativePath": "api/v1/attendance/members/{memberId}/check-out",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CheckOutRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "GetCurrentUser",
+    "RelativePath": "api/v1/auth/current-user",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.CurrentUserResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "Disable2Fa",
+    "RelativePath": "api/v1/auth/disable-2fa",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.Disable2FaRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.MessageResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "Enable2Fa",
+    "RelativePath": "api/v1/auth/enable-2fa",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.Enable2FaRequest",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "ForgotPassword",
+    "RelativePath": "api/v1/auth/forgot-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.ForgotPasswordRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.MessageResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "Login",
+    "RelativePath": "api/v1/auth/login",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.LoginRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.AuthResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "Logout",
+    "RelativePath": "api/v1/auth/logout",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.LogoutRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.MessageResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "RefreshToken",
+    "RelativePath": "api/v1/auth/refresh-token",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.RefreshTokenRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.AuthResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "Register",
+    "RelativePath": "api/v1/auth/register",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.RegisterRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.AuthResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "ResetPassword",
+    "RelativePath": "api/v1/auth/reset-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.ResetPasswordRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.MessageResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "SendOtp",
+    "RelativePath": "api/v1/auth/send-otp",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.SendOtpRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.MessageResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AuthController",
+    "Method": "VerifyOtp",
+    "RelativePath": "api/v1/auth/verify-otp",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Auth.Requests.VerifyOtpRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Auth.Responses.AuthResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "GetAll",
+    "RelativePath": "api/v1/institutions",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.InstitutionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "Create",
+    "RelativePath": "api/v1/institutions",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CreateInstitutionRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.InstitutionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "GetById",
+    "RelativePath": "api/v1/institutions/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.InstitutionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "Update",
+    "RelativePath": "api/v1/institutions/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.UpdateInstitutionRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.InstitutionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "Delete",
+    "RelativePath": "api/v1/institutions/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "GetAnalytics",
+    "RelativePath": "api/v1/institutions/{id}/analytics",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.OrganizationAnalyticsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "GetBranchesView",
+    "RelativePath": "api/v1/institutions/{id}/branches-view",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "Search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Status",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Size",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.InstitutionBranchesViewResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "GetOverview",
+    "RelativePath": "api/v1/institutions/{id}/overview",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.InstitutionOverviewResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.BranchesController",
+    "Method": "GetAll",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.BranchResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.BranchesController",
+    "Method": "Create",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CreateBranchRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.BranchResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.BranchesController",
+    "Method": "GetById",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.BranchResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.BranchesController",
+    "Method": "Update",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.UpdateBranchRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.BranchResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.BranchesController",
+    "Method": "Delete",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.BranchesController",
+    "Method": "GetAnalytics",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/analytics",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.OrganizationAnalyticsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.LibrariesController",
+    "Method": "GetAll",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.LibraryResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.LibrariesController",
+    "Method": "Create",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CreateLibraryRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.LibraryResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.LibrariesController",
+    "Method": "GetById",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.LibraryResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.LibrariesController",
+    "Method": "Update",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.UpdateLibraryRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.LibraryResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.LibrariesController",
+    "Method": "Delete",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.MembersController",
+    "Method": "Create",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/members",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CreateMemberRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.MemberResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.MembersController",
+    "Method": "GetLibraryMemberListAsync",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/members",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.MemberListResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.PlansController",
+    "Method": "GetAll",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/plans",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Plan.PlanResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.PlansController",
+    "Method": "Create",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/plans",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Plan.CreatePlanRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Plan.PlanResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.PlansController",
+    "Method": "GetById",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/plans/{planId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "planId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Plan.PlanResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.PlansController",
+    "Method": "Update",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/plans/{planId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "planId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Plan.UpdatePlanRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Plan.PlanResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.PlansController",
+    "Method": "Delete",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/plans/{planId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "planId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.PlansController",
+    "Method": "Activate",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/plans/{planId}/activate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "planId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Plan.PlanResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.PlansController",
+    "Method": "Deactivate",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/plans/{planId}/deactivate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "planId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Plan.PlanResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.PlansController",
+    "Method": "BulkCreate",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/libraries/{libraryId}/plans/bulk",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "libraryId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "requests",
+        "Type": "System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Plan.CreatePlanRequest, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Plan.PlanResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SeatsController",
+    "Method": "GetAll",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/seats",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.SeatResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SeatsController",
+    "Method": "Create",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/seats",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CreateSeatRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.SeatResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SeatsController",
+    "Method": "GetById",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/seats/{seatId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "seatId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.SeatResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SeatsController",
+    "Method": "Update",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/seats/{seatId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "seatId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.UpdateSeatRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.SeatResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SeatsController",
+    "Method": "Delete",
+    "RelativePath": "api/v1/institutions/{institutionId}/branches/{branchId}/seats/{seatId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "branchId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "seatId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SubscriptionsController",
+    "Method": "GetAll",
+    "RelativePath": "api/v1/institutions/{institutionId}/subscriptions",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.SubscriptionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SubscriptionsController",
+    "Method": "Create",
+    "RelativePath": "api/v1/institutions/{institutionId}/subscriptions",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CreateSubscriptionRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.SubscriptionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SubscriptionsController",
+    "Method": "GetById",
+    "RelativePath": "api/v1/institutions/{institutionId}/subscriptions/{subscriptionId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "subscriptionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.SubscriptionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.SubscriptionsController",
+    "Method": "Update",
+    "RelativePath": "api/v1/institutions/{institutionId}/subscriptions/{subscriptionId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "institutionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "subscriptionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.UpdateSubscriptionRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.SubscriptionResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "GetDropdown",
+    "RelativePath": "api/v1/institutions/dropdown",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Requests.InstitutionDropdownResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "GetListView",
+    "RelativePath": "api/v1/institutions/list",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "Search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Type",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Status",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.InstitutionListViewResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.InstitutionsController",
+    "Method": "GetInstitutionByUserId",
+    "RelativePath": "api/v1/institutions/my-institution",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.InstitutionCardResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AllMembersController",
+    "Method": "GetAll",
+    "RelativePath": "api/v1/members",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.MemberListResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AllMembersController",
+    "Method": "GetById",
+    "RelativePath": "api/v1/members/{memberId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.MemberDetailResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AllMembersController",
+    "Method": "AddContact",
+    "RelativePath": "api/v1/members/{memberId}/contacts",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.CreateMemberContactRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Requests.MemberContactResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AllMembersController",
+    "Method": "ChangePlanOrShift",
+    "RelativePath": "api/v1/members/{memberId}/plan-or-shift",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.ChangeMemberPlanShiftRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.MemberDetailResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AllMembersController",
+    "Method": "RenewMembership",
+    "RelativePath": "api/v1/members/{memberId}/renew",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.MemberDetailResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.AllMembersController",
+    "Method": "GetSummary",
+    "RelativePath": "api/v1/members/summary",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.MembershipSummaryResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.NotificationsController",
+    "Method": "GetForUser",
+    "RelativePath": "api/v1/notifications",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Collections.Generic.IReadOnlyCollection\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.NotificationResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.NotificationsController",
+    "Method": "Create",
+    "RelativePath": "api/v1/notifications",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SLMS_API.Application.Contracts.Organizations.Requests.NotificationRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Responses.NotificationResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.NotificationsController",
+    "Method": "MarkAsRead",
+    "RelativePath": "api/v1/notifications/{notificationId}/mark-as-read",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "notificationId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "SLMS_API.Controllers.WeatherForecastController",
+    "Method": "Get",
+    "RelativePath": "WeatherForecast",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[SLMS_API.WeatherForecast, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ],
+    "EndpointName": "GetWeatherForecast"
+  }
+]

@@ -1,0 +1,139 @@
+<app-page-header eyebrow="Organization" title="Institutions"
+    description="Multi-tenant institutions, branches and libraries you manage.">
+    <div actions class="flex gap-2">
+        <a routerLink="/institutions/create">
+            <app-button size="sm">
+                <svg lucidePlus class="h-4 w-4 mr-1"></svg> New institution
+            </app-button>
+        </a>
+    </div>
+</app-page-header>
+
+<!-- KPIs -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- <app-kpi-card label="Institutions" [value]="institutions.length" [delta]="4.2" hint="vs last month">
+        <svg icon lucideBuilding2 class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Branches" [value]="totals().branches" [delta]="2.1">
+        <svg icon lucideLayers class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Members" [value]="totals().members.toLocaleString()" [delta]="6.8">
+        <svg icon lucideUsers class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Revenue MTD" [value]="'₹' + (totals().revenue / 100000).toFixed(1) + 'L'" [delta]="-1.4"
+        [hint]="totals().avgOccupancy.toFixed(0) + '% avg occupancy'">
+        <svg icon lucideIndianRupee class="h-4 w-4"></svg>
+    </app-kpi-card> -->
+</section>
+
+<!-- Filter bar -->
+<!-- <app-glass-card>
+    <div class="flex flex-col md:flex-row md:items-center gap-3">
+        <div class="relative flex-1">
+            <svg lucideSearch class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"></svg>
+            <input [(ngModel)]="query" placeholder="Search by name, city, or type…"
+                class="w-full pl-9 pr-3 py-2 rounded-md border bg-background/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+        </div>
+        <div class="flex flex-wrap gap-1">
+            @for (t of typeFilters; track t) {
+            <button (click)="setType(t)" class="px-3 py-1.5 text-xs rounded-md border transition-colors"
+                [class.bg-primary]="type() === t" [class.text-primary-foreground]="type() === t"
+                [class.border-primary]="type() === t" [class.bg-muted]="type() !== t"
+                [class.text-muted-foreground]="type() !== t">
+                {{ t === 'CoachingCenter' ? 'Coaching' : t }}
+            </button>
+            }
+        </div>
+        <div class="label-mono shrink-0">{{ filtered().length }} institution{{ filtered().length === 1 ? '' : 's' }}
+        </div>
+    </div>
+</app-glass-card> -->
+
+<!-- Grid -->
+<!-- @if (filtered().length === 0) {
+<app-glass-card class="text-center">
+    <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+        <svg lucideBuilding2 class="h-5 w-5 text-muted-foreground"></svg>
+    </div>
+    <div class="font-semibold">No institutions match</div>
+    <p class="text-sm text-muted-foreground mt-1">Try adjusting your search or filter.</p>
+</app-glass-card>
+} @else {
+
+<div class="space-y-2 overflow-y-auto pr-1 mt-4 ">
+    <div class="mt-4 grid gap-4 lg:grid-cols-3">
+        @for (inst of filtered(); track inst.id) {
+        <div class="lg:col-span-1 transition-all hover:-translate-y-1 hover:shadow-lg "
+            style="opacity: 1; transform: none;">
+            <button type="button"
+                class="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-left transition-colors"
+                [ngClass]="{
+                                          '!border-[var(--success)]': selectedInstitutionId() === inst.id && inst.status === 'Active',
+                                          '!border-[var(--destructive)] bg-[var(--destructive)]/5':  selectedInstitutionId() === inst.id && inst.status !== 'Active',
+                                          'bg-[var(--primary)]/5': selectedInstitutionId() === inst.id
+                                        }">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="truncate text-sm font-semibold">{{ inst.name }}</div>
+                        <div class="label-mono mt-0.5 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+                            <span>{{ inst.type }}</span>
+                            <span>·</span>
+                            <svg lucideMapPin class="h-3 w-3"></svg>
+                            <span class="truncate">{{ inst.city }}, {{ inst.country }}</span>
+                        </div>
+                    </div>
+                  <app-status-badge [status]="inst.status" />
+                </div>
+
+                <div class="mt-2">
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="label-mono">Occupancy</span>
+                        <span class="font-mono tabular-nums">{{ inst.occupancy }}%</span>
+                    </div>
+                    <div class="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                        <div class="h-full rounded-full transition-all" [class.bg-success]="inst.occupancy >= 80"
+                            [class.bg-primary]="inst.occupancy >= 50 && inst.occupancy < 80"
+                            [class.bg-warning]="inst.occupancy < 50" [style.width.%]="inst.occupancy"></div>
+                    </div>
+                </div>
+
+                <div class="mt-2 grid grid-cols-3 gap-2">
+                    <div class="rounded-md border border-[var(--border)] px-2 py-1 table-cursor"
+                        (click)="selectedInstitutionId.set(inst.id)">
+                        <div class="text-[10px] text-[var(--muted-foreground)]">Branches</div>
+                        <div class="text-sm font-semibold">{{ inst.branches }}</div>
+                    </div>
+                    <div class="rounded-md border border-[var(--border)] px-2 py-1">
+                        <div class="text-[10px] text-[var(--muted-foreground)]">Members</div>
+                        <div class="text-sm font-semibold">{{ inst.members }}</div>
+                    </div>
+                    <div class="rounded-md border border-[var(--border)] px-2 py-1">
+                        <div class="text-[10px] text-[var(--muted-foreground)]">Revenue</div>
+                        <div class="text-sm font-semibold">₹{{ (inst.revenueMTD / 1000).toFixed(0) }}k</div>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                    <span
+                        class="inline-flex items-center gap-1 font-medium text-primary group-hover:opacity-100 transition-opacity table-cursor"
+                        [routerLink]="inst.id">View
+                        details
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-arrow-up-right h-3.5 w-3.5" aria-hidden="true">
+                            <path d="M7 7h10v10"></path>
+                            <path d="M7 17 17 7"></path>
+                        </svg></span>
+                </div>
+            </button>
+
+        </div>
+        }
+    </div>
+
+    @if (filtered().length === 0) {
+    <div class="rounded-lg border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted-foreground)]">
+        No institutions found.
+    </div>
+    }
+</div>
+} -->

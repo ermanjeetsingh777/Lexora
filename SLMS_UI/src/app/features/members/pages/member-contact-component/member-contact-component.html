@@ -1,0 +1,209 @@
+<app-glass-card class="block">
+    <app-section-header title="Guardian & emergency contact" description="Primary contact details to reach in case of an emergency or incident involving the member." />
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border rounded-lg p-4 bg-muted/20">
+            <div class="flex items-center gap-2 mb-3">
+                <svg lucideUser class="h-4 w-4 text-primary"></svg>
+                <div class="font-medium text-sm">Guardian</div>
+                @if(guardianContact()){
+                <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded border bg-background">{{ ContactRelation[(guardianContact()?.relation) ?? 0] }}</span>
+                }@else {
+                <span (click)="openDialog(true)"
+                    class="ml-auto inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium cursorPointer"
+                    [class]="'bg-primary/10 text-primary border-primary/20'">
+                    <svg lucidePlus class="h-4 w-4"></svg>
+                    Add
+                </span>
+                }
+
+
+            </div>
+            @if(guardianContact()){
+            <div class="text-base font-semibold">{{ guardianContact()?.fullName }}</div>
+            <div class="mt-2 space-y-1.5 text-sm">
+                <a [href]="'tel:' + guardianContact()?.phoneNumber" class="flex items-center gap-2 hover:text-primary">
+                    <svg lucidePhone class="h-3.5 w-3.5"></svg>{{ guardianContact()?.phoneNumber }}
+                </a>
+                <a [href]="'mailto:' + guardianContact()?.email" class="flex items-center gap-2 hover:text-primary">
+                    <svg lucideMail class="h-3.5 w-3.5"></svg>{{ guardianContact()?.email }}
+                </a>
+            </div>
+            }
+        </div>
+        <div class="border rounded-lg p-4 bg-rose-500/5 border-rose-500/30">
+            <div class="flex items-center gap-2 mb-3">
+                <svg lucideShieldAlert class="h-4 w-4 text-rose-500"></svg>
+                <div class="font-medium text-sm">Emergency contact</div>
+                @if(emergencyContact()?.relation){
+                <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded border bg-background">{{ ContactRelation[(emergencyContact()?.relation) ?? 0] }}</span>
+                }@else {
+                <span (click)="openDialog(false)"
+                    class="ml-auto inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium cursorPointer"
+                    [class]="'bg-primary/10 text-primary border-primary/20'">
+                    <svg lucidePlus class="h-4 w-4"></svg>
+                    Add
+                </span>
+                }
+            </div>
+            @if(emergencyContact()){
+            <div class="text-base font-semibold">{{ emergencyContact()?.fullName }}</div>
+            <div class="mt-2">
+                <a [href]="'tel:' + emergencyContact()?.phoneNumber"
+                    class="flex items-center gap-2 text-sm hover:text-rose-500">
+                    <svg lucidePhone class="h-3.5 w-3.5"></svg>{{ emergencyContact()?.phoneNumber }}
+                </a>
+            </div>
+            }
+        </div>
+    </div>
+</app-glass-card>
+
+<p-dialog [(visible)]="visible" [modal]="true" (onHide)="closeDialog()"
+    [header]="(isGuardian()) ? 'Add Guardian Contact' : 'Add Emergency Contact'" [style]="{ width: '50rem' }"
+    [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }" [maximizable]="true">
+    <form [formGroup]="contactForm" (ngSubmit)="save()" class="space-y-4">
+
+        <!-- Full Name -->
+        <div class="space-y-1.5">
+            <label class="text-sm font-medium">
+                Full Name <span class="text-red-500">*</span>
+            </label>
+
+            <input type="text" formControlName="fullName" placeholder="Enter full name" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+                       placeholder:text-muted-foreground
+                       focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+
+            @if (f.fullName.touched) {
+
+            @if (f.fullName.hasError('required')) {
+            <p class="text-xs text-red-500">
+                Full name is required.
+            </p>
+            }
+
+            @if (f.fullName.hasError('minlength')) {
+            <p class="text-xs text-red-500">
+                Minimum 2 characters required.
+            </p>
+            }
+
+            @if (f.fullName.hasError('maxlength')) {
+            <p class="text-xs text-red-500">
+                Maximum 100 characters allowed.
+            </p>
+            }
+
+            }
+        </div>
+
+        <!-- Phone + Email -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+            <div class="space-y-1.5">
+                <label class="text-sm font-medium">
+                    Phone Number <span class="text-red-500">*</span>
+                </label>
+
+                <input type="tel" maxlength="10" formControlName="phoneNumber" placeholder="9876543210" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+                           placeholder:text-muted-foreground
+                           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+
+                @if (f.phoneNumber.touched) {
+
+                @if (f.phoneNumber.hasError('required')) {
+                <p class="text-xs text-red-500">
+                    Phone number is required.
+                </p>
+                }
+
+                @if (f.phoneNumber.hasError('pattern')) {
+                <p class="text-xs text-red-500">
+                    Enter a valid mobile number.
+                </p>
+                }
+
+                }
+
+            </div>
+
+            <div class="space-y-1.5">
+
+                <label class="text-sm font-medium">
+                    Email
+                </label>
+
+                <input type="email" formControlName="email" placeholder="example@mail.com" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+                           placeholder:text-muted-foreground
+                           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+
+                @if (f.email.touched) {
+
+                @if (f.email.hasError('required')) {
+                <p class="text-xs text-red-500">
+                    Email is required.
+                </p>
+                }
+
+                @if (f.email.hasError('email')) {
+                <p class="text-xs text-red-500">
+                    Enter a valid email address.
+                </p>
+                }
+
+                @if (f.email.hasError('maxlength')) {
+                <p class="text-xs text-red-500">
+                    Email cannot exceed 150 characters.
+                </p>
+                }
+
+                }
+
+            </div>
+
+        </div>
+
+        <!-- Relation -->
+        <div class="space-y-1.5">
+
+            <label class="text-sm font-medium">
+                Relation <span class="text-red-500">*</span>
+            </label>
+
+            <select formControlName="relation" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+                       focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+
+                <option [ngValue]="null" disabled>
+                    Select Relation
+                </option>
+
+                @for (r of relationOptions; track r.value) {
+                <option [ngValue]="r.value">
+                    {{ r.label }}
+                </option>
+                }
+
+            </select>
+
+            @if (f.relation.touched && f.relation.hasError('required')) {
+            <p class="text-xs text-red-500">
+                Relation is required.
+            </p>
+            }
+
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end gap-2 pt-4 border-t">
+
+            <app-button type="button" variant="outline" (click)="closeDialog()">
+                Cancel
+            </app-button>
+
+            <app-button type="submit" [disabled]="contactForm.invalid">
+                Save Contact
+            </app-button>
+
+        </div>
+
+    </form>
+</p-dialog>

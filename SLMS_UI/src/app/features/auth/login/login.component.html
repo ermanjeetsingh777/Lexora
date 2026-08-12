@@ -1,0 +1,54 @@
+<app-auth-layout eyebrow="Authentication" title="Sign in to your workspace"
+    subtitle="Welcome back. Enter your organization email and password to manage library resources, members, circulation, and reports."
+    [hasFooter]="true">
+    <form #loginForm="ngForm" class="space-y-4" (ngSubmit)="submit()" novalidate>
+        <div class="space-y-1.5">
+            <label appLabel for="email">Email</label>
+            <input appInput id="email" type="email" name="email" [(ngModel)]="email" #emailCtrl="ngModel"
+                placeholder="admin@demo" required email />
+            @if(emailCtrl.invalid && (emailCtrl.touched || loginForm.submitted)) {
+            <div class="space-y-1 text-sm text-red-500">
+                @if(emailCtrl.errors?.['required']) {
+                <p>Email is required.</p>
+                }
+                @if(emailCtrl.errors?.['email']) {
+                <p>Please enter a valid email address.</p>
+                }
+
+            </div>
+            }
+        </div>
+        <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+                <label appLabel for="password">Password</label>
+                <a routerLink="/forgot-password" class="text-xs text-primary hover:underline">Forgot?</a>
+            </div>
+            <input appInput id="password" type="password" name="password" [(ngModel)]="password" #passwordCtrl="ngModel"
+                placeholder="demo123" required />
+            @if(passwordCtrl.invalid && (passwordCtrl.touched || loginForm.submitted)) {
+            <div class="space-y-1 text-sm text-red-500">
+                @if(passwordCtrl.errors?.['required']) {
+                <p>Password is required.</p>
+                }
+            </div>
+            }
+        </div>
+         <button type="submit" class="ui-btn-primary w-full cursorPointer"
+            [disabled]="loader() || (loginForm.invalid ?? true)">
+             {{ loader() ? 'Signing in…' : 'Sign in' }}
+        </button>
+        <button type="button" (click)="submit()" class="ui-btn-outline w-full cursorPointer" >Sign in with one-time
+            code</button>
+        <div class="relative py-1">
+            <div class="absolute inset-0 flex items-center"><span class="w-full border-t"></span></div>
+            <div class="relative flex justify-center"><span class="bg-background px-2 mono-label">or</span></div>
+        </div>
+    </form>
+
+    <div footer>
+        <p class="text-center mb-2 text-[11px] text-muted-foreground">Sign up a temp account with an institution, branch
+            &amp; library.</p>
+        <p class="text-center text-sm text-[var(--muted-foreground)]">New here? <a routerLink="/register"
+                class="text-[var(--primary)] hover:underline">Create operator account</a></p>
+    </div>
+</app-auth-layout>

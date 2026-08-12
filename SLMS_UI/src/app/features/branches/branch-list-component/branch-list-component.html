@@ -1,0 +1,231 @@
+<app-page-header eyebrow="Organization" title="Branches"
+    description="Physical branch locations across every institution.">
+    <div actions class="flex gap-2">
+        <a routerLink="/institutions"><app-button size="sm" variant="outline">View institutions</app-button></a>
+        <a routerLink="/branches/create"><app-button size="sm">
+                <svg lucidePlus class="h-4 w-4 mr-1"></svg> New branch
+            </app-button></a>
+    </div>
+</app-page-header>
+
+<!-- KPIs -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- <app-kpi-card label="Total branches" [value]="all().length" [hint]="activeCount() + ' active'">
+        <svg icon lucideBuilding2 class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Total capacity" [value]="totalCap().toLocaleString()"
+        [hint]="totalOcc().toLocaleString() + ' occupied'">
+        <svg icon lucideUsers class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Avg occupancy" [value]="avgOcc() + '%'" hint="across all branches">
+        <svg icon lucideActivity class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Near capacity" [value]="nearCap()" hint="≥ 80% full">
+        <svg icon lucideAlertTriangle class="h-4 w-4"></svg>
+    </app-kpi-card> -->
+</section>
+
+<!-- Filter bar -->
+<!-- <app-glass-card>
+    <div class="flex flex-wrap items-center gap-2">
+        <div class="relative flex-1 min-w-[220px]">
+            <svg lucideSearch
+                class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"></svg>
+            <input [(ngModel)]="query" placeholder="Search branch, city, manager…"
+                class="w-full pl-8 pr-3 h-9 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+        </div>
+        <select [(ngModel)]="statusFilter"
+            class="h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+            <option value="">All statuses</option>
+            <option value="Active">Active</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Closed">Closed</option>
+        </select>
+        <div class="ml-auto flex items-center gap-2">
+            <span class="text-xs text-muted-foreground tabular-nums">{{ filtered().length }} / {{ all().length }}</span>
+            <div class="flex rounded-md border overflow-hidden">
+                <button (click)="view.set('grid')" class="px-2.5 py-1.5 text-xs transition-colors"
+                    [class.bg-primary]="view() === 'grid'"
+                    [class.text-primary-foreground]="view() === 'grid'">Grid</button>
+                <button (click)="view.set('table')" class="px-2.5 py-1.5 text-xs transition-colors"
+                    [class.bg-primary]="view() === 'table'"
+                    [class.text-primary-foreground]="view() === 'table'">Table</button>
+            </div>
+        </div>
+    </div>
+</app-glass-card> -->
+
+<!-- Grid view -->
+<!-- @if (view() === 'grid') {
+@if (filtered().length === 0) {
+<app-glass-card class="text-center">
+    <svg lucideSearch class="h-5 w-5 mx-auto text-muted-foreground mb-2"></svg>
+    <p class="font-semibold">No branches match</p>
+    <p class="text-sm text-muted-foreground mt-1">Try adjusting your search or filters.</p>
+</app-glass-card>
+} @else {
+<div class="space-y-2 overflow-y-auto pr-1 mt-4 ">
+    <div class="mt-4 grid gap-4 lg:grid-cols-3">
+        @for (b of filtered(); track b.id) {
+        <div [routerLink]="['/branches', b.id]"
+            class="lg:col-span-1 transition-all hover:-translate-y-1 hover:shadow-lg "
+            style="opacity: 1; transform: none;">
+            <button type="button"
+                class="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-left transition-colors">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="truncate text-sm font-semibold">{{ b.name }}</div>
+                        <div class="label-mono mt-0.5 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+                            <span>{{ b.type }}</span>
+                            <span>·</span>
+                            <svg lucideMapPin class="h-3 w-3"></svg>
+                            <span class="truncate">{{ b.city }} · {{ b.institutionName }}</span>
+                        </div>
+                    </div>
+                    <app-status-badge [status]="b.status" />
+                </div>
+
+                <div class="mt-2">
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="label-mono">Live occupancy</span>
+                        <span class="font-mono flex items-center gap-1 tabular-nums">
+                            @if (b.trend >= 0) {
+                            <svg lucideArrowUpRight class="h-3 w-3 text-emerald-500"></svg>+{{ b.trend }}%
+                            } @else {
+                            <svg lucideArrowDownRight class="h-3 w-3 text-amber-500"></svg>{{ b.trend }}%
+                            }
+                        </span>
+                    </div>
+                    <div class="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                        <div class="h-full rounded-full transition-all" [class.bg-success]="b.occupancyPct >= 80"
+                            [class.bg-primary]="b.occupancyPct >= 50 && b.occupancyPct < 80"
+                            [class.bg-warning]="b.occupancyPct < 50" [style.width.%]="b.occupancyPct"></div>
+                    </div>
+                    <div class="mt-1 flex items-center justify-between text-xs tabular-nums">
+                        <span class="font-medium">{{ b.occupancy }} / {{ b.capacity }}</span>
+                        <span class="text-muted-foreground">{{ b.occupancyPct }}%</span>
+                    </div>
+                </div>
+
+                <div class="mt-2 grid grid-cols-3 gap-2">
+                    <div class="rounded-md border border-[var(--border)] px-2 py-1 table-cursor">
+                        <div class="text-[10px] text-[var(--muted-foreground)]">Libraries</div>
+                        <div class="text-sm font-semibold">{{ b.libraries }}</div>
+                    </div>
+                    <div class="rounded-md border border-[var(--border)] px-2 py-1">
+                        <div class="text-[10px] text-[var(--muted-foreground)]">Members</div>
+                        <div class="text-sm font-semibold">{{ b.members }}</div>
+                    </div>
+                    <div class="rounded-md border border-[var(--border)] px-2 py-1">
+                        <div class="text-[10px] text-[var(--muted-foreground)]">Revenue</div>
+                        <div class="text-sm font-semibold">₹{{ (350000 / 1000).toFixed(0) }}k</div>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                    <span
+                        class="inline-flex items-center gap-1 font-medium text-primary group-hover:opacity-100 transition-opacity table-cursor"
+                        [routerLink]="b.id">View
+                        details
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-arrow-up-right h-3.5 w-3.5" aria-hidden="true">
+                            <path d="M7 7h10v10"></path>
+                            <path d="M7 17 17 7"></path>
+                        </svg></span>
+                </div>
+            </button>
+
+        </div>
+        }
+    </div>
+
+    @if (filtered().length === 0) {
+    <div class="rounded-lg border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted-foreground)]">
+        No institutions found.
+    </div>
+    }
+</div>
+}
+} -->
+
+<!-- Table view -->
+<!-- @if (view() === 'table') {
+<app-glass-card class="p-0 overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="text-left border-b label-mono bg-muted/30">
+                <th class="py-2 px-3">Branch</th>
+                <th class="px-3">Institution</th>
+                <th class="px-3 text-right">Capacity</th>
+                <th class="px-3">Occupancy</th>
+                <th class="px-3 text-right">Libs</th>
+                <th class="px-3 text-right">Members</th>
+                <th class="px-3">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y">
+            @for (b of filtered(); track b.id) {
+            <tr class="hover:bg-muted/40 cursor-pointer" [routerLink]="['/branches', b.id]">
+                <td class="py-2.5 px-3">
+                    <div class="font-medium">{{ b.name }}</div>
+                    <div class="label-mono flex items-center gap-1 mt-0.5">
+                        <svg lucideMapPin class="h-3 w-3"></svg>{{ b.city }}
+                    </div>
+                </td>
+                <td class="px-3 text-muted-foreground">{{ b.institutionName }}</td>
+                <td class="px-3 text-right tabular-nums">{{ b.capacity.toLocaleString() }}</td>
+                <td class="px-3">
+                    <div class="flex items-center gap-2">
+                        <div class="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                            <div class="h-full bg-primary rounded-full" [style.width.%]="b.occupancyPct"></div>
+                        </div>
+                        <span class="tabular-nums text-xs w-9 text-right">{{ b.occupancyPct }}%</span>
+                    </div>
+                </td>
+                <td class="px-3 text-right tabular-nums">{{ b.libraries }}</td>
+                <td class="px-3 text-right tabular-nums">{{ b.members }}</td>
+                <td class="px-3"><app-status-badge [status]="b.status" /></td>
+            </tr>
+            }
+            @if (filtered().length === 0) {
+            <tr>
+                <td colspan="7" class="py-8 text-center text-muted-foreground text-sm">No branches match your filters.
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+</app-glass-card>
+} -->
+
+<!-- Sidebar stats -->
+<!-- <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="lg:col-span-2"></div>
+    <div class="space-y-4">
+        <app-glass-card class="p-5">
+            <app-section-header title="Network at a glance" />
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="rounded-md border bg-card/40 p-3">
+                    <svg lucideBookOpen class="h-4 w-4 mx-auto text-muted-foreground"></svg>
+                    <p class="text-lg font-semibold tabular-nums mt-1">{{ totalLibs() }}</p>
+                    <p class="label-mono">Libraries</p>
+                </div>
+                <div class="rounded-md border bg-card/40 p-3">
+                    <svg lucideMapPin class="h-4 w-4 mx-auto text-muted-foreground"></svg>
+                    <p class="text-lg font-semibold tabular-nums mt-1">{{ cityCount() }}</p>
+                    <p class="label-mono">Cities</p>
+                </div>
+                <div class="rounded-md border bg-card/40 p-3">
+                    <svg lucideShieldCheck class="h-4 w-4 mx-auto text-muted-foreground"></svg>
+                    <p class="text-lg font-semibold tabular-nums mt-1">{{ activeCount() }}</p>
+                    <p class="label-mono">Active</p>
+                </div>
+                <div class="rounded-md border bg-card/40 p-3">
+                    <svg lucideClock class="h-4 w-4 mx-auto text-muted-foreground"></svg>
+                    <p class="text-lg font-semibold tabular-nums mt-1">24/7</p>
+                    <p class="label-mono">Monitoring</p>
+                </div>
+            </div>
+        </app-glass-card>
+    </div>
+</div> -->

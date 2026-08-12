@@ -1,0 +1,61 @@
+@if (target(); as t) {
+<div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" (click)="onClose()">
+  <div class="w-full max-w-md rounded-xl border bg-background shadow-xl" (click)="$event.stopPropagation()">
+    <div class="flex items-center justify-between border-b px-5 py-4">
+      <h2 class="text-lg font-semibold flex items-center gap-2">
+        <svg lucideRotateCcw class="h-4 w-4"></svg> Renew membership
+      </h2>
+      <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" (click)="onClose()">
+        <svg lucideX class="h-4 w-4"></svg>
+      </button>
+    </div>
+
+    <div class="px-5 py-4 space-y-4">
+      <p class="text-sm text-muted-foreground">
+        Extend {{ t.name }}'s {{ t.plan }} plan by {{ preview().label }} from today.
+      </p>
+
+      <div class="rounded-lg border bg-muted/30 p-3">
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">Current expiry</div>
+            <div class="text-sm font-medium tabular-nums" [class]="t.daysLeft < 0 ? 'text-destructive' : ''">
+              {{ formatRenewDate(t.expiry) }}
+            </div>
+            <div class="text-[11px] text-muted-foreground">
+              @if (t.daysLeft < 0) {
+                {{ Math.abs(t.daysLeft) }} days ago
+              } @else if (t.daysLeft === 0) {
+                today
+              } @else {
+                in {{ t.daysLeft }} days
+              }
+            </div>
+          </div>
+          <svg lucideArrowRight class="h-4 w-4 text-muted-foreground shrink-0"></svg>
+          <div class="flex-1">
+            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">New expiry</div>
+            <div class="text-sm font-medium tabular-nums text-success flex items-center gap-1">
+              <svg lucideCalendarCheck class="h-3.5 w-3.5"></svg>
+              {{ formatRenewDate(preview().date) }}
+            </div>
+            <div class="text-[11px] text-muted-foreground">{{ preview().label }}</div>
+          </div>
+        </div>
+        @if (t.feesOwed > 0) {
+        <div class="mt-3 text-xs text-destructive">
+          Outstanding dues of {{ t.feesOwed | currency:'INR' }} remain after renewal.
+        </div>
+        }
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 border-t px-5 py-4">
+      <app-button variant="outline" size="sm" [disabled]="busy()" (click)="onClose()">Cancel</app-button>
+      <app-button size="sm" [disabled]="busy()" (click)="onConfirm()">
+        {{ busy() ? 'Renewing…' : 'Confirm renewal' }}
+      </app-button>
+    </div>
+  </div>
+</div>
+}

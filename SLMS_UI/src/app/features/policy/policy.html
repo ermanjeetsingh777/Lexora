@@ -1,0 +1,318 @@
+<div class="mx-auto max-w-7xl space-y-8 px-4 py-4 md:px-6">
+
+  <!-- Hero -->
+  <section
+    class="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-8 shadow-sm backdrop-blur-xl">
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10"></div>
+    <div class="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
+
+    <div class="relative">
+
+      <div
+        class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+        <app-icon name="shield-check" [size]="14"></app-icon>
+        Privacy & Data Protection
+      </div>
+
+      <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
+
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight text-foreground md:text-5xl">
+            Your Privacy Matters
+          </h1>
+
+          <p class="mt-5 max-w-3xl text-base leading-8 text-[var(--muted-foreground)]">
+            At Librify, we are committed to protecting the privacy and security
+            of institutions, libraries, staff members, and students. This
+            Privacy Policy explains what information we collect, how we use it,
+            and the choices you have regarding your personal data.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+
+            <div
+              class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium">
+              <app-icon name="calendar" [size]="16"></app-icon>
+              Updated May 2026
+            </div>
+
+            <div
+              class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium">
+              <app-icon name="shield" [size]="16"></app-icon>
+              GDPR Friendly
+            </div>
+
+            <div
+              class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium">
+              <app-icon name="lock" [size]="16"></app-icon>
+              Secure Cloud Infrastructure
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="rounded-3xl border border-[var(--border)] bg-background/70 p-5 shadow-sm">
+          <div class="flex items-start gap-4">
+
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <app-icon name="shield-check" [size]="22"></app-icon>
+            </div>
+
+            <div>
+              <h3 class="font-semibold">
+                Privacy Promise
+              </h3>
+
+              <p class="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                We never sell your data, maintain strict access controls,
+                and use industry-standard security measures to protect
+                information stored within Librify.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Trust Cards -->
+  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+    <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-5 shadow-sm">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <app-icon name="shield-check" [size]="22"></app-icon>
+      </div>
+
+      <h3 class="mt-4 font-semibold">
+        Protected Data
+      </h3>
+
+      <p class="mt-2 text-sm text-[var(--muted-foreground)]">
+        Industry-standard security practices protect your information.
+      </p>
+    </div>
+
+    <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-5 shadow-sm">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <app-icon name="eye-off" [size]="22"></app-icon>
+      </div>
+
+      <h3 class="mt-4 font-semibold">
+        No Data Selling
+      </h3>
+
+      <p class="mt-2 text-sm text-[var(--muted-foreground)]">
+        Your personal information is never sold to third parties.
+      </p>
+    </div>
+
+    <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-5 shadow-sm">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <app-icon name="database" [size]="22"></app-icon>
+      </div>
+
+      <h3 class="mt-4 font-semibold">
+        Data Ownership
+      </h3>
+
+      <p class="mt-2 text-sm text-[var(--muted-foreground)]">
+        Institutions retain ownership of their records and content.
+      </p>
+    </div>
+
+    <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-5 shadow-sm">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <app-icon name="users" [size]="22"></app-icon>
+      </div>
+
+      <h3 class="mt-4 font-semibold">
+        Access Control
+      </h3>
+
+      <p class="mt-2 text-sm text-[var(--muted-foreground)]">
+        Role-based permissions ensure secure access management.
+      </p>
+    </div>
+
+  </section>
+
+  <!-- Policy Content -->
+  <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
+
+    <div class="space-y-10">
+
+      <!-- Collection -->
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <app-icon name="database" [size]="20"></app-icon>
+          <h2 class="text-xl font-semibold">
+            Information We Collect
+          </h2>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+
+          <div class="rounded-2xl border p-4">
+            Institution & Branch Information
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            Member & Student Records
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            Attendance & Seat Allocation Data
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            Subscription & Billing Information
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Usage -->
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <app-icon name="settings" [size]="20"></app-icon>
+          <h2 class="text-xl font-semibold">
+            How We Use Information
+          </h2>
+        </div>
+
+        <div class="space-y-3">
+
+          <div class="rounded-2xl border p-4">
+            ✓ Deliver and maintain platform functionality.
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            ✓ Manage subscriptions, billing, and account access.
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            ✓ Improve product performance and user experience.
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            ✓ Send important service and security notifications.
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Security -->
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <app-icon name="shield" [size]="20"></app-icon>
+          <h2 class="text-xl font-semibold">
+            Security & Protection
+          </h2>
+        </div>
+
+        <div class="rounded-3xl border border-primary/20 bg-primary/5 p-5">
+          <p class="leading-8 text-[var(--muted-foreground)]">
+            We implement encryption, secure cloud infrastructure,
+            authentication controls, role-based permissions, and continuous
+            monitoring to safeguard your information against unauthorized
+            access, disclosure, or misuse.
+          </p>
+        </div>
+      </div>
+
+      <!-- Retention -->
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <app-icon name="archive" [size]="20"></app-icon>
+          <h2 class="text-xl font-semibold">
+            Data Retention
+          </h2>
+        </div>
+
+        <p class="leading-8 text-[var(--muted-foreground)]">
+          We retain information only for as long as necessary to provide
+          services, comply with legal obligations, resolve disputes, and
+          enforce agreements. Data may be securely deleted upon account
+          termination or valid deletion requests.
+        </p>
+      </div>
+
+      <!-- Rights -->
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <app-icon name="badge-check" [size]="20"></app-icon>
+          <h2 class="text-xl font-semibold">
+            Your Rights
+          </h2>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+
+          <div class="rounded-2xl border p-4">
+            ✓ Access your information
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            ✓ Correct inaccurate records
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            ✓ Export your data
+          </div>
+
+          <div class="rounded-2xl border p-4">
+            ✓ Request deletion of personal information
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Cookies -->
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <app-icon name="cookie" [size]="20"></app-icon>
+          <h2 class="text-xl font-semibold">
+            Cookies & Analytics
+          </h2>
+        </div>
+
+        <p class="leading-8 text-[var(--muted-foreground)]">
+          We may use cookies and analytics technologies to improve platform
+          performance, remember preferences, and understand how users
+          interact with our services.
+        </p>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- Contact CTA -->
+  <section class="rounded-3xl border border-[var(--border)] bg-gradient-to-r from-primary/5 to-primary/10 p-8">
+    <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+
+      <div>
+        <h2 class="text-2xl font-semibold">
+          Questions About Privacy?
+        </h2>
+
+        <p class="mt-2 text-[var(--muted-foreground)]">
+          Contact our team for questions regarding privacy, security,
+          compliance, or data protection practices.
+        </p>
+      </div>
+
+      <a routerLink="/contact"
+        class="inline-flex items-center gap-2 rounded-2xl border bg-background px-5 py-3 font-medium shadow-sm">
+        Contact Support
+        <app-icon name="arrow-right" [size]="16"></app-icon>
+      </a>
+
+    </div>
+  </section>
+
+</div>

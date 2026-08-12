@@ -1,0 +1,46 @@
+<app-auth-layout eyebrow="Two-factor authentication" title="Verify your identity"
+    subtitle="Enter the 6-digit code sent to your registered work email to complete sign-in.">
+    @if (step() === 'email') {
+    <form class="space-y-4" (ngSubmit)="sendCode()">
+        <div class="space-y-1.5">
+            <label class="ui-label" for="email">Work email</label>
+            <input id="email" class="ui-input" type="email" [(ngModel)]="email" name="email" required />
+        </div>
+        @if (error()) {
+        <p class="text-sm text-[var(--destructive)]">{{ error() }}</p>
+        }
+        <button type="submit" class="ui-btn-primary w-full cursorPointer" [disabled]="busy()">
+            {{ busy() ? 'Sending…' : 'Send code' }}
+        </button>
+    </form>
+    } @else {
+    <form class="space-y-4" (ngSubmit)="verify()">
+        <p class="text-center text-sm text-[var(--muted-foreground)]">
+            Code sent to <strong>{{ email }}</strong>
+            <button type="button" class="ml-1 text-[var(--primary)] hover:underline cursorPointer"
+                (click)="step.set('email')">Change</button>
+        </p>
+        <div class="flex justify-center gap-2">
+            @for (i of slots; track i) {
+            <input #slot
+                class="h-11 w-9 rounded-md border border-input bg-transparent text-center text-lg font-mono shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                maxlength="1" inputmode="numeric" [value]="digitAt(i)" (input)="onDigit($event, i, slot)" />
+            }
+        </div>
+        <!-- <app-otp-input (valueChange)="code.set($event)" /> -->
+        @if (error()) {
+        <p class="text-sm text-[var(--destructive)]">{{ error() }}</p>
+        }
+        <button type="submit" class="ui-btn-primary w-full cursorPointer" [disabled]="busy() || code().length !== 6">
+            {{ busy() ? 'Verifying…' : 'Verify & sign in' }}
+        </button>
+        <button type="button" class="ui-btn-ghost w-full text-sm cursorPointer" (click)="sendCode()" [disabled]="busy()">
+            Resend code
+        </button>
+    </form>
+    }
+    <p footerLink class="text-center py-2 text-sm text-[var(--muted-foreground)]">
+        Prefer password?
+        <a  routerLink="/login" class="text-[var(--primary)] hover:underline">Sign in with password</a>
+    </p>
+</app-auth-layout>

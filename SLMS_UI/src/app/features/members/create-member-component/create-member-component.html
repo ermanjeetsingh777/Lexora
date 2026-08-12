@@ -1,0 +1,309 @@
+@if(showPageHeader()){
+<app-page-header eyebrow="Members" title="Add a member" description="Assign to a branch, library, shift and package." />
+}
+
+<div class="min-h-screen blueprint-grid">
+  <div class="mx-auto max-w-3xl px-4 py-4 lg:px-4 lg:py-4">
+    <!-- Form Card -->
+    <div class="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur">
+      <form [formGroup]="memberForm" (ngSubmit)="onSubmit()" class="space-y-4">
+
+        <!-- Institution + Branch -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+          <!-- Institution -->
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">
+              Institution <span class="text-red-500">*</span>
+            </label>
+
+            <select formControlName="institutionId" (change)="onInstitutionChange()" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+              <option value="" disabled>Select Institution</option>
+              @for (inst of institutions(); track inst.value) {
+              <option [value]="inst.value">
+                {{ inst.key }}
+              </option>
+              }
+            </select>
+
+            @if (memberForm.controls.institutionId.touched && memberForm.controls.institutionId.hasError('required')) {
+            <p class="text-xs text-red-500">
+              Institution is required.
+            </p>
+            }
+          </div>
+
+          <!-- Branch -->
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">
+              Branch <span class="text-red-500">*</span>
+            </label>
+
+            <select formControlName="branchId" (change)="onBranchChange()" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+               disabled:opacity-50">
+
+              <option value="" disabled>Select Branch</option>
+              @for (b of branches(); track b.value) {
+              <option [value]="b.value">
+                {{ b.key }}
+              </option>
+              }
+            </select>
+
+            @if (memberForm.controls.branchId.touched && !memberForm.controls.branchId.value) {
+            <p class="text-xs text-red-500">
+              Branch is required.
+            </p>
+            }
+          </div>
+
+        </div>
+
+
+        <!-- Library + Shift + Plan -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+          <!-- Library -->
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">
+              Library <span class="text-red-500">*</span>
+            </label>
+
+            <select formControlName="libraryId" (change)="onlibrariesChange()" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+               disabled:opacity-50">
+
+              <option value="" disabled>Select Library</option>
+
+              @for (l of libraries(); track l.value) {
+              <option [value]="l.value">
+                {{ l.key }}
+              </option>
+              }
+            </select>
+
+            @if (memberForm.controls.libraryId.touched && !memberForm.controls.libraryId.value) {
+            <p class="text-xs text-red-500">
+              Library is required.
+            </p>
+            }
+          </div>
+
+
+          <!-- Shift -->
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">
+              Shift<span class="text-red-500">*</span>
+            </label>
+
+            <select formControlName="shift" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+
+              <option value="" disabled>Select Shift</option>
+
+              @for (s of commonService.shifts; track s) {
+              <option [value]="s">
+                {{ s }}
+              </option>
+              }
+
+            </select>
+            @if (memberForm.controls.shift.touched && memberForm.controls.shift.hasError('required')) {
+            <p class="text-xs text-red-500">
+              Shift is required.
+            </p>
+            }
+          </div>
+
+
+          <!-- Plan -->
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">
+              Plan<span class="text-red-500">*</span>
+            </label>
+
+            <select formControlName="planId" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+
+              <option value="" disabled>None</option>
+
+              @for (p of plans(); track p.value) {
+              <option [value]="p.value">
+                {{ p.key }}
+              </option>
+              }
+
+            </select>
+            @if (memberForm.controls.planId.touched && !memberForm.controls.planId.value) {
+            <p class="text-xs text-red-500">
+              Plan is required.
+            </p>
+            }
+          </div>
+
+        </div>
+
+
+        <!-- Full Name + Phone -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+          <!-- Full Name -->
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">
+              Full Name <span class="text-red-500">*</span>
+            </label>
+
+            <input type="text" formControlName="name" placeholder="e.g. Aarav Sharma" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               placeholder:text-muted-foreground
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+
+            @if (memberForm.controls.name.touched) {
+
+            @if (memberForm.controls.name.hasError('required')) {
+            <p class="text-xs text-red-500">
+              Full name is required.
+            </p>
+            }
+
+            @if (memberForm.controls.name.hasError('minlength')) {
+            <p class="text-xs text-red-500">
+              Name must be at least 2 characters.
+            </p>
+            }
+
+            @if (memberForm.controls.name.hasError('maxlength')) {
+            <p class="text-xs text-red-500">
+              Name cannot exceed 100 characters.
+            </p>
+            }
+
+            }
+          </div>
+
+
+          <!-- Phone -->
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">
+              Phone <span class="text-red-500">*</span>
+            </label>
+
+            <input type="tel" formControlName="phone" maxlength="10" placeholder="9876543210" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               placeholder:text-muted-foreground
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+
+            @if (memberForm.controls.phone.touched) {
+
+            @if (memberForm.controls.phone.hasError('required')) {
+            <p class="text-xs text-red-500">
+              Phone number is required.
+            </p>
+            }
+
+            @if (memberForm.controls.phone.hasError('pattern')) {
+            <p class="text-xs text-red-500">
+              Enter a valid 10-digit mobile number.
+            </p>
+            }
+            }
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="space-y-1.5">
+
+          <label class="text-sm font-medium">
+            Email <span class="text-red-500">*</span>
+          </label>
+
+          <input type="email" formControlName="email" placeholder="member@example.com" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+             placeholder:text-muted-foreground
+             focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+
+          @if (memberForm.controls.email.touched) {
+
+          @if (memberForm.controls.email.hasError('required')) {
+          <p class="text-xs text-red-500">
+            Email is required.
+          </p>
+          }
+
+          @if (memberForm.controls.email.hasError('email')) {
+          <p class="text-xs text-red-500">
+            Enter a valid email address.
+          </p>
+          }
+
+          }
+
+        </div>
+
+
+        <!-- DOB + Gender -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+          <!-- Date of Birth -->
+          <div class="space-y-1.5">
+
+            <label class="text-sm font-medium">
+              Date of Birth <span class="text-red-500">*</span>
+            </label>
+
+            <input type="date" formControlName="dateOfBirth" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+
+            @if (memberForm.controls.dateOfBirth.touched && memberForm.controls.dateOfBirth.hasError('required')) {
+            <p class="text-xs text-red-500">
+              Date of birth is required.
+            </p>
+            }
+
+          </div>
+
+
+          <!-- Gender -->
+          <div class="space-y-1.5">
+
+            <label class="text-sm font-medium">
+              Gender <span class="text-red-500">*</span>
+            </label>
+
+            <select formControlName="gender" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+
+            </select>
+
+            @if (memberForm.controls.gender.touched && memberForm.controls.gender.hasError('required')) {
+            <p class="text-xs text-red-500">
+              Gender is required.
+            </p>
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-2 pt-3 border-t">
+
+          <app-button type="button" variant="outline" (click)="cancel()">
+            Cancel
+          </app-button>
+
+          <app-button type="submit" [disabled]="busy()">
+            {{ busy() ? 'Creating…' : 'Create Member' }}
+          </app-button>
+
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>

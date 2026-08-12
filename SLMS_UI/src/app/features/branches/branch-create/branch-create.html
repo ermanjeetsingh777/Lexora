@@ -1,0 +1,334 @@
+@if(showPageHeader()){
+<app-page-header eyebrow="Organization" title="Institutions"
+    description="Set up an institution profile, add its first branch, and control activation." />
+}
+<div class="min-h-screen blueprint-grid">
+    <div class="mx-auto max-w-3xl px-4 py-4 lg:px-4 lg:py-4">
+        @if(isOnboarding()){
+        <!-- Header -->
+        <div class="mb-4">
+            <p class="label-mono">
+                SETUP / STEP 2 OF 3
+            </p>
+
+            <h1 class="text-2xl font-semibold tracking-tight mt-1 mb-1">
+                Create your branch
+            </h1>
+
+            <p class="text-sm leading-6 text-[var(--muted-foreground)]">
+                Add a branch under your institution. You can create one or more branches before setting up your library.
+            </p>
+        </div>
+
+        <!-- Stepper -->
+        <div class="mb-4">
+            <ol class="flex items-center">
+
+                <!-- Institution -->
+                <li class="flex flex-1 items-center gap-3">
+                    <div
+                        class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-primary/5 text-xs font-semibold text-primary">
+                        1
+                    </div>
+
+                    <span class="text-sm font-medium text-primary">
+                        Institution
+                    </span>
+
+                    <div class="mx-2 h-px flex-1 bg-primary"></div>
+                </li>
+
+                <!-- Branch -->
+                <li class="flex flex-1 items-center gap-3">
+                    <div
+                        class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-primary/5 text-xs font-semibold text-primary">
+                        2
+                    </div>
+
+                    <span class="text-sm font-semibold text-primary">
+                        Branch
+                    </span>
+
+                    <div class="mx-2 h-px flex-1 bg-border"></div>
+                </li>
+
+                <!-- Library -->
+                <li class="flex items-center gap-3">
+                    <div
+                        class="flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold text-muted-foreground">
+                        3
+                    </div>
+
+                    <span class="text-sm text-muted-foreground">
+                        Library
+                    </span>
+                </li>
+
+            </ol>
+        </div>
+        }
+
+
+        <!-- Form Card -->
+        <div class="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur">
+
+            <form [formGroup]="branchForm" (ngSubmit)="createBranch()" novalidate class="space-y-6">
+
+                <!-- Basic Information -->
+                <div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <!-- Branch Name -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                Branch Name <span class="text-red-500">*</span>
+                            </label>
+                            <input name="name" formControlName="name" class="ui-input"
+                                placeholder="Enter branch name" />
+                            @if(branchForm.get('name')?.invalid && (branchForm.get('name')?.touched ||
+                            branchForm.dirty))
+                            {
+                            <small class="text-red-500">
+
+                                @if(branchForm.get('name')?.hasError('required')){
+                                Branch name is required.
+                                }
+
+                                @if(branchForm.get('name')?.hasError('minlength')){
+                                Minimum 3 characters required.
+                                }
+
+                                @if(branchForm.get('name')?.hasError('maxlength')){
+                                Maximum 100 characters allowed.
+                                }
+
+                            </small>
+                            }
+                        </div>
+
+                        <!-- Institution -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                Institution
+                            </label>
+                            <select formControlName="institutionId" name="institutionId"
+                                [disabled]="disabledInstitutionSelect()"
+                                class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+                                <option value="" disabled>Select institution</option>
+                                @for (i of institutions(); track i.value) { <option [value]="i.value">{{ i.key }}
+                                </option>
+                                }
+                            </select>
+                        </div>
+
+
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <!-- Email -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                Email <span class="text-red-500">*</span>
+                            </label>
+
+                            <input type="email" name="email" formControlName="email" class="ui-input"
+                                placeholder="branch@example.com" />
+                            @if ( branchForm.get('email')?.invalid && (branchForm.get('email')?.dirty ||
+                            branchForm.get('email')?.touched )) {
+
+                            <small class="text-red-500">
+                                @if(branchForm.get('email')?.hasError('required')){
+                                Email is required.
+                                }
+
+                                @if (branchForm.get('email')?.hasError('email')) {
+                                Please enter a valid email.
+                                }
+
+                            </small>
+
+                            }
+                        </div>
+
+                        <!-- Phone -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                Phone <span class="text-red-500">*</span>
+                            </label>
+
+                            <input name="phone" formControlName="phone" class="ui-input" placeholder="+91 9876543210" />
+                            @if (branchForm.controls.phone.invalid && (branchForm.controls.phone.dirty
+                            ||branchForm.controls.phone.touched)) {
+
+                            <small class="text-red-500">
+
+                                @if (branchForm.controls.phone.hasError('required')) {
+                                Phone number is required.
+                                }
+
+                                @if (branchForm.controls.phone.hasError('pattern')) {
+                                Enter a valid 10-digit phone number.
+                                }
+
+                            </small>
+
+                            }
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <!-- City -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                City <span class="text-red-500">*</span>
+                            </label>
+
+                            <input name="city" formControlName="city" class="ui-input" placeholder="City" />
+                            @if ( branchForm.controls.city.invalid && (branchForm.controls.city.dirty ||
+                            branchForm.controls.city.touched) ) {
+                            <small class="text-red-500">
+                                @if (branchForm.controls.city.hasError('required')) {
+                                City is required.
+                                }
+                            </small>
+                            }
+                        </div>
+
+                        <!-- Address -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                Address <span class="text-red-500">*</span>
+                            </label>
+
+                            <input name="address" formControlName="address" class="ui-input"
+                                placeholder="Full address" />
+                            @if ( branchForm.controls.address.invalid && (branchForm.controls.address.dirty ||
+                            branchForm.controls.address.touched)) {
+
+                            <small class="text-red-500">
+
+                                @if (branchForm.controls.address.hasError('required')) {
+                                Address is required.
+                                }
+
+                                @if (branchForm.controls.address.hasError('minlength')) {
+                                Minimum 5 characters required.
+                                }
+
+                            </small>
+
+                            }
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Capacity & Timing -->
+                <div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                        <!-- Capacity -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                Capacity
+                            </label>
+
+                            <input formControlName="capacity" name="capacity" type="number"
+                                class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                            @if (branchForm.controls.capacity.invalid &&(branchForm.controls.capacity.dirty ||
+                            branchForm.controls.capacity.touched)) {
+
+                            <small class="text-red-500">
+
+                                @if (branchForm.controls.capacity.hasError('min')) {
+                                Capacity must be greater than 0.
+                                }
+
+                                @if (branchForm.controls.capacity.hasError('max')) {
+                                Capacity cannot exceed 100000.
+                                }
+
+                            </small>
+                            }
+                        </div>
+
+                        <!-- Opens -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                Opens At <span class="text-red-500">*</span>
+                            </label>
+
+                            <input type="time" class="ui-input" name="opensAt" formControlName="opensAt" />
+                            @if ( branchForm.get('opensAt')?.invalid && (branchForm.get('opensAt')?.dirty ||
+                            branchForm.get('opensAt')?.touched )) {
+
+                            <small class="text-red-500">
+                                @if(branchForm.get('opensAt')?.hasError('required')){
+                                Opens At is required.
+                                }
+
+                            </small>
+
+                            }
+                        </div>
+
+                        <!-- Closes -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">
+                                Closes At <span class="text-red-500">*</span>
+                            </label>
+
+                            <input type="time" class="ui-input" name="closesAt" formControlName="closesAt" />
+                            @if ( branchForm.get('closesAt')?.invalid && (branchForm.get('closesAt')?.dirty ||
+                            branchForm.get('closesAt')?.touched )) {
+
+                            <small class="text-red-500">
+                                @if(branchForm.get('closesAt')?.hasError('required')){
+                                Closes At is required.
+                                }
+
+                            </small>
+
+                            }
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <!-- Actions -->
+                <div class="flex gap-3 pt-2">
+                   @if(!isOnboarding()){
+                    <button type="button" class="ui-btn-outline flex-1" (click)="router.navigate(['/branches'])">
+                        Cancel
+                    </button>
+                    }
+
+                    <button type="submit" class="ui-btn-primary flex-[2]" [disabled]="loader() || branchForm.invalid">
+                        @if (loader()) {
+                        {{ isOnboarding() ? 'Creating...' : 'Saving...' }}
+                        } @else {
+                        {{ isOnboarding() ? 'Continue to Libraries →' : 'Save Branch' }}
+                        }
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+</div>

@@ -4194,11 +4194,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\NewSmartLibraryManagementSystem\\SLMS_API\\SLMS_API.csproj",
+      "projectUniqueName": "D:\\New_Workspace\\Lexora\\SLMS_API\\SLMS_API.csproj",
       "projectName": "SLMS_API",
-      "projectPath": "D:\\NewSmartLibraryManagementSystem\\SLMS_API\\SLMS_API.csproj",
+      "projectPath": "D:\\New_Workspace\\Lexora\\SLMS_API\\SLMS_API.csproj",
       "packagesPath": "C:\\Users\\yogesh yadav\\.nuget\\packages\\",
-      "outputPath": "D:\\NewSmartLibraryManagementSystem\\SLMS_API\\obj\\",
+      "outputPath": "D:\\New_Workspace\\Lexora\\SLMS_API\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -4218,6 +4218,7 @@
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {}
         }
@@ -4236,6 +4237,7 @@
     },
     "frameworks": {
       "net10.0": {
+        "framework": "net10.0",
         "targetAlias": "net10.0",
         "dependencies": {
           "AutoMapper": {

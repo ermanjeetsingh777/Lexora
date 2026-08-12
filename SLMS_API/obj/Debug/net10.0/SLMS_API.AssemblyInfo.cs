@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SLMS_API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bae143a39d020e5645e23d318cce275713f3866a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cc6e81aadc1fed7bb4ec4aed322e26a1163b8055")]
 [assembly: System.Reflection.AssemblyProductAttribute("SLMS_API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SLMS_API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

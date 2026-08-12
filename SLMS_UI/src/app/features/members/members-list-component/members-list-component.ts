@@ -66,7 +66,10 @@ interface MemberRow extends MemberListResponse {
   ],
   templateUrl: './members-list-component.html',
   styleUrl: './members-list-component.css',
-  providers: [MemberService]
+  providers: [MemberService],
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+  },
 })
 export class MembersListComponent implements OnInit {
   private readonly toast = inject(ToastService);
@@ -84,7 +87,7 @@ export class MembersListComponent implements OnInit {
   readonly lifecycles = signal<string[]>([]);
   readonly shifts = signal<string[]>([]);
   readonly needsAction = signal(false);
-  readonly view = signal<ViewMode>('table');
+  readonly view = signal<ViewMode>('grid');
   readonly sortKey = signal<SortKey>(DEFAULT_SORT_KEY);
   readonly sortDir = signal<SortDir>(DEFAULT_SORT_DIR);
   readonly pageSize = signal(25);
@@ -297,11 +300,11 @@ export class MembersListComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.hydrateFilters();
+    // this.hydrateFilters();
     this.loadAllMembers();
   }
 
-  private hydrateFilters(): void {
+ /*  private hydrateFilters(): void {
     try {
       const raw = localStorage.getItem(MEMBERS_FILTER_STORAGE_KEY);
       if (!raw) return;
@@ -317,8 +320,8 @@ export class MembersListComponent implements OnInit {
       if (saved.sortKey) this.sortKey.set(saved.sortKey);
       if (saved.sortDir) this.sortDir.set(saved.sortDir);
       if (saved.pageSize) this.pageSize.set(saved.pageSize);
-    } catch { /* ignore corrupt storage */ }
-  }
+    } catch { ignore corrupt storage }
+  } */
 
   private persistFilters(): void {
     localStorage.setItem(MEMBERS_FILTER_STORAGE_KEY, JSON.stringify({
@@ -370,6 +373,13 @@ export class MembersListComponent implements OnInit {
 
   closeFilters(): void {
     this.openFilter.set(null);
+  }
+
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.openFilter()) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest('.member-filters')) return;
+    this.closeFilters();
   }
 
   onFilterPillClick(key: FilterKey, value: string, event?: Event): void {

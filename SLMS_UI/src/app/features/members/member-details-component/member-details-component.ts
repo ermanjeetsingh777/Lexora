@@ -39,7 +39,7 @@ import { KeyValueResponse, PlanDropdownResponse, PlanResponse } from '@core/mode
 import { MemberPaymentsComponent } from "../pages/member-payments-component/member-payments-component";
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { AttendanceService } from '@core/services/attendance.service';
-import { AttendanceCalendarResponse, AttendanceResponse, AttendanceStatus, CheckInRequest, CheckOutRequest } from '@core/models/attendanceModels';
+import { AttendanceCalendarResponse, AttendanceResponse, AttendanceStatisticsResponse, AttendanceStatus, CheckInRequest, CheckOutRequest } from '@core/models/attendanceModels';
 import { PlanStatus } from '@core/enums/OnbardingSteps';
 import {
   computeMemberLifecycle, LIFECYCLE_TONE_CLASSES, lifecycleBannerClass, MemberLifecycle, RenewTarget,
@@ -120,6 +120,7 @@ export class MemberDetailsComponent implements OnInit {
 
   // ---- Attendance calendar / dashboard state ----
   readonly calendarDays = signal<AttendanceResponse[]>([]);
+  readonly attendanceStatistics = signal<AttendanceStatisticsResponse | null>(null);
   readonly calendarMonth = signal<Date>(new Date());
   readonly calendarLoading = signal(false);
   readonly weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -345,7 +346,20 @@ export class MemberDetailsComponent implements OnInit {
   });
 
   readonly attendanceStats = computed(() => {
-    const records = this.calendarDays().filter(r => r.isActive !== false);
+    const stats = this.attendanceStatistics();
+    if (stats) {
+      return {
+        present: stats.presentDays,
+        late: stats.lateDays,
+        absent: stats.absentDays,
+        holiday: stats.leaveDays,
+        workDays: stats.totalDays - stats.leaveDays,
+        rate: Math.round(stats.attendancePercentage),
+        bestStreak: stats.longestStreak,
+      };
+    }
+
+    const records = this.calendarDays();
     const present = records.filter(r => this.toDayStatus(r.status) === 'present').length;
     const late = records.filter(r => this.toDayStatus(r.status) === 'late').length;
     const absent = records.filter(r => this.toDayStatus(r.status) === 'absent').length;
@@ -355,7 +369,7 @@ export class MemberDetailsComponent implements OnInit {
 
     let streak = 0;
     let best = 0;
-    for (const r of [...records].sort((a, b) => a.attendanceDate.localeCompare(b.attendanceDate))) {
+    for (const r of [...records].sort((a, b) => this.normalizeAttendanceDate(a.attendanceDate).localeCompare(this.normalizeAttendanceDate(b.attendanceDate)))) {
       const s = this.toDayStatus(r.status);
       if (s === 'present' || s === 'late') {
         streak += 1;
@@ -377,7 +391,7 @@ export class MemberDetailsComponent implements OnInit {
     const cursor = this.calendarMonth();
     const year = cursor.getFullYear();
     const month = cursor.getMonth();
-    const map = new Map(this.calendarDays().map(r => [r.attendanceDate, r]));
+    const map = new Map(this.calendarDays().map(r => [this.normalizeAttendanceDate(r.attendanceDate), r]));
 
     const cells: CalendarCell[] = [];
     const firstDow = new Date(year, month, 1).getDay();
@@ -394,7 +408,7 @@ export class MemberDetailsComponent implements OnInit {
   readonly heatmapCols = computed<HeatmapCell[][]>(() => {
     const today = new Date();
     const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 88);
-    const map = new Map(this.calendarDays().map(r => [r.attendanceDate, r]));
+    const map = new Map(this.calendarDays().map(r => [this.normalizeAttendanceDate(r.attendanceDate), r]));
 
     const days: HeatmapCell[] = [];
     for (let i = 0; i < 89; i++) {
@@ -427,8 +441,7 @@ export class MemberDetailsComponent implements OnInit {
 
   readonly attendanceLog = computed(() =>
     [...this.calendarDays()]
-      .filter(r => r.isActive !== false)
-      .sort((a, b) => b.attendanceDate.localeCompare(a.attendanceDate))
+      .sort((a, b) => this.normalizeAttendanceDate(b.attendanceDate).localeCompare(this.normalizeAttendanceDate(a.attendanceDate)))
       .slice(0, 30)
   );
 
@@ -489,9 +502,16 @@ export class MemberDetailsComponent implements OnInit {
     this.loadMemberDetails();
     this.loadAttendanceCalendar();
     this.loadRecentAttendance();
+    this.loadAttendanceStatistics();
   }
 
-  setTab(tab: TabId): void { this.activeTab.set(tab); }
+  setTab(tab: TabId): void {
+    this.activeTab.set(tab);
+    if (tab === 'attendance') {
+      this.loadAttendanceCalendar();
+      this.loadAttendanceStatistics();
+    }
+  }
 
   loadMemberDetails(): void {
     this.loading.set(true);
@@ -527,6 +547,29 @@ export class MemberDetailsComponent implements OnInit {
 
   private dateKey(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  normalizeAttendanceDate(value?: string | null): string {
+    if (!value) return '';
+    return value.length >= 10 ? value.slice(0, 10) : value;
+  }
+
+  formatAttendanceTime(value?: string | Date | null): string {
+    if (!value) return '—';
+    if (typeof value === 'string') {
+      if (/^\d{2}:\d{2}/.test(value)) return value.slice(0, 5);
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      }
+      return value;
+    }
+    return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  formatAttendanceDate(value?: string | null): string {
+    const normalized = this.normalizeAttendanceDate(value);
+    return normalized || '—';
   }
 
   toDayStatus(status?: AttendanceStatus | null): DayStatus {
@@ -607,7 +650,6 @@ export class MemberDetailsComponent implements OnInit {
   }
 
   loadRecentAttendance(): void {
-    // Prefetch previous months so the 90-day heatmap has data
     const now = new Date();
     for (let i = 1; i <= 3; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -618,11 +660,22 @@ export class MemberDetailsComponent implements OnInit {
     }
   }
 
+  loadAttendanceStatistics(): void {
+    this.attendanceService.getAttendanceStatistics(this.memberId).subscribe({
+      next: (response) => this.attendanceStatistics.set(response.data ?? null),
+      error: () => this.attendanceStatistics.set(null),
+    });
+  }
+
   mergeCalendarDays(records: AttendanceResponse[]): void {
     if (!records?.length) return;
     const map = new Map<string, AttendanceResponse>();
-    for (const r of this.calendarDays()) map.set(r.id, r);
-    for (const r of records) map.set(r.id, r);
+    for (const r of this.calendarDays()) {
+      map.set(this.normalizeAttendanceDate(r.attendanceDate), r);
+    }
+    for (const r of records) {
+      map.set(this.normalizeAttendanceDate(r.attendanceDate), r);
+    }
     this.calendarDays.set([...map.values()]);
   }
 
@@ -786,6 +839,8 @@ export class MemberDetailsComponent implements OnInit {
     this.attendanceService.checkIn(this.memberId, request, isCheckIn).subscribe({
       next: (response) => {
         this.loadMemberDetails();
+        this.loadAttendanceCalendar();
+        this.loadAttendanceStatistics();
         this.toast.success(response.message || 'Member checked in successfully.');
       },
       error: (error) => {

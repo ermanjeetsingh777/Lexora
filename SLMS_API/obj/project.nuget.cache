@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "udUNlNvjTj0=",
+  "dgSpecHash": "8NNO13Dp+N8=",
   "success": true,
-  "projectFilePath": "D:\\NewSmartLibraryManagementSystem\\SLMS_API\\SLMS_API.csproj",
+  "projectFilePath": "D:\\New_Workspace\\Lexora\\SLMS_API\\SLMS_API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\yogesh yadav\\.nuget\\packages\\automapper\\16.2.0\\automapper.16.2.0.nupkg.sha512",
     "C:\\Users\\yogesh yadav\\.nuget\\packages\\automapper.extensions.microsoft.dependencyinjection\\12.0.0\\automapper.extensions.microsoft.dependencyinjection.12.0.0.nupkg.sha512",

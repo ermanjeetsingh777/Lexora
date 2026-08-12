@@ -1044,6 +1044,46 @@
         }
       }
     },
+    "/api/v1/attendance/members/{memberId}/statistics": {
+      "get": {
+        "tags": [
+          "Attendance"
+        ],
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SLMS_API.Application.Contracts.Common.ApiResponse`1[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceStatisticsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SLMS_API.Application.Contracts.Common.ApiResponse`1[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceStatisticsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SLMS_API.Application.Contracts.Common.ApiResponse`1[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceStatisticsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "tags": [
@@ -4657,6 +4697,29 @@
         },
         "additionalProperties": false
       },
+      "SLMS_API.Application.Contracts.Common.ApiResponse`1[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceStatisticsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/SLMS_API.Application.Contracts.Organizations.Requests.AttendanceStatisticsResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SLMS_API.Application.Contracts.Common.ApiResponse`1[[SLMS_API.Application.Contracts.Organizations.Requests.InstitutionDropdownResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]": {
         "type": "object",
         "properties": {
@@ -5487,6 +5550,48 @@
           "holidayName": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SLMS_API.Application.Contracts.Organizations.Requests.AttendanceStatisticsResponse": {
+        "type": "object",
+        "properties": {
+          "totalDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "presentDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "absentDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "leaveDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lateDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "attendancePercentage": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalStudyMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentStreak": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "longestStreak": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

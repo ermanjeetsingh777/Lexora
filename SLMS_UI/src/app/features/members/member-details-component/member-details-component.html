@@ -412,7 +412,7 @@
     </div>
     <app-member-contact-component [contactData]="m.contacts" (addContact)="addContact($event)" />
 
-    <app-glass-card class="block p-5">
+    <app-glass-card class="block pt-5"> 
       <app-section-header title="Activity timeline"
         description="Latest events across payments, attendance, plan and seat changes" />
       @if (activityTimeline().length === 0) {
@@ -437,137 +437,143 @@
 
     <!-- ATTENDANCE TAB -->
     @if (activeTab() === 'attendance') {
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-      <div class="border rounded-lg p-3 bg-muted/20">
-        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <svg lucideCheckCircle2 class="h-4 w-4 text-emerald-500"></svg> Present
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideCheckCircle2 class="h-4 w-4 text-emerald-500"></svg> Present
+          </div>
+          <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().present }}</div>
         </div>
-        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().present }}</div>
-      </div>
-      <div class="border rounded-lg p-3 bg-muted/20">
-        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <svg lucideAlertTriangle class="h-4 w-4 text-amber-500"></svg> Late
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideAlertTriangle class="h-4 w-4 text-amber-500"></svg> Late
+          </div>
+          <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().late }}</div>
         </div>
-        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().late }}</div>
-      </div>
-      <div class="border rounded-lg p-3 bg-muted/20">
-        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <svg lucideXCircle class="h-4 w-4 text-rose-500"></svg> Absent
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideXCircle class="h-4 w-4 text-rose-500"></svg> Absent
+          </div>
+          <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().absent }}</div>
         </div>
-        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().absent }}</div>
-      </div>
-      <div class="border rounded-lg p-3 bg-muted/20">
-        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <svg lucideTrendingUp class="h-4 w-4 text-primary"></svg> Attendance
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideTrendingUp class="h-4 w-4 text-primary"></svg> Attendance
+          </div>
+          <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().rate }}%</div>
         </div>
-        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().rate }}%</div>
-      </div>
-      <div class="border rounded-lg p-3 bg-muted/20">
-        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <svg lucideCalendar class="h-4 w-4 text-violet-500"></svg> Best streak
+        <div class="border rounded-lg p-3 bg-muted/20">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <svg lucideCalendar class="h-4 w-4 text-violet-500"></svg> Best streak
+          </div>
+          <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().bestStreak }}d</div>
         </div>
-        <div class="text-lg font-semibold tabular-nums mt-1">{{ attendanceStats().bestStreak }}d</div>
       </div>
+
+      <app-glass-card class="block">
+        <div class="flex items-center justify-between mb-3">
+          <app-section-header [title]="monthLabel()" description="Attendance calendar" />
+          <div class="flex items-center gap-1">
+            <app-button size="icon" variant="outline" class="h-8 w-8" (click)="prevMonth()">
+              <svg lucideChevronLeft class="h-4 w-4"></svg>
+            </app-button>
+            <app-button size="sm" variant="outline" class="h-8" (click)="goToday()">Today</app-button>
+            <app-button size="icon" variant="outline" class="h-8 w-8" (click)="nextMonth()">
+              <svg lucideChevronRight class="h-4 w-4"></svg>
+            </app-button>
+          </div>
+        </div>
+        @if (calendarLoading()) {
+        <div class="py-8 text-center text-sm text-muted-foreground">Loading attendance…</div>
+        } @else {
+        <div class="grid grid-cols-7 gap-1 label-mono mb-1">
+          @for (d of weekDays; track d) {
+          <div class="text-center text-xs">{{ d }}</div>
+          }
+        </div>
+        <div class="grid grid-cols-7 gap-1">
+          @for (cell of monthCells(); track $index) {
+          <div class="aspect-square rounded-md text-xs flex flex-col items-center justify-center p-1 transition"
+            [class]="calendarCellClass(cell)" [title]="cellTitle(cell)">
+            @if (cell.date) {
+            <span class="font-mono">{{ cell.date.getDate() }}</span>
+            @if (cell.day?.durationMinutes) {
+            <span class="text-[9px] opacity-80 tabular-nums">{{ (cell.day!.durationMinutes / 60).toFixed(1) }}h</span>
+            }
+            }
+          </div>
+          }
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-emerald-500/70"></span> Present</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-amber-500/70"></span> Late</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-rose-500/60"></span> Absent</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-slate-400/30"></span> Holiday</span>
+        </div>
+        }
+      </app-glass-card>
+
+      <app-glass-card class="block p-0 overflow-hidden">
+        <div class="px-4 pt-4">
+          <app-section-header title="Check-in log" description="Last 30 days" />
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left border-b label-mono bg-muted/30">
+                <th class="px-4 py-2 font-medium">Date</th>
+                <th class="px-4 py-2 font-medium">Status</th>
+                <th class="px-4 py-2 font-medium">Check in</th>
+                <th class="px-4 py-2 font-medium">Check out</th>
+                <th class="px-4 py-2 font-medium text-right">Hours</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              @for (r of attendanceLog(); track normalizeAttendanceDate(r.attendanceDate)) {
+              <tr class="hover:bg-muted/40">
+                <td class="px-4 py-2 tabular-nums">{{ formatAttendanceDate(r.attendanceDate) }}</td>
+                <td class="px-4 py-2">
+                  <span class="inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium capitalize"
+                    [class]="dayStatusPillClass(r.status)">{{ statusLabel(r.status) }}</span>
+                </td>
+                <td class="px-4 py-2 font-mono text-xs">{{ formatAttendanceTime(r.checkInTime ?? r.checkInAtUtc) }}</td>
+                <td class="px-4 py-2 font-mono text-xs">{{ formatAttendanceTime(r.checkOutTime ?? r.checkOutAtUtc) }}</td>
+                <td class="px-4 py-2 text-right tabular-nums">{{ r.durationMinutes ? formatDuration(r.durationMinutes) : '—' }}</td>
+              </tr>
+              }
+              @if (attendanceLog().length === 0) {
+              <tr><td colspan="5" class="py-8 text-center text-muted-foreground text-sm">No attendance records</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </app-glass-card>
+
+      <app-glass-card class="block p-5">
+        <app-section-header title="90-day heatmap" description="Hours per day — darker = more time on premises" />
+        <div class="flex gap-1 overflow-x-auto pb-2 mt-4">
+          @for (col of heatmapCols(); track $index) {
+          <div class="flex flex-col gap-1">
+            @for (cell of col; track $index) {
+            <div class="h-3.5 w-3.5 rounded-sm" [class]="heatmapCellClass(cell)"
+              [title]="cell.date ? cell.date + ' · ' + cell.status + (cell.hours > 0 ? ' · ' + cell.hours.toFixed(1) + 'h' : '') : ''"></div>
+            }
+          </div>
+          }
+        </div>
+        <div class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Less</span>
+          <span class="h-3 w-3 rounded-sm bg-muted/40"></span>
+          <span class="h-3 w-3 rounded-sm bg-emerald-500/20"></span>
+          <span class="h-3 w-3 rounded-sm bg-emerald-500/40"></span>
+          <span class="h-3 w-3 rounded-sm bg-emerald-500/70"></span>
+          <span class="h-3 w-3 rounded-sm bg-emerald-600"></span>
+          <span>More</span>
+          <span class="ml-4 inline-flex items-center gap-1"><span class="h-3 w-3 rounded-sm bg-rose-500/40"></span> Absent</span>
+        </div>
+      </app-glass-card>
     </div>
-
-    <app-glass-card class="block p-5">
-      <div class="flex items-center justify-between mb-3">
-        <app-section-header [title]="monthLabel()" description="Attendance calendar" />
-        <div class="flex items-center gap-1">
-          <app-button size="icon" variant="outline" class="h-8 w-8" (click)="prevMonth()">
-            <svg lucideChevronLeft class="h-4 w-4"></svg>
-          </app-button>
-          <app-button size="sm" variant="outline" class="h-8" (click)="goToday()">Today</app-button>
-          <app-button size="icon" variant="outline" class="h-8 w-8" (click)="nextMonth()">
-            <svg lucideChevronRight class="h-4 w-4"></svg>
-          </app-button>
-        </div>
-      </div>
-      <div class="grid grid-cols-7 gap-1 label-mono mb-1">
-        @for (d of weekDays; track d) {
-        <div class="text-center text-xs">{{ d }}</div>
-        }
-      </div>
-      <div class="grid grid-cols-7 gap-1">
-        @for (cell of monthCells(); track $index) {
-        <div class="aspect-square rounded-md text-xs flex flex-col items-center justify-center p-1 transition"
-          [class]="calendarCellClass(cell)" [title]="cellTitle(cell)">
-          @if (cell.date) {
-          <span class="font-mono">{{ cell.date.getDate() }}</span>
-          @if (cell.day?.durationMinutes) {
-          <span class="text-[9px] opacity-80 tabular-nums">{{ (cell.day!.durationMinutes / 60).toFixed(1) }}h</span>
-          }
-          }
-        </div>
-        }
-      </div>
-      <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-emerald-500/70"></span> Present</span>
-        <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-amber-500/70"></span> Late</span>
-        <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-rose-500/60"></span> Absent</span>
-        <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-slate-400/30"></span> Holiday</span>
-      </div>
-    </app-glass-card>
-
-    <app-glass-card class="block p-0 overflow-hidden">
-      <div class="px-4 pt-4">
-        <app-section-header title="Check-in log" description="Last 30 days" />
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left border-b label-mono bg-muted/30">
-              <th class="px-4 py-2 font-medium">Date</th>
-              <th class="px-4 py-2 font-medium">Status</th>
-              <th class="px-4 py-2 font-medium">Check in</th>
-              <th class="px-4 py-2 font-medium">Check out</th>
-              <th class="px-4 py-2 font-medium text-right">Hours</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y">
-            @for (r of attendanceLog(); track r.id) {
-            <tr class="hover:bg-muted/40">
-              <td class="px-4 py-2 tabular-nums">{{ r.attendanceDate }}</td>
-              <td class="px-4 py-2">
-                <span class="inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium capitalize"
-                  [class]="dayStatusPillClass(r.status)">{{ statusLabel(r.status) }}</span>
-              </td>
-              <td class="px-4 py-2 font-mono text-xs">{{ r.checkInAtUtc ? (r.checkInAtUtc | date:'HH:mm') : '—' }}</td>
-              <td class="px-4 py-2 font-mono text-xs">{{ r.checkOutAtUtc ? (r.checkOutAtUtc | date:'HH:mm') : '—' }}</td>
-              <td class="px-4 py-2 text-right tabular-nums">{{ r.durationMinutes ? formatDuration(r.durationMinutes) : '—' }}</td>
-            </tr>
-            }
-            @if (attendanceLog().length === 0) {
-            <tr><td colspan="5" class="py-8 text-center text-muted-foreground text-sm">No attendance records</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </app-glass-card>
-
-    <app-glass-card class="block p-5">
-      <app-section-header title="90-day heatmap" description="Hours per day — darker = more time on premises" />
-      <div class="flex gap-1 overflow-x-auto pb-2 mt-4">
-        @for (col of heatmapCols(); track $index) {
-        <div class="flex flex-col gap-1">
-          @for (cell of col; track $index) {
-          <div class="h-3.5 w-3.5 rounded-sm" [class]="heatmapCellClass(cell)"
-            [title]="cell.date ? cell.date + ' · ' + cell.status + (cell.hours > 0 ? ' · ' + cell.hours.toFixed(1) + 'h' : '') : ''"></div>
-          }
-        </div>
-        }
-      </div>
-      <div class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-        <span>Less</span>
-        <span class="h-3 w-3 rounded-sm bg-muted/40"></span>
-        <span class="h-3 w-3 rounded-sm bg-emerald-500/20"></span>
-        <span class="h-3 w-3 rounded-sm bg-emerald-500/40"></span>
-        <span class="h-3 w-3 rounded-sm bg-emerald-500/70"></span>
-        <span class="h-3 w-3 rounded-sm bg-emerald-600"></span>
-        <span>More</span>
-        <span class="ml-4 inline-flex items-center gap-1"><span class="h-3 w-3 rounded-sm bg-rose-500/40"></span> Absent</span>
-      </div>
-    </app-glass-card>
     }
 
     <!-- BOOKS TAB -->

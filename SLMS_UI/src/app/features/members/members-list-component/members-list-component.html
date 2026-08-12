@@ -53,7 +53,7 @@
 
 <app-glass-card class="block">
   <!-- Filter bar -->
-  <div class="flex flex-wrap gap-2 items-center">
+  <div class="member-filters flex flex-wrap gap-2 items-center">
     <div class="relative flex-1 min-w-[220px]">
       <svg lucideSearch
         class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"></svg>
@@ -69,7 +69,7 @@
     </div>
 
     <!-- Expiry dropdown -->
-    <div class="relative">
+    <div class="relative z-40">
       <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('lifecycle')">
         <svg lucideCalendarClock class="h-3.5 w-3.5 mr-1"></svg> Expiry
         @if (filterCount('lifecycles') > 0 || needsAction()) {
@@ -80,8 +80,7 @@
         <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
       </app-button>
       @if (openFilter() === 'lifecycle') {
-      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
-      <div class="absolute left-0 z-40 mt-1 w-64 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+      <div class="absolute left-0 z-50 mt-1 w-64 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
         <div class="flex items-center justify-between px-2 py-1">
           <span class="label-mono">Expiry</span>
           @if (hasExpiryFilters()) {
@@ -106,7 +105,7 @@
     </div>
 
     <!-- Status dropdown -->
-    <div class="relative">
+    <div class="relative z-40">
       <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('status')">
         <svg lucideFilter class="h-3.5 w-3.5 mr-1"></svg> Status
         @if (filterCount('statuses') > 0) {
@@ -115,8 +114,7 @@
         <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
       </app-button>
       @if (openFilter() === 'status') {
-      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
-      <div class="absolute left-0 z-40 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+      <div class="absolute left-0 z-50 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
         <div class="flex items-center justify-between px-2 py-1">
           <span class="label-mono">Status</span>
           @if (filterCount('statuses') > 0) {
@@ -135,7 +133,7 @@
     </div>
 
     <!-- Plan dropdown -->
-    <div class="relative">
+    <div class="relative z-40">
       <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('plan')">
         <svg lucideFilter class="h-3.5 w-3.5 mr-1"></svg> Plan
         @if (filterCount('plans') > 0) {
@@ -144,8 +142,7 @@
         <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
       </app-button>
       @if (openFilter() === 'plan') {
-      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
-      <div class="absolute left-0 z-40 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+      <div class="absolute left-0 z-50 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
         <div class="flex items-center justify-between px-2 py-1">
           <span class="label-mono">Plan</span>
           @if (filterCount('plans') > 0) {
@@ -164,7 +161,7 @@
     </div>
 
     <!-- Branch dropdown -->
-    <div class="relative">
+    <div class="relative z-40">
       <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('branch')">
         <svg lucideFilter class="h-3.5 w-3.5 mr-1"></svg> Branch
         @if (filterCount('branches') > 0) {
@@ -173,8 +170,7 @@
         <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
       </app-button>
       @if (openFilter() === 'branch') {
-      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
-      <div class="absolute left-0 z-40 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+      <div class="absolute left-0 z-50 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
         <div class="flex items-center justify-between px-2 py-1">
           <span class="label-mono">Branch</span>
           @if (filterCount('branches') > 0) {
@@ -196,7 +192,7 @@
     </div>
 
     <!-- Shift dropdown -->
-    <div class="relative">
+    <div class="relative z-40">
       <app-button size="sm" variant="outline" class="h-9" (click)="toggleFilter('shift')">
         <svg lucideFilter class="h-3.5 w-3.5 mr-1"></svg> Shift
         @if (filterCount('shifts') > 0) {
@@ -205,8 +201,7 @@
         <svg lucideChevronDown class="h-3 w-3 ml-1 opacity-60"></svg>
       </app-button>
       @if (openFilter() === 'shift') {
-      <div class="fixed inset-0 z-30" (click)="closeFilters()"></div>
-      <div class="absolute left-0 z-40 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
+      <div class="absolute left-0 z-50 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 max-h-72 overflow-y-auto">
         <div class="flex items-center justify-between px-2 py-1">
           <span class="label-mono">Shift</span>
           @if (filterCount('shifts') > 0) {
@@ -249,7 +244,7 @@
     </div>
   </div>
 
-  @if (activeFilterCount() > 0 || !isSortDefault()) {
+<!--   @if (activeFilterCount() > 0 || !isSortDefault()) {
   <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/60">
     <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-0.5">Active filters</span>
     @if (!isSortDefault()) {
@@ -328,7 +323,7 @@
       {{ sorted().length }} match{{ sorted().length === 1 ? '' : 'es' }}
     </span>
   </div>
-  }
+  } -->
 
   <div class="mt-4">
     @if (loading()) {
@@ -709,6 +704,9 @@
     </div>
     }
   </div>
+  @if (openFilter()) {
+  <div class="fixed inset-0 z-20" (click)="closeFilters()" aria-hidden="true"></div>
+  }
 </app-glass-card>
 
 <!-- Quick-view side panel -->

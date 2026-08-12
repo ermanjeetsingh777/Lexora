@@ -513,6 +513,32 @@
     ]
   },
   {
+    "ContainingType": "SLMS_API.Controllers.AttendanceController",
+    "Method": "GetAttendanceStatistics",
+    "RelativePath": "api/v1/attendance/members/{memberId}/statistics",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "memberId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "SLMS_API.Application.Contracts.Common.ApiResponse\u00601[[SLMS_API.Application.Contracts.Organizations.Requests.AttendanceStatisticsResponse, SLMS_API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "SLMS_API.Controllers.AuthController",
     "Method": "GetCurrentUser",
     "RelativePath": "api/v1/auth/current-user",

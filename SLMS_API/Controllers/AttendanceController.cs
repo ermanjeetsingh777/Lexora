@@ -112,4 +112,31 @@ public class AttendanceController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError,ApiResponse<IReadOnlyList<AttendanceResponse>>.Fail("An unexpected error occurred while retrieving monthly attendance."));
         }
     }
+
+    /// <summary>
+    /// Get member attendance statistics for the last 90 days.
+    /// </summary>
+    [HttpGet("members/{memberId:guid}/statistics")]
+    public async Task<ActionResult<ApiResponse<AttendanceStatisticsResponse>>> GetAttendanceStatistics(
+        Guid memberId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var statistics = await _attendanceService.GetStatisticsAsync(memberId, cancellationToken);
+            return Ok(ApiResponse<AttendanceStatisticsResponse>.Ok(statistics, "Attendance statistics retrieved successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Failed to get attendance statistics for Member {MemberId}", memberId);
+            return BadRequest(ApiResponse<AttendanceStatisticsResponse>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while getting attendance statistics for Member {MemberId}", memberId);
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiResponse<AttendanceStatisticsResponse>.Fail("An unexpected error occurred while retrieving attendance statistics."));
+        }
+    }
 }

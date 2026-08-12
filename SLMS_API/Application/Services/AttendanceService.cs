@@ -176,10 +176,22 @@ public class AttendanceService : IAttendanceService
             return new AttendanceResponse
             {
                 Id = attendance.Id,
+                MemberId = attendance.MemberId,
                 AttendanceDate = attendance.AttendanceDate,
-                DurationMinutes = 0,
+                CheckInTime = attendance.CheckInTime,
+                CheckOutTime = attendance.CheckOutTime,
+                DurationMinutes = attendance.DurationMinutes,
                 Status = attendance.Status,
-                IsActive = true
+                Source = attendance.Source,
+                SeatNo = attendance.SeatNo,
+                Remarks = attendance.Remarks,
+                IsActive = attendance.IsActive,
+                CheckInAtUtc = attendance.CheckInTime.HasValue
+                    ? attendance.AttendanceDate.ToDateTime(attendance.CheckInTime.Value, DateTimeKind.Utc)
+                    : null,
+                CheckOutAtUtc = attendance.CheckOutTime.HasValue
+                    ? attendance.AttendanceDate.ToDateTime(attendance.CheckOutTime.Value, DateTimeKind.Utc)
+                    : null,
             };
 
         }
@@ -257,13 +269,16 @@ public class AttendanceService : IAttendanceService
                         MemberId = attendance.MemberId,
                         AttendanceDate = attendance.AttendanceDate,
                         Status = attendance.Status,
+                        Source = attendance.Source,
+                        SeatNo = attendance.SeatNo,
                         CheckInTime = attendance.CheckInTime,
                         CheckOutTime = attendance.CheckOutTime,
                         DurationMinutes = attendance.DurationMinutes,
                         Remarks = attendance.Remarks,
+                        IsActive = attendance.IsActive,
                         IsWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday,
-                        IsHoliday = attendance.Status == AttendanceStatus.Holiday,
-                        HolidayName = null,
+                        IsHoliday = attendance.Status is AttendanceStatus.Holiday or AttendanceStatus.Leave,
+                        HolidayName = attendance.Status == AttendanceStatus.Holiday ? "Holiday" : null,
                         CheckInAtUtc = attendance.CheckInTime.HasValue
                         ? attendance.AttendanceDate.ToDateTime(attendance.CheckInTime.Value, DateTimeKind.Utc)
                         : null,
@@ -279,7 +294,8 @@ public class AttendanceService : IAttendanceService
 
                     result.Add(new AttendanceResponse
                     {
-
+                        Id = CreateSyntheticAttendanceId(memberId, date),
+                        MemberId = memberId,
                         AttendanceDate = date,
                         Status = isWeekend
                             ? AttendanceStatus.Holiday
@@ -289,6 +305,7 @@ public class AttendanceService : IAttendanceService
                         CheckOutTime = null,
                         DurationMinutes = 0,
                         Remarks = null,
+                        IsActive = true,
                         IsWeekend = isWeekend,
                         IsHoliday = isWeekend,
                         HolidayName = isWeekend ? "Weekend" : null
@@ -329,9 +346,102 @@ public class AttendanceService : IAttendanceService
         throw new NotImplementedException();
     }
 
-    public Task<AttendanceStatisticsResponse> GetStatisticsAsync(Guid memberId, CancellationToken cancellationToken)
+    public async Task<AttendanceStatisticsResponse> GetStatisticsAsync(Guid memberId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (memberId == Guid.Empty)
+        {
+            throw new ArgumentException("Member is required.");
+        }
+
+        var memberExists = await _context.Members
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == memberId, cancellationToken);
+
+        if (!memberExists)
+        {
+            throw new InvalidOperationException("Member not found.");
+        }
+
+        const int windowDays = 90;
+        var endDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        var startDate = endDate.AddDays(-(windowDays - 1));
+
+        var calendar = await GetAttendanceCalendarRangeAsync(memberId, startDate, endDate, cancellationToken);
+
+        var presentDays = calendar.Count(x => x.Status is AttendanceStatus.Present
+            or AttendanceStatus.CheckedIn
+            or AttendanceStatus.CheckedOut
+            or AttendanceStatus.AutoCheckedOut
+            or AttendanceStatus.MissedCheckout
+            or AttendanceStatus.HalfDay);
+        var lateDays = calendar.Count(x => x.Status == AttendanceStatus.Late);
+        var absentDays = calendar.Count(x => x.Status == AttendanceStatus.Absent);
+        var leaveDays = calendar.Count(x => x.Status is AttendanceStatus.Leave or AttendanceStatus.Holiday);
+        var workDays = calendar.Count - leaveDays;
+        var attendancePercentage = workDays > 0
+            ? Math.Round((double)(presentDays + lateDays) / workDays * 100, 1)
+            : 0;
+
+        var totalStudyMinutes = calendar.Sum(x => x.DurationMinutes);
+
+        var ordered = calendar
+            .OrderBy(x => x.AttendanceDate)
+            .ToList();
+
+        var currentStreak = 0;
+        var longestStreak = 0;
+        var streak = 0;
+
+        foreach (var day in ordered)
+        {
+            if (day.Status is AttendanceStatus.Present
+                or AttendanceStatus.CheckedIn
+                or AttendanceStatus.CheckedOut
+                or AttendanceStatus.AutoCheckedOut
+                or AttendanceStatus.MissedCheckout
+                or AttendanceStatus.HalfDay
+                or AttendanceStatus.Late)
+            {
+                streak++;
+                longestStreak = Math.Max(longestStreak, streak);
+            }
+            else if (day.Status == AttendanceStatus.Absent)
+            {
+                streak = 0;
+            }
+        }
+
+        for (var i = ordered.Count - 1; i >= 0; i--)
+        {
+            var day = ordered[i];
+            if (day.Status is AttendanceStatus.Present
+                or AttendanceStatus.CheckedIn
+                or AttendanceStatus.CheckedOut
+                or AttendanceStatus.AutoCheckedOut
+                or AttendanceStatus.MissedCheckout
+                or AttendanceStatus.HalfDay
+                or AttendanceStatus.Late)
+            {
+                currentStreak++;
+            }
+            else if (day.Status == AttendanceStatus.Absent)
+            {
+                break;
+            }
+        }
+
+        return new AttendanceStatisticsResponse
+        {
+            TotalDays = calendar.Count,
+            PresentDays = presentDays,
+            AbsentDays = absentDays,
+            LeaveDays = leaveDays,
+            LateDays = lateDays,
+            AttendancePercentage = attendancePercentage,
+            TotalStudyMinutes = totalStudyMinutes,
+            CurrentStreak = currentStreak,
+            LongestStreak = longestStreak,
+        };
     }
 
     public Task<Contracts.Organizations.Requests.AttendanceResponse?> GetTodayAttendanceAsync(Guid memberId, CancellationToken cancellationToken = default)
@@ -352,5 +462,39 @@ public class AttendanceService : IAttendanceService
     Task<IReadOnlyCollection<Contracts.Organizations.Requests.AttendanceResponse>> IAttendanceService.GetByInstitutionAsync(Guid institutionId, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
+    }
+
+    private static Guid CreateSyntheticAttendanceId(Guid memberId, DateOnly date)
+    {
+        var bytes = new byte[16];
+        memberId.ToByteArray().CopyTo(bytes, 0);
+        BitConverter.GetBytes(date.DayNumber).CopyTo(bytes, 12);
+        return new Guid(bytes);
+    }
+
+    private async Task<IReadOnlyList<AttendanceResponse>> GetAttendanceCalendarRangeAsync(
+        Guid memberId,
+        DateOnly startDate,
+        DateOnly endDate,
+        CancellationToken cancellationToken)
+    {
+        var months = new HashSet<(int Year, int Month)>();
+        for (var date = startDate; date <= endDate; date = date.AddDays(1))
+        {
+            months.Add((date.Year, date.Month));
+        }
+
+        var records = new List<AttendanceResponse>();
+        foreach (var (year, month) in months.OrderBy(x => x.Year).ThenBy(x => x.Month))
+        {
+            var monthRecords = await GetAttendanceCalendarAsync(memberId, month, year, cancellationToken);
+            records.AddRange(monthRecords.Where(x => x.AttendanceDate >= startDate && x.AttendanceDate <= endDate));
+        }
+
+        return records
+            .GroupBy(x => x.AttendanceDate)
+            .Select(g => g.First())
+            .OrderBy(x => x.AttendanceDate)
+            .ToList();
     }
 }

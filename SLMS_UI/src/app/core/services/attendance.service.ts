@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { AttendanceResponse, CheckInRequest } from '@core/models/attendanceModels';
+import { AttendanceResponse, AttendanceStatisticsResponse, CheckInRequest } from '@core/models/attendanceModels';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 
 @Injectable()
@@ -19,6 +19,12 @@ export class AttendanceService {
             {
                 params: {month, year }
             }
+        );
+    }
+
+    getAttendanceStatistics(memberId: string): Observable<APIResponseModel<AttendanceStatisticsResponse>> {
+        return this.http.get<AttendanceStatisticsResponse>(
+            'attendance/members/' + memberId + '/statistics'
         );
     }
 

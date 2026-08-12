@@ -786,6 +786,34 @@ public class MemberService : IMemberService
             .Where(x => x.MemberId == memberId)
             .CountAsync(cancellationToken);
 
+        var recentAttendance = await _dbContext.MemberAttendances
+            .AsNoTracking()
+            .Where(x => x.MemberId == memberId && x.IsActive)
+            .OrderByDescending(x => x.AttendanceDate)
+            .ThenByDescending(x => x.CheckInTime)
+            .Take(90)
+            .Select(a => new AttendanceResponse
+            {
+                Id = a.Id,
+                MemberId = a.MemberId,
+                AttendanceDate = a.AttendanceDate,
+                CheckInTime = a.CheckInTime,
+                CheckOutTime = a.CheckOutTime,
+                DurationMinutes = a.DurationMinutes,
+                Status = a.Status,
+                Source = a.Source,
+                SeatNo = a.SeatNo,
+                Remarks = a.Remarks,
+                IsActive = a.IsActive,
+                CheckInAtUtc = a.CheckInTime.HasValue
+                    ? a.AttendanceDate.ToDateTime(a.CheckInTime.Value, DateTimeKind.Utc)
+                    : null,
+                CheckOutAtUtc = a.CheckOutTime.HasValue
+                    ? a.AttendanceDate.ToDateTime(a.CheckOutTime.Value, DateTimeKind.Utc)
+                    : null,
+            })
+            .ToListAsync(cancellationToken);
+
         //await Task.WhenAll(memberTask, contactsTask, plansTask, todayAttendanceTask, attendanceSummaryTask, attendanceCountTask);
 
         if (member == null)
@@ -880,6 +908,7 @@ public class MemberService : IMemberService
             TodayAttendance = todayAttendance == null ? null : new AttendanceResponse
             {
                 Id = todayAttendance.Id,
+                MemberId = todayAttendance.MemberId,
                 AttendanceDate = todayAttendance.AttendanceDate,
                 CheckInTime = todayAttendance.CheckInTime,
                 CheckOutTime = todayAttendance.CheckOutTime,
@@ -897,29 +926,7 @@ public class MemberService : IMemberService
                         ? todayAttendance.AttendanceDate.ToDateTime(todayAttendance.CheckOutTime.Value, DateTimeKind.Utc)
                         : null,
             },
-            //Attendance = member.Attendances
-            //     .Select(a => new AttendanceResponse
-            //     {
-            //         Id = a.Id,
-            //         MemberId = a.MemberId,
-            //         AttendanceDate = a.AttendanceDate,
-            //         CheckInTime = a.CheckInTime,
-            //         CheckOutTime = a.CheckOutTime,
-            //         DurationMinutes = a.DurationMinutes,
-            //         Status = a.Status,
-            //         Source = a.Source,
-            //         SeatNo = a.SeatNo,
-            //         Remarks = a.Remarks,
-            //         IsActive = a.IsActive,
-            //         CheckInAtUtc = a.CheckInTime.HasValue
-            //                ? a.AttendanceDate.ToDateTime(a.CheckInTime.Value, DateTimeKind.Utc)
-            //                : null,
-
-            //         CheckOutAtUtc = a.CheckOutTime.HasValue
-            //                ? a.AttendanceDate.ToDateTime(a.CheckOutTime.Value, DateTimeKind.Utc)
-            //                : null,
-            //     })
-            //    .ToList(),
+            Attendance = recentAttendance,
         };
     }
 

@@ -188,11 +188,15 @@ export const routes: Routes = [
             //     loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent),
             // },
 
-            // // --- Support ---
-            // {
-            //     path: 'support',
-            //     loadComponent: () => import('./features/support/support.component').then((m) => m.SupportComponent),
-            // },
+            // --- Support ---
+            {
+                path: 'support',
+                loadComponent: () => import('./features/support/support-centre.component').then((m) => m.SupportCentreComponent),
+            },
+            {
+                path: 'support/status',
+                loadComponent: () => import('./features/support/support-status.component').then((m) => m.SupportStatusComponent),
+            },
         ],
     },
 

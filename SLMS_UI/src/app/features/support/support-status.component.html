@@ -1,0 +1,306 @@
+<div class="space-y-6">
+  <app-page-header eyebrow="Support" title="System status"
+    description="Real-time health for SmartLibrary services and history of past incidents.">
+    <div actions class="flex flex-wrap items-center gap-2">
+      <app-button variant="outline" size="sm" [routerLink]="['/support']">
+        <svg lucideArrowLeft class="h-4 w-4 mr-1.5"></svg> Back to support
+      </app-button>
+      <app-button size="sm" (click)="openSubscribe()">
+        <svg lucideBell class="h-4 w-4 mr-1.5"></svg> Subscribe to updates
+      </app-button>
+    </div>
+  </app-page-header>
+
+  @if (status(); as s) {
+  <app-glass-card class="block p-5">
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="inline-block h-2.5 w-2.5 rounded-full animate-pulse" [class]="overall().dot"></span>
+      <span class="text-lg font-semibold">{{ overall().text }}</span>
+      <app-status-badge [status]="overall().text" [variant]="overall().tone" />
+      <div class="ml-auto flex flex-wrap items-center gap-3 text-sm">
+        <span class="label-mono">90d uptime · {{ s.averageUptime90 | number:'1.2-2' }}%</span>
+        <span class="label-mono flex items-center gap-1.5">
+          @if (autoRefresh()) {
+          <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          }
+          Updated {{ formatRelative(s.lastSyncUtc) }}
+        </span>
+        <div class="flex items-center gap-1.5 pl-2 border-l">
+          <label class="label-mono cursor-pointer inline-flex items-center gap-1.5">
+            <input type="checkbox" class="rounded border" [ngModel]="autoRefresh()" (ngModelChange)="autoRefresh.set($event)" />
+            Auto-refresh
+          </label>
+          <select class="h-8 w-20 rounded-md border bg-background px-2 text-xs" [disabled]="!autoRefresh()"
+            [ngModel]="pollSeconds()" (ngModelChange)="pollSeconds.set(+$event)">
+            <option [ngValue]="5">5s</option>
+            <option [ngValue]="15">15s</option>
+            <option [ngValue]="30">30s</option>
+            <option [ngValue]="60">1m</option>
+          </select>
+          <app-button variant="outline" size="sm" class="h-8" [disabled]="refreshing()" (click)="refresh(true)">
+            <svg lucideRefreshCw class="h-3.5 w-3.5 mr-1" [class.animate-spin]="refreshing()"></svg> Refresh
+          </app-button>
+          <app-button variant="outline" size="sm" class="h-8" (click)="simulateIncident()">
+            <svg lucideZap class="h-3.5 w-3.5 mr-1"></svg> Simulate
+          </app-button>
+        </div>
+      </div>
+    </div>
+  </app-glass-card>
+
+  <div class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1 flex-wrap">
+    <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5"
+      [class.bg-background]="activeTab() === 'components'" [class.shadow-sm]="activeTab() === 'components'"
+      (click)="setTab('components')"><svg lucideZap class="h-4 w-4"></svg> Components</button>
+    <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5"
+      [class.bg-background]="activeTab() === 'incidents'" [class.shadow-sm]="activeTab() === 'incidents'"
+      (click)="setTab('incidents')"><svg lucideShieldAlert class="h-4 w-4"></svg> Active &amp; scheduled
+      @if (incidentCount()) {
+      <span class="ml-1 rounded bg-muted px-1.5 py-0 text-[10px]">{{ incidentCount() }}</span>
+      }
+    </button>
+    <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5"
+      [class.bg-background]="activeTab() === 'history'" [class.shadow-sm]="activeTab() === 'history'"
+      (click)="setTab('history')"><svg lucideHistory class="h-4 w-4"></svg> Incident history</button>
+    <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5"
+      [class.bg-background]="activeTab() === 'subscribers'" [class.shadow-sm]="activeTab() === 'subscribers'"
+      (click)="setTab('subscribers')"><svg lucideBell class="h-4 w-4"></svg> Subscribers
+      @if (subscriptions().length) {
+      <span class="ml-1 rounded bg-muted px-1.5 py-0 text-[10px]">{{ subscriptions().length }}</span>
+      }
+    </button>
+  </div>
+
+  @if (activeTab() === 'components') {
+  <app-glass-card class="block p-5">
+    <ul class="divide-y">
+      @for (c of s.components; track c.name) {
+      <li class="py-4 flex flex-wrap items-center gap-4">
+        <div class="min-w-[180px] flex items-center gap-2">
+          <span class="inline-block h-2 w-2 rounded-full shrink-0" [class]="statusTone(c.status).dot"></span>
+          <div>
+            <div class="font-medium">{{ c.name }}</div>
+            <div class="label-mono text-muted-foreground">{{ c.description }}</div>
+          </div>
+        </div>
+        <div class="flex items-end gap-[2px] h-6">
+          @for (day of c.uptime90; track $index) {
+          <div class="w-[3px] rounded-sm" [class]="uptimeBarClass(day)" [style.height]="uptimeBarHeight(day)"
+            [title]="'Day -' + (89 - $index) + ': ' + (day * 100).toFixed(2) + '%'"></div>
+          }
+        </div>
+        <div class="ml-auto flex items-center gap-6 text-sm">
+          <div class="text-right">
+            <div class="label-mono text-muted-foreground">30d uptime</div>
+            <div class="font-medium">{{ uptime30Percent(c.uptime90) }}%</div>
+          </div>
+          <div class="text-right">
+            <div class="label-mono text-muted-foreground">p50 latency</div>
+            <div class="font-medium">{{ c.responseMs }} ms</div>
+          </div>
+          <app-status-badge [status]="c.status" [variant]="statusTone(c.status).variant" />
+        </div>
+      </li>
+      }
+    </ul>
+    <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+      <span class="inline-flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-sm bg-emerald-500"></span> &gt; 99%</span>
+      <span class="inline-flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-sm bg-amber-500"></span> 95–99%</span>
+      <span class="inline-flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-sm bg-orange-500"></span> 85–95%</span>
+      <span class="inline-flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-sm bg-destructive"></span> &lt; 85%</span>
+    </div>
+  </app-glass-card>
+  }
+
+  @if (activeTab() === 'incidents') {
+  <div class="space-y-3">
+    @if (!activeAndScheduled().length) {
+    <app-glass-card class="block p-8 text-center text-sm text-muted-foreground">
+      <svg lucideCheckCircle2 class="h-6 w-6 mx-auto mb-2 text-emerald-500"></svg>
+      No active or scheduled incidents.
+    </app-glass-card>
+    }
+    @for (incident of activeAndScheduled(); track trackIncident($index, incident)) {
+    <app-glass-card class="block p-4">
+      <button type="button" class="w-full text-left" (click)="toggleIncident(incident.id)">
+        <div class="flex flex-wrap items-center gap-3">
+          @if (incident.severity === 'maintenance') {
+          <svg lucideWrench class="h-4 w-4 text-sky-500 shrink-0"></svg>
+          } @else if (incident.status === 'Resolved') {
+          <svg lucideCheckCircle2 class="h-4 w-4 text-emerald-500 shrink-0"></svg>
+          } @else {
+          <svg lucideShieldAlert class="h-4 w-4 text-amber-500 shrink-0"></svg>
+          }
+          <div class="flex-1 min-w-0">
+            <div class="font-medium truncate">{{ incident.title }}</div>
+            <div class="label-mono truncate text-muted-foreground">
+              {{ incident.id }} · {{ incident.components.join(', ') }} · {{ incidentDuration(incident) }}
+            </div>
+          </div>
+          <app-status-badge [status]="incident.severity" [variant]="severityVariant(incident.severity)" />
+          <app-status-badge [status]="incident.status" [variant]="incident.status === 'Resolved' ? 'success' : incident.status === 'Scheduled' ? 'muted' : 'warning'" />
+          <svg lucideChevronDown class="h-4 w-4 text-muted-foreground transition-transform shrink-0"
+            [class.rotate-180]="expandedIncident() === incident.id"></svg>
+        </div>
+      </button>
+      @if (expandedIncident() === incident.id) {
+      <ol class="mt-4 ml-2 border-l pl-4 space-y-3">
+        @for (u of incident.updates.slice().reverse(); track u.id) {
+        <li class="relative">
+          <span class="absolute -left-[21px] top-1 h-2 w-2 rounded-full bg-primary"></span>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="rounded border px-1.5 py-0 text-[10px] bg-muted">{{ u.phase }}</span>
+            <span class="label-mono text-muted-foreground">
+              <svg lucideClock class="inline h-3 w-3 mr-1"></svg>{{ u.occurredAtUtc | date:'medium' }}
+            </span>
+          </div>
+          <div class="mt-1 text-sm">{{ u.body }}</div>
+        </li>
+        }
+      </ol>
+      }
+    </app-glass-card>
+    }
+  </div>
+  }
+
+  @if (activeTab() === 'history') {
+  <div class="space-y-3">
+    @if (!s.incidentHistory.length) {
+    <app-glass-card class="block p-8 text-center text-sm text-muted-foreground">No resolved incidents yet.</app-glass-card>
+    }
+    @for (incident of s.incidentHistory; track trackIncident($index, incident)) {
+    <app-glass-card class="block p-4">
+      <button type="button" class="w-full text-left" (click)="toggleIncident(incident.id)">
+        <div class="flex flex-wrap items-center gap-3">
+          <svg lucideCheckCircle2 class="h-4 w-4 text-emerald-500 shrink-0"></svg>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium truncate">{{ incident.title }}</div>
+            <div class="label-mono truncate text-muted-foreground">
+              {{ incident.id }} · {{ incident.components.join(', ') }} · {{ incidentDuration(incident) }}
+            </div>
+          </div>
+          <app-status-badge [status]="incident.severity" [variant]="severityVariant(incident.severity)" />
+          <app-status-badge status="Resolved" variant="success" />
+          <svg lucideChevronDown class="h-4 w-4 text-muted-foreground transition-transform shrink-0"
+            [class.rotate-180]="expandedIncident() === incident.id"></svg>
+        </div>
+      </button>
+      @if (expandedIncident() === incident.id) {
+      <ol class="mt-4 ml-2 border-l pl-4 space-y-3">
+        @for (u of incident.updates.slice().reverse(); track u.id) {
+        <li class="relative">
+          <span class="absolute -left-[21px] top-1 h-2 w-2 rounded-full bg-primary"></span>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="rounded border px-1.5 py-0 text-[10px] bg-muted">{{ u.phase }}</span>
+            <span class="label-mono text-muted-foreground">
+              <svg lucideClock class="inline h-3 w-3 mr-1"></svg>{{ u.occurredAtUtc | date:'medium' }}
+            </span>
+          </div>
+          <div class="mt-1 text-sm">{{ u.body }}</div>
+        </li>
+        }
+      </ol>
+      }
+    </app-glass-card>
+    }
+  </div>
+  }
+
+  @if (activeTab() === 'subscribers') {
+  <app-glass-card class="block p-5">
+    @if (!subscriptions().length) {
+    <div class="text-sm text-muted-foreground text-center py-8">
+      <svg lucideRadio class="h-6 w-6 mx-auto mb-2 opacity-60"></svg>
+      No subscribers yet. Click <strong>Subscribe to updates</strong> above to add one.
+    </div>
+    } @else {
+    <ul class="divide-y">
+      @for (sub of subscriptions(); track sub.target) {
+      <li class="py-3 flex items-center gap-3">
+        @switch (sub.channel) {
+          @case ('email') { <svg lucideMail class="h-4 w-4 text-muted-foreground shrink-0"></svg> }
+          @case ('sms') { <svg lucideMessageSquare class="h-4 w-4 text-muted-foreground shrink-0"></svg> }
+          @case ('webhook') { <svg lucideWebhook class="h-4 w-4 text-muted-foreground shrink-0"></svg> }
+        }
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-sm truncate">{{ sub.target }}</div>
+          <div class="label-mono truncate text-muted-foreground">
+            {{ sub.components[0] === 'all' ? 'All components' : sub.components.join(', ') }} · added {{ formatRelative(sub.createdAt) }}
+          </div>
+        </div>
+        <app-button variant="ghost" size="sm" (click)="unsubscribe(sub.target)">Unsubscribe</app-button>
+      </li>
+      }
+    </ul>
+    }
+  </app-glass-card>
+  }
+  } @else if (!loading()) {
+  <app-glass-card class="block p-8 text-center text-muted-foreground">Unable to load status.</app-glass-card>
+  }
+</div>
+
+@if (showSubscribe()) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="closeSubscribe()">
+  <div class="w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl border bg-background shadow-xl" (click)="$event.stopPropagation()">
+    <div class="p-6 pb-4 border-b">
+      <h2 class="text-lg font-semibold">Get status notifications</h2>
+      <p class="text-sm text-muted-foreground mt-1">Choose a channel and which components you care about.</p>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <div class="label-mono mb-2">Channel</div>
+        <div class="grid grid-cols-3 gap-2">
+          @for (ch of [{id:'email',label:'Email',icon:'mail'},{id:'sms',label:'SMS',icon:'sms'},{id:'webhook',label:'Webhook',icon:'webhook'}]; track ch.id) {
+          <label class="flex flex-col items-center gap-1 rounded-md border p-3 cursor-pointer text-xs"
+            [class.border-primary]="subChannel() === ch.id" [class.bg-primary/5]="subChannel() === ch.id">
+            <input type="radio" class="sr-only" name="subChannel" [value]="ch.id" [ngModel]="subChannel()" (ngModelChange)="subChannel.set($event)" />
+            @switch (ch.icon) {
+              @case ('mail') { <svg lucideMail class="h-4 w-4"></svg> }
+              @case ('sms') { <svg lucideMessageSquare class="h-4 w-4"></svg> }
+              @case ('webhook') { <svg lucideWebhook class="h-4 w-4"></svg> }
+            }
+            {{ ch.label }}
+          </label>
+          }
+        </div>
+      </div>
+      <div>
+        <label class="label-mono block mb-1.5">
+          {{ subChannel() === 'email' ? 'Email address' : subChannel() === 'sms' ? 'Phone number' : 'Webhook URL' }}
+        </label>
+        <input class="w-full h-10 rounded-md border bg-background px-3 text-sm"
+          [placeholder]="subChannel() === 'email' ? 'you@example.com' : subChannel() === 'sms' ? '+1 415 555 0119' : 'https://hooks.example.com/status'"
+          [ngModel]="subTarget()" (ngModelChange)="subTarget.set($event)" />
+      </div>
+      <div>
+        <div class="label-mono mb-2">Components</div>
+        <div class="space-y-2 text-sm">
+          <label class="flex items-center gap-2">
+            <input type="radio" name="subScope" value="all" [ngModel]="subScope()" (ngModelChange)="subScope.set($event)" /> All components
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="subScope" value="select" [ngModel]="subScope()" (ngModelChange)="subScope.set($event)" /> Only selected
+          </label>
+          @if (subScope() === 'select' && status(); as st) {
+          <div class="grid grid-cols-2 gap-2 pt-1 pl-6">
+            @for (c of st.components; track c.name) {
+            <label class="flex items-center gap-2">
+              <input type="checkbox" [checked]="subSelected().includes(c.name)"
+                (change)="toggleSubComponent(c.name, $any($event.target).checked)" />
+              {{ c.name }}
+            </label>
+            }
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 p-6 pt-0 border-t">
+      <app-button variant="ghost" (click)="closeSubscribe()">Cancel</app-button>
+      <app-button (click)="confirmSubscribe()">Confirm subscription</app-button>
+    </div>
+  </div>
+</div>
+}

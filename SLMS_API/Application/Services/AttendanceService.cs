@@ -259,8 +259,15 @@ public class AttendanceService : IAttendanceService
 
             var result = new List<AttendanceResponse>();
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
             for (var date = startDate; date <= endDate; date = date.AddDays(1))
             {
+                if (date > today)
+                {
+                    continue;
+                }
+
                 if (attendances.TryGetValue(date, out var attendance))
                 {
                     result.Add(new AttendanceResponse

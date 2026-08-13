@@ -49,7 +49,7 @@
   <app-glass-card class="lg:col-span-1 block">
     <div class="flex items-center gap-3">
       <span class="h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-semibold shrink-0"
-        [style.background]="commonService.avatarBg(hexNumber)">{{ commonService.initials(m.name) }}</span>
+        [style.background]="commonService.avatarBg(hexNumber)">{{ commonService.initials(m.name || m.email || m.phone) }}</span>
       <div>
         <div class="font-semibold text-lg leading-tight">{{ m.name }}</div>
         <div class="text-xs text-muted-foreground">Member</div>
@@ -207,11 +207,16 @@
       <svg lucideAlertTriangle class="h-4 w-4"></svg>
       <div class="text-sm">
         <span class="font-medium">{{ lifecycle().state }}</span>
+        @if (lifecycle().state === 'No plan') {
+        <span class="opacity-80"> — no active membership. {{ lifecycle().action }}.</span>
+        } @else {
         <span class="opacity-80"> — plan expires {{ lifecycle().expiry }} ({{ lifecycle().relative }}). {{ lifecycle().action }}.</span>
+        }
       </div>
       @if (lifecycle().state !== 'New') {
       <app-button size="sm" variant="outline" class="ml-auto" (click)="renewFromBanner()">
-        <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Renew plan
+        <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
+        {{ lifecycle().state === 'No plan' ? 'Assign plan' : 'Renew plan' }}
       </app-button>
       }
     </div>
@@ -387,7 +392,11 @@
             Next renewal
           </div>
           <div class="text-sm font-semibold mt-1 truncate text-blue-500">
-            {{nextRenewalDate() | date:'dd MMM yyyy'}}
+            @if (nextRenewalDate(); as renewalDate) {
+              {{ renewalDate | date:'dd MMM yyyy' }}
+            } @else {
+              —
+            }
           </div>
         </div>
         <div class="border rounded-lg p-3 bg-muted/20">
@@ -419,7 +428,7 @@
       <p class="text-sm text-muted-foreground">No activity recorded yet.</p>
       } @else {
       <ol class="relative border-l ml-2 space-y-4 mt-4">
-        @for (e of activityTimeline(); track e.id) {
+        @for (e of visibleActivityTimeline(); track e.id) {
         <li class="ml-4">
           <span class="absolute -left-1.5 h-3 w-3 rounded-full ring-2 ring-background"
             [class]="eventDot[e.type] ?? 'bg-slate-500'"></span>
@@ -431,6 +440,14 @@
         </li>
         }
       </ol>
+      @if (hasMoreActivityTimeline()) {
+      <div class="mt-4 flex justify-center">
+        <app-button variant="outline" size="sm" (click)="showMoreActivityTimeline()">
+          Show more
+          <span class="text-muted-foreground">({{ activityTimelineRemaining() }} more)</span>
+        </app-button>
+      </div>
+      }
       }
     </app-glass-card>
     }
@@ -471,51 +488,16 @@
         </div>
       </div>
 
-      <app-glass-card class="block">
-        <div class="flex items-center justify-between mb-3">
-          <app-section-header [title]="monthLabel()" description="Attendance calendar" />
-          <div class="flex items-center gap-1">
-            <app-button size="icon" variant="outline" class="h-8 w-8" (click)="prevMonth()">
-              <svg lucideChevronLeft class="h-4 w-4"></svg>
-            </app-button>
-            <app-button size="sm" variant="outline" class="h-8" (click)="goToday()">Today</app-button>
-            <app-button size="icon" variant="outline" class="h-8 w-8" (click)="nextMonth()">
-              <svg lucideChevronRight class="h-4 w-4"></svg>
-            </app-button>
-          </div>
-        </div>
-        @if (calendarLoading()) {
-        <div class="py-8 text-center text-sm text-muted-foreground">Loading attendance…</div>
-        } @else {
-        <div class="grid grid-cols-7 gap-1 label-mono mb-1">
-          @for (d of weekDays; track d) {
-          <div class="text-center text-xs">{{ d }}</div>
-          }
-        </div>
-        <div class="grid grid-cols-7 gap-1">
-          @for (cell of monthCells(); track $index) {
-          <div class="aspect-square rounded-md text-xs flex flex-col items-center justify-center p-1 transition"
-            [class]="calendarCellClass(cell)" [title]="cellTitle(cell)">
-            @if (cell.date) {
-            <span class="font-mono">{{ cell.date.getDate() }}</span>
-            @if (cell.day?.durationMinutes) {
-            <span class="text-[9px] opacity-80 tabular-nums">{{ (cell.day!.durationMinutes / 60).toFixed(1) }}h</span>
-            }
-            }
-          </div>
-          }
-        </div>
-        <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-emerald-500/70"></span> Present</span>
-          <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-amber-500/70"></span> Late</span>
-          <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-rose-500/60"></span> Absent</span>
-          <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-slate-400/30"></span> Holiday</span>
-        </div>
-        }
+      <app-glass-card class="block p-0 overflow-hidden">
+        <app-member-attendance-calendar
+          [records]="calendarDays()"
+          [loading]="calendarLoading()"
+          [viewDate]="calendarMonth()"
+          (viewDateChange)="onCalendarViewDateChange($event)" />
       </app-glass-card>
 
       <app-glass-card class="block p-0 overflow-hidden">
-        <div class="px-4 pt-4">
+        <div class="">
           <app-section-header title="Check-in log" description="Last 30 days" />
         </div>
         <div class="overflow-x-auto">
@@ -530,7 +512,7 @@
               </tr>
             </thead>
             <tbody class="divide-y">
-              @for (r of attendanceLog(); track normalizeAttendanceDate(r.attendanceDate)) {
+              @for (r of pagedAttendanceLog(); track normalizeAttendanceDate(r.attendanceDate)) {
               <tr class="hover:bg-muted/40">
                 <td class="px-4 py-2 tabular-nums">{{ formatAttendanceDate(r.attendanceDate) }}</td>
                 <td class="px-4 py-2">
@@ -539,7 +521,10 @@
                 </td>
                 <td class="px-4 py-2 font-mono text-xs">{{ formatAttendanceTime(r.checkInTime ?? r.checkInAtUtc) }}</td>
                 <td class="px-4 py-2 font-mono text-xs">{{ formatAttendanceTime(r.checkOutTime ?? r.checkOutAtUtc) }}</td>
-                <td class="px-4 py-2 text-right tabular-nums">{{ r.durationMinutes ? formatDuration(r.durationMinutes) : '—' }}</td>
+                <td class="px-4 py-2 text-right tabular-nums">
+                  @let durationMins = attendanceDurationMinutes(r);
+                  {{ durationMins != null ? formatDuration(durationMins) : '—' }}
+                </td>
               </tr>
               }
               @if (attendanceLog().length === 0) {
@@ -548,9 +533,43 @@
             </tbody>
           </table>
         </div>
+        @if (attendanceLog().length > 0) {
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t">
+          <div class="text-xs text-muted-foreground">
+            Showing <span class="tabular-nums font-medium text-foreground">{{ attendanceLogPageStart() + 1 }}–{{ Math.min(attendanceLogPageStart() + attendanceLogPageSize(), attendanceLog().length) }}</span>
+            of <span class="tabular-nums font-medium text-foreground">{{ attendanceLog().length }}</span>
+          </div>
+          <div class="flex items-center gap-3 ml-auto">
+            <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>Rows</span>
+              <select class="h-8 rounded border bg-background px-1.5 text-xs" [ngModel]="attendanceLogPageSize()"
+                (ngModelChange)="setAttendanceLogPageSize(+$event)">
+                @for (n of ATTENDANCE_LOG_PAGE_SIZE_OPTS; track n) {
+                <option [value]="n">{{ n }}</option>
+                }
+              </select>
+            </div>
+            <div class="flex items-center gap-0.5">
+              <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="attendanceLogCurrentPage() === 1" (click)="goToAttendanceLogPage(1)">
+                <svg lucideChevronsLeft class="h-4 w-4"></svg>
+              </app-button>
+              <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="attendanceLogCurrentPage() === 1" (click)="goToAttendanceLogPage(attendanceLogCurrentPage() - 1)">
+                <svg lucideChevronLeft class="h-4 w-4"></svg>
+              </app-button>
+              <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ attendanceLogCurrentPage() }} / {{ attendanceLogTotalPages() }}</span>
+              <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="attendanceLogCurrentPage() === attendanceLogTotalPages()" (click)="goToAttendanceLogPage(attendanceLogCurrentPage() + 1)">
+                <svg lucideChevronRight class="h-4 w-4"></svg>
+              </app-button>
+              <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="attendanceLogCurrentPage() === attendanceLogTotalPages()" (click)="goToAttendanceLogPage(attendanceLogTotalPages())">
+                <svg lucideChevronsRight class="h-4 w-4"></svg>
+              </app-button>
+            </div>
+          </div>
+        </div>
+        }
       </app-glass-card>
 
-      <app-glass-card class="block p-5">
+      <app-glass-card class="block">
         <app-section-header title="90-day heatmap" description="Hours per day — darker = more time on premises" />
         <div class="flex gap-1 overflow-x-auto pb-2 mt-4">
           @for (col of heatmapCols(); track $index) {
@@ -789,6 +808,7 @@
 
 <app-renew-plan-dialog
   [target]="renewTarget()"
+  [plans]="plans()"
   [busy]="renewBusy()"
   (confirm)="confirmRenew($event)"
   (closed)="closeRenew()" />

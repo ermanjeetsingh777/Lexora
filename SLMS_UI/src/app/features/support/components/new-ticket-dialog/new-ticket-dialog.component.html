@@ -1,0 +1,110 @@
+@if (open()) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="onSaveDraftAndClose()">
+  <div class="flex w-full max-w-2xl max-h-[90vh] flex-col rounded-xl border bg-background shadow-xl" (click)="$event.stopPropagation()">
+    <div class="flex shrink-0 items-start justify-between gap-3 border-b px-5 py-4">
+      <div>
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+          <svg lucideLifeBuoy class="h-4 w-4"></svg>
+          Open a support ticket
+        </h2>
+        <p class="text-sm text-muted-foreground mt-0.5">
+          We'll route this to the right team. Drafts autosave as you type.
+        </p>
+      </div>
+      <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" (click)="onSaveDraftAndClose()">
+        <svg lucideX class="h-4 w-4"></svg>
+      </button>
+    </div>
+
+    <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Subject</label>
+        <input type="text" placeholder="Short summary of the issue"
+          class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          [ngModel]="subject()" (ngModelChange)="subject.set($event); persistDraft(false)" />
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Category</label>
+          <select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="category()" (ngModelChange)="category.set($event); persistDraft(false)">
+            @for (c of TICKET_CATEGORIES; track c.value) {
+            <option [ngValue]="c.value">{{ c.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Priority</label>
+          <select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="priority()" (ngModelChange)="priority.set($event); persistDraft(false)">
+            @for (p of TICKET_PRIORITIES; track p.value) {
+            <option [ngValue]="p.value">{{ p.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Area (optional)</label>
+          <input type="text" placeholder="e.g. Attendance, Seats"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="area()" (ngModelChange)="area.set($event); persistDraft(false)" />
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Description</label>
+        <textarea rows="5" placeholder="Steps to reproduce, error messages, screenshots…"
+          class="flex min-h-[9rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+          [ngModel]="description()" (ngModelChange)="description.set($event); persistDraft(false)"></textarea>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Attachments</label>
+        <div class="rounded-md border border-dashed p-4 text-sm text-center transition-colors"
+          [class.border-primary]="attachmentDragOver()" [class.bg-primary/5]="attachmentDragOver()"
+          (dragover)="onAttachmentDragOver($event)" (dragleave)="onAttachmentDragLeave()" (drop)="onAttachmentDrop($event)">
+          <svg lucidePaperclip class="h-4 w-4 mx-auto mb-1 text-muted-foreground"></svg>
+          <span class="text-muted-foreground">Drop files here or </span>
+          <label class="text-primary underline underline-offset-2 cursor-pointer">
+            browse
+            <input type="file" class="hidden" multiple (change)="onFilesSelected($event)" />
+          </label>
+          <div class="text-xs text-muted-foreground mt-0.5">Up to 5 files · 10 MB each</div>
+        </div>
+        @if (attachmentNames().length) {
+        <ul class="mt-2 space-y-1">
+          @for (name of attachmentNames(); track $index) {
+          <li class="flex items-center gap-2 text-sm rounded-md border p-2 bg-muted/30">
+            <svg lucideFileText class="h-3.5 w-3.5 text-muted-foreground shrink-0"></svg>
+            <span class="flex-1 truncate">{{ name }}</span>
+            <span class="text-xs text-muted-foreground tabular-nums">{{ formatBytes(attachmentSizes()[$index] || 0) }}</span>
+            <button type="button" class="text-muted-foreground hover:text-destructive" (click)="removeAttachment($index)">
+              <svg lucideX class="h-3.5 w-3.5"></svg>
+            </button>
+          </li>
+          }
+        </ul>
+        }
+      </div>
+    </div>
+
+    <div class="shrink-0 flex flex-col-reverse gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="text-xs text-muted-foreground flex items-center gap-1.5">
+        <svg lucideSave class="h-3.5 w-3.5"></svg> Draft autosaves as you type
+      </div>
+      <div class="flex justify-end gap-2">
+        <app-button variant="outline" size="sm" [disabled]="busy()" (click)="onSaveDraftAndClose()">
+          Save draft &amp; close
+        </app-button>
+        <app-button size="sm" [disabled]="busy()" (click)="onSubmit()">
+          @if (busy()) {
+            Submitting…
+          } @else {
+            <svg lucideSend class="h-4 w-4 mr-1"></svg> Submit ticket
+          }
+        </app-button>
+      </div>
+    </div>
+  </div>
+</div>
+}

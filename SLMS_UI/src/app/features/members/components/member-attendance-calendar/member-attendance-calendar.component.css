@@ -1,0 +1,365 @@
+:host {
+  display: block;
+}
+
+.attendance-calendar ::ng-deep .cal-month-view {
+  background: transparent;
+}
+
+.attendance-calendar ::ng-deep .attendance-month-view .cal-header.month-day-headers {
+  font-weight: 400;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.12);
+}
+
+.attendance-calendar ::ng-deep .attendance-month-view .month-day-header {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  padding: 0.5rem 0.25rem;
+  text-align: center;
+}
+
+.attendance-calendar ::ng-deep .attendance-month-view .month-day-header.cal-today {
+  color: hsl(var(--primary));
+}
+
+.attendance-calendar ::ng-deep .attendance-month-view .month-day-header.cal-weekend {
+  color: hsl(var(--muted-foreground) / 0.85);
+}
+
+.attendance-calendar ::ng-deep .cal-month-view .cal-day-cell {
+  min-height: 4.5rem;
+  padding: 0.25rem;
+}
+
+.attendance-calendar ::ng-deep .cal-month-view .cal-cell-top {
+  min-height: auto;
+}
+
+.attendance-calendar ::ng-deep .cal-month-view .cal-day-number {
+  display: none;
+}
+
+.attendance-calendar ::ng-deep .cal-month-view .cal-events {
+  display: none;
+}
+
+.attendance-day-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 3.5rem;
+  border-radius: 0.375rem;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.attendance-day-wrap:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px hsl(var(--border));
+}
+
+.attendance-day-number {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.attendance-day-hours {
+  margin-top: 0.125rem;
+  font-size: 0.5625rem;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-day--present {
+  background: rgb(16 185 129 / 0.72);
+  color: white;
+}
+
+.attendance-day--checkedIn {
+  background: rgb(59 130 246 / 0.78);
+  color: white;
+}
+
+.attendance-day--late {
+  background: rgb(245 158 11 / 0.78);
+  color: white;
+}
+
+.attendance-day--absent {
+  background: rgb(244 63 94 / 0.62);
+  color: white;
+}
+
+.attendance-day--holiday,
+.attendance-day--empty,
+.attendance-day--none {
+  background: hsl(var(--muted) / 0.35);
+  color: hsl(var(--muted-foreground));
+}
+
+.attendance-day--future {
+  background: transparent;
+  color: hsl(var(--muted-foreground) / 0.65);
+  border: 1px dashed hsl(var(--border) / 0.7);
+}
+
+.attendance-view-btn {
+  border: 0;
+  background: transparent;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+}
+
+.attendance-view-btn--active {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.year-month-card {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--muted) / 0.2);
+  padding: 0.875rem;
+  text-align: left;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.year-month-card:hover {
+  border-color: hsl(var(--primary) / 0.35);
+  background: hsl(var(--muted) / 0.35);
+}
+
+.year-month-stat {
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.year-month-stat--present {
+  background: rgb(16 185 129 / 0.15);
+  color: rgb(5 150 105);
+}
+
+.year-month-stat--late {
+  background: rgb(245 158 11 / 0.15);
+  color: rgb(180 83 9);
+}
+
+.year-month-stat--absent {
+  background: rgb(244 63 94 / 0.12);
+  color: rgb(225 29 72);
+}
+
+/* Week timesheet view */
+.attendance-calendar ::ng-deep .attendance-week-timesheet.cal-week-view {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-time-events {
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-all-day-events {
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.12);
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-all-day-events .cal-events-row {
+  min-height: 2rem;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-all-day-events .cal-event-container {
+  padding: 0.125rem;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-all-day-events .cal-event-container .cal-event.timesheet-event-wrap {
+  width: 100%;
+  min-height: 1.5rem;
+  height: 100%;
+  border: 0;
+  box-shadow: none;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-all-day-events .cal-event {
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .week-day-headers .week-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .week-day-header__name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: hsl(var(--foreground));
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .week-day-header__date {
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 1;
+  color: hsl(var(--muted-foreground));
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .week-day-header.cal-today .week-day-header__name {
+  color: hsl(var(--primary));
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .week-day-header.cal-weekend .week-day-header__name {
+  color: hsl(var(--muted-foreground));
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .week-hour-label {
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  padding-right: 0.5rem;
+  text-align: right;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-time {
+  font-weight: 400;
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-day-headers .cal-header.cal-weekend span {
+  color: hsl(var(--muted-foreground));
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-day-columns .cal-day-column.cal-weekend {
+  background: hsl(var(--muted) / 0.22);
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-hour-odd {
+  background: hsl(var(--muted) / 0.08);
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-time-events .cal-event.timesheet-event-wrap {
+  border: 0;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.25rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-time-events .cal-event {
+  border: 0;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.25rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.attendance-calendar ::ng-deep .attendance-week-timesheet .cal-all-day-events .cal-event {
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.timesheet-event__status {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
+.timesheet-event__status--all-day {
+  width: 100%;
+  text-align: center;
+  font-size: 0.6875rem;
+  letter-spacing: 0.01em;
+}
+
+.timesheet-event-wrap--timed {
+  border-left-width: 3px;
+}
+
+.timesheet-event__time {
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timesheet-event__duration {
+  font-size: 0.5625rem;
+  opacity: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.timesheet-event--present {
+  background: rgb(16 185 129 / 0.9);
+  color: white;
+}
+
+.timesheet-event--checkedIn {
+  background: rgb(59 130 246 / 0.92);
+  color: white;
+}
+
+.timesheet-event--late {
+  background: rgb(245 158 11 / 0.92);
+  color: white;
+}
+
+.timesheet-event--absent {
+  background: rgb(244 63 94 / 0.85);
+  color: white;
+}
+
+.timesheet-event-wrap {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.125rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.375rem;
+  border-left: 3px solid rgb(255 255 255 / 0.55);
+  overflow: hidden;
+}
+
+.timesheet-event--empty {
+  background: hsl(var(--muted) / 0.35);
+  color: hsl(var(--muted-foreground));
+  border-left-color: hsl(var(--border));
+}
+
+.timesheet-event--holiday {
+  background: rgb(148 163 184 / 0.35);
+  color: hsl(var(--muted-foreground));
+  border-left-color: rgb(148 163 184 / 0.6);
+}

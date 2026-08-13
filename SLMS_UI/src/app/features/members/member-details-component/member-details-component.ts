@@ -5,7 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   LucideArrowLeft, LucideMail, LucidePhone, LucideIdCard, LucideBuilding2,
   LucideMapPin, LucideArmchair, LucideClock, LucideDownload, LucideCreditCard,
-  LucideChevronLeft, LucideChevronRight, LucideTrendingUp, LucideCheckCircle2,
+  LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideTrendingUp, LucideCheckCircle2,
   LucideXCircle, LucideAlertTriangle, LucideCalendar, LucideUser, LucideShieldAlert,
   LucideCopy, LucideSettings2, LucideArrowRightLeft, LucideBadgeDollarSign,
   LucideTimer,
@@ -45,15 +45,14 @@ import {
   computeMemberLifecycle, LIFECYCLE_TONE_CLASSES, lifecycleBannerClass, MemberLifecycle, RenewTarget,
 } from '../member-lifecycle.util';
 import { RenewPlanDialogComponent } from '../components/renew-plan-dialog/renew-plan-dialog.component';
+import { MemberAttendanceCalendarComponent } from '../components/member-attendance-calendar/member-attendance-calendar.component';
 
 type TabId = 'overview' | 'attendance' | 'payments' | 'contacts' | 'plans' | 'books';
 
-type DayStatus = 'present' | 'late' | 'absent' | 'holiday' | 'none';
+const ATTENDANCE_LOG_PAGE_SIZE_OPTS = [5, 10, 15, 30] as const;
+const ACTIVITY_TIMELINE_PAGE_SIZE = 5;
 
-interface CalendarCell {
-  date: Date | null;
-  day: AttendanceResponse | null;
-}
+type DayStatus = 'present' | 'late' | 'absent' | 'checkedIn' | 'holiday' | 'none' | 'future';
 
 interface HeatmapCell {
   date: string;
@@ -68,7 +67,7 @@ interface HeatmapCell {
     ButtonComponent, PageHeaderComponent, SectionHeaderComponent, GlassCardComponent, StatusBadgeComponent,
     LucideArrowLeft, LucideMail, LucidePhone, LucideIdCard, LucideBuilding2,
     LucideMapPin, LucideArmchair, LucideClock, LucideDownload, LucideCreditCard,
-    LucideChevronLeft, LucideChevronRight, LucideTrendingUp, LucideCheckCircle2,
+    LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideTrendingUp, LucideCheckCircle2,
     LucideXCircle, LucideAlertTriangle, LucideCalendar, LucideUser, LucideShieldAlert,
     LucideCopy, LucideSettings2, LucideArrowRightLeft, LucideBadgeDollarSign, DatePipe,
     MemberContactComponent, CurrencyPipe, LucideTimer, LucideWallet, LucideBookOpen,
@@ -76,6 +75,7 @@ interface HeatmapCell {
     LucideFlame, LucideCalendarCheck, LucideActivity, LucideBookMarked, LucideRotateCcw,
     MemberPaymentsComponent, SelectButtonModule, LucideCrown, LucideSparkles, LucideLogIn, LucideLogOut,
     RenewPlanDialogComponent,
+    MemberAttendanceCalendarComponent,
   ],
   templateUrl: './member-details-component.html',
   styleUrl: './member-details-component.css',
@@ -123,8 +123,12 @@ export class MemberDetailsComponent implements OnInit {
   readonly attendanceStatistics = signal<AttendanceStatisticsResponse | null>(null);
   readonly calendarMonth = signal<Date>(new Date());
   readonly calendarLoading = signal(false);
-  readonly weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly eventDot = EVENT_DOT;
+  readonly ATTENDANCE_LOG_PAGE_SIZE_OPTS = ATTENDANCE_LOG_PAGE_SIZE_OPTS;
+  readonly attendanceLogPage = signal(1);
+  readonly attendanceLogPageSize = signal(10);
+  readonly activityTimelineLimit = signal(ACTIVITY_TIMELINE_PAGE_SIZE);
+  readonly Math = Math;
 
   // Replace with your API response
   readonly todayAttendance = computed(() => {
@@ -253,13 +257,16 @@ export class MemberDetailsComponent implements OnInit {
   readonly nextRenewalDate = computed(() => {
     const member = this.memberDetails();
 
-    if (!member?.plans?.length) {
+    if (!member) {
       return null;
     }
 
-    const latestPayment = member.plans.filter(el => el.isActive && el.isCurrent)[0]
+    const latestPayment = member.plans?.find((el) => el.isActive && el.isCurrent);
+    if (latestPayment?.endDate) {
+      return latestPayment.endDate;
+    }
 
-    return latestPayment.endDate;
+    return member.planEndDate ?? null;
   });
 
   readonly averageVisitsPerWeek = computed(() => {
@@ -359,8 +366,12 @@ export class MemberDetailsComponent implements OnInit {
       };
     }
 
-    const records = this.calendarDays();
-    const present = records.filter(r => this.toDayStatus(r.status) === 'present').length;
+    const todayKey = this.dateKey(new Date());
+    const records = this.calendarDays().filter(r => this.normalizeAttendanceDate(r.attendanceDate) <= todayKey);
+    const present = records.filter(r => {
+      const s = this.toDayStatus(r.status);
+      return s === 'present' || s === 'checkedIn';
+    }).length;
     const late = records.filter(r => this.toDayStatus(r.status) === 'late').length;
     const absent = records.filter(r => this.toDayStatus(r.status) === 'absent').length;
     const holiday = records.filter(r => this.toDayStatus(r.status) === 'holiday').length;
@@ -382,43 +393,21 @@ export class MemberDetailsComponent implements OnInit {
     return { present, late, absent, holiday, workDays, rate, bestStreak: best };
   });
 
-  readonly monthLabel = computed(() => {
-    const c = this.calendarMonth();
-    return c.toLocaleString('en', { month: 'long', year: 'numeric' });
-  });
-
-  readonly monthCells = computed<CalendarCell[]>(() => {
-    const cursor = this.calendarMonth();
-    const year = cursor.getFullYear();
-    const month = cursor.getMonth();
-    const map = new Map(this.calendarDays().map(r => [this.normalizeAttendanceDate(r.attendanceDate), r]));
-
-    const cells: CalendarCell[] = [];
-    const firstDow = new Date(year, month, 1).getDay();
-    for (let i = 0; i < firstDow; i++) cells.push({ date: null, day: null });
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(year, month, d);
-      cells.push({ date, day: map.get(this.dateKey(date)) ?? null });
-    }
-    while (cells.length % 7 !== 0) cells.push({ date: null, day: null });
-    return cells;
-  });
-
   readonly heatmapCols = computed<HeatmapCell[][]>(() => {
-    const today = new Date();
+    const today = this.startOfToday();
     const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 88);
     const map = new Map(this.calendarDays().map(r => [this.normalizeAttendanceDate(r.attendanceDate), r]));
 
     const days: HeatmapCell[] = [];
     for (let i = 0; i < 89; i++) {
       const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      if (d > today) break;
       const key = this.dateKey(d);
       const rec = map.get(key);
       days.push({
         date: key,
-        status: rec ? this.toDayStatus(rec.status) : 'none',
-        hours: rec ? rec.durationMinutes / 60 : 0,
+        status: rec ? this.toDayStatus(rec.status, d) : 'none',
+        hours: rec ? (this.attendanceDurationMinutes(rec) ?? 0) / 60 : 0,
       });
     }
 
@@ -439,11 +428,30 @@ export class MemberDetailsComponent implements OnInit {
     return cols;
   });
 
-  readonly attendanceLog = computed(() =>
-    [...this.calendarDays()]
+  readonly attendanceLog = computed(() => {
+    const todayKey = this.dateKey(new Date());
+    return [...this.calendarDays()]
+      .filter(r => this.normalizeAttendanceDate(r.attendanceDate) <= todayKey)
       .sort((a, b) => this.normalizeAttendanceDate(b.attendanceDate).localeCompare(this.normalizeAttendanceDate(a.attendanceDate)))
-      .slice(0, 30)
+      .slice(0, 30);
+  });
+
+  readonly attendanceLogTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.attendanceLog().length / this.attendanceLogPageSize()))
   );
+
+  readonly attendanceLogCurrentPage = computed(() =>
+    Math.min(this.attendanceLogPage(), this.attendanceLogTotalPages())
+  );
+
+  readonly attendanceLogPageStart = computed(() =>
+    (this.attendanceLogCurrentPage() - 1) * this.attendanceLogPageSize()
+  );
+
+  readonly pagedAttendanceLog = computed(() => {
+    const start = this.attendanceLogPageStart();
+    return this.attendanceLog().slice(start, start + this.attendanceLogPageSize());
+  });
 
   readonly paymentStats = computed(() => {
     const plans = this.memberDetails()?.plans ?? [];
@@ -495,8 +503,20 @@ export class MemberDetailsComponent implements OnInit {
       });
     }
 
-    return events.sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 12);
+    return events.sort((a, b) => b.ts.localeCompare(a.ts));
   });
+
+  readonly visibleActivityTimeline = computed(() =>
+    this.activityTimeline().slice(0, this.activityTimelineLimit())
+  );
+
+  readonly hasMoreActivityTimeline = computed(() =>
+    this.activityTimeline().length > this.activityTimelineLimit()
+  );
+
+  readonly activityTimelineRemaining = computed(() =>
+    Math.max(0, this.activityTimeline().length - this.activityTimelineLimit())
+  );
 
   ngOnInit() {
     this.loadMemberDetails();
@@ -515,6 +535,7 @@ export class MemberDetailsComponent implements OnInit {
 
   loadMemberDetails(): void {
     this.loading.set(true);
+    this.activityTimelineLimit.set(ACTIVITY_TIMELINE_PAGE_SIZE);
 
     this.memberService.getMemberById(this.memberId).subscribe({
       next: (response) => {
@@ -545,6 +566,19 @@ export class MemberDetailsComponent implements OnInit {
     });
   }
 
+  setAttendanceLogPageSize(size: number): void {
+    this.attendanceLogPageSize.set(size);
+    this.attendanceLogPage.set(1);
+  }
+
+  goToAttendanceLogPage(page: number): void {
+    this.attendanceLogPage.set(Math.max(1, Math.min(page, this.attendanceLogTotalPages())));
+  }
+
+  showMoreActivityTimeline(): void {
+    this.activityTimelineLimit.update((count) => count + ACTIVITY_TIMELINE_PAGE_SIZE);
+  }
+
   private dateKey(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
@@ -572,10 +606,71 @@ export class MemberDetailsComponent implements OnInit {
     return normalized || '—';
   }
 
-  toDayStatus(status?: AttendanceStatus | null): DayStatus {
+  attendanceDurationMinutes(record: AttendanceResponse): number | null {
+    const dayDate = this.parseAttendanceDate(record.attendanceDate);
+    const checkIn = this.combineAttendanceDateTime(dayDate, record.checkInTime ?? record.checkInAtUtc);
+    const checkOut = this.combineAttendanceDateTime(dayDate, record.checkOutTime ?? record.checkOutAtUtc);
+
+    if (checkIn && checkOut) {
+      return Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / 60_000));
+    }
+
+    if (checkIn && record.durationMinutes != null && record.durationMinutes >= 0) {
+      return record.durationMinutes;
+    }
+
+    return null;
+  }
+
+  private parseAttendanceDate(value?: string | null): Date {
+    const normalized = this.normalizeAttendanceDate(value);
+    const [year, month, day] = normalized.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  private combineAttendanceDateTime(dayDate: Date, value?: string | Date | null): Date | null {
+    if (!value) return null;
+
+    if (value instanceof Date) {
+      return new Date(
+        dayDate.getFullYear(),
+        dayDate.getMonth(),
+        dayDate.getDate(),
+        value.getHours(),
+        value.getMinutes(),
+        0,
+        0,
+      );
+    }
+
+    if (/^\d{2}:\d{2}/.test(value)) {
+      const [hours, minutes] = value.slice(0, 5).split(':').map(Number);
+      const combined = new Date(dayDate);
+      combined.setHours(hours, minutes, 0, 0);
+      return combined;
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+
+    return new Date(
+      dayDate.getFullYear(),
+      dayDate.getMonth(),
+      dayDate.getDate(),
+      parsed.getHours(),
+      parsed.getMinutes(),
+      0,
+      0,
+    );
+  }
+
+  toDayStatus(status?: AttendanceStatus | null, date?: Date): DayStatus {
+    if (date && date > this.startOfToday()) return 'future';
+
     switch (status) {
-      case AttendanceStatus.Present:
       case AttendanceStatus.CheckedIn:
+        return 'checkedIn';
+      case AttendanceStatus.Present:
       case AttendanceStatus.CheckedOut:
       case AttendanceStatus.AutoCheckedOut:
       case AttendanceStatus.MissedCheckout:
@@ -600,6 +695,7 @@ export class MemberDetailsComponent implements OnInit {
   dayStatusPillClass(status?: AttendanceStatus | null): string {
     const s = this.toDayStatus(status);
     switch (s) {
+      case 'checkedIn': return 'bg-blue-500/15 text-blue-500 border-blue-500/30';
       case 'present': return 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30';
       case 'late': return 'bg-amber-500/15 text-amber-500 border-amber-500/30';
       case 'absent': return 'bg-rose-500/15 text-rose-500 border-rose-500/30';
@@ -608,27 +704,28 @@ export class MemberDetailsComponent implements OnInit {
     }
   }
 
-  calendarCellClass(cell: CalendarCell): string {
-    if (!cell.date) return 'opacity-0 pointer-events-none';
-    const status = this.toDayStatus(cell.day?.status);
-    switch (status) {
-      case 'present': return 'bg-emerald-500/70 text-white';
-      case 'late': return 'bg-amber-500/70 text-white';
-      case 'absent': return 'bg-rose-500/60 text-white';
-      case 'holiday': return 'bg-slate-400/30 text-muted-foreground';
-      default: return 'bg-muted/40 text-muted-foreground';
+  onCalendarViewDateChange(date: Date): void {
+    const current = this.calendarMonth();
+    if (
+      current.getFullYear() !== date.getFullYear() ||
+      current.getMonth() !== date.getMonth()
+    ) {
+      this.calendarMonth.set(new Date(date.getFullYear(), date.getMonth(), 1));
+      this.loadAttendanceCalendar();
+    } else {
+      this.calendarMonth.set(date);
     }
   }
 
-  cellTitle(cell: CalendarCell): string {
-    if (!cell.date) return '';
-    const status = cell.day ? this.statusLabel(cell.day.status) : 'No record';
-    const hours = cell.day?.durationMinutes ? ` · ${(cell.day.durationMinutes / 60).toFixed(1)}h` : '';
-    return `${cell.date.toDateString()} — ${status}${hours}`;
+  private startOfToday(): Date {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
   }
 
   heatmapCellClass(cell: HeatmapCell): string {
     if (cell.hours === -1) return 'bg-transparent';
+    if (cell.status === 'checkedIn') return 'bg-blue-500/50';
     if (cell.status === 'absent') return 'bg-rose-500/40';
     if (cell.hours <= 0) return 'bg-muted/40';
     if (cell.hours < 3) return 'bg-emerald-500/20';
@@ -726,12 +823,13 @@ export class MemberDetailsComponent implements OnInit {
   renewFromBanner(): void {
     const m = this.memberDetails();
     const life = this.lifecycle();
-    if (!m?.planId) return;
+    if (!m) return;
     this.renewTarget.set({
       id: m.id,
       name: m.name,
       plan: m.plan ?? 'Plan',
-      planId: m.planId,
+      planId: m.planId ?? '',
+      hasPlan: life.state !== 'No plan',
       expiry: life.expiry,
       daysLeft: life.daysLeft,
       feesOwed: m.feesOwed ?? 0,
@@ -746,6 +844,29 @@ export class MemberDetailsComponent implements OnInit {
 
   confirmRenew(target: RenewTarget): void {
     this.renewBusy.set(true);
+
+    if (!target.hasPlan) {
+      const planId = target.selectedPlanId;
+      if (!planId) {
+        this.renewBusy.set(false);
+        this.toast.error('Please select a plan.');
+        return;
+      }
+
+      this.memberService.changePlanOrShift(target.id, { planId }).subscribe({
+        next: (response) => {
+          this.memberDetails.set(response.data ?? null);
+          this.toast.success(response.message ?? `${target.name} plan assigned`);
+          this.closeRenew();
+        },
+        error: (error) => {
+          this.renewBusy.set(false);
+          this.toast.error(error.error?.message || 'Unable to assign plan. Please try again.');
+        },
+      });
+      return;
+    }
+
     this.memberService.renewMembership(target.id).subscribe({
       next: (response) => {
         this.memberDetails.set(response.data ?? null);

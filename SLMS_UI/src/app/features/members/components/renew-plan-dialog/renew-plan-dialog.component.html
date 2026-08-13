@@ -3,7 +3,8 @@
   <div class="w-full max-w-md rounded-xl border bg-background shadow-xl" (click)="$event.stopPropagation()">
     <div class="flex items-center justify-between border-b px-5 py-4">
       <h2 class="text-lg font-semibold flex items-center gap-2">
-        <svg lucideRotateCcw class="h-4 w-4"></svg> Renew membership
+        <svg lucideRotateCcw class="h-4 w-4"></svg>
+        {{ isAssignMode() ? 'Assign plan' : 'Renew membership' }}
       </h2>
       <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" (click)="onClose()">
         <svg lucideX class="h-4 w-4"></svg>
@@ -11,14 +12,39 @@
     </div>
 
     <div class="px-5 py-4 space-y-4">
+      @if (isAssignMode()) {
+      <p class="text-sm text-muted-foreground">
+        {{ t.name }} has no active plan. Select a plan to start membership from today.
+      </p>
+
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Plan</label>
+        <select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+                 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          [ngModel]="selectedPlanId()"
+          (ngModelChange)="selectedPlanId.set($event)">
+          <option value="">Select plan</option>
+          @for (plan of plans(); track plan.id) {
+          <option [value]="plan.id">{{ plan.name }} — {{ plan.price | currency:'INR' }}</option>
+          }
+        </select>
+      </div>
+      } @else {
       <p class="text-sm text-muted-foreground">
         Extend {{ t.name }}'s {{ t.plan }} plan by {{ preview().label }} from today.
       </p>
+      }
 
       <div class="rounded-lg border bg-muted/30 p-3">
         <div class="flex items-center gap-3">
           <div class="flex-1">
-            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">Current expiry</div>
+            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">
+              {{ isAssignMode() ? 'Current plan' : 'Current expiry' }}
+            </div>
+            @if (isAssignMode()) {
+            <div class="text-sm font-medium text-muted-foreground">No active plan</div>
+            <div class="text-[11px] text-muted-foreground">Membership not started</div>
+            } @else {
             <div class="text-sm font-medium tabular-nums" [class]="t.daysLeft < 0 ? 'text-destructive' : ''">
               {{ formatRenewDate(t.expiry) }}
             </div>
@@ -31,6 +57,7 @@
                 in {{ t.daysLeft }} days
               }
             </div>
+            }
           </div>
           <svg lucideArrowRight class="h-4 w-4 text-muted-foreground shrink-0"></svg>
           <div class="flex-1">
@@ -52,8 +79,12 @@
 
     <div class="flex justify-end gap-2 border-t px-5 py-4">
       <app-button variant="outline" size="sm" [disabled]="busy()" (click)="onClose()">Cancel</app-button>
-      <app-button size="sm" [disabled]="busy()" (click)="onConfirm()">
-        {{ busy() ? 'Renewing…' : 'Confirm renewal' }}
+      <app-button size="sm" [disabled]="busy() || !canConfirm()" (click)="onConfirm()">
+        @if (busy()) {
+          {{ isAssignMode() ? 'Assigning…' : 'Renewing…' }}
+        } @else {
+          {{ isAssignMode() ? 'Confirm assignment' : 'Confirm renewal' }}
+        }
       </app-button>
     </div>
   </div>

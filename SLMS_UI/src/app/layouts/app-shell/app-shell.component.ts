@@ -23,12 +23,12 @@ import { TopbarComponent } from '../topbar/topbar.component';
       <app-sidebar />
       <app-topbar />
       <div
-        class="flex min-h-screen flex-col pt-14 transition-[padding] duration-200"
-        [class.md:pl-64]="!sidebar.collapsed()"
-        [class.md:pl-16]="sidebar.collapsed()"
+        class="flex min-h-screen flex-col pt-14 pl-0 transition-[padding] duration-200 md:pl-16"
+        [class.lg:pl-64]="sidebar.isDesktop() && !sidebar.collapsed()"
+        [class.lg:pl-16]="sidebar.isDesktop() && sidebar.collapsed()"
       >
         <main class="flex-1 p-4 md:p-6 lg:p-6">
-          <div class="animate-fade-up mx-auto max-w-7xl space-y-6">
+          <div class="mx-auto max-w-7xl space-y-6">
             <router-outlet />
           </div>
         </main>

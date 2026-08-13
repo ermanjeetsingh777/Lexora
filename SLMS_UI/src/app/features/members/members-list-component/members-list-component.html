@@ -515,7 +515,8 @@
               <div class="inline-flex items-center gap-0.5">
                 @if (m.life.needsAction && m.life.state !== 'New') {
                 <app-button variant="outline" size="sm" class="h-8 mr-1" (click)="renewPlan(m)">
-                  <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Renew
+                  <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
+                  {{ m.life.state === 'No plan' ? 'Assign' : 'Renew' }}
                 </app-button>
                 }
                 <button type="button" title="Copy member ID" (click)="copyId(m.id)"
@@ -540,7 +541,8 @@
                     </a>
                     <button type="button" (click)="renewPlan(m); closeDropdown()"
                       class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
-                      <svg lucideRotateCcw class="h-4 w-4"></svg> Renew plan
+                      <svg lucideRotateCcw class="h-4 w-4"></svg>
+                      {{ m.life.state === 'No plan' ? 'Assign plan' : 'Renew plan' }}
                     </button>
                     <button type="button" (click)="openQuick(m.id); closeDropdown()"
                       class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
@@ -651,7 +653,8 @@
           <div class="flex gap-1 relative z-10">
             @if (m.life.needsAction && m.life.state !== 'New') {
             <app-button variant="outline" size="sm" class="h-7 text-xs" (click)="$event.preventDefault(); renewPlan(m)">
-              <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Renew
+              <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
+              {{ m.life.state === 'No plan' ? 'Assign' : 'Renew' }}
             </app-button>
             }
             <button type="button" title="Copy ID" (click)="$event.preventDefault(); copyId(m.id)"
@@ -800,7 +803,8 @@
       </app-button>
       @if (qm.life.needsAction && qm.life.state !== 'New') {
       <app-button size="sm" variant="outline" (click)="renewPlan(qm)">
-        <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Renew
+        <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
+        {{ qm.life.state === 'No plan' ? 'Assign' : 'Renew' }}
       </app-button>
       }
       <a [routerLink]="['/members', qm.id]" (click)="closeQuick()" class="flex-1">
@@ -814,6 +818,7 @@
 
 <app-renew-plan-dialog
   [target]="renewTarget()"
+  [plans]="renewPlans()"
   [busy]="renewBusy()"
   (confirm)="confirmRenew($event)"
   (closed)="closeRenew()" />

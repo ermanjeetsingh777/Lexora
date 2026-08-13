@@ -21,6 +21,8 @@ export interface RenewTarget {
   daysLeft: number;
   feesOwed: number;
   planDurationInDays: number;
+  hasPlan: boolean;
+  selectedPlanId?: string;
 }
 
 export const LIFECYCLE_OPTS: LifecycleState[] = ['New', 'Active', 'Expiring soon', 'Grace', 'Expired', 'No plan'];
@@ -169,6 +171,7 @@ export function renewTargetFromListMember(m: {
   planDurationInDays?: number;
   life: MemberLifecycle;
 }): RenewTarget {
+  const hasPlan = !!m.planEndDate;
   return {
     id: m.id,
     name: m.name || m.userName || m.email || 'Member',
@@ -178,5 +181,6 @@ export function renewTargetFromListMember(m: {
     daysLeft: m.life.daysLeft,
     feesOwed: m.feesOwed ?? 0,
     planDurationInDays: m.planDurationInDays ?? 30,
+    hasPlan,
   };
 }

@@ -15,6 +15,7 @@ using SLMS_API.Infrastructure.Authorization;
 using SLMS_API.Infrastructure.Data;
 using SLMS_API.Infrastructure.Repositories;
 using SLMS_API.Infrastructure.Repositories.Interfaces;
+using SLMS_API.Infrastructure.Support;
 
 namespace SLMS_API.Infrastructure.DependencyInjection;
 
@@ -96,6 +97,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAttendanceService, AttendanceService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton<SupportStatusSimulator>();
+        services.AddScoped<ISupportService, SupportService>();
 
         services.AddHttpContextAccessor();
 

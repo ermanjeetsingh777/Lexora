@@ -54,8 +54,16 @@ export class CommonService {
         return rate >= 80 ? 'bg-emerald-500' : rate >= 60 ? 'bg-amber-500' : 'bg-rose-500';
     }
 
-    initials(name: string): string {
-        return name.split(' ').map((p) => p[0]).slice(0, 2).join('');
+    initials(name?: string | null): string {
+        const value = name?.trim();
+        if (!value) return '?';
+        return value
+            .split(' ')
+            .filter(Boolean)
+            .map((part) => part[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
     }
 
     avatarBg(hue: number): string {

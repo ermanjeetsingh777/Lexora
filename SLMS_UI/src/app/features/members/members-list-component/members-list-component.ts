@@ -17,6 +17,7 @@ import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component
 import { ToastService } from '@core/services/toast.service';
 import { MemberService } from '../MemberService';
 import { MemberListResponse } from '@core/models/MemberRequest';
+import { PlanResponse } from '@core/models/institution-dropdown.model';
 import { ViewMode, MemberPlanType } from '@core/constType';
 import { CommonService } from '@core/services/common.service';
 import { PlanStatus } from '@core/enums/OnbardingSteps';
@@ -96,6 +97,7 @@ export class MembersListComponent implements OnInit {
   readonly openDropdownId = signal<string | null>(null);
   readonly openFilter = signal<string | null>(null);
   readonly renewTarget = signal<RenewTarget | null>(null);
+  readonly renewPlans = signal<PlanResponse[]>([]);
   readonly renewBusy = signal(false);
 
   readonly STATUS_OPTS = STATUS_OPTS;
@@ -340,16 +342,56 @@ export class MembersListComponent implements OnInit {
   }
 
   openRenew(member: MemberRow): void {
-    this.renewTarget.set(renewTargetFromListMember(member));
+    const target = renewTargetFromListMember(member);
+    this.renewTarget.set(target);
+    this.renewPlans.set([]);
+
+    if (!target.hasPlan) {
+      this.memberService.getMemberById(member.id).subscribe({
+        next: (response) => {
+          const detail = response.data;
+          if (!detail) return;
+          this.memberService.getLibraryPlan(detail.institutionId, detail.branchId, detail.libraryId).subscribe({
+            next: (plansResponse) => this.renewPlans.set(plansResponse.data ?? []),
+            error: () => this.renewPlans.set([]),
+          });
+        },
+        error: () => this.renewPlans.set([]),
+      });
+    }
   }
 
   closeRenew(): void {
     this.renewTarget.set(null);
     this.renewBusy.set(false);
+    this.renewPlans.set([]);
   }
 
   confirmRenew(target: RenewTarget): void {
     this.renewBusy.set(true);
+
+    if (!target.hasPlan) {
+      const planId = target.selectedPlanId;
+      if (!planId) {
+        this.renewBusy.set(false);
+        this.toast.error('Please select a plan.');
+        return;
+      }
+
+      this.memberService.changePlanOrShift(target.id, { planId }).subscribe({
+        next: (response) => {
+          this.toast.success(response.message ?? `${target.name} plan assigned`);
+          this.closeRenew();
+          this.loadAllMembers();
+        },
+        error: (error) => {
+          this.renewBusy.set(false);
+          this.toast.error(error.error?.message || 'Unable to assign plan. Please try again.');
+        },
+      });
+      return;
+    }
+
     this.memberService.renewMembership(target.id).subscribe({
       next: (response) => {
         this.toast.success(response.message ?? `${target.name} renewed`);

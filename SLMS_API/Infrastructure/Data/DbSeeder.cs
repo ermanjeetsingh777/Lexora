@@ -70,5 +70,19 @@ public static class DbSeeder
         await dbContext.Database.MigrateAsync();
         await SeedRolesAsync(serviceProvider);
         await SeedRolePermissionsAsync(serviceProvider);
+        await SeedSupportArticlesAsync(serviceProvider);
+    }
+
+    public static async Task SeedSupportArticlesAsync(IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if (await dbContext.KnowledgeBaseArticles.AnyAsync())
+        {
+            return;
+        }
+
+        dbContext.KnowledgeBaseArticles.AddRange(SupportSeedData.GetArticles());
+        await dbContext.SaveChangesAsync();
     }
 }

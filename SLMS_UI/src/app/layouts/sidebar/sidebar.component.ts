@@ -29,13 +29,10 @@ import { SidebarService } from './sidebar.service';
     >
       <div class="border-b">
         <a routerLink="/dashboard" class="flex items-center gap-2 px-3 py-3" (click)="sidebar.closeMobile()">
-          <div class="relative h-8 w-8 shrink-0 rounded-md bg-gradient-primary grid place-items-center text-primary-foreground font-mono font-bold">
-            SL
-            <span class="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-success ring-2 ring-sidebar"></span>
-          </div>
+          <img src="assets/lexora-icon.png" alt="" class="relative h-8 w-8 shrink-0 rounded-md" width="32" height="32" />
           @if (sidebar.showLabels()) {
             <div class="leading-tight">
-              <div class="text-sm font-semibold tracking-tight">SmartLibrary</div>
+              <div class="text-sm font-semibold tracking-tight">Lexora</div>
               <div class="label-mono">v2.4 · Institutional</div>
             </div>
           }

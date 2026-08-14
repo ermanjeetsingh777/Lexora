@@ -3,7 +3,7 @@ export const environment = {
   baseUrl: '',
   apiUrl: 'https://localhost:7050/api/v1',
   mockApi: false,
-  appName: 'Smart Library Management System',
+  appName: 'Lexora',
   email: 'institution@slms.com',
   password: 'demo123',
   TOKEN_KEY: 'access_token',

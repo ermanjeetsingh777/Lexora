@@ -21,11 +21,7 @@ import { environment } from '@env/environment';
 
         <div class="relative">
           <a routerLink="/" class="flex items-center gap-3">
-            <div
-              class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 border border-white/20">
-              <i class="pi pi-book text-xl"></i>
-            </div>
-
+            <img src="assets/lexora-icon.png" alt="" class="h-11 w-11 rounded-xl" width="44" height="44" />
             <div>
               <h1 class="text-lg font-semibold">{{ appName }}</h1>
             </div>
@@ -59,11 +55,7 @@ import { environment } from '@env/environment';
         <div class="animate-fade-up w-full max-w-md space-y-6">
         <!-- Mobile Logo -->
           <div class="flex lg:hidden items-center justify-center gap-3">
-            <div
-              class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white shadow-lg">
-              <i class="pi pi-book text-xl"></i>
-            </div>
-
+            <img src="assets/lexora-icon.png" alt="" class="h-12 w-12 rounded-xl shadow-lg" width="48" height="48" />
             <div>
               <h2 class="text-xl font-bold">{{ appName }}</h2>
             </div>

@@ -171,7 +171,7 @@ export class StorageService {
         return Math.floor((expiry.getTime() - Date.now()) / 60000);
     }
 
-    // hasPermission(permission: number): boolean {
-    //     return this._user()?.permissions.includes(permission) ?? false;
-    // }
+    hasPermission(permission: number): boolean {
+        return this._user()?.permissions?.includes(permission) ?? false;
+    }
 }

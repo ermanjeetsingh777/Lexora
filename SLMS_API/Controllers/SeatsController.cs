@@ -32,7 +32,7 @@ public class SeatsController : ControllerBase
     }
 
     [HttpPost]
-    [Permission(PermissionKey.SeatsManage)]
+    [Permission(PermissionKey.SeatsUpdate)]
     public async Task<ActionResult<ApiResponse<SeatResponse>>> Create(Guid institutionId, Guid branchId, [FromBody] CreateSeatRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
@@ -50,7 +50,7 @@ public class SeatsController : ControllerBase
     }
 
     [HttpPut("{seatId:guid}")]
-    [Permission(PermissionKey.SeatsManage)]
+    [Permission(PermissionKey.SeatsUpdate)]
     public async Task<ActionResult<ApiResponse<SeatResponse>>> Update(Guid institutionId, Guid branchId, Guid seatId, [FromBody] UpdateSeatRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
@@ -59,7 +59,7 @@ public class SeatsController : ControllerBase
     }
 
     [HttpDelete("{seatId:guid}")]
-    [Permission(PermissionKey.SeatsManage)]
+    [Permission(PermissionKey.SeatsUpdate)]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid institutionId, Guid branchId, Guid seatId, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;

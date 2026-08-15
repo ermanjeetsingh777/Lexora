@@ -1,26 +1,21 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CreateMemberContactRequest, MemberContactResponse } from '@core/models/MemberRequest';
-import { LucideMail, LucidePhone, LucidePlus, LucideShieldAlert, LucideUser } from '@lucide/angular';
+import { LucideMail, LucidePhone, LucidePlus, LucideShieldAlert, LucideUser, LucideX } from '@lucide/angular';
 import { GlassCardComponent, SectionHeaderComponent } from "@shared/components/page-header/page-header.component";
 import { ButtonComponent } from "@shared/components/button/button.component";
 
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DialogModule } from 'primeng/dialog';
-import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ContactRelation } from '@core/enums/OnbardingSteps';
 import { relationOptions } from '@core/constType';
-import { SelectModule } from 'primeng/select';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
 
 @Component({
   selector: 'app-member-contact-component',
   templateUrl: './member-contact-component.html',
   styleUrl: './member-contact-component.css',
-  imports: [GlassCardComponent, SectionHeaderComponent,
-    LucideUser, LucideShieldAlert, ButtonComponent, LucidePlus,
-    DialogModule, ButtonModule, InputTextModule, ReactiveFormsModule,
-    FormsModule, SelectModule, ToggleSwitchModule, LucideMail, LucidePhone
+  imports: [
+    GlassCardComponent, SectionHeaderComponent,
+    LucideUser, LucideShieldAlert, ButtonComponent, LucidePlus, LucideX,
+    LucideMail, LucidePhone, ReactiveFormsModule,
   ],
 })
 export class MemberContactComponent {
@@ -28,8 +23,8 @@ export class MemberContactComponent {
   readonly contactData = input<MemberContactResponse[]>();
   addContact = output<CreateMemberContactRequest>();
 
-  visible: boolean = false;
-  isGuardian = signal<boolean>(true);
+  readonly visible = signal(false);
+  readonly isGuardian = signal<boolean>(true);
 
   name: string = 'Amanda Miller';
 
@@ -82,7 +77,7 @@ export class MemberContactComponent {
   }
 
   openDialog(isGuardian: boolean) {
-    this.visible = true;
+    this.visible.set(true);
     this.isGuardian.set(isGuardian);
   }
 
@@ -98,7 +93,7 @@ export class MemberContactComponent {
     this.contactForm.markAsPristine();
     this.contactForm.markAsUntouched();
 
-    this.visible = false;
+    this.visible.set(false);
     this.isGuardian.set(true);
   }
 

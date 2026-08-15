@@ -32,7 +32,7 @@ public class SubscriptionsController : ControllerBase
     }
 
     [HttpPost]
-    [Permission(PermissionKey.SubscriptionsManage)]
+    [Permission(PermissionKey.SubscriptionsUpdate)]
     public async Task<ActionResult<ApiResponse<SubscriptionResponse>>> Create(Guid institutionId, [FromBody] CreateSubscriptionRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
@@ -50,7 +50,7 @@ public class SubscriptionsController : ControllerBase
     }
 
     [HttpPut("{subscriptionId:guid}")]
-    [Permission(PermissionKey.SubscriptionsManage)]
+    [Permission(PermissionKey.SubscriptionsUpdate)]
     public async Task<ActionResult<ApiResponse<SubscriptionResponse>>> Update(Guid institutionId, Guid subscriptionId, [FromBody] UpdateSubscriptionRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;

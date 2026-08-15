@@ -39,19 +39,22 @@ public static class DbSeeder
                 continue;
             }
 
-            var existingPermissionIds = await dbContext.RolePermissions
+            var expectedPermissionIds = permissions.Select(p => (int)p).ToHashSet();
+            var existingRolePermissions = await dbContext.RolePermissions
                 .Where(x => x.RoleId == role.Id)
-                .Select(x => x.PermissionId)
-                .ToListAsync();
+                .ToListAsync(cancellationToken: default);
 
-            foreach (var permission in permissions.Distinct())
+            foreach (var stale in existingRolePermissions.Where(x => !expectedPermissionIds.Contains(x.PermissionId)))
             {
-                var permissionId = (int)permission;
-                if (existingPermissionIds.Contains(permissionId))
-                {
-                    continue;
-                }
+                dbContext.RolePermissions.Remove(stale);
+            }
 
+            var existingPermissionIds = existingRolePermissions
+                .Select(x => x.PermissionId)
+                .ToHashSet();
+
+            foreach (var permissionId in expectedPermissionIds.Where(id => !existingPermissionIds.Contains(id)))
+            {
                 dbContext.RolePermissions.Add(new RolePermission
                 {
                     RoleId = role.Id,

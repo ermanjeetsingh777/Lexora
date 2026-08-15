@@ -32,7 +32,7 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpPost]
-    [Permission(PermissionKey.NotificationsManage)]
+    [Permission(PermissionKey.NotificationsCreate)]
     public async Task<ActionResult<ApiResponse<NotificationResponse>>> Create([FromBody] NotificationRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId ?? string.Empty;

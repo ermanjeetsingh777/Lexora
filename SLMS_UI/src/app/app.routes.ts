@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { guestGuard } from '@core/guards/auth.guard';
 import { onboardingGuard } from '@core/guards/onboarding.guard';
+import { permissionGuard } from '@core/guards/permission.guard';
+import { PermissionKey } from '@core/constants/permissions';
 
 export const routes: Routes = [
     {
@@ -170,17 +172,21 @@ export const routes: Routes = [
             //     ],
             // },
 
-            // // --- Users (Admin) ---
-            // {
-            //     path: 'users',
-            //     loadComponent: () => import('./features/users/users.component').then((m) => m.UsersComponent),
-            // },
+            // --- Users (Admin) ---
+            {
+                path: 'users',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.UsersList },
+                loadComponent: () => import('./features/admin/users-list/users-list.component').then((m) => m.UsersListComponent),
+            },
 
-            // // --- Roles (Admin) ---
-            // {
-            //     path: 'roles',
-            //     loadComponent: () => import('./features/roles/roles.component').then((m) => m.RolesComponent),
-            // },
+            // --- Roles (Admin) ---
+            {
+                path: 'roles',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.RolesList },
+                loadComponent: () => import('./features/admin/roles-list/roles-list.component').then((m) => m.RolesListComponent),
+            },
 
             // // --- Settings ---
             // {

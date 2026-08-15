@@ -58,10 +58,19 @@
     </div>
 </app-glass-card>
 
-<p-dialog [(visible)]="visible" [modal]="true" (onHide)="closeDialog()"
-    [header]="(isGuardian()) ? 'Add Guardian Contact' : 'Add Emergency Contact'" [style]="{ width: '50rem' }"
-    [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }" [maximizable]="true">
-    <form [formGroup]="contactForm" (ngSubmit)="save()" class="space-y-4">
+@if (visible()) {
+<div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" (click)="closeDialog()">
+    <div class="w-full max-w-2xl rounded-xl border bg-background shadow-xl max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between border-b px-5 py-4 sticky top-0 bg-background z-10">
+            <h2 class="text-lg font-semibold">
+                {{ isGuardian() ? 'Add Guardian Contact' : 'Add Emergency Contact' }}
+            </h2>
+            <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" (click)="closeDialog()">
+                <svg lucideX class="h-4 w-4"></svg>
+            </button>
+        </div>
+
+    <form [formGroup]="contactForm" (ngSubmit)="save()" class="space-y-4 p-5">
 
         <!-- Full Name -->
         <div class="space-y-1.5">
@@ -206,4 +215,6 @@
         </div>
 
     </form>
-</p-dialog>
+    </div>
+</div>
+}

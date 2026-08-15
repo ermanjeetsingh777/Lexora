@@ -27,11 +27,15 @@ import {
   LucideRotateCcw,
 } from '@lucide/angular';
 import { ToastService } from '@core/services/toast.service';
+import { WhatsAppService } from '@core/services/whatsapp.service';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, MemberDetailResponse } from '@core/models/MemberRequest';
 import { MemberService } from '../MemberService';
+import { BookService } from '@features/books/book.service';
+import { BookLoanStatus, LOAN_STATUS_LABELS, MemberBookLoan } from '@core/models/book.models';
+import { formatBookDate } from '@features/books/book-format.util';
 import { CommonService } from '@core/services/common.service';
 import { MemberContactComponent } from "../pages/member-contact-component/member-contact-component";
 import { EVENT_DOT, Shift } from '@core/constType';
@@ -79,12 +83,14 @@ interface HeatmapCell {
   ],
   templateUrl: './member-details-component.html',
   styleUrl: './member-details-component.css',
-  providers: [MemberService, AttendanceService]
+  providers: [MemberService, AttendanceService, BookService]
 })
 export class MemberDetailsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
+  private readonly whatsapp = inject(WhatsAppService);
   private readonly memberService = inject(MemberService);
+  private readonly bookService = inject(BookService);
   readonly commonService = inject(CommonService);
   readonly attendanceService = inject(AttendanceService);
 
@@ -129,6 +135,26 @@ export class MemberDetailsComponent implements OnInit {
   readonly attendanceLogPageSize = signal(10);
   readonly activityTimelineLimit = signal(ACTIVITY_TIMELINE_PAGE_SIZE);
   readonly Math = Math;
+  readonly bookLoans = signal<MemberBookLoan[]>([]);
+  readonly bookLoansLoading = signal(false);
+  readonly BookLoanStatus = BookLoanStatus;
+  readonly LOAN_STATUS_LABELS = LOAN_STATUS_LABELS;
+  readonly formatBookDate = formatBookDate;
+
+  readonly bookLoanStats = computed(() => {
+    const loans = this.bookLoans();
+    return {
+      active: loans.filter(l => l.status === BookLoanStatus.Active).length,
+      overdue: loans.filter(l => l.status === BookLoanStatus.Overdue).length,
+      returned: loans.filter(l => l.status === BookLoanStatus.Returned).length,
+      total: loans.length,
+      finesOwed: loans.reduce((sum, l) => sum + (l.fineAmount ?? 0), 0),
+    };
+  });
+
+  readonly overdueBookLoans = computed(() =>
+    this.bookLoans().filter(l => l.status === BookLoanStatus.Overdue)
+  );
 
   // Replace with your API response
   readonly todayAttendance = computed(() => {
@@ -520,6 +546,7 @@ export class MemberDetailsComponent implements OnInit {
 
   ngOnInit() {
     this.loadMemberDetails();
+    this.loadBookLoans();
     this.loadAttendanceCalendar();
     this.loadRecentAttendance();
     this.loadAttendanceStatistics();
@@ -531,6 +558,58 @@ export class MemberDetailsComponent implements OnInit {
       this.loadAttendanceCalendar();
       this.loadAttendanceStatistics();
     }
+    if (tab === 'books') {
+      this.loadBookLoans();
+    }
+  }
+
+  loadBookLoans(): void {
+    if (!this.memberId) return;
+    this.bookLoansLoading.set(true);
+    this.bookService.getMemberLoans(this.memberId).subscribe({
+      next: (res) => {
+        this.bookLoans.set(res.data ?? []);
+        this.bookLoansLoading.set(false);
+      },
+      error: () => {
+        this.bookLoans.set([]);
+        this.bookLoansLoading.set(false);
+      },
+    });
+  }
+
+  sendBookReturnReminder(loan: MemberBookLoan): void {
+    const member = this.memberDetails();
+    if (!member?.institutionId || !member.branchId || !member.libraryId) {
+      this.toast.error('Library scope is missing for this member.');
+      return;
+    }
+
+    const scope = {
+      institutionId: member.institutionId,
+      branchId: member.branchId,
+      libraryId: member.libraryId,
+    };
+
+    this.bookService.sendReturnReminder(scope, loan.bookId, loan.id).subscribe({
+      next: (res) => {
+        const reminder = res.data;
+        this.toast.success('Return reminder sent.');
+        if (reminder?.memberPhone) {
+          this.whatsapp.bookReturnReminder(
+            reminder.memberPhone,
+            reminder.memberName,
+            reminder.bookTitle,
+            this.formatBookDate(reminder.dueAtUtc),
+            reminder.daysOverdue,
+            reminder.estimatedFine,
+            member.library ?? 'Library',
+          );
+        }
+        this.loadBookLoans();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to send reminder'),
+    });
   }
 
   loadMemberDetails(): void {

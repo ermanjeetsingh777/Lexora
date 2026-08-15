@@ -345,4 +345,5 @@ SLMS_API/
 ## 7. Related docs
 
 - Member details workflow: [members-detail-workflow.md](./members-detail-workflow.md)
+- Books & circulation: [books-workflow.md](./books-workflow.md)
 - Membership expiry plan: `docs/lovable-source/.lovable/plan/membership-expiry-across-members-list-details-2026-08-04.md`

@@ -91,4 +91,30 @@ ${libraryName}`;
 
     this.send(phone, message);
   }
+
+  bookReturnReminder(
+    phone: string,
+    memberName: string,
+    bookTitle: string,
+    dueDate: string,
+    daysOverdue: number,
+    estimatedFine: number,
+    libraryName: string,
+  ): void {
+    const message = `📚 *Book Return Reminder*
+
+Hello ${memberName},
+
+Please return the following book as soon as possible:
+
+📖 Book: ${bookTitle}
+📅 Due date: ${dueDate}
+⏰ Overdue by: ${daysOverdue} day(s)
+💰 Estimated fine: ₹${estimatedFine}
+
+Regards,
+${libraryName}`;
+
+    this.send(phone, message);
+  }
 }

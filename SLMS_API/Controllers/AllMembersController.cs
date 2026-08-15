@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyModel;
+using SLMS_API.Application.Contracts.Books.Responses;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations.Responses;
@@ -18,11 +19,13 @@ namespace SLMS_API.Controllers
     public class AllMembersController : Controller
     {
         private readonly IMemberService _memberService;
+        private readonly IBookService _bookService;
         private readonly ICurrentUserService _currentUserService;
 
-        public AllMembersController(IMemberService memberService, ICurrentUserService currentUserService)
+        public AllMembersController(IMemberService memberService, IBookService bookService, ICurrentUserService currentUserService)
         {
             _memberService = memberService;
+            _bookService = bookService;
             _currentUserService = currentUserService;
         }
 
@@ -125,6 +128,22 @@ namespace SLMS_API.Controllers
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<MemberDetailResponse>.Fail(ex.Message));
+            }
+        }
+
+        [HttpGet("{memberId:guid}/book-loans")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyCollection<MemberBookLoanResponse>>>> GetBookLoans(
+            Guid memberId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var loans = await _bookService.GetMemberLoansAsync(memberId, cancellationToken);
+                return Ok(ApiResponse<IReadOnlyCollection<MemberBookLoanResponse>>.Ok(loans));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<IReadOnlyCollection<MemberBookLoanResponse>>.Fail(ex.Message));
             }
         }
 

@@ -40,7 +40,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<SupportTicketAttachment> SupportTicketAttachments => Set<SupportTicketAttachment>();
     public DbSet<KnowledgeBaseArticle> KnowledgeBaseArticles => Set<KnowledgeBaseArticle>();
     public DbSet<SystemIncident> SystemIncidents => Set<SystemIncident>();
-    public DbSet<SystemIncidentUpdate> SystemIncidentUpdates => Set<SystemIncidentUpdate>();
+    public DbSet<Book> Books => Set<Book>();
+    public DbSet<BookLoan> BookLoans => Set<BookLoan>();
+    public DbSet<BookAuditEntry> BookAuditEntries => Set<BookAuditEntry>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -145,6 +148,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
                   .WithMany(x => x.Libraries)
                   .HasForeignKey(x => x.BranchId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(x => x.DefaultLoanDays).HasDefaultValue(14);
+            entity.Property(x => x.OverdueFinePerDay).HasPrecision(18, 2).HasDefaultValue(10m);
         });
 
         builder.Entity<SupportTicket>(entity =>
@@ -215,6 +221,60 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasOne(x => x.Incident)
                 .WithMany(x => x.Updates)
                 .HasForeignKey(x => x.IncidentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Book>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Author).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Isbn).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.PdfStoragePath).HasMaxLength(500);
+            entity.Property(x => x.PdfFileName).HasMaxLength(260);
+            entity.HasIndex(x => new { x.LibraryId, x.Isbn, x.IsDeleted });
+            entity.HasOne(x => x.Library)
+                .WithMany()
+                .HasForeignKey(x => x.LibraryId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<BookLoan>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.MemberName).HasMaxLength(200).IsRequired();
+            entity.HasOne(x => x.Book)
+                .WithMany(x => x.Loans)
+                .HasForeignKey(x => x.BookId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Member)
+                .WithMany()
+                .HasForeignKey(x => x.MemberId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(x => x.FineAmount).HasPrecision(18, 2);
+            entity.HasIndex(x => new { x.MemberId, x.Status, x.IsDeleted });
+        });
+
+        builder.Entity<UserNotification>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Message).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.NotificationType).HasMaxLength(50).IsRequired();
+            entity.HasIndex(x => new { x.UserId, x.IsRead, x.CreatedAtUtc });
+        });
+
+        builder.Entity<BookAuditEntry>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ActorUserId).HasMaxLength(450).IsRequired();
+            entity.Property(x => x.ActorName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(500);
+            entity.HasOne(x => x.Book)
+                .WithMany(x => x.AuditEntries)
+                .HasForeignKey(x => x.BookId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

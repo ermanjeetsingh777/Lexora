@@ -152,11 +152,11 @@ export const routes: Routes = [
             //     loadComponent: () => import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent),
             // },
 
-            // // --- Books ---
-            // {
-            //     path: 'books',
-            //     loadComponent: () => import('./features/books/books.component').then((m) => m.BooksComponent),
-            // },
+            // --- Books ---
+            {
+                path: 'books',
+                loadComponent: () => import('./features/books/books-list-component/books-list.component').then((m) => m.BooksListComponent),
+            },
 
             // // --- Seats ---
             // {

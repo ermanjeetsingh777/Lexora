@@ -71,6 +71,14 @@ public static class DbSeeder
         await SeedRolesAsync(serviceProvider);
         await SeedRolePermissionsAsync(serviceProvider);
         await SeedSupportArticlesAsync(serviceProvider);
+        await SeedBooksAsync(serviceProvider);
+    }
+
+    public static async Task SeedBooksAsync(IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await BooksSeedData.SeedAsync(dbContext);
     }
 
     public static async Task SeedSupportArticlesAsync(IServiceProvider serviceProvider)

@@ -13,6 +13,8 @@ public class Library : AuditableEntity
     public string? Address { get; set; }
     public int? Floor { get; set; }
     public int? Capacity { get; set; }
+    public int DefaultLoanDays { get; set; } = 14;
+    public decimal OverdueFinePerDay { get; set; } = 10m;
     public InstitutionStatus Status { get; set; } = InstitutionStatus.Active;
     public Guid InstitutionId { get; set; }
     public Institution Institution { get; set; } = default!;

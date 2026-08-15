@@ -95,6 +95,10 @@ export class ApiService {
         );
     }
 
+    deleteByPath<T>(endpoint: string): Observable<APIResponseModel<T>> {
+        return this.http.delete<APIResponseModel<T>>(this.buildUrl(endpoint));
+    }
+
     download(endpoint: string): Observable<Blob> {
         return this.http.get(
             this.buildUrl(endpoint),

@@ -99,6 +99,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<SupportStatusSimulator>();
         services.AddScoped<ISupportService, SupportService>();
+        services.AddScoped<IBookService, BookService>();
 
         services.AddHttpContextAccessor();
 

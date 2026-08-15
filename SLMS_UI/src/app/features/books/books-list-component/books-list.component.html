@@ -1,0 +1,329 @@
+<div class="space-y-6">
+  <app-page-header eyebrow="Collection" title="Books & circulation"
+    [description]="'Catalogue and loans for ' + libraryLabel() + '.'">
+    <div actions class="flex flex-wrap items-center gap-2">
+      <app-button variant="outline" size="sm" (click)="exportCsv()">
+        <svg lucideDownload class="h-4 w-4 mr-1"></svg> Export
+      </app-button>
+      <app-button size="sm" (click)="openCreate()">
+        <svg lucidePlus class="h-4 w-4 mr-1"></svg> Add book
+      </app-button>
+    </div>
+  </app-page-header>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <app-kpi-card label="Titles" [value]="stats()?.titleCount ?? 0" hint="Unique catalogue entries">
+      <svg icon lucideBookOpen class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Total copies" [value]="stats()?.totalCopies ?? 0" [hint]="(stats()?.availableCopies ?? 0) + ' available'">
+      <svg icon lucideLibrary class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="On loan" [value]="stats()?.onLoanCount ?? 0" [hint]="(stats()?.overdueCount ?? 0) + ' overdue'">
+      <svg icon lucideArrowDownToLine class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Low / out" [value]="(stats()?.lowStockCount ?? 0) + ' / ' + (stats()?.outOfStockCount ?? 0)" hint="Needs attention">
+      <svg icon lucidePackageX class="h-4 w-4"></svg>
+    </app-kpi-card>
+  </div>
+
+  <app-glass-card class="block p-0 overflow-hidden">
+    <div class="p-3 border-b flex flex-wrap items-center gap-2">
+      <div class="relative flex-1 min-w-[220px]">
+        <svg lucideSearch class="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground"></svg>
+        <input class="w-full h-9 rounded-md border bg-background pl-8 pr-3 text-sm"
+          placeholder="Search title, author, ISBN…" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+      </div>
+      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="category()" (ngModelChange)="category.set($event)">
+        <option value="all">All categories</option>
+        @for (c of categories(); track c) { <option [ngValue]="c">{{ c }}</option> }
+      </select>
+      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="status()" (ngModelChange)="status.set($event)">
+        <option value="all">All status</option>
+        <option [ngValue]="BookStockStatus.Available">Available</option>
+        <option [ngValue]="BookStockStatus.LowStock">Low stock</option>
+        <option [ngValue]="BookStockStatus.OutOfStock">Out of stock</option>
+      </select>
+      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+        <option value="title">Sort: Title</option>
+        <option value="author">Sort: Author</option>
+        <option value="category">Sort: Category</option>
+        <option value="available">Sort: Availability</option>
+      </select>
+      <div class="inline-flex rounded-md border p-0.5">
+        <button type="button" class="px-2 py-1 rounded" [class.bg-muted]="view() === 'table'" (click)="view.set('table')">
+          <svg lucideList class="h-4 w-4"></svg>
+        </button>
+        <button type="button" class="px-2 py-1 rounded" [class.bg-muted]="view() === 'grid'" (click)="view.set('grid')">
+          <svg lucideLayoutGrid class="h-4 w-4"></svg>
+        </button>
+      </div>
+    </div>
+
+    @if (loading()) {
+    <div class="p-10 text-center text-sm text-muted-foreground">Loading catalogue…</div>
+    } @else if (!filteredBooks().length) {
+    <div class="p-10 text-center text-sm text-muted-foreground">
+      <svg lucideBookOpen class="h-6 w-6 mx-auto mb-2 opacity-60"></svg>
+      No books match these filters.
+    </div>
+    } @else if (view() === 'table') {
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="border-b bg-muted/30 text-left">
+          <tr>
+            <th class="p-3 font-medium">Title</th>
+            <th class="p-3 font-medium">Author</th>
+            <th class="p-3 font-medium">Category</th>
+            <th class="p-3 font-medium">ISBN</th>
+            <th class="p-3 font-medium">Stock</th>
+            <th class="p-3 font-medium">Status</th>
+            <th class="p-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (book of filteredBooks(); track book.id) {
+          <tr class="border-b hover:bg-muted/30 cursor-pointer" (click)="openDrawer(book)">
+            <td class="p-3">
+              <div class="flex items-center gap-3">
+                <div class="h-9 w-7 rounded text-[10px] font-semibold grid place-items-center text-white shrink-0"
+                  [style.background]="'hsl(' + bookCoverHue(book.title) + ' 55% 45%)'">{{ bookInitials(book.title) }}</div>
+                <span class="font-medium">{{ book.title }}</span>
+                @if (book.hasPdf) {
+                <span class="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground rounded border px-1 py-0.5" title="PDF available">
+                  <svg lucideFileText class="h-3 w-3"></svg> PDF
+                </span>
+                }
+              </div>
+            </td>
+            <td class="p-3 text-muted-foreground">{{ book.author }}</td>
+            <td class="p-3">{{ book.category }}</td>
+            <td class="p-3 font-mono text-xs">{{ book.isbn }}</td>
+            <td class="p-3">
+              <div class="text-xs tabular-nums">{{ book.availableCopies }}/{{ book.totalCopies }}</div>
+              <div class="mt-1 h-1.5 rounded-full bg-muted overflow-hidden w-24">
+                <div class="h-full bg-primary" [style.width.%]="availabilityPercent(book)"></div>
+              </div>
+            </td>
+            <td class="p-3"><app-status-badge [status]="BOOK_STATUS_LABELS[book.status]" [variant]="bookStatusVariant(book.status)" /></td>
+            <td class="p-3"><svg lucideChevronRight class="h-4 w-4 text-muted-foreground"></svg></td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    } @else {
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-3">
+      @for (book of filteredBooks(); track book.id) {
+      <button type="button" class="text-left rounded-lg border bg-card p-4 hover:border-primary/50 transition-colors"
+        (click)="openDrawer(book)">
+        <div class="flex gap-3">
+          <div class="h-16 w-12 rounded-md text-xs font-semibold grid place-items-center text-white shrink-0"
+            [style.background]="'hsl(' + bookCoverHue(book.title) + ' 55% 45%)'">{{ bookInitials(book.title) }}</div>
+          <div class="min-w-0 flex-1">
+            <div class="font-medium truncate">{{ book.title }}</div>
+            <div class="text-xs text-muted-foreground truncate">{{ book.author }}</div>
+            @if (book.hasPdf) {
+            <div class="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+              <svg lucideFileText class="h-3 w-3"></svg> PDF available
+            </div>
+            }
+            <div class="mt-2 flex items-center gap-2 flex-wrap">
+              <span class="text-[10px] rounded border px-1.5 py-0.5">{{ book.category }}</span>
+              <app-status-badge [status]="BOOK_STATUS_LABELS[book.status]" [variant]="bookStatusVariant(book.status)" />
+            </div>
+            <div class="mt-2 text-xs tabular-nums">{{ book.availableCopies }}/{{ book.totalCopies }} available</div>
+          </div>
+        </div>
+      </button>
+      }
+    </div>
+    }
+  </app-glass-card>
+</div>
+
+<app-book-form-dialog
+  [open]="showForm()"
+  [book]="editBook()"
+  [existingIsbns]="existingIsbns()"
+  [busy]="formBusy()"
+  (submitted)="onBookSubmitted($event)"
+  (closed)="closeForm()" />
+
+@if (drawerOpen() && selectedBook(); as book) {
+<div class="content-overlay flex justify-end" [style.left]="overlayLeft()">
+  <div class="absolute inset-0 bg-black/40" (click)="closeDrawer()"></div>
+  <div class="relative w-full max-w-2xl bg-background border-l shadow-xl h-full flex flex-col overflow-hidden">
+    <div class="p-6 pb-3 border-b shrink-0">
+      <div class="flex items-start gap-3">
+        <div class="h-16 w-12 rounded-md text-sm font-semibold grid place-items-center text-white shrink-0"
+          [style.background]="'hsl(' + bookCoverHue(book.title) + ' 55% 45%)'">{{ bookInitials(book.title) }}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <app-status-badge [status]="BOOK_STATUS_LABELS[book.status]" [variant]="bookStatusVariant(book.status)" />
+            <span class="text-xs rounded border px-1.5 py-0.5">{{ book.category }}</span>
+          </div>
+          <h2 class="text-lg font-semibold mt-1">{{ book.title }}</h2>
+          <p class="text-sm text-muted-foreground">{{ book.author }} · ISBN {{ book.isbn }}</p>
+        </div>
+        <div class="flex gap-1">
+          @if (book.hasPdf) {
+          <app-button variant="outline" size="sm" (click)="viewPdf(book); $event.stopPropagation()">
+            <svg lucideFileText class="h-3.5 w-3.5 mr-1"></svg> PDF
+          </app-button>
+          }
+          <app-button variant="outline" size="sm" (click)="openEdit(book)"><svg lucidePencil class="h-3.5 w-3.5"></svg></app-button>
+          <button type="button" class="h-8 w-8 rounded-md hover:bg-muted inline-flex items-center justify-center" (click)="closeDrawer()">
+            <svg lucideX class="h-4 w-4"></svg>
+          </button>
+        </div>
+      </div>
+      <div class="mt-3 grid grid-cols-3 gap-2 text-sm">
+        <div class="rounded-md border p-2"><div class="text-xs text-muted-foreground">Total</div><div class="font-semibold">{{ book.totalCopies }}</div></div>
+        <div class="rounded-md border p-2"><div class="text-xs text-muted-foreground">Available</div><div class="font-semibold">{{ book.availableCopies }}</div></div>
+        <div class="rounded-md border p-2"><div class="text-xs text-muted-foreground">On loan</div><div class="font-semibold">{{ book.onLoanCount }}</div></div>
+      </div>
+
+      <div class="mt-3 rounded-md border p-3 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-sm font-medium">Digital copy</div>
+          @if (book.hasPdf) {
+          <span class="text-[10px] rounded-full bg-emerald-500/15 text-emerald-600 px-2 py-0.5">PDF attached</span>
+          }
+        </div>
+        @if (book.hasPdf) {
+        <div class="flex flex-wrap gap-2">
+          <app-button size="sm" variant="outline" [disabled]="drawerBusy()" (click)="viewPdf(book)">
+            <svg lucideFileText class="h-3.5 w-3.5 mr-1"></svg> View PDF
+          </app-button>
+          <label class="inline-flex">
+            <input type="file" accept="application/pdf,.pdf" class="hidden" [disabled]="drawerBusy()" (change)="onDrawerPdfSelected($event)" />
+            <span class="inline-flex items-center h-8 px-3 rounded-md border text-xs cursor-pointer hover:bg-muted/50">Replace</span>
+          </label>
+          <app-button size="sm" variant="outline" [disabled]="drawerBusy()" (click)="removePdf()">Remove</app-button>
+        </div>
+        @if (book.pdfFileName) {
+        <p class="text-xs text-muted-foreground truncate">{{ book.pdfFileName }}</p>
+        }
+        } @else {
+        <p class="text-xs text-muted-foreground">No PDF attached for this title.</p>
+        <label class="inline-flex">
+          <input type="file" accept="application/pdf,.pdf" class="hidden" [disabled]="drawerBusy()" (change)="onDrawerPdfSelected($event)" />
+          <span class="inline-flex items-center h-8 px-3 rounded-md border text-xs cursor-pointer hover:bg-muted/50">
+            <svg lucideFileText class="h-3.5 w-3.5 mr-1"></svg> Upload PDF
+          </span>
+        </label>
+        }
+      </div>
+    </div>
+
+    <div class="px-6 pt-3 border-b shrink-0">
+      <div class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+        <button type="button" class="px-2.5 py-1 text-xs rounded-md" [class.bg-background]="drawerTab() === 'activity'" [class.shadow-sm]="drawerTab() === 'activity'" (click)="drawerTab.set('activity')">Activity</button>
+        <button type="button" class="px-2.5 py-1 text-xs rounded-md" [class.bg-background]="drawerTab() === 'stock'" [class.shadow-sm]="drawerTab() === 'stock'" (click)="drawerTab.set('stock')">Stock</button>
+        <button type="button" class="px-2.5 py-1 text-xs rounded-md" [class.bg-background]="drawerTab() === 'audit'" [class.shadow-sm]="drawerTab() === 'audit'" (click)="drawerTab.set('audit')">Audit</button>
+      </div>
+    </div>
+
+    @if (drawerTab() === 'activity') {
+    <div class="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+      @if (!book.activities.length) {
+      <div class="text-sm text-muted-foreground text-center py-8">No borrow/return activity yet.</div>
+      } @else {
+      @for (a of book.activities; track a.id) {
+      <div class="flex items-start gap-3 rounded-md border p-3">
+        @if (a.type === 'borrow') { <svg lucideArrowDownToLine class="h-4 w-4 text-primary mt-0.5"></svg> }
+        @else if (a.type === 'return') { <svg lucideArrowUpFromLine class="h-4 w-4 text-emerald-500 mt-0.5"></svg> }
+        @else { <svg lucideAlertTriangle class="h-4 w-4 text-amber-500 mt-0.5"></svg> }
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium capitalize">{{ a.type }} · {{ a.memberName }}</div>
+          <div class="text-xs text-muted-foreground">
+            {{ formatBookDate(a.occurredAtUtc) }}
+            @if (a.dueAtUtc) { · Due {{ formatBookDate(a.dueAtUtc) }} }
+            @if (a.loanDays) { · {{ a.loanDays }} day(s) }
+          </div>
+          @if (a.isOverdue) {
+          <div class="text-xs text-rose-600 mt-1">
+            {{ a.daysOverdue ?? 0 }} day(s) overdue
+            @if (a.estimatedFine) { · Fine ₹{{ a.estimatedFine }} }
+          </div>
+          }
+        </div>
+        @if (a.type === 'borrow') {
+        <div class="flex flex-col gap-1">
+          <app-button size="sm" variant="outline" [disabled]="drawerBusy()" (click)="returnLoan(a.id)">Return</app-button>
+          @if (a.isOverdue) {
+          <app-button size="sm" variant="outline" [disabled]="drawerBusy()" (click)="sendReturnReminder(a.id)">Remind</app-button>
+          }
+        </div>
+        }
+      </div>
+      }
+      }
+      <div class="pt-2 border-t">
+        @if (!showCheckout()) {
+        <app-button size="sm" [disabled]="book.availableCopies <= 0" (click)="showCheckout.set(true)">
+          <svg lucideArrowDownToLine class="h-4 w-4 mr-1"></svg> Issue copy
+        </app-button>
+        } @else {
+        <div class="space-y-2">
+          <select class="w-full h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="checkoutMemberId()" (ngModelChange)="checkoutMemberId.set($event)">
+            <option value="">Select member…</option>
+            @for (m of members(); track m.id) {
+            <option [ngValue]="m.id">{{ m.name }} ({{ m.membership }})</option>
+            }
+          </select>
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-muted-foreground whitespace-nowrap">Loan period (days)</label>
+            <input type="number" min="1" max="90" class="w-20 h-9 rounded-md border bg-background px-2 text-sm"
+              [ngModel]="checkoutLoanDays()" (ngModelChange)="checkoutLoanDays.set(+$event || 1)" />
+          </div>
+          <div class="flex gap-2">
+            <app-button size="sm" variant="outline" (click)="showCheckout.set(false)">Cancel</app-button>
+            <app-button size="sm" [disabled]="drawerBusy()" (click)="checkout()">Confirm issue</app-button>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    @if (drawerTab() === 'stock') {
+    <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div class="flex items-center gap-2">
+        <app-button size="sm" variant="outline" [disabled]="drawerBusy()" (click)="adjustStock(-1)"><svg lucideMinus class="h-4 w-4"></svg></app-button>
+        <input type="number" class="w-16 h-9 rounded-md border text-center text-sm" [ngModel]="stockDelta()" (ngModelChange)="stockDelta.set(+$event || 1)" />
+        <app-button size="sm" variant="outline" [disabled]="drawerBusy()" (click)="adjustStock(1)"><svg lucidePlus class="h-4 w-4"></svg></app-button>
+        <app-button size="sm" [disabled]="drawerBusy()" (click)="adjustStock(stockDelta())">Apply adjustment</app-button>
+      </div>
+      <input class="w-full h-9 rounded-md border bg-background px-3 text-sm" placeholder="Note (optional)" [ngModel]="stockNote()" (ngModelChange)="stockNote.set($event)" />
+      <div class="flex gap-2">
+        <app-button size="sm" variant="outline" [disabled]="drawerBusy()" (click)="markCondition('damaged')">
+          <svg lucideWrench class="h-4 w-4 mr-1"></svg> Mark damaged
+        </app-button>
+        <app-button size="sm" variant="outline" [disabled]="drawerBusy()" (click)="markCondition('lost')">
+          <svg lucidePackageX class="h-4 w-4 mr-1"></svg> Mark lost
+        </app-button>
+      </div>
+    </div>
+    }
+
+    @if (drawerTab() === 'audit') {
+    <div class="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+      @if (!book.auditEntries.length) {
+      <div class="text-sm text-muted-foreground text-center py-8">No audit entries yet.</div>
+      } @else {
+      @for (entry of book.auditEntries; track entry.id) {
+      <div class="rounded-md border p-3 text-sm">
+        <div class="font-medium capitalize">{{ entry.type === 1 ? 'adjustment' : entry.type === 2 ? 'damaged' : entry.type === 3 ? 'lost' : entry.type === 4 ? 'added' : 'edited' }}
+          @if (entry.delta) { ({{ entry.delta > 0 ? '+' : '' }}{{ entry.delta }}) }
+        </div>
+        @if (entry.note) { <div class="text-muted-foreground">{{ entry.note }}</div> }
+        <div class="text-xs text-muted-foreground mt-1">{{ formatBookDate(entry.occurredAtUtc) }} · {{ entry.actorName }}</div>
+      </div>
+      }
+      }
+    </div>
+    }
+  </div>
+</div>
+}

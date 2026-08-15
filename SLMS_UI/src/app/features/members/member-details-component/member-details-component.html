@@ -173,13 +173,20 @@
         <div class="text-lg font-semibold tabular-nums mt-1 text-blue-600">{{ m.visits30d }}</div>
         <div class="text-[10px] text-muted-foreground truncate mt-0.5">Last {{ m.lastVisit ? (m.lastVisit | date:'dd MMM yyyy') : '—' }}</div>
       </div>
-      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
+      <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background"
+        [class]="bookLoanStats().overdue > 0 ? 'border-rose-200' : ''">
         <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
           <svg lucideBookOpen class="h-4 w-4 text-violet-500"></svg>
           Books
         </div>
-        <div class="text-lg font-semibold tabular-nums mt-1">0</div>
-        <div class="text-[10px] text-muted-foreground truncate mt-0.5">0 active</div>
+        <div class="text-lg font-semibold tabular-nums mt-1">{{ bookLoanStats().total }}</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">
+          @if (bookLoanStats().overdue > 0) {
+          <span class="text-rose-600">{{ bookLoanStats().overdue }} overdue</span>
+          } @else {
+          {{ bookLoanStats().active }} active
+          }
+        </div>
       </div>
       <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background"
         [class]="m.feesOwed > 0 ? 'border-rose-200' : ''">
@@ -597,18 +604,95 @@
 
     <!-- BOOKS TAB -->
     @if (activeTab() === 'books') {
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      @for (stat of [{label:'Active',value:0,tone:'text-blue-500'},{label:'Overdue',value:0,tone:'text-rose-500'},{label:'Returned',value:0,tone:'text-emerald-500'},{label:'Total',value:0,tone:'text-foreground'}]; track stat.label) {
-      <div class="border rounded-lg p-3 bg-muted/20">
-        <div class="label-mono text-[10px]">{{ stat.label }}</div>
-        <div class="text-lg font-semibold tabular-nums mt-1" [class]="stat.tone">{{ stat.value }}</div>
+    @if (bookLoanStats().overdue > 0) {
+    <div class="flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50/60 px-4 py-3 text-sm text-rose-800">
+      <svg lucideAlertTriangle class="h-4 w-4 shrink-0"></svg>
+      <div class="flex-1 min-w-0">
+        <span class="font-medium">Please return overdue book(s).</span>
+        <span class="opacity-80"> {{ bookLoanStats().overdue }} loan(s) past due date.</span>
+        @if (bookLoanStats().finesOwed > 0) {
+        <span class="opacity-80"> Estimated fines: {{ bookLoanStats().finesOwed | currency:'INR' }}.</span>
+        }
       </div>
-      }
     </div>
+    }
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="label-mono text-[10px]">Active</div>
+        <div class="text-lg font-semibold tabular-nums mt-1 text-blue-500">{{ bookLoanStats().active }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="label-mono text-[10px]">Overdue</div>
+        <div class="text-lg font-semibold tabular-nums mt-1 text-rose-500">{{ bookLoanStats().overdue }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="label-mono text-[10px]">Returned</div>
+        <div class="text-lg font-semibold tabular-nums mt-1 text-emerald-500">{{ bookLoanStats().returned }}</div>
+      </div>
+      <div class="border rounded-lg p-3 bg-muted/20">
+        <div class="label-mono text-[10px]">Fines</div>
+        <div class="text-lg font-semibold tabular-nums mt-1 text-amber-600">{{ bookLoanStats().finesOwed | currency:'INR' }}</div>
+      </div>
+    </div>
+
+    @if (bookLoansLoading()) {
+    <app-glass-card class="block p-8 text-center text-sm text-muted-foreground">Loading borrow history…</app-glass-card>
+    } @else if (!bookLoans().length) {
     <app-glass-card class="block p-8 text-center">
       <svg lucideBookMarked class="h-10 w-10 mx-auto text-muted-foreground mb-3"></svg>
-      <p class="text-sm text-muted-foreground">No borrow history yet. Book lending will appear here once connected.</p>
+      <p class="text-sm text-muted-foreground">No borrow history yet.</p>
     </app-glass-card>
+    } @else {
+    <app-glass-card class="block p-0 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="border-b bg-muted/30 text-left">
+          <tr>
+            <th class="p-3 font-medium">Book</th>
+            <th class="p-3 font-medium">Category</th>
+            <th class="p-3 font-medium">Borrowed</th>
+            <th class="p-3 font-medium">Due</th>
+            <th class="p-3 font-medium">Days</th>
+            <th class="p-3 font-medium">Fine</th>
+            <th class="p-3 font-medium">Status</th>
+            <th class="p-3 font-medium"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (loan of bookLoans(); track loan.id) {
+          <tr class="border-b">
+            <td class="p-3">
+              <div class="font-medium">{{ loan.title }}</div>
+              <div class="text-xs text-muted-foreground">{{ loan.author }}</div>
+            </td>
+            <td class="p-3">{{ loan.category }}</td>
+            <td class="p-3">{{ formatBookDate(loan.borrowedAtUtc) }}</td>
+            <td class="p-3">{{ formatBookDate(loan.dueAtUtc) }}</td>
+            <td class="p-3">{{ loan.loanDays }}</td>
+            <td class="p-3">
+              @if (loan.fineAmount > 0) {
+              <span [class]="loan.status === BookLoanStatus.Overdue ? 'text-rose-600' : 'text-amber-600'">
+                {{ loan.fineAmount | currency:'INR' }}
+              </span>
+              } @else {
+              —
+              }
+            </td>
+            <td class="p-3">
+              <app-status-badge [status]="LOAN_STATUS_LABELS[loan.status]"
+                [variant]="loan.status === BookLoanStatus.Overdue ? 'destructive' : loan.status === BookLoanStatus.Returned ? 'success' : 'warning'" />
+            </td>
+            <td class="p-3">
+              @if (loan.status === BookLoanStatus.Overdue) {
+              <app-button size="sm" variant="outline" (click)="sendBookReturnReminder(loan)">Remind</app-button>
+              }
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </app-glass-card>
+    }
     }
 
     <!-- CONTACTS TAB -->

@@ -58,7 +58,7 @@ PageHeader (back, copy ID, actions)
 |--------|-------|--------|-----------------|
 | `overview` | Overview | Implemented | Insights, contacts, activity timeline |
 | `attendance` | Attendance | Implemented | KPIs, calendar, check-in log, heatmap |
-| `books` | Books | Placeholder | Hardcoded zeros, no API |
+| `books` | Books | Implemented | Loan KPIs + borrow history via `BookService` |
 | `plans` | Payments & Plans | Implemented | `MemberPaymentsComponent` |
 | `contacts` | Contacts | Implemented | `MemberContactComponent` |
 
@@ -189,7 +189,34 @@ sequenceDiagram
 
 #### Books
 
-- Placeholder only — no service or API integration.
+| Section | Data / component |
+|---------|------------------|
+| Overview KPI (sidebar) | `bookLoanStats()` — active loans count |
+| Books tab KPIs | Active, overdue, returned, total from `bookLoans` |
+| Borrow history table | `GET members/{memberId}/book-loans` |
+
+**Load trigger:** `loadBookLoans()` on `ngOnInit` and when switching to the `books` tab.
+
+```mermaid
+sequenceDiagram
+  participant C as MemberDetailsComponent
+  participant BS as BookService
+
+  C->>BS: getMemberLoans(memberId)
+  BS-->>C: MemberBookLoan[]
+  C->>C: bookLoanStats computed
+  C->>C: Render KPI strip + table
+```
+
+| Column | Source field |
+|--------|--------------|
+| Book | `title`, `author` |
+| Category | `category` |
+| Borrowed | `borrowedAtUtc` |
+| Due | `dueAtUtc` |
+| Status | `BookLoanStatus` — Overdue uses destructive badge (**BR-12.3**) |
+
+Circulation actions (issue/return) are performed from `/books` drawer, not the member profile.
 
 ### 2.6 Check-in / check-out workflow
 
@@ -251,11 +278,13 @@ stateDiagram-v2
 |---------|------|-------|
 | `MemberService` | `SLMS_UI/src/app/features/members/MemberService.ts` | Component |
 | `AttendanceService` | `SLMS_UI/src/app/core/services/attendance.service.ts` | Component |
+| `BookService` | `SLMS_UI/src/app/features/books/book.service.ts` | Component |
 
 | Model | Path |
 |-------|------|
 | `MemberDetailResponse` | `SLMS_UI/src/app/core/models/MemberRequest.ts` |
 | `AttendanceResponse`, `AttendanceStatisticsResponse` | `SLMS_UI/src/app/core/models/attendanceModels.ts` |
+| `MemberBookLoan`, `BookLoanStatus` | `SLMS_UI/src/app/core/models/book.models.ts` |
 | `PlanResponse` | `SLMS_UI/src/app/core/models/institution-dropdown.model.ts` |
 
 #### API call summary (detail page)
@@ -271,6 +300,7 @@ stateDiagram-v2
 | POST | `attendance/members/{id}/check-out` | Check out |
 | GET | `attendance/members/{id}/calendar?month=&year=` | Calendar |
 | GET | `attendance/members/{id}/statistics` | 90-day stats |
+| GET | `members/{id}/book-loans` | Books tab + overview KPI |
 
 ---
 
@@ -300,6 +330,7 @@ sequenceDiagram
 | HTTP | Route | Returns |
 |------|-------|---------|
 | GET | `/{memberId}` | `MemberDetailResponse` |
+| GET | `/{memberId}/book-loans` | `MemberBookLoanResponse[]` |
 | POST | `/{memberId}/contacts` | `MemberContactResponse` |
 | POST | `/{memberId}/plan-or-shift` | `MemberDetailResponse` |
 | POST | `/{memberId}/renew` | `MemberDetailResponse` |
@@ -394,6 +425,7 @@ flowchart TB
   subgraph AngularServices["Angular Services"]
     MS[MemberService]
     AS[AttendanceService]
+    BS[BookService]
   end
 
   subgraph API["SLMS_API"]
@@ -404,6 +436,7 @@ flowchart TB
   subgraph Backend["Application Layer"]
     MemSvc[MemberService]
     AttSvc[AttendanceService]
+    BookSvc[BookService]
   end
 
   subgraph DB["Database"]
@@ -479,6 +512,17 @@ Contacts tab → Add contact form
   → loadMemberDetails()
 ```
 
+### 5.6 Review borrow history
+
+```
+Open Books tab (or view overview KPI)
+  → GET members/{id}/book-loans
+  → KPI cards: active, overdue, returned, total
+  → Table: title, category, borrowed/due dates, status badge
+```
+
+Overdue loans show a destructive badge when `dueAtUtc` has passed and the loan is still active (**BR-12.3**). Issue and return actions are done from `/books`.
+
 ---
 
 ## 6. File index
@@ -491,22 +535,27 @@ SLMS_UI/src/app/
 ├── core/
 │   ├── models/MemberRequest.ts
 │   ├── models/attendanceModels.ts
+│   ├── models/book.models.ts
 │   └── services/attendance.service.ts
-└── features/members/
-    ├── MemberService.ts
-    ├── member-lifecycle.util.ts
-    ├── member-details-component/
-    │   ├── member-details-component.ts   # attendanceDurationMinutes, mergeCalendarDays
-    │   └── member-details-component.html
-    ├── components/
-    │   ├── member-attendance-calendar/
-    │   │   ├── member-attendance-calendar.component.ts   # calendarEvents, weekTimesheetEvents, sessionDurationMinutes
-    │   │   ├── member-attendance-calendar.component.html # month / week / year templates
-    │   │   └── member-attendance-calendar.component.css  # timesheet-event--* status colors, all-day row
-    │   └── renew-plan-dialog/
-    └── pages/
-        ├── member-contact-component/
-        └── member-payments-component/
+└── features/
+    ├── books/
+    │   ├── book.service.ts
+    │   └── book-format.util.ts
+    └── members/
+        ├── MemberService.ts
+        ├── member-lifecycle.util.ts
+        ├── member-details-component/
+        │   ├── member-details-component.ts   # attendanceDurationMinutes, mergeCalendarDays, loadBookLoans
+        │   └── member-details-component.html # Books tab borrow history
+        ├── components/
+        │   ├── member-attendance-calendar/
+        │   │   ├── member-attendance-calendar.component.ts   # calendarEvents, weekTimesheetEvents, sessionDurationMinutes
+        │   │   ├── member-attendance-calendar.component.html # month / week / year templates
+        │   │   └── member-attendance-calendar.component.css  # timesheet-event--* status colors, all-day row
+        │   └── renew-plan-dialog/
+        └── pages/
+            ├── member-contact-component/
+            └── member-payments-component/
 ```
 
 ### .NET
@@ -514,14 +563,16 @@ SLMS_UI/src/app/
 ```
 SLMS_API/
 ├── Controllers/
-│   ├── AllMembersController.cs
+│   ├── AllMembersController.cs            # includes GET book-loans
 │   └── AttendanceController.cs
 ├── Application/Services/
 │   ├── MemberService.cs
-│   └── AttendanceService.cs
+│   ├── AttendanceService.cs
+│   └── BookService.cs                     # member loan history
 ├── Application/Contracts/Organizations/
 │   ├── Responses/MemberDetailResponse.cs
 │   └── Requests/CheckInRequest.cs
+├── Application/Contracts/Books/Responses/MemberBookLoanResponse.cs
 ├── Domain/Entities/MemberAttendance.cs
 └── Common/Enums/AttendanceStatus.cs
 ```
@@ -532,7 +583,7 @@ SLMS_API/
 
 | Area | Status |
 |------|--------|
-| Books tab | UI placeholder — needs lending API |
+| Books tab | Implemented — see [books-workflow.md](./books-workflow.md) |
 | Branch transfer / seat reassign | Dialog UI only |
 | `AttendanceService` (API) | Several methods still `NotImplementedException` |
 | Detail `AttendanceRate` vs calendar stats | Different calculation windows |
@@ -544,4 +595,5 @@ SLMS_API/
 ## 8. Related docs
 
 - Members list workflow: [members-list-workflow.md](./members-list-workflow.md)
+- Books & circulation: [books-workflow.md](./books-workflow.md)
 - Membership expiry plan: `docs/lovable-source/.lovable/plan/membership-expiry-across-members-list-details-2026-08-04.md`

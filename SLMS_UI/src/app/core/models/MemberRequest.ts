@@ -105,6 +105,7 @@ export interface MemberDetailResponse {
   invoiceCount: number;
 
   createdAtUtc: string;
+  hasPhoto?: boolean;
   // Guardian / Emergency Contacts
   contacts: MemberContactResponse[];
   plans: MemberPlanResponse[];

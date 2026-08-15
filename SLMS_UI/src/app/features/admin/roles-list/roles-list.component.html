@@ -1,0 +1,665 @@
+<app-page-header
+  eyebrow="Admin"
+  title="Roles & permissions"
+  description="Define what each role can do, where it applies, and who holds it."
+>
+  <div actions>
+    <app-button size="sm" (click)="openCreate()">
+      <svg lucidePlus class="h-4 w-4 mr-1.5"></svg> New role
+    </app-button>
+  </div>
+</app-page-header>
+
+@if (loading()) {
+  <p class="py-16 text-center text-sm text-muted-foreground">Loading roles…</p>
+} @else {
+  <!-- KPIs -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <app-kpi-card label="Total roles" [value]="totals().total">
+      <svg lucideShield icon class="h-5 w-5"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="System roles" [value]="totals().system">
+      <svg lucideLock icon class="h-5 w-5"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Custom roles" [value]="totals().custom">
+      <svg lucidePencil icon class="h-5 w-5"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Assigned members" [value]="totals().members.toLocaleString()">
+      <svg lucideUsers icon class="h-5 w-5"></svg>
+    </app-kpi-card>
+  </div>
+
+  <!-- Roles list -->
+  <app-glass-card class="p-5 mt-4 block">
+    <div class="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+      <app-section-header title="Roles" />
+      <div class="md:ml-auto flex flex-1 md:flex-none gap-2 items-center">
+        <div class="relative flex-1 md:w-72">
+          <svg lucideSearch class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
+          <input
+            type="search"
+            class="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+            placeholder="Search roles or permissions…"
+            [ngModel]="query()"
+            (ngModelChange)="query.set($event)"
+          />
+        </div>
+        <div class="flex gap-1 rounded-md border p-0.5">
+          @for (s of scopeFilters; track s) {
+            <app-button
+              [variant]="scopeFilter() === s ? 'secondary' : 'ghost'"
+              size="sm"
+              class="h-8 px-3 text-xs capitalize"
+              (click)="scopeFilter.set(s)"
+            >
+              {{ s }}
+            </app-button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+      @for (r of filtered(); track r.id) {
+        <button
+          type="button"
+          (click)="selectRole(r.id)"
+          class="group text-left rounded-lg border bg-card/50 hover:bg-card hover:border-primary/40 transition p-4 focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-semibold truncate">{{ r.name }}</span>
+                @if (r.system) {
+                  <span class="text-[10px] rounded-md border bg-muted px-1.5 py-0.5 font-medium">SYSTEM</span>
+                }
+                <span class="text-[10px] rounded-md border px-1.5 py-0.5">{{ r.scope }}</span>
+              </div>
+              <p class="text-xs text-muted-foreground mt-1 line-clamp-2">{{ r.description }}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-lg font-semibold">{{ r.members.toLocaleString() }}</div>
+              <div class="label-mono text-[10px] text-muted-foreground">MEMBERS</div>
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-wrap gap-1.5">
+            @for (s of permsByModule(r.permissions); track s.module) {
+              <span
+                class="text-[10px] px-1.5 py-0.5 rounded border"
+                [class.text-muted-foreground/60]="s.granted === 0"
+                [class.border-success/40]="s.granted > 0 && s.granted === s.total"
+                [class.text-success]="s.granted > 0 && s.granted === s.total"
+                [class.border-amber-500/40]="s.granted > 0 && s.granted < s.total"
+                [class.text-amber-600]="s.granted > 0 && s.granted < s.total"
+                [title]="s.granted + ' of ' + s.total + ' ' + s.module.toLowerCase() + ' permissions'"
+              >
+                {{ s.module }} {{ s.granted }}/{{ s.total }}
+              </span>
+            }
+          </div>
+
+          <div class="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>Updated {{ fmt(r.updatedAt) }}</span>
+            <span class="opacity-0 group-hover:opacity-100 transition">View details →</span>
+          </div>
+        </button>
+      }
+      @if (!filtered().length) {
+        <div class="col-span-full text-center text-sm text-muted-foreground py-10">
+          No roles match your filters.
+        </div>
+      }
+    </div>
+  </app-glass-card>
+
+  <!-- Permission matrix -->
+  <app-glass-card class="p-5 mt-4 block">
+    <div class="flex flex-col gap-4 mb-4">
+      <app-section-header
+        title="Permission matrix"
+        description="Compare role access side-by-side. Sticky headers keep context while you scroll."
+      />
+
+      <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+        <div class="relative flex-1 max-w-md">
+          <svg lucideSearch class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
+          <input
+            type="search"
+            class="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+            placeholder="Filter permissions…"
+            [ngModel]="matrixSearch()"
+            (ngModelChange)="matrixSearch.set($event)"
+          />
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <select
+            class="rounded-md border bg-background px-3 py-2 text-sm min-w-[9rem]"
+            [ngModel]="matrixModule()"
+            (ngModelChange)="matrixModule.set($event)"
+          >
+            <option value="all">All modules</option>
+            @for (m of modules; track m) {
+              <option [value]="m">{{ m }}</option>
+            }
+          </select>
+
+          <label class="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/40">
+            <input
+              type="checkbox"
+              class="rounded border"
+              [checked]="matrixDiffOnly()"
+              (change)="matrixDiffOnly.set($any($event.target).checked)"
+            />
+            Differences only
+          </label>
+
+          <app-button size="sm" variant="outline" (click)="expandAllMatrixModules()">Expand all</app-button>
+          <app-button size="sm" variant="ghost" (click)="collapseAllMatrixModules()">Collapse all</app-button>
+        </div>
+      </div>
+
+      <!-- Matrix role picker: default SA, OA, OM, IA -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border bg-muted/20 p-3">
+        <div class="flex flex-wrap items-center gap-2 flex-1">
+          <span class="label-mono text-xs text-muted-foreground shrink-0">Compare roles</span>
+          @for (name of matrixSelectedRoleNames(); track name; let i = $index) {
+            <span class="inline-flex items-center gap-1 rounded-md border bg-background pl-2 pr-1 py-1 text-xs">
+              <span class="font-mono font-semibold">{{ matrixRoleAbbrev(name) }}</span>
+              <span class="text-muted-foreground hidden sm:inline">{{ name }}</span>
+              <button
+                type="button"
+                class="h-5 w-5 rounded hover:bg-muted inline-flex items-center justify-center text-muted-foreground"
+                title="Replace role"
+                (click)="startReplaceMatrixRole(i)"
+              >
+                <svg lucidePencil class="h-3 w-3"></svg>
+              </button>
+              <button
+                type="button"
+                class="h-5 w-5 rounded hover:bg-destructive/10 inline-flex items-center justify-center text-muted-foreground hover:text-destructive"
+                title="Remove from matrix"
+                (click)="removeMatrixRole(name)"
+              >
+                <svg lucideX class="h-3 w-3"></svg>
+              </button>
+            </span>
+          }
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          @if (matrixReplaceIndex() !== null) {
+            <select
+              class="rounded-md border bg-background px-2 py-1.5 text-xs min-w-[10rem]"
+              [ngModel]="matrixReplacePick()"
+              (ngModelChange)="matrixReplacePick.set($event)"
+            >
+              <option value="">Replace with…</option>
+              @for (r of matrixReplaceCandidates(matrixReplaceIndex()!); track r.id) {
+                <option [value]="r.name">{{ matrixRoleAbbrev(r.name) }} — {{ r.name }}</option>
+              }
+            </select>
+            <app-button size="sm" [disabled]="!matrixReplacePick()" (click)="applyReplaceMatrixRole()">Change</app-button>
+            <app-button size="sm" variant="ghost" (click)="cancelReplaceMatrixRole()">Cancel</app-button>
+          } @else {
+            <select
+              class="rounded-md border bg-background px-2 py-1.5 text-xs min-w-[10rem]"
+              [ngModel]="matrixAddRolePick()"
+              (ngModelChange)="matrixAddRolePick.set($event)"
+            >
+              <option value="">+ Add role…</option>
+              @for (r of matrixAvailableRoles(); track r.id) {
+                <option [value]="r.name">{{ matrixRoleAbbrev(r.name) }} — {{ r.name }}</option>
+              }
+            </select>
+            <app-button size="sm" variant="outline" [disabled]="!matrixAddRolePick()" (click)="addMatrixRole(matrixAddRolePick())">
+              Add
+            </app-button>
+          }
+          <app-button size="sm" variant="ghost" (click)="resetMatrixRoles()" title="Reset to SA, OA, OM, IA">
+            Reset
+          </app-button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+        <span class="inline-flex items-center gap-1.5">
+          <span class="matrix-cell matrix-cell--on inline-block h-3.5 w-3.5 rounded-sm"></span> Granted
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+          <span class="matrix-cell matrix-cell--off inline-block h-3.5 w-3.5 rounded-sm"></span> Denied
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+          <span class="h-3.5 w-3.5 rounded-sm border border-amber-500/50 bg-amber-500/10"></span> Partial module
+        </span>
+        <span>{{ matrixPermissionCount() }} permission row(s) · {{ matrixRoles().length }} roles</span>
+      </div>
+    </div>
+
+    <div class="matrix-scroll rounded-lg border">
+      <table class="matrix-table w-full text-sm">
+        <thead>
+          <tr class="border-b">
+            <th class="matrix-sticky-col matrix-sticky-head text-left py-3 pl-3 pr-4 label-mono text-xs min-w-[220px]">
+              Permission
+            </th>
+            @for (r of matrixRoles(); track r.id) {
+              <th
+                class="matrix-sticky-head text-center px-2 py-2 min-w-[4.5rem] cursor-pointer select-none transition-colors"
+                [class.matrix-col-highlight]="matrixHighlightRoleId() === r.id"
+                [class.matrix-scope-global]="r.scope === 'Global'"
+                [class.matrix-scope-institution]="r.scope === 'Institution'"
+                [class.matrix-scope-branch]="r.scope === 'Branch'"
+                (click)="toggleMatrixRoleHighlight(r.id)"
+                [title]="r.name + ' · ' + roleGrantTotal(r).granted + '/' + roleGrantTotal(r).total + ' permissions'"
+              >
+                <div class="flex flex-col items-center gap-1">
+                  <span class="matrix-role-avatar">{{ matrixRoleAbbrev(r.name) }}</span>
+                  <span class="label-mono text-[10px] leading-tight max-w-[4.5rem] truncate">{{ matrixRoleAbbrev(r.name) }}</span>
+                  <span class="text-[10px] tabular-nums" [class]="matrixGrantTone(roleGrantTotal(r).granted, roleGrantTotal(r).total)">
+                    {{ roleGrantTotal(r).granted }}/{{ roleGrantTotal(r).total }}
+                  </span>
+                </div>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of matrixModules(); track m) {
+            @let moduleRows = matrixPermissionsForModule(m);
+            @if (moduleRows.length || !matrixDiffOnly()) {
+              <tr class="matrix-module-row border-y">
+                <td
+                  class="matrix-sticky-col py-2 pl-3 pr-4 cursor-pointer"
+                  (click)="toggleMatrixModule(m)"
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="text-muted-foreground transition-transform inline-block" [class.rotate-[-90deg]]="isModuleCollapsed(m)">▾</span>
+                    <span class="text-xs font-semibold uppercase tracking-wide">{{ m }}</span>
+                    <span class="text-[10px] text-muted-foreground">({{ moduleRows.length }})</span>
+                  </div>
+                </td>
+                @for (r of matrixRoles(); track r.id) {
+                  @let grant = moduleGrantForRole(r, m);
+                  <td
+                    class="text-center py-2 px-1"
+                    [class.matrix-col-highlight]="matrixHighlightRoleId() === r.id"
+                  >
+                    <span
+                      class="text-[10px] font-mono tabular-nums rounded px-1.5 py-0.5 border"
+                      [class]="matrixGrantTone(grant.granted, grant.total)"
+                      [class.border-success/30]="grant.granted === grant.total && grant.granted > 0"
+                      [class.bg-success/10]="grant.granted === grant.total && grant.granted > 0"
+                      [class.border-amber-500/30]="grant.granted > 0 && grant.granted < grant.total"
+                      [class.bg-amber-500/10]="grant.granted > 0 && grant.granted < grant.total"
+                      [class.border-border]="grant.granted === 0"
+                    >
+                      {{ grant.granted }}/{{ grant.total }}
+                    </span>
+                  </td>
+                }
+              </tr>
+              @if (!isModuleCollapsed(m)) {
+                @for (p of moduleRows; track p.id) {
+                  <tr class="matrix-perm-row hover:bg-muted/20" [class.bg-amber-500/5]="!isPermissionUniform(p.id, matrixRoles())">
+                    <td class="matrix-sticky-col py-2 pl-6 pr-4">
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium text-sm">{{ p.action }}</span>
+                        @if (p.sensitive) {
+                          <svg lucideAlertTriangle class="h-3 w-3 text-amber-500 shrink-0" title="Sensitive"></svg>
+                        }
+                        @if (!isPermissionUniform(p.id, matrixRoles())) {
+                          <span class="text-[9px] rounded bg-amber-500/15 text-amber-600 px-1 py-px">diff</span>
+                        }
+                      </div>
+                      <code class="text-[10px] text-muted-foreground">{{ p.id }}</code>
+                    </td>
+                    @for (r of matrixRoles(); track r.id) {
+                      <td
+                        class="text-center py-2 px-1"
+                        [class.matrix-col-highlight]="matrixHighlightRoleId() === r.id"
+                      >
+                        <span
+                          class="matrix-cell inline-flex h-7 w-7 items-center justify-center rounded-md mx-auto"
+                          [class.matrix-cell--on]="roleHasPermission(r, p.id)"
+                          [class.matrix-cell--off]="!roleHasPermission(r, p.id)"
+                          [title]="r.name + ': ' + (roleHasPermission(r, p.id) ? 'granted' : 'denied')"
+                        >
+                          @if (roleHasPermission(r, p.id)) {
+                            <svg lucideCheck class="h-3.5 w-3.5"></svg>
+                          } @else {
+                            <svg lucideX class="h-3.5 w-3.5 opacity-40"></svg>
+                          }
+                        </span>
+                      </td>
+                    }
+                  </tr>
+                }
+                @if (!moduleRows.length) {
+                  <tr>
+                    <td [attr.colspan]="matrixRoles().length + 1" class="py-3 pl-6 text-xs text-muted-foreground italic">
+                      No permissions match the current filters in this module.
+                    </td>
+                  </tr>
+                }
+              }
+            }
+          }
+          @if (!matrixPermissionCount() && matrixDiffOnly()) {
+            <tr>
+              <td [attr.colspan]="matrixRoles().length + 1" class="py-8 text-center text-sm text-muted-foreground">
+                All visible permissions are identical across every role.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </app-glass-card>
+
+  <!-- Audit feed -->
+  <app-glass-card class="p-5 mt-4 block">
+    <app-section-header title="Recent governance activity" description="Every role and permission change." />
+    <ol class="relative border-l ml-2 space-y-3">
+      @for (a of audit().slice(0, 8); track a.id) {
+        <li class="pl-4 relative">
+          <span class="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-primary/70 ring-4 ring-background"></span>
+          <div class="flex items-center gap-2 text-sm flex-wrap">
+            <span class="font-medium">{{ a.action }}</span>
+            <span class="text-[10px] rounded-md border px-1.5 py-0.5">{{ a.roleName }}</span>
+            <span class="text-xs text-muted-foreground">{{ a.detail }}</span>
+          </div>
+          <div class="text-[11px] text-muted-foreground mt-0.5">{{ a.actor }} · {{ fmt(a.ts) }}</div>
+        </li>
+      }
+      @if (!audit().length) {
+        <li class="pl-4 text-sm text-muted-foreground">No activity yet.</li>
+      }
+    </ol>
+  </app-glass-card>
+}
+
+<!-- Detail drawer -->
+@if (selected(); as role) {
+  <div class="content-overlay flex justify-end" [style.left]="overlayLeft()">
+    <div class="absolute inset-0 bg-black/40" (click)="closeDetail()"></div>
+    <div class="relative w-full sm:max-w-xl bg-background border-l shadow-xl h-full flex flex-col overflow-hidden">
+      <div class="p-6 border-b shrink-0">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="text-lg font-semibold">{{ role.name }}</h2>
+              @if (role.system) {
+                <span class="text-[10px] rounded-md border bg-muted px-1.5 py-0.5 font-medium">SYSTEM</span>
+              }
+              <span class="text-[10px] rounded-md border px-1.5 py-0.5">{{ role.scope }}</span>
+            </div>
+            <p class="text-sm text-muted-foreground mt-1">{{ role.description }}</p>
+          </div>
+          <button type="button" class="h-8 w-8 rounded-md hover:bg-muted inline-flex items-center justify-center shrink-0" (click)="closeDetail()">
+            <svg lucideX class="h-4 w-4"></svg>
+          </button>
+        </div>
+
+        <div class="flex gap-2 mt-4 flex-wrap">
+          <app-button size="sm" [disabled]="role.system" (click)="openEdit(role)">
+            <svg lucidePencil class="h-4 w-4 mr-1.5"></svg> Edit
+          </app-button>
+          <app-button size="sm" variant="outline" (click)="cloneRole(role)">
+            <svg lucideCopy class="h-4 w-4 mr-1.5"></svg> Clone
+          </app-button>
+          <app-button
+            size="sm"
+            variant="outline"
+            class="text-destructive hover:text-destructive"
+            [disabled]="role.system || role.members > 0"
+            (click)="deleteRole(role)"
+          >
+            <svg lucideTrash2 class="h-4 w-4 mr-1.5"></svg> Delete
+          </app-button>
+        </div>
+
+        <div class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1 mt-5 w-full">
+          <button type="button" class="flex-1 px-2.5 py-1 text-xs rounded-md" [class.bg-background]="drawerTab() === 'perms'" [class.shadow-sm]="drawerTab() === 'perms'" (click)="drawerTab.set('perms')">Permissions</button>
+          <button type="button" class="flex-1 px-2.5 py-1 text-xs rounded-md" [class.bg-background]="drawerTab() === 'members'" [class.shadow-sm]="drawerTab() === 'members'" (click)="drawerTab.set('members')">Members</button>
+          <button type="button" class="flex-1 px-2.5 py-1 text-xs rounded-md inline-flex items-center justify-center gap-1" [class.bg-background]="drawerTab() === 'audit'" [class.shadow-sm]="drawerTab() === 'audit'" (click)="drawerTab.set('audit')">
+            <svg lucideHistory class="h-3.5 w-3.5"></svg> Audit
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6">
+        @if (drawerTab() === 'perms') {
+          <div class="space-y-3">
+            @for (m of modules; track m) {
+              <details class="rounded-md border px-3 py-2" open>
+                <summary class="cursor-pointer text-sm font-medium py-1 flex items-center gap-2">
+                  <span>{{ m }}</span>
+                  <span class="text-[10px] rounded-md border px-1.5 py-0.5">
+                    {{ grantedPermissionsForModule(m, role.permissions).length }}/{{ permissionsForModule(m).length }}
+                  </span>
+                </summary>
+                <ul class="space-y-1.5 mt-2 pb-1">
+                  @for (p of permissionsForModule(m); track p.id) {
+                    @let on = role.permissions.includes(p.id);
+                    <li class="flex items-start gap-2 text-sm">
+                      @if (on) {
+                        <svg lucideCheck class="h-4 w-4 text-success mt-0.5 shrink-0"></svg>
+                      } @else {
+                        <svg lucideX class="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0"></svg>
+                      }
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                          <span [class.font-medium]="on" [class.text-muted-foreground]="!on">{{ p.action }}</span>
+                          @if (p.sensitive) {
+                            <svg lucideAlertTriangle class="h-3 w-3 text-amber-500"></svg>
+                          }
+                          <code class="text-[10px] text-muted-foreground">{{ p.id }}</code>
+                        </div>
+                        <div class="text-[11px] text-muted-foreground">{{ p.description }}</div>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </details>
+            }
+          </div>
+        }
+
+        @if (drawerTab() === 'members') {
+          <div class="text-sm text-muted-foreground">
+            {{ role.members.toLocaleString() }} member{{ role.members === 1 ? '' : 's' }} hold this role.
+          </div>
+          <ul class="mt-3 space-y-1.5">
+            @for (u of membersForRole(role).slice(0, 8); track $index) {
+              <li class="flex items-center gap-3 text-sm py-2 px-2 rounded hover:bg-muted/40">
+                <div class="h-7 w-7 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-xs font-semibold shrink-0">
+                  {{ (u.fullName || u.email || '?').charAt(0).toUpperCase() }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium truncate">{{ u.fullName || u.email }}</div>
+                  <div class="text-[11px] text-muted-foreground truncate">{{ u.email }}</div>
+                </div>
+                <app-status-badge [status]="u.isActive ? 'Active' : 'Inactive'" />
+              </li>
+            }
+            @if (!membersForRole(role).length) {
+              <li class="text-sm text-muted-foreground py-4">No members assigned to this role.</li>
+            }
+          </ul>
+        }
+
+        @if (drawerTab() === 'audit') {
+          <ol class="relative border-l ml-2 space-y-3">
+            @for (a of roleAudit(); track a.id) {
+              <li class="pl-4 relative">
+                <span class="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-primary/70 ring-4 ring-background"></span>
+                <div class="text-sm font-medium">{{ a.action }}</div>
+                <div class="text-xs text-muted-foreground">{{ a.detail }}</div>
+                <div class="text-[11px] text-muted-foreground mt-0.5">{{ a.actor }} · {{ fmt(a.ts) }}</div>
+              </li>
+            }
+            @if (!roleAudit().length) {
+              <li class="pl-4 text-sm text-muted-foreground">No activity for this role.</li>
+            }
+          </ol>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Editor drawer -->
+@if (editorOpen() && editorRole(); as role) {
+  <div class="content-overlay flex justify-end" [style.left]="overlayLeft()">
+    <div class="absolute inset-0 bg-black/40" (click)="closeEditor()"></div>
+    <div class="relative w-full sm:max-w-2xl bg-background border-l shadow-xl h-full flex flex-col overflow-hidden">
+      <div class="p-6 border-b shrink-0">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">{{ editorOriginal() ? 'Edit ' + editorOriginal()!.name : 'Create role' }}</h2>
+            <p class="text-sm text-muted-foreground mt-1">Define a name, scope and the permissions members of this role inherit.</p>
+          </div>
+          <button type="button" class="h-8 w-8 rounded-md hover:bg-muted inline-flex items-center justify-center" (click)="closeEditor()">
+            <svg lucideX class="h-4 w-4"></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium" for="r-name">Name</label>
+            <input
+              id="r-name"
+              class="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              [ngModel]="role.name"
+              (ngModelChange)="updateEditorField('name', $event)"
+              placeholder="e.g. RegionalManager"
+            />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">Scope</label>
+            <div class="flex gap-1 rounded-md border p-0.5">
+              @for (s of editorScopes; track s) {
+                <app-button
+                  type="button"
+                  [variant]="role.scope === s ? 'secondary' : 'ghost'"
+                  size="sm"
+                  class="flex-1 h-8 text-xs"
+                  (click)="updateEditorField('scope', s)"
+                >
+                  {{ s }}
+                </app-button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium" for="r-desc">Description</label>
+          <textarea
+            id="r-desc"
+            rows="2"
+            class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y"
+            [ngModel]="role.description"
+            (ngModelChange)="updateEditorField('description', $event)"
+            placeholder="What does this role do?"
+          ></textarea>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <label class="text-sm font-medium">Permissions</label>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[10px] rounded-md border px-1.5 py-0.5">{{ role.permissions.length }}/{{ permissions.length }} granted</span>
+              @if (editorOriginal()) {
+                <span class="text-[10px] rounded-md border px-1.5 py-0.5" [class.bg-muted]="editorDiffCount() > 0">{{ editorDiffCount() }} changes</span>
+                @if (editorDiffCount() > 0) {
+                  <app-button size="sm" variant="ghost" class="h-7" (click)="resetEditor()">
+                    <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Reset
+                  </app-button>
+                }
+              }
+            </div>
+          </div>
+
+          <div class="relative mb-2">
+            <svg lucideSearch class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
+            <input
+              type="search"
+              class="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+              placeholder="Search permissions…"
+              [ngModel]="editorSearch()"
+              (ngModelChange)="editorSearch.set($event)"
+            />
+          </div>
+
+          <div class="space-y-2">
+            @for (m of modules; track m) {
+              @if (editorPermissionsForModule(m).length) {
+                <details class="rounded-md border px-3 py-2" open>
+                  <summary class="cursor-pointer text-sm font-medium py-1 flex items-center gap-2">
+                    <span>{{ m }}</span>
+                    <span class="text-[10px] rounded-md border px-1.5 py-0.5">
+                      {{ moduleGrantedCount(m, role.permissions) }}/{{ moduleTotalCount(m) }}
+                    </span>
+                  </summary>
+                  <div class="flex items-center justify-end mb-2 mt-1">
+                    <app-button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      class="h-7 text-xs"
+                      (click)="toggleModule(m, !editorModuleAllOn(m))"
+                    >
+                      {{ editorModuleAllOn(m) ? 'Clear all' : 'Select all' }}
+                    </app-button>
+                  </div>
+                  <ul class="space-y-2 pb-1">
+                    @for (p of editorPermissionsForModule(m); track p.id) {
+                      @let on = role.permissions.includes(p.id);
+                      @let diff = permissionDiff(editorOriginal(), p.id, on);
+                      <li class="flex items-start gap-3 text-sm">
+                        <input
+                          type="checkbox"
+                          class="mt-0.5 rounded border"
+                          [checked]="on"
+                          (change)="togglePermission(p.id, $any($event.target).checked)"
+                        />
+                        <label class="min-w-0 flex-1 cursor-pointer">
+                          <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-medium">{{ p.action }}</span>
+                            <code class="text-[10px] text-muted-foreground">{{ p.id }}</code>
+                            @if (p.sensitive) {
+                              <span class="text-[10px] rounded-md border border-amber-500/40 text-amber-600 px-1.5 py-0.5">sensitive</span>
+                            }
+                            @if (diff === 'added') {
+                              <span class="text-[10px] rounded-md bg-success/15 text-success px-1.5 py-0.5">+override</span>
+                            }
+                            @if (diff === 'removed') {
+                              <span class="text-[10px] rounded-md bg-amber-500/15 text-amber-600 px-1.5 py-0.5">−override</span>
+                            }
+                          </div>
+                          <div class="text-[11px] text-muted-foreground">{{ p.description }}</div>
+                        </label>
+                      </li>
+                    }
+                  </ul>
+                </details>
+              }
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 border-t shrink-0 flex justify-end gap-2">
+        <app-button variant="outline" (click)="closeEditor()">Cancel</app-button>
+        <app-button [disabled]="saving()" (click)="saveRole()">
+          {{ editorOriginal() ? 'Save changes' : 'Create role' }}
+        </app-button>
+      </div>
+    </div>
+  </div>
+}

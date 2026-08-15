@@ -6,6 +6,8 @@ import {
   LucideLayoutDashboard, LucideLifeBuoy, LucideScanLine, LucideSettings, LucideUserCog, LucideUsers,
 } from '@lucide/angular';
 import { SidebarService } from './sidebar.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionKey } from '@core/constants/permissions';
 
 /** Primary navigation rail. Ported 1:1 from `components/app-sidebar.tsx`. */
 @Component({
@@ -77,10 +79,12 @@ import { SidebarService } from './sidebar.service';
             <svg lucideCalendarCheck class="h-4 w-4 shrink-0"></svg>
             @if (sidebar.showLabels()) { <span>Attendance</span> }
           </a>
-          <a routerLink="/attendance/scanner" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideScanLine class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Scanner</span> }
-          </a>
+          @if (canUseScanner()) {
+            <a routerLink="/attendance/scanner" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+              <svg lucideScanLine class="h-4 w-4 shrink-0"></svg>
+              @if (sidebar.showLabels()) { <span>Scanner</span> }
+            </a>
+          }
         </div>
 
         <div class="px-3 py-2">
@@ -129,14 +133,18 @@ import { SidebarService } from './sidebar.service';
 
         <div class="px-3 py-2">
           @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Admin</p> }
-          <a routerLink="/users" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideUserCog class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Users</span> }
-          </a>
-          <a routerLink="/roles" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideUserCog class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Roles</span> }
-          </a>
+          @if (canListUsers()) {
+            <a routerLink="/users" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+              <svg lucideUserCog class="h-4 w-4 shrink-0"></svg>
+              @if (sidebar.showLabels()) { <span>Users</span> }
+            </a>
+          }
+          @if (canListRoles()) {
+            <a routerLink="/roles" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+              <svg lucideUserCog class="h-4 w-4 shrink-0"></svg>
+              @if (sidebar.showLabels()) { <span>Roles</span> }
+            </a>
+          }
           <a routerLink="/settings" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
             <svg lucideSettings class="h-4 w-4 shrink-0"></svg>
             @if (sidebar.showLabels()) { <span>Settings</span> }
@@ -156,4 +164,17 @@ import { SidebarService } from './sidebar.service';
 })
 export class SidebarComponent {
   protected readonly sidebar = inject(SidebarService);
+  private readonly auth = inject(AuthService);
+
+  protected canListUsers(): boolean {
+    return this.auth.hasPermission(PermissionKey.UsersList);
+  }
+
+  protected canListRoles(): boolean {
+    return this.auth.hasPermission(PermissionKey.RolesList);
+  }
+
+  protected canUseScanner(): boolean {
+    return this.auth.hasPermission(PermissionKey.AttendanceScannerUse);
+  }
 }

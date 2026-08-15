@@ -64,6 +64,8 @@ namespace SLMS_API.Application.Contracts.Organizations.Responses
         public DateTime? JoinedOn { get; set; }
         public DateTime CreatedAtUtc { get; set; }
 
+        public bool HasPhoto { get; set; }
+
         // Guardian / Emergency Contacts
         public IReadOnlyCollection<MemberContactResponse> Contacts { get; set; } =  new List<MemberContactResponse>();
         public IReadOnlyCollection<MemberPlanResponse> Plans { get; set; } = new List<MemberPlanResponse>();

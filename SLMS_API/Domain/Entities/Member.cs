@@ -15,6 +15,9 @@ namespace SLMS_API.Domain.Entities
         public string FullName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
 
+        public string? PhotoStoragePath { get; set; }
+        public string? PhotoFileName { get; set; }
+
         public string? Gender { get; set; }
         public string Shift { get; set; } = string.Empty;
 

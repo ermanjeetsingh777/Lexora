@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyModel;
+using SLMS_API.Application.Contracts.Books.Responses;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations.Responses;
@@ -18,11 +19,13 @@ namespace SLMS_API.Controllers
     public class AllMembersController : Controller
     {
         private readonly IMemberService _memberService;
+        private readonly IBookService _bookService;
         private readonly ICurrentUserService _currentUserService;
 
-        public AllMembersController(IMemberService memberService, ICurrentUserService currentUserService)
+        public AllMembersController(IMemberService memberService, IBookService bookService, ICurrentUserService currentUserService)
         {
             _memberService = memberService;
+            _bookService = bookService;
             _currentUserService = currentUserService;
         }
 
@@ -125,6 +128,93 @@ namespace SLMS_API.Controllers
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<MemberDetailResponse>.Fail(ex.Message));
+            }
+        }
+
+        [HttpGet("{memberId:guid}/book-loans")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyCollection<MemberBookLoanResponse>>>> GetBookLoans(
+            Guid memberId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var loans = await _bookService.GetMemberLoansAsync(memberId, cancellationToken);
+                return Ok(ApiResponse<IReadOnlyCollection<MemberBookLoanResponse>>.Ok(loans));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<IReadOnlyCollection<MemberBookLoanResponse>>.Fail(ex.Message));
+            }
+        }
+
+        [HttpGet("{memberId:guid}/digital-books")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyCollection<BookListItemResponse>>>> GetDigitalBooks(
+            Guid memberId,
+            [FromQuery] string? search,
+            [FromQuery] string? category,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var books = await _bookService.GetMemberDigitalBooksAsync(memberId, search, category, cancellationToken);
+                return Ok(ApiResponse<IReadOnlyCollection<BookListItemResponse>>.Ok(books));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<IReadOnlyCollection<BookListItemResponse>>.Fail(ex.Message));
+            }
+        }
+
+        [HttpGet("{memberId:guid}/digital-books/{bookId:guid}/pdf")]
+        public async Task<IActionResult> DownloadDigitalBookPdf(
+            Guid memberId,
+            Guid bookId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _bookService.GetMemberDigitalBookPdfAsync(memberId, bookId, cancellationToken);
+                if (result is null) return NotFound();
+                var (filePath, contentType, fileName) = result.Value;
+                return PhysicalFile(filePath, contentType, fileName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
+        [HttpPost("{memberId:guid}/photo")]
+        [RequestSizeLimit(5_242_880)]
+        public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> UploadPhoto(
+            Guid memberId,
+            IFormFile file,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var member = await _memberService.UploadPhotoAsync(memberId, file, _currentUserService.UserId, cancellationToken);
+                return Ok(ApiResponse<MemberDetailResponse>.Ok(member, "Photo uploaded successfully."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<MemberDetailResponse>.Fail(ex.Message));
+            }
+        }
+
+        [HttpGet("{memberId:guid}/photo")]
+        public async Task<IActionResult> GetPhoto(Guid memberId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _memberService.GetPhotoAsync(memberId, cancellationToken);
+                if (result is null) return NotFound();
+                var (filePath, contentType, fileName) = result.Value;
+                return PhysicalFile(filePath, contentType, fileName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
 

@@ -1,0 +1,135 @@
+<app-page-header
+  eyebrow="Attendance"
+  title="QR scanner"
+  description="Scan the library QR code, select a member, then check in or check out."
+/>
+
+@if (loading()) {
+  <p class="py-16 text-center text-sm text-muted-foreground">Loading scanner…</p>
+} @else {
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <app-glass-card class="block p-5 lg:col-span-1">
+      <div class="flex items-center gap-2 mb-3">
+        <svg lucideQrCode class="h-5 w-5 text-primary"></svg>
+        <h2 class="font-semibold text-sm">Library QR</h2>
+      </div>
+
+      @if (!context()) {
+        <p class="text-sm text-muted-foreground mb-3">Paste the token from a scanned QR or open a scan link.</p>
+        <input
+          class="w-full rounded-md border bg-background px-3 py-2 text-sm mb-3"
+          placeholder="Library attendance token…"
+          [ngModel]="tokenInput()"
+          (ngModelChange)="tokenInput.set($event)"
+        />
+        <app-button class="w-full" (click)="loadContext()">Connect</app-button>
+      } @else {
+        <div class="space-y-2 text-sm">
+          <p class="font-medium">{{ context()!.libraryName }}</p>
+          <p class="text-muted-foreground">{{ context()!.institutionName }} · {{ context()!.branchName }}</p>
+        </div>
+        @if (qrImage()) {
+          <img [src]="qrImage()!" alt="Attendance QR code" class="mt-4 mx-auto w-40 h-40 rounded-lg border bg-white p-2" />
+          <p class="text-[11px] text-muted-foreground text-center mt-2 break-all">{{ context()!.scanUrl }}</p>
+        }
+      }
+    </app-glass-card>
+
+    <app-glass-card class="block p-5 lg:col-span-2">
+      <div class="flex items-center gap-2 mb-4">
+        <svg lucideScanLine class="h-5 w-5 text-primary"></svg>
+        <h2 class="font-semibold text-sm">Record attendance</h2>
+      </div>
+
+      @if (!context()) {
+        <p class="text-sm text-muted-foreground">Connect a library QR code to begin.</p>
+      } @else {
+        <div class="space-y-4">
+          <div class="relative">
+            <label class="text-sm font-medium">Member</label>
+            <div class="relative mt-1.5">
+              <svg lucideSearch class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
+              <input
+                type="search"
+                class="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+                placeholder="Search by name, membership no, or ID…"
+                [ngModel]="memberSearch()"
+                (ngModelChange)="memberSearch.set($event)"
+                (focus)="openMemberPicker()"
+                (input)="searchMembers()"
+              />
+            </div>
+
+            @if (memberPickerOpen() && members().length) {
+              <ul class="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border bg-background shadow-lg">
+                @for (m of members(); track m.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
+                      (click)="selectMember(m)"
+                    >
+                      <span class="font-mono text-xs text-muted-foreground">{{ m.membershipNo }}</span>
+                      <span class="ml-2 font-medium">{{ m.fullName }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          @if (selectedMember(); as member) {
+            <div class="rounded-lg border p-4 bg-muted/20 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="font-semibold">{{ member.fullName }}</p>
+                <p class="text-xs text-muted-foreground font-mono">{{ member.membershipNo }}</p>
+              </div>
+              @if (memberStatus(); as status) {
+                <app-status-badge
+                  [status]="status.isCheckedOutToday ? 'Checked out' : status.isCheckedInToday ? 'Checked in' : 'Not checked in'"
+                />
+              }
+              <app-button size="sm" variant="ghost" (click)="clearMember()">Clear</app-button>
+            </div>
+
+            @if (memberStatus(); as status) {
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <div class="rounded-md border p-3">
+                  <p class="text-xs text-muted-foreground">Check-in</p>
+                  <p class="font-medium">{{ status.checkInTime ?? '—' }}</p>
+                </div>
+                <div class="rounded-md border p-3">
+                  <p class="text-xs text-muted-foreground">Check-out</p>
+                  <p class="font-medium">{{ status.checkOutTime ?? '—' }}</p>
+                </div>
+              </div>
+            }
+
+            <div class="flex flex-wrap gap-2 pt-2">
+              <app-button [disabled]="busy() || !canCheckIn()" (click)="record('check-in')">
+                <svg lucideLogIn class="h-4 w-4 mr-1.5"></svg> Check in
+              </app-button>
+              <app-button variant="outline" [disabled]="busy() || !canCheckOut()" (click)="record('check-out')">
+                <svg lucideLogOut class="h-4 w-4 mr-1.5"></svg> Check out
+              </app-button>
+              <app-button variant="secondary" [disabled]="busy() || isDone()" (click)="record('auto')">
+                Auto
+              </app-button>
+            </div>
+
+            @if (lastMessage()) {
+              <p class="text-sm text-success flex items-center gap-2">
+                <svg lucideCheckCircle2 class="h-4 w-4"></svg>{{ lastMessage() }}
+              </p>
+            }
+            @if (isDone()) {
+              <p class="text-sm text-muted-foreground flex items-center gap-2">
+                <svg lucideXCircle class="h-4 w-4"></svg>Attendance completed for today.
+              </p>
+            }
+          }
+        </div>
+      }
+    </app-glass-card>
+  </div>
+}

@@ -9,6 +9,7 @@ namespace SLMS_API.Application.Contracts.Organizations.Requests
         public string? SeatNumber { get; set; }
         public string? DeviceId { get; set; }
         public string? Remarks { get; set; }
+        public AttendanceSource? Source { get; set; }
     }
 
     public class CreateAttendanceRequest

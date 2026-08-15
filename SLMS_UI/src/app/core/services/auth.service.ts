@@ -136,8 +136,7 @@ export class AuthService {
   }
 
   hasPermission(permission: number): boolean {
-    return false;
-    // return this.storage.hasPermission(permission);
+    return this.storage.hasPermission(permission);
   }
 
 

@@ -43,6 +43,13 @@ export class ApiService {
         );
     }
 
+    putTo<T>(endpoint: string, body: unknown): Observable<APIResponseModel<T>> {
+        return this.http.put<APIResponseModel<T>>(
+            this.buildUrl(endpoint),
+            body
+        );
+    }
+
     patch<T>(endpoint: string, body: unknown): Observable<APIResponseModel<T>> {
         return this.http.patch<APIResponseModel<T>>(
             this.buildUrl(endpoint),
@@ -93,6 +100,10 @@ export class ApiService {
                 observe: 'events',
             }
         );
+    }
+
+    deleteByPath<T>(endpoint: string): Observable<APIResponseModel<T>> {
+        return this.http.delete<APIResponseModel<T>>(this.buildUrl(endpoint));
     }
 
     download(endpoint: string): Observable<Blob> {

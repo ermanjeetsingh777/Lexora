@@ -95,10 +95,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMemberService, MemberService>();
         services.AddScoped<ISeatService, SeatService>();
         services.AddScoped<IAttendanceService, AttendanceService>();
+        services.AddScoped<IAttendanceScannerService, AttendanceScannerService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<SupportStatusSimulator>();
         services.AddScoped<ISupportService, SupportService>();
+        services.AddScoped<IBookService, BookService>();
 
         services.AddHttpContextAccessor();
 

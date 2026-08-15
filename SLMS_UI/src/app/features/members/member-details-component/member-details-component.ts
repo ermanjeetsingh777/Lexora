@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal, WritableSignal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -27,13 +27,18 @@ import {
   LucideRotateCcw,
 } from '@lucide/angular';
 import { ToastService } from '@core/services/toast.service';
+import { WhatsAppService } from '@core/services/whatsapp.service';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, MemberDetailResponse } from '@core/models/MemberRequest';
 import { MemberService } from '../MemberService';
+import { BookService } from '@features/books/book.service';
+import { BookLoanStatus, LOAN_STATUS_LABELS, MemberBookLoan } from '@core/models/book.models';
+import { formatBookDate } from '@features/books/book-format.util';
 import { CommonService } from '@core/services/common.service';
 import { MemberContactComponent } from "../pages/member-contact-component/member-contact-component";
+import { MemberDigitalBooksComponent } from "../pages/member-digital-books-component/member-digital-books-component";
 import { EVENT_DOT, Shift } from '@core/constType';
 import { KeyValueResponse, PlanDropdownResponse, PlanResponse } from '@core/models/institution-dropdown.model';
 import { MemberPaymentsComponent } from "../pages/member-payments-component/member-payments-component";
@@ -47,7 +52,7 @@ import {
 import { RenewPlanDialogComponent } from '../components/renew-plan-dialog/renew-plan-dialog.component';
 import { MemberAttendanceCalendarComponent } from '../components/member-attendance-calendar/member-attendance-calendar.component';
 
-type TabId = 'overview' | 'attendance' | 'payments' | 'contacts' | 'plans' | 'books';
+type TabId = 'overview' | 'attendance' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks';
 
 const ATTENDANCE_LOG_PAGE_SIZE_OPTS = [5, 10, 15, 30] as const;
 const ACTIVITY_TIMELINE_PAGE_SIZE = 5;
@@ -70,7 +75,7 @@ interface HeatmapCell {
     LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideTrendingUp, LucideCheckCircle2,
     LucideXCircle, LucideAlertTriangle, LucideCalendar, LucideUser, LucideShieldAlert,
     LucideCopy, LucideSettings2, LucideArrowRightLeft, LucideBadgeDollarSign, DatePipe,
-    MemberContactComponent, CurrencyPipe, LucideTimer, LucideWallet, LucideBookOpen,
+    MemberContactComponent, MemberDigitalBooksComponent, CurrencyPipe, LucideTimer, LucideWallet, LucideBookOpen,
     LucideHistory, LucidePencil, LucideCalendarClock, LucideClock3, LucideSun,
     LucideFlame, LucideCalendarCheck, LucideActivity, LucideBookMarked, LucideRotateCcw,
     MemberPaymentsComponent, SelectButtonModule, LucideCrown, LucideSparkles, LucideLogIn, LucideLogOut,
@@ -79,18 +84,21 @@ interface HeatmapCell {
   ],
   templateUrl: './member-details-component.html',
   styleUrl: './member-details-component.css',
-  providers: [MemberService, AttendanceService]
+  providers: [MemberService, AttendanceService, BookService]
 })
-export class MemberDetailsComponent implements OnInit {
+export class MemberDetailsComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
+  private readonly whatsapp = inject(WhatsAppService);
   private readonly memberService = inject(MemberService);
+  private readonly bookService = inject(BookService);
   readonly commonService = inject(CommonService);
   readonly attendanceService = inject(AttendanceService);
 
-  private readonly memberId = this.route.snapshot.paramMap.get('memberId') ?? '';
+  readonly memberId = this.route.snapshot.paramMap.get('memberId') ?? '';
   readonly loading: WritableSignal<boolean> = signal<boolean>(true);
   readonly memberDetails: WritableSignal<MemberDetailResponse | null> = signal<MemberDetailResponse | null>(null);
+  readonly memberPhotoPreview = signal<string | null>(null);
   readonly plans = signal<PlanResponse[]>([]);
 
   readonly activeTab = signal<TabId>('overview');
@@ -101,6 +109,7 @@ export class MemberDetailsComponent implements OnInit {
     { value: 'overview', label: 'Overview' },
     { value: 'attendance', label: 'Attendance' },
     { value: 'books', label: 'Books' },
+    { value: 'ebooks', label: 'E-Books' },
     { value: 'plans', label: 'Payments & Plans' },
     // { id: 'payments', label: 'Payments' },
     { value: 'contacts', label: 'Contacts' },
@@ -129,6 +138,28 @@ export class MemberDetailsComponent implements OnInit {
   readonly attendanceLogPageSize = signal(10);
   readonly activityTimelineLimit = signal(ACTIVITY_TIMELINE_PAGE_SIZE);
   readonly Math = Math;
+  readonly bookLoans = signal<MemberBookLoan[]>([]);
+  readonly bookLoansLoading = signal(false);
+  readonly BookLoanStatus = BookLoanStatus;
+  readonly LOAN_STATUS_LABELS = LOAN_STATUS_LABELS;
+  readonly formatBookDate = formatBookDate;
+
+  readonly bookLoanStats = computed(() => {
+    const loans = this.bookLoans();
+    const physicalLoans = loans.filter(l => l.requiresReturn !== false);
+    return {
+      active: physicalLoans.filter(l => l.status === BookLoanStatus.Active).length,
+      overdue: physicalLoans.filter(l => l.status === BookLoanStatus.Overdue).length,
+      returned: physicalLoans.filter(l => l.status === BookLoanStatus.Returned).length,
+      digital: loans.filter(l => l.hasPdf).length,
+      total: loans.length,
+      finesOwed: physicalLoans.reduce((sum, l) => sum + (l.fineAmount ?? 0), 0),
+    };
+  });
+
+  readonly overdueBookLoans = computed(() =>
+    this.bookLoans().filter(l => l.requiresReturn !== false && l.status === BookLoanStatus.Overdue)
+  );
 
   // Replace with your API response
   readonly todayAttendance = computed(() => {
@@ -520,9 +551,14 @@ export class MemberDetailsComponent implements OnInit {
 
   ngOnInit() {
     this.loadMemberDetails();
+    this.loadBookLoans();
     this.loadAttendanceCalendar();
     this.loadRecentAttendance();
     this.loadAttendanceStatistics();
+  }
+
+  ngOnDestroy(): void {
+    this.revokeMemberPhotoPreview();
   }
 
   setTab(tab: TabId): void {
@@ -531,6 +567,79 @@ export class MemberDetailsComponent implements OnInit {
       this.loadAttendanceCalendar();
       this.loadAttendanceStatistics();
     }
+    if (tab === 'books') {
+      this.loadBookLoans();
+    }
+  }
+
+  loadBookLoans(): void {
+    if (!this.memberId) return;
+    this.bookLoansLoading.set(true);
+    this.bookService.getMemberLoans(this.memberId).subscribe({
+      next: (res) => {
+        this.bookLoans.set(res.data ?? []);
+        this.bookLoansLoading.set(false);
+      },
+      error: () => {
+        this.bookLoans.set([]);
+        this.bookLoansLoading.set(false);
+      },
+    });
+  }
+
+  sendBookReturnReminder(loan: MemberBookLoan): void {
+    if (loan.requiresReturn === false) {
+      this.toast.error('Return reminders do not apply to digital PDF books.');
+      return;
+    }
+
+    const member = this.memberDetails();
+    if (!member?.institutionId || !member.branchId || !member.libraryId) {
+      this.toast.error('Library scope is missing for this member.');
+      return;
+    }
+
+    const scope = {
+      institutionId: member.institutionId,
+      branchId: member.branchId,
+      libraryId: member.libraryId,
+    };
+
+    this.bookService.sendReturnReminder(scope, loan.bookId, loan.id).subscribe({
+      next: (res) => {
+        const reminder = res.data;
+        this.toast.success('Return reminder sent.');
+        if (reminder?.memberPhone) {
+          this.whatsapp.bookReturnReminder(
+            reminder.memberPhone,
+            reminder.memberName,
+            reminder.bookTitle,
+            this.formatBookDate(reminder.dueAtUtc),
+            reminder.daysOverdue,
+            reminder.estimatedFine,
+            member.library ?? 'Library',
+          );
+        }
+        this.loadBookLoans();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to send reminder'),
+    });
+  }
+
+  private loadMemberPhotoPreview(memberId: string): void {
+    this.memberService.downloadPhoto(memberId).subscribe({
+      next: (blob) => {
+        this.revokeMemberPhotoPreview();
+        this.memberPhotoPreview.set(URL.createObjectURL(blob));
+      },
+      error: () => this.memberPhotoPreview.set(null),
+    });
+  }
+
+  private revokeMemberPhotoPreview(): void {
+    const current = this.memberPhotoPreview();
+    if (current) URL.revokeObjectURL(current);
+    this.memberPhotoPreview.set(null);
   }
 
   loadMemberDetails(): void {
@@ -540,6 +649,10 @@ export class MemberDetailsComponent implements OnInit {
     this.memberService.getMemberById(this.memberId).subscribe({
       next: (response) => {
         this.memberDetails.set(response.data ?? null);
+        this.revokeMemberPhotoPreview();
+        if (response.data?.hasPhoto) {
+          this.loadMemberPhotoPreview(response.data.id);
+        }
         if (response.data?.attendance?.length) {
           this.mergeCalendarDays(response.data.attendance);
         }

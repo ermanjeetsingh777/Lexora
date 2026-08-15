@@ -1,5 +1,7 @@
 
 using AutoMapper.Execution;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyModel;
@@ -17,6 +19,8 @@ namespace SLMS_API.Application.Services;
 
 public class MemberService : IMemberService
 {
+    private const long MaxPhotoBytes = 5 * 1024 * 1024;
+
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuthService _authService;
     private readonly ICurrentUserService _currentUserService;
@@ -24,6 +28,7 @@ public class MemberService : IMemberService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IAuditLogService _auditLogService;
     private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
 
     public MemberService(ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager,
@@ -31,7 +36,8 @@ public class MemberService : IMemberService
         IAuthService authService,
         IConfiguration configuration,
          IAuditLogService auditLogService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IWebHostEnvironment environment)
     {
         _dbContext = dbContext;
         _authService = authService;
@@ -39,6 +45,7 @@ public class MemberService : IMemberService
         _userManager = userManager;
         _configuration = configuration;
         _auditLogService = auditLogService;
+        _environment = environment;
     }
 
     public async Task<MemberResponse> CreateAsync(Guid institutionId, Guid branchId, Guid libraryId, CreateMemberRequest request, string? userId, CancellationToken cancellationToken = default)
@@ -693,6 +700,7 @@ public class MemberService : IMemberService
                 m.DateOfBirth,
                 m.Gender,
                 m.CreatedAtUtc,
+                m.PhotoStoragePath,
 
                 Name = m.User.FullName,
                 Email = m.User.Email,
@@ -872,6 +880,7 @@ public class MemberService : IMemberService
             LastPaymentDate = member.CurrentPlan?.StartDate,
             DueDate = member.CurrentPlan?.EndDate,
             CreatedAtUtc = member.CreatedAtUtc,
+            HasPhoto = !string.IsNullOrWhiteSpace(member.PhotoStoragePath),
             Contacts = contacts
                 .Select(c => new MemberContactResponse
                 {
@@ -954,6 +963,96 @@ public class MemberService : IMemberService
 
         return $"MEM-{currentYear}-{nextNumber:D6}";
     }
+
+    public async Task<MemberDetailResponse> UploadPhotoAsync(
+        Guid memberId,
+        IFormFile file,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (file.Length <= 0)
+        {
+            throw new InvalidOperationException("Photo file is empty.");
+        }
+
+        if (file.Length > MaxPhotoBytes)
+        {
+            throw new InvalidOperationException("Photo exceeds the 5 MB limit.");
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (extension is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+        {
+            throw new InvalidOperationException("Only JPG, PNG, or WEBP images are allowed.");
+        }
+
+        var member = await _dbContext.Members
+            .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Member not found.");
+
+        DeletePhotoIfExists(member);
+
+        var uploadRoot = Path.Combine(_environment.ContentRootPath, "uploads", "members");
+        Directory.CreateDirectory(uploadRoot);
+
+        var storagePath = Path.Combine(uploadRoot, $"{member.Id:N}{extension}");
+        await using (var stream = File.Create(storagePath))
+        {
+            await file.CopyToAsync(stream, cancellationToken);
+        }
+
+        member.PhotoStoragePath = storagePath;
+        member.PhotoFileName = Path.GetFileName(file.FileName);
+        member.UpdatedAtUtc = DateTime.UtcNow;
+        member.UpdatedBy = userId;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (await GetMemberDetailsByIdAsync(memberId, cancellationToken))!;
+    }
+
+    public async Task<(string FilePath, string ContentType, string FileName)?> GetPhotoAsync(
+        Guid memberId,
+        CancellationToken cancellationToken = default)
+    {
+        var member = await _dbContext.Members.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken);
+
+        if (member is null || string.IsNullOrWhiteSpace(member.PhotoStoragePath))
+        {
+            return null;
+        }
+
+        if (!File.Exists(member.PhotoStoragePath))
+        {
+            throw new InvalidOperationException("Photo file is missing on disk.");
+        }
+
+        var extension = Path.GetExtension(member.PhotoStoragePath).ToLowerInvariant();
+        var contentType = extension switch
+        {
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            _ => "image/jpeg",
+        };
+
+        var fileName = string.IsNullOrWhiteSpace(member.PhotoFileName)
+            ? $"{member.FullName}{extension}"
+            : member.PhotoFileName;
+
+        return (member.PhotoStoragePath, contentType, fileName);
+    }
+
+    private static void DeletePhotoIfExists(Domain.Entities.Member member)
+    {
+        if (string.IsNullOrWhiteSpace(member.PhotoStoragePath) || !File.Exists(member.PhotoStoragePath))
+        {
+            return;
+        }
+
+        File.Delete(member.PhotoStoragePath);
+    }
+
     private static MemberResponse ToCreateResponse(Domain.Entities.Member entity) =>
         new()
         {

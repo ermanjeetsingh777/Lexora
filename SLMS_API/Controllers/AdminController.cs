@@ -30,7 +30,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("users")]
-    [Permission(PermissionKey.UsersManage)]
+    [Permission(PermissionKey.UsersList)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<AdminUserResponse>>>> GetUsers(CancellationToken cancellationToken)
     {
         var users = await _adminService.GetUsersAsync(cancellationToken);
@@ -38,7 +38,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPost("users")]
-    [Permission(PermissionKey.UsersManage)]
+    [Permission(PermissionKey.UsersCreate)]
     public async Task<ActionResult<ApiResponse<AdminUserResponse>>> CreateUser(
         [FromBody] AdminCreateUserRequest request,
         CancellationToken cancellationToken)
@@ -56,7 +56,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("users/{id}")]
-    [Permission(PermissionKey.UsersManage)]
+    [Permission(PermissionKey.UsersView)]
     public async Task<ActionResult<ApiResponse<AdminUserResponse>>> GetUserById(string id, CancellationToken cancellationToken)
     {
         var user = await _adminService.GetUserByIdAsync(id, cancellationToken);
@@ -69,7 +69,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("users/{id}")]
-    [Permission(PermissionKey.UsersManage)]
+    [Permission(PermissionKey.UsersUpdate)]
     public async Task<ActionResult<ApiResponse<AdminUserResponse>>> UpdateUser(
         string id,
         [FromBody] AdminUpdateUserRequest request,
@@ -87,7 +87,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpDelete("users/{id}")]
-    [Permission(PermissionKey.UsersManage)]
+    [Permission(PermissionKey.UsersDelete)]
     public async Task<ActionResult<ApiResponse<MessageResponse>>> DeleteUser(string id, CancellationToken cancellationToken)
     {
         try
@@ -102,7 +102,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPost("users/{id}/roles")]
-    [Permission(PermissionKey.RolesManage)]
+    [Permission(PermissionKey.RolesUpdate)]
     public async Task<ActionResult<ApiResponse<AdminUserResponse>>> AssignRoles(
         string id,
         [FromBody] AdminAssignRolesRequest request,
@@ -120,7 +120,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("roles")]
-    [Permission(PermissionKey.RolesManage)]
+    [Permission(PermissionKey.RolesList)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<AdminRoleResponse>>>> GetRoles(CancellationToken cancellationToken)
     {
         var roles = await _adminService.GetRolesAsync(cancellationToken);
@@ -128,7 +128,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPost("roles")]
-    [Permission(PermissionKey.RolesManage)]
+    [Permission(PermissionKey.RolesCreate)]
     public async Task<ActionResult<ApiResponse<AdminRoleResponse>>> CreateRole(
         [FromBody] AdminCreateRoleRequest request,
         CancellationToken cancellationToken)
@@ -145,7 +145,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("roles/{id}")]
-    [Permission(PermissionKey.RolesManage)]
+    [Permission(PermissionKey.RolesUpdate)]
     public async Task<ActionResult<ApiResponse<AdminRoleResponse>>> UpdateRole(
         string id,
         [FromBody] AdminUpdateRoleRequest request,
@@ -163,7 +163,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("roles/{id}/permissions")]
-    [Permission(PermissionKey.RolesManage)]
+    [Permission(PermissionKey.RolesView)]
     public async Task<ActionResult<ApiResponse<AdminRolePermissionsResponse>>> GetRolePermissions(
         string id,
         CancellationToken cancellationToken)
@@ -180,7 +180,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("roles/{id}/permissions")]
-    [Permission(PermissionKey.RolesManage)]
+    [Permission(PermissionKey.RolesUpdate)]
     public async Task<ActionResult<ApiResponse<AdminRolePermissionsResponse>>> AssignRolePermissions(
         string id,
         [FromBody] AdminAssignRolePermissionsRequest request,
@@ -198,7 +198,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("permissions")]
-    [Permission(PermissionKey.RolesManage)]
+    [Permission(PermissionKey.RolesView)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<PermissionResponse>>>> GetPermissions(CancellationToken cancellationToken)
     {
         var permissions = await _adminService.GetPermissionsAsync(cancellationToken);
@@ -214,7 +214,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPost("backup")]
-    [Permission(PermissionKey.SettingsManage)]
+    [Permission(PermissionKey.SettingsUpdate)]
     public async Task<ActionResult<ApiResponse<MessageResponse>>> Backup(CancellationToken cancellationToken)
     {
         try

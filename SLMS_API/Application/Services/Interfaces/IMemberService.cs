@@ -1,5 +1,6 @@
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations.Responses;
+using Microsoft.AspNetCore.Http;
 
 namespace SLMS_API.Application.Services.Interfaces;
 
@@ -14,6 +15,8 @@ public interface IMemberService
     Task<MemberDetailResponse> ChangePlanOrShiftAsync(Guid memberId, ChangeMemberPlanShiftRequest request, string? userId, CancellationToken cancellationToken = default);
     Task<MemberDetailResponse> RenewMembershipAsync(Guid memberId, string? userId, CancellationToken cancellationToken = default);
     Task<MembershipSummaryResponse> GetMembershipSummaryAsync(CancellationToken cancellationToken = default);
+    Task<MemberDetailResponse> UploadPhotoAsync(Guid memberId, IFormFile file, string? userId, CancellationToken cancellationToken = default);
+    Task<(string FilePath, string ContentType, string FileName)?> GetPhotoAsync(Guid memberId, CancellationToken cancellationToken = default);
     //Task<MemberResponse?> GetByIdAsync(Guid institutionId, Guid branchId, Guid libraryId, Guid memberId, CancellationToken cancellationToken = default);
     //Task<MemberResponse> UpdateAsync(Guid institutionId, Guid branchId, Guid libraryId, Guid memberId, UpdateMemberRequest request, string? userId, CancellationToken cancellationToken = default);
     //Task DeleteAsync(Guid institutionId, Guid branchId, Guid libraryId, Guid memberId, string? userId, CancellationToken cancellationToken = default);

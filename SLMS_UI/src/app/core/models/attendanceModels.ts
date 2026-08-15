@@ -105,3 +105,58 @@ export enum AttendanceSource {
     MobileApp = 5,
     Admin = 6
 }
+
+export interface ScannerContext {
+    libraryId: string;
+    libraryName: string;
+    branchId: string;
+    branchName: string;
+    institutionId: string;
+    institutionName: string;
+    token: string;
+    scanUrl: string;
+}
+
+export interface ScannerMemberOption {
+    id: string;
+    membershipNo: string;
+    fullName: string;
+    seatNumber?: string | null;
+    shift?: string | null;
+}
+
+export interface ScannerMemberStatus {
+    memberId: string;
+    membershipNo: string;
+    fullName: string;
+    isCheckedInToday: boolean;
+    isCheckedOutToday: boolean;
+    status?: AttendanceStatus | null;
+    suggestedAction: 'check-in' | 'check-out' | 'done';
+    checkInTime?: string | null;
+    checkOutTime?: string | null;
+}
+
+export interface ScannerAttendanceRequest {
+    libraryToken: string;
+    memberId: string;
+    action: 'check-in' | 'check-out' | 'auto';
+    seatNumber?: string;
+    deviceId?: string;
+    remarks?: string;
+}
+
+export interface ScannerAttendanceResult {
+    action: string;
+    message: string;
+    member: ScannerMemberOption;
+    attendance: AttendanceResponse;
+}
+
+export interface ScannerQrCode {
+    libraryId: string;
+    libraryName: string;
+    token: string;
+    scanUrl: string;
+    qrCodeBase64: string;
+}

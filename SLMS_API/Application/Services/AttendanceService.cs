@@ -86,7 +86,7 @@ public class AttendanceService : IAttendanceService
                 AttendanceDate = today,
                 CheckInTime = TimeOnly.FromDateTime(DateTime.UtcNow),
                 Status = AttendanceStatus.CheckedIn,
-                Source = AttendanceSource.MobileApp,
+                Source = request.Source ?? AttendanceSource.MobileApp,
                 SeatNo = request.SeatNumber,
                 DeviceId = request.DeviceId,
                 Remarks = request.Remarks,

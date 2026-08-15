@@ -1,0 +1,100 @@
+@if (open()) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="onClose()">
+  <div class="w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl border bg-background shadow-xl" (click)="$event.stopPropagation()">
+    <div class="flex items-center justify-between border-b px-5 py-4 shrink-0">
+      <div>
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+          <svg lucideBookOpen class="h-4 w-4"></svg>
+          {{ isEdit() ? 'Edit book' : 'Add a book' }}
+        </h2>
+        <p class="text-sm text-muted-foreground mt-0.5">ISBN-10 or ISBN-13 is validated before save.</p>
+      </div>
+      <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" (click)="onClose()">
+        <svg lucideX class="h-4 w-4"></svg>
+      </button>
+    </div>
+
+    <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Title <span class="text-destructive">*</span></label>
+        <input type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+          placeholder="e.g. The Pragmatic Programmer"
+          [ngModel]="title()" (ngModelChange)="title.set($event); titleTouched.set(true)" />
+        @if (titleTouched() && title().trim().length < 2) {
+        <p class="text-xs text-destructive">Title is too short.</p>
+        }
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Author <span class="text-destructive">*</span></label>
+          <input type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            [ngModel]="author()" (ngModelChange)="author.set($event)" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Category <span class="text-destructive">*</span></label>
+          <input type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            [ngModel]="category()" (ngModelChange)="category.set($event)" />
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">ISBN <span class="text-destructive">*</span></label>
+        <input type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono"
+          placeholder="0132350882 or 9780132350884"
+          [ngModel]="isbn()" (ngModelChange)="isbn.set($event); isbnTouched.set(true)" />
+        @if (isbnTouched() && !isbnValid()) {
+        <p class="text-xs text-destructive">Enter a valid ISBN-10 or ISBN-13 (hyphens and spaces are OK).</p>
+        }
+        @if (isbnTouched() && isbnDuplicate()) {
+        <p class="text-xs text-destructive">Another book already uses this ISBN.</p>
+        }
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Total copies</label>
+          <input type="number" min="0" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            [ngModel]="totalCopies()" (ngModelChange)="onTotalCopiesChange(+$event)" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Available now</label>
+          <input type="number" min="0" [max]="totalCopies()" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            [ngModel]="availableCopies()" (ngModelChange)="availableCopies.set(Math.max(0, +$event || 0))" />
+          @if (availableCopies() > totalCopies()) {
+          <p class="text-xs text-destructive">Cannot exceed total copies.</p>
+          }
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Notes</label>
+        <textarea rows="3" class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm resize-y"
+          [ngModel]="notes()" (ngModelChange)="notes.set($event)"></textarea>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">PDF (optional)</label>
+        <input type="file" accept="application/pdf,.pdf" class="block w-full text-sm"
+          (change)="onPdfSelected($event)" />
+        @if (pdfFileName()) {
+        <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span class="truncate">{{ pdfFileName() }}</span>
+          @if (pdfFile()) {
+          <button type="button" class="text-destructive hover:underline shrink-0" (click)="clearPdfSelection()">Clear</button>
+          }
+        </div>
+        }
+        <p class="text-[11px] text-muted-foreground">Attach a catalogue PDF (max 25 MB). Shown in the book drawer when available.</p>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 border-t px-5 py-4 shrink-0">
+      <app-button variant="outline" size="sm" [disabled]="busy()" (click)="onClose()">Cancel</app-button>
+      <app-button size="sm" [disabled]="busy() || !formValid()" (click)="onSubmit()">
+        {{ busy() ? 'Saving…' : (isEdit() ? 'Save changes' : 'Add book') }}
+      </app-button>
+    </div>
+  </div>
+</div>
+}

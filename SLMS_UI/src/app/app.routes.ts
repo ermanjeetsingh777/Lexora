@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { guestGuard } from '@core/guards/auth.guard';
 import { onboardingGuard } from '@core/guards/onboarding.guard';
+import { permissionGuard } from '@core/guards/permission.guard';
+import { PermissionKey } from '@core/constants/permissions';
 
 export const routes: Routes = [
     {
@@ -134,11 +136,13 @@ export const routes: Routes = [
             //     loadComponent: () => import('./features/payments/payments.component').then((m) => m.PaymentsComponent),
             // },
 
-            // // --- Attendance ---
-            // {
-            //     path: 'attendance',
-            //     loadComponent: () => import('./features/attendance/attendance.component').then((m) => m.AttendanceComponent),
-            // },
+            // --- Attendance scanner ---
+            {
+                path: 'attendance/scanner',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.AttendanceScannerUse },
+                loadComponent: () => import('./features/attendance/attendance-scanner/attendance-scanner.component').then((m) => m.AttendanceScannerComponent),
+            },
 
             // // --- Reports ---
             // {
@@ -152,11 +156,11 @@ export const routes: Routes = [
             //     loadComponent: () => import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent),
             // },
 
-            // // --- Books ---
-            // {
-            //     path: 'books',
-            //     loadComponent: () => import('./features/books/books.component').then((m) => m.BooksComponent),
-            // },
+            // --- Books ---
+            {
+                path: 'books',
+                loadComponent: () => import('./features/books/books-list-component/books-list.component').then((m) => m.BooksListComponent),
+            },
 
             // // --- Seats ---
             // {
@@ -170,17 +174,21 @@ export const routes: Routes = [
             //     ],
             // },
 
-            // // --- Users (Admin) ---
-            // {
-            //     path: 'users',
-            //     loadComponent: () => import('./features/users/users.component').then((m) => m.UsersComponent),
-            // },
+            // --- Users (Admin) ---
+            {
+                path: 'users',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.UsersList },
+                loadComponent: () => import('./features/admin/users-list/users-list.component').then((m) => m.UsersListComponent),
+            },
 
-            // // --- Roles (Admin) ---
-            // {
-            //     path: 'roles',
-            //     loadComponent: () => import('./features/roles/roles.component').then((m) => m.RolesComponent),
-            // },
+            // --- Roles (Admin) ---
+            {
+                path: 'roles',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.RolesList },
+                loadComponent: () => import('./features/admin/roles-list/roles-list.component').then((m) => m.RolesListComponent),
+            },
 
             // // --- Settings ---
             // {

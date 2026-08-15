@@ -62,4 +62,16 @@ export class MemberService {
     addContact(memberId: string,request: CreateMemberContactRequest): Observable<APIResponseModel<MemberContactResponse>> {
         return this.httpApi.post<MemberContactResponse>('members/' + memberId + '/contacts', request);
     }
+
+    uploadPhoto(memberId: string, file: File): Observable<APIResponseModel<MemberDetailResponse>> {
+        return this.httpApi.upload<MemberDetailResponse>(`members/${memberId}/photo`, file);
+    }
+
+    getPhotoUrl(memberId: string): string {
+        return `${environment.apiUrl}/members/${memberId}/photo`;
+    }
+
+    downloadPhoto(memberId: string): Observable<Blob> {
+        return this.httpApi.download(`members/${memberId}/photo`);
+    }
 } 

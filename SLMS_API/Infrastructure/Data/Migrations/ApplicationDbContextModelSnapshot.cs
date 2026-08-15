@@ -274,6 +274,222 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("SLMS_API.Domain.Entities.Book", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("AvailableCopies")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("InstitutionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Isbn")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("LibraryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PdfFileName")
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<string>("PdfStoragePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("TotalCopies")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("InstitutionId");
+
+                    b.HasIndex("LibraryId", "Isbn", "IsDeleted");
+
+                    b.ToTable("Books");
+                });
+
+            modelBuilder.Entity("SLMS_API.Domain.Entities.BookAuditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ActorUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("BookId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Delta")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.ToTable("BookAuditEntries");
+                });
+
+            modelBuilder.Entity("SLMS_API.Domain.Entities.BookLoan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BookId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CheckedOutAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DueAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("FineAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastReminderSentAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("LibraryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("LoanDays")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MemberName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("OverdueDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReturnedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.HasIndex("MemberId", "Status", "IsDeleted");
+
+                    b.ToTable("BookLoans");
+                });
+
             modelBuilder.Entity("SLMS_API.Domain.Entities.Branch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -507,6 +723,11 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("AttendanceQrToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("ApplicationUserId")
                         .HasColumnType("nvarchar(450)");
 
@@ -521,6 +742,11 @@ namespace SLMS_API.Infrastructure.Data.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DefaultLoanDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(14);
 
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("datetime2");
@@ -548,6 +774,12 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<decimal>("OverdueFinePerDay")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(10m);
+
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
@@ -563,6 +795,9 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("AttendanceQrToken")
+                        .IsUnique();
 
                     b.HasIndex("BranchId");
 
@@ -609,6 +844,14 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhotoFileName")
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<string>("PhotoStoragePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Shift")
                         .IsRequired()
@@ -1075,140 +1318,650 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                         new
                         {
                             Id = 2,
+                            Code = "dashboard.list",
+                            Name = "Dashboard List"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "dashboard.create",
+                            Name = "Dashboard Create"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "dashboard.edit",
+                            Name = "Dashboard Edit"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Code = "dashboard.update",
+                            Name = "Dashboard Update"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Code = "dashboard.delete",
+                            Name = "Dashboard Delete"
+                        },
+                        new
+                        {
+                            Id = 7,
                             Code = "members.view",
                             Name = "Members View"
                         },
                         new
                         {
-                            Id = 3,
-                            Code = "members.manage",
-                            Name = "Members Manage"
+                            Id = 8,
+                            Code = "members.list",
+                            Name = "Members List"
                         },
                         new
                         {
-                            Id = 4,
+                            Id = 9,
+                            Code = "members.create",
+                            Name = "Members Create"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Code = "members.edit",
+                            Name = "Members Edit"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Code = "members.update",
+                            Name = "Members Update"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Code = "members.delete",
+                            Name = "Members Delete"
+                        },
+                        new
+                        {
+                            Id = 13,
                             Code = "seats.view",
                             Name = "Seats View"
                         },
                         new
                         {
-                            Id = 5,
-                            Code = "seats.manage",
-                            Name = "Seats Manage"
+                            Id = 14,
+                            Code = "seats.list",
+                            Name = "Seats List"
                         },
                         new
                         {
-                            Id = 6,
+                            Id = 15,
+                            Code = "seats.create",
+                            Name = "Seats Create"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Code = "seats.edit",
+                            Name = "Seats Edit"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Code = "seats.update",
+                            Name = "Seats Update"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Code = "seats.delete",
+                            Name = "Seats Delete"
+                        },
+                        new
+                        {
+                            Id = 19,
                             Code = "attendance.view",
                             Name = "Attendance View"
                         },
                         new
                         {
-                            Id = 7,
-                            Code = "attendance.manage",
-                            Name = "Attendance Manage"
+                            Id = 20,
+                            Code = "attendance.list",
+                            Name = "Attendance List"
                         },
                         new
                         {
-                            Id = 8,
-                            Code = "attendance.scanner.use",
-                            Name = "Attendance Scanner Use"
+                            Id = 21,
+                            Code = "attendance.create",
+                            Name = "Attendance Create"
                         },
                         new
                         {
-                            Id = 9,
-                            Code = "institutions.manage",
-                            Name = "Institutions Manage"
+                            Id = 22,
+                            Code = "attendance.edit",
+                            Name = "Attendance Edit"
                         },
                         new
                         {
-                            Id = 10,
-                            Code = "branches.manage",
-                            Name = "Branches Manage"
+                            Id = 23,
+                            Code = "attendance.update",
+                            Name = "Attendance Update"
                         },
                         new
                         {
-                            Id = 11,
-                            Code = "libraries.manage",
-                            Name = "Libraries Manage"
+                            Id = 24,
+                            Code = "attendance.delete",
+                            Name = "Attendance Delete"
                         },
                         new
                         {
-                            Id = 12,
+                            Id = 25,
+                            Code = "institutions.view",
+                            Name = "Institutions View"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Code = "institutions.list",
+                            Name = "Institutions List"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Code = "institutions.create",
+                            Name = "Institutions Create"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Code = "institutions.edit",
+                            Name = "Institutions Edit"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Code = "institutions.update",
+                            Name = "Institutions Update"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Code = "institutions.delete",
+                            Name = "Institutions Delete"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Code = "branches.view",
+                            Name = "Branches View"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Code = "branches.list",
+                            Name = "Branches List"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Code = "branches.create",
+                            Name = "Branches Create"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Code = "branches.edit",
+                            Name = "Branches Edit"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Code = "branches.update",
+                            Name = "Branches Update"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Code = "branches.delete",
+                            Name = "Branches Delete"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Code = "libraries.view",
+                            Name = "Libraries View"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            Code = "libraries.list",
+                            Name = "Libraries List"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            Code = "libraries.create",
+                            Name = "Libraries Create"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Code = "libraries.edit",
+                            Name = "Libraries Edit"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Code = "libraries.update",
+                            Name = "Libraries Update"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Code = "libraries.delete",
+                            Name = "Libraries Delete"
+                        },
+                        new
+                        {
+                            Id = 43,
                             Code = "subscriptions.view",
                             Name = "Subscriptions View"
                         },
                         new
                         {
-                            Id = 13,
-                            Code = "subscriptions.manage",
-                            Name = "Subscriptions Manage"
+                            Id = 44,
+                            Code = "subscriptions.list",
+                            Name = "Subscriptions List"
                         },
                         new
                         {
-                            Id = 14,
+                            Id = 45,
+                            Code = "subscriptions.create",
+                            Name = "Subscriptions Create"
+                        },
+                        new
+                        {
+                            Id = 46,
+                            Code = "subscriptions.edit",
+                            Name = "Subscriptions Edit"
+                        },
+                        new
+                        {
+                            Id = 47,
+                            Code = "subscriptions.update",
+                            Name = "Subscriptions Update"
+                        },
+                        new
+                        {
+                            Id = 48,
+                            Code = "subscriptions.delete",
+                            Name = "Subscriptions Delete"
+                        },
+                        new
+                        {
+                            Id = 49,
                             Code = "payments.view",
                             Name = "Payments View"
                         },
                         new
                         {
-                            Id = 15,
+                            Id = 50,
+                            Code = "payments.list",
+                            Name = "Payments List"
+                        },
+                        new
+                        {
+                            Id = 51,
+                            Code = "payments.create",
+                            Name = "Payments Create"
+                        },
+                        new
+                        {
+                            Id = 52,
+                            Code = "payments.edit",
+                            Name = "Payments Edit"
+                        },
+                        new
+                        {
+                            Id = 53,
+                            Code = "payments.update",
+                            Name = "Payments Update"
+                        },
+                        new
+                        {
+                            Id = 54,
+                            Code = "payments.delete",
+                            Name = "Payments Delete"
+                        },
+                        new
+                        {
+                            Id = 55,
                             Code = "books.view",
                             Name = "Books View"
                         },
                         new
                         {
-                            Id = 16,
-                            Code = "books.manage",
-                            Name = "Books Manage"
+                            Id = 56,
+                            Code = "books.list",
+                            Name = "Books List"
                         },
                         new
                         {
-                            Id = 17,
-                            Code = "inventory.manage",
-                            Name = "Inventory Manage"
+                            Id = 57,
+                            Code = "books.create",
+                            Name = "Books Create"
                         },
                         new
                         {
-                            Id = 18,
-                            Code = "users.manage",
-                            Name = "Users Manage"
+                            Id = 58,
+                            Code = "books.edit",
+                            Name = "Books Edit"
                         },
                         new
                         {
-                            Id = 19,
-                            Code = "roles.manage",
-                            Name = "Roles Manage"
+                            Id = 59,
+                            Code = "books.update",
+                            Name = "Books Update"
                         },
                         new
                         {
-                            Id = 20,
+                            Id = 60,
+                            Code = "books.delete",
+                            Name = "Books Delete"
+                        },
+                        new
+                        {
+                            Id = 61,
+                            Code = "inventory.view",
+                            Name = "Inventory View"
+                        },
+                        new
+                        {
+                            Id = 62,
+                            Code = "inventory.list",
+                            Name = "Inventory List"
+                        },
+                        new
+                        {
+                            Id = 63,
+                            Code = "inventory.create",
+                            Name = "Inventory Create"
+                        },
+                        new
+                        {
+                            Id = 64,
+                            Code = "inventory.edit",
+                            Name = "Inventory Edit"
+                        },
+                        new
+                        {
+                            Id = 65,
+                            Code = "inventory.update",
+                            Name = "Inventory Update"
+                        },
+                        new
+                        {
+                            Id = 66,
+                            Code = "inventory.delete",
+                            Name = "Inventory Delete"
+                        },
+                        new
+                        {
+                            Id = 67,
+                            Code = "users.view",
+                            Name = "Users View"
+                        },
+                        new
+                        {
+                            Id = 68,
+                            Code = "users.list",
+                            Name = "Users List"
+                        },
+                        new
+                        {
+                            Id = 69,
+                            Code = "users.create",
+                            Name = "Users Create"
+                        },
+                        new
+                        {
+                            Id = 70,
+                            Code = "users.edit",
+                            Name = "Users Edit"
+                        },
+                        new
+                        {
+                            Id = 71,
+                            Code = "users.update",
+                            Name = "Users Update"
+                        },
+                        new
+                        {
+                            Id = 72,
+                            Code = "users.delete",
+                            Name = "Users Delete"
+                        },
+                        new
+                        {
+                            Id = 73,
+                            Code = "roles.view",
+                            Name = "Roles View"
+                        },
+                        new
+                        {
+                            Id = 74,
+                            Code = "roles.list",
+                            Name = "Roles List"
+                        },
+                        new
+                        {
+                            Id = 75,
+                            Code = "roles.create",
+                            Name = "Roles Create"
+                        },
+                        new
+                        {
+                            Id = 76,
+                            Code = "roles.edit",
+                            Name = "Roles Edit"
+                        },
+                        new
+                        {
+                            Id = 77,
+                            Code = "roles.update",
+                            Name = "Roles Update"
+                        },
+                        new
+                        {
+                            Id = 78,
+                            Code = "roles.delete",
+                            Name = "Roles Delete"
+                        },
+                        new
+                        {
+                            Id = 79,
                             Code = "reports.view",
                             Name = "Reports View"
                         },
                         new
                         {
-                            Id = 21,
-                            Code = "notifications.manage",
-                            Name = "Notifications Manage"
+                            Id = 80,
+                            Code = "reports.list",
+                            Name = "Reports List"
                         },
                         new
                         {
-                            Id = 22,
+                            Id = 81,
+                            Code = "reports.create",
+                            Name = "Reports Create"
+                        },
+                        new
+                        {
+                            Id = 82,
+                            Code = "reports.edit",
+                            Name = "Reports Edit"
+                        },
+                        new
+                        {
+                            Id = 83,
+                            Code = "reports.update",
+                            Name = "Reports Update"
+                        },
+                        new
+                        {
+                            Id = 84,
+                            Code = "reports.delete",
+                            Name = "Reports Delete"
+                        },
+                        new
+                        {
+                            Id = 85,
+                            Code = "notifications.view",
+                            Name = "Notifications View"
+                        },
+                        new
+                        {
+                            Id = 86,
+                            Code = "notifications.list",
+                            Name = "Notifications List"
+                        },
+                        new
+                        {
+                            Id = 87,
+                            Code = "notifications.create",
+                            Name = "Notifications Create"
+                        },
+                        new
+                        {
+                            Id = 88,
+                            Code = "notifications.edit",
+                            Name = "Notifications Edit"
+                        },
+                        new
+                        {
+                            Id = 89,
+                            Code = "notifications.update",
+                            Name = "Notifications Update"
+                        },
+                        new
+                        {
+                            Id = 90,
+                            Code = "notifications.delete",
+                            Name = "Notifications Delete"
+                        },
+                        new
+                        {
+                            Id = 91,
                             Code = "profile.view",
                             Name = "Profile View"
                         },
                         new
                         {
-                            Id = 23,
-                            Code = "settings.manage",
-                            Name = "Settings Manage"
+                            Id = 92,
+                            Code = "profile.list",
+                            Name = "Profile List"
                         },
                         new
                         {
-                            Id = 24,
+                            Id = 93,
+                            Code = "profile.create",
+                            Name = "Profile Create"
+                        },
+                        new
+                        {
+                            Id = 94,
+                            Code = "profile.edit",
+                            Name = "Profile Edit"
+                        },
+                        new
+                        {
+                            Id = 95,
+                            Code = "profile.update",
+                            Name = "Profile Update"
+                        },
+                        new
+                        {
+                            Id = 96,
+                            Code = "profile.delete",
+                            Name = "Profile Delete"
+                        },
+                        new
+                        {
+                            Id = 97,
+                            Code = "settings.view",
+                            Name = "Settings View"
+                        },
+                        new
+                        {
+                            Id = 98,
+                            Code = "settings.list",
+                            Name = "Settings List"
+                        },
+                        new
+                        {
+                            Id = 99,
+                            Code = "settings.create",
+                            Name = "Settings Create"
+                        },
+                        new
+                        {
+                            Id = 100,
+                            Code = "settings.edit",
+                            Name = "Settings Edit"
+                        },
+                        new
+                        {
+                            Id = 101,
+                            Code = "settings.update",
+                            Name = "Settings Update"
+                        },
+                        new
+                        {
+                            Id = 102,
+                            Code = "settings.delete",
+                            Name = "Settings Delete"
+                        },
+                        new
+                        {
+                            Id = 103,
                             Code = "support.view",
                             Name = "Support View"
+                        },
+                        new
+                        {
+                            Id = 104,
+                            Code = "support.list",
+                            Name = "Support List"
+                        },
+                        new
+                        {
+                            Id = 105,
+                            Code = "support.create",
+                            Name = "Support Create"
+                        },
+                        new
+                        {
+                            Id = 106,
+                            Code = "support.edit",
+                            Name = "Support Edit"
+                        },
+                        new
+                        {
+                            Id = 107,
+                            Code = "support.update",
+                            Name = "Support Update"
+                        },
+                        new
+                        {
+                            Id = 108,
+                            Code = "support.delete",
+                            Name = "Support Delete"
+                        },
+                        new
+                        {
+                            Id = 109,
+                            Code = "attendance.scanner.use",
+                            Name = "Attendance Scanner Use"
                         });
                 });
 
@@ -1665,7 +2418,7 @@ namespace SLMS_API.Infrastructure.Data.Migrations
 
                     b.HasIndex("IncidentId");
 
-                    b.ToTable("SystemIncidentUpdates");
+                    b.ToTable("SystemIncidentUpdate");
                 });
 
             modelBuilder.Entity("SLMS_API.Domain.Entities.UserBranch", b =>
@@ -1774,6 +2527,69 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserLibraries");
+                });
+
+            modelBuilder.Entity("SLMS_API.Domain.Entities.UserNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BookLoanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("MemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("NotificationType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsRead", "CreatedAtUtc");
+
+                    b.ToTable("UserNotifications");
                 });
 
             modelBuilder.Entity("SLMS_API.Domain.Entities.UserPackage", b =>
@@ -1887,6 +2703,63 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SLMS_API.Domain.Entities.Book", b =>
+                {
+                    b.HasOne("SLMS_API.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SLMS_API.Domain.Entities.Institution", "Institution")
+                        .WithMany()
+                        .HasForeignKey("InstitutionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SLMS_API.Domain.Entities.Library", "Library")
+                        .WithMany()
+                        .HasForeignKey("LibraryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Institution");
+
+                    b.Navigation("Library");
+                });
+
+            modelBuilder.Entity("SLMS_API.Domain.Entities.BookAuditEntry", b =>
+                {
+                    b.HasOne("SLMS_API.Domain.Entities.Book", "Book")
+                        .WithMany("AuditEntries")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+                });
+
+            modelBuilder.Entity("SLMS_API.Domain.Entities.BookLoan", b =>
+                {
+                    b.HasOne("SLMS_API.Domain.Entities.Book", "Book")
+                        .WithMany("Loans")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SLMS_API.Domain.Entities.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("Member");
                 });
 
             modelBuilder.Entity("SLMS_API.Domain.Entities.Branch", b =>
@@ -2271,6 +3144,13 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.Navigation("UserLibraries");
 
                     b.Navigation("UserPackages");
+                });
+
+            modelBuilder.Entity("SLMS_API.Domain.Entities.Book", b =>
+                {
+                    b.Navigation("AuditEntries");
+
+                    b.Navigation("Loans");
                 });
 
             modelBuilder.Entity("SLMS_API.Domain.Entities.Branch", b =>

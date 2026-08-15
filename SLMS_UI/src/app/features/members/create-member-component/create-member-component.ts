@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, input, signal, WritableSignal } from '@angular/core';
+import { Component, DestroyRef, inject, input, OnDestroy, signal, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,6 +11,7 @@ import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page
 import { MemberService } from '../MemberService';
 import { CreateMemberRequest } from '@core/models/MemberRequest';
 import { CommonService } from '@core/services/common.service';
+import { switchMap, of } from 'rxjs';
 
 
 
@@ -21,7 +22,7 @@ import { CommonService } from '@core/services/common.service';
   styleUrl: './create-member-component.css',
   providers: [InstitutionsService, MemberService]
 })
-export class CreateMemberComponent {
+export class CreateMemberComponent implements OnDestroy {
   private readonly institutionsService = inject(InstitutionsService);
   private readonly memberService = inject(MemberService);
   readonly commonService = inject(CommonService);
@@ -51,6 +52,8 @@ export class CreateMemberComponent {
     return this.memberForm.controls;
   }
   readonly busy = signal(false);
+  readonly photoFile = signal<File | null>(null);
+  readonly photoPreview = signal<string | null>(null);
 
   institutions: WritableSignal<InstitutionDropdownResponse[]> = signal([]);
   branches: WritableSignal<BranchDropdownResponse[]> = signal([]);
@@ -115,6 +118,42 @@ export class CreateMemberComponent {
     this.memberForm.get('planId')?.enable();
   }
 
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      this.toast.error('Please select an image file (JPG, PNG, or WEBP).');
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      this.toast.error('Photo must be 5 MB or smaller.');
+      input.value = '';
+      return;
+    }
+
+    const previous = this.photoPreview();
+    if (previous) URL.revokeObjectURL(previous);
+
+    this.photoFile.set(file);
+    this.photoPreview.set(URL.createObjectURL(file));
+  }
+
+  clearPhoto(): void {
+    const previous = this.photoPreview();
+    if (previous) URL.revokeObjectURL(previous);
+    this.photoFile.set(null);
+    this.photoPreview.set(null);
+  }
+
+  ngOnDestroy(): void {
+    const previous = this.photoPreview();
+    if (previous) URL.revokeObjectURL(previous);
+  }
+
   async onSubmit(): Promise<void> {
     if (this.memberForm.invalid) {
       this.memberForm.markAllAsTouched();
@@ -133,14 +172,31 @@ export class CreateMemberComponent {
       shift: formValue.shift,
     }
 
-    this.memberService.createMember(formValue.institutionId, formValue.branchId, formValue.libraryId, request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (response) => {
+    this.memberService.createMember(formValue.institutionId, formValue.branchId, formValue.libraryId, request).pipe(
+      switchMap((response) => {
+        const memberId = response.data?.id;
+        const photo = this.photoFile();
+        if (memberId && photo) {
+          return this.memberService.uploadPhoto(memberId, photo).pipe(
+            switchMap(() => of(response)),
+          );
+        }
+        return of(response);
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
         this.toast.success('Member created successfully.');
         this.router.navigate(['/members']);
         this.loader.set(false);
       },
       error: (error) => {
-        this.toast.error(error.error.message || 'Unable to create member. Please try again.');
+        const message = error?.error?.message;
+        if (message?.toLowerCase().includes('photo')) {
+          this.toast.error(message);
+        } else {
+          this.toast.error(message || 'Unable to create member. Please try again.');
+        }
         this.loader.set(false);
       }
     });

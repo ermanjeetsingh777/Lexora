@@ -1,3 +1,4 @@
+using SLMS_API.Common.Enums;
 using SLMS_API.Domain.Entities;
 
 namespace SLMS_API.Application.Helpers;
@@ -35,6 +36,25 @@ public static class InstitutionUiHelper
     }
 
     public static string ToStatusLabel(bool isActive) => isActive ? "Active" : "Inactive";
+
+    public static string ToLibraryStatusLabel(InstitutionStatus status, bool isActive)
+    {
+        if (!isActive)
+        {
+            return "Closed";
+        }
+
+        return status switch
+        {
+            InstitutionStatus.Active => "Active",
+            InstitutionStatus.Maintenance => "Maintenance",
+            InstitutionStatus.Closed => "Closed",
+            InstitutionStatus.Inactive => "Closed",
+            InstitutionStatus.Suspended => "Maintenance",
+            InstitutionStatus.Pending => "Maintenance",
+            _ => "Active"
+        };
+    }
 
     public static string ToHealthStatus(bool isActive, int branchCount) =>
         isActive && branchCount > 0 ? "Healthy" : isActive ? "Needs Attention" : "Inactive";

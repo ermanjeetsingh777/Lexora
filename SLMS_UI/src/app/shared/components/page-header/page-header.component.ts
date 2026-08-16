@@ -11,7 +11,7 @@ import { RouterLink } from '@angular/router';
         @if (eyebrow()) {
           <p class="label-mono flex items-center gap-1.5">
             @if (isBack()) {
-              <app-icon class='table-cursor' name="arrow-left" [size]="14" [routerLink]="routerLink()"></app-icon>
+              <app-icon class='table-cursor cursorPointer' name="arrow-left" [size]="14" [routerLink]="routerLink()"></app-icon>
             }
             {{ eyebrow() }}
           </p>

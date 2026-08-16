@@ -16,6 +16,9 @@ app-root {
 .cursorPointer {
     cursor: pointer;
 }
+.table-cursor{
+    cursor: pointer; 
+}
 
 .text-warning-foreground {
     color: var(--warning-foreground);

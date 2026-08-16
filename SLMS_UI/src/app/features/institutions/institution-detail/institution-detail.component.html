@@ -1,45 +1,122 @@
 @if (loading()) {
   <p class="py-16 text-center text-sm text-muted-foreground">Loading institution…</p>
 } @else if (error()) {
-  <app-page-header title="Institution" [description]="error()!" />
-  <app-glass-card class="p-8 text-center block">
+  <app-page-header [isBack]="true" eyebrow="Institutions" title="Institution" [description]="error()!" />
+  <app-glass-card class="text-center block">
     <p class="text-sm text-muted-foreground">{{ error() }}</p>
     <a routerLink="/institutions" class="inline-block mt-4 text-sm text-primary hover:underline">Back to institutions</a>
   </app-glass-card>
 } @else if (institution(); as inst) {
-  <a routerLink="/institutions" class="inline-flex items-center label-mono text-muted-foreground hover:text-foreground mb-3 text-xs">
-    <svg lucideArrowLeft class="h-3 w-3 mr-1"></svg> Institutions
-  </a>
+  <app-page-header [isBack]="true" routerLink="/institutions"
+  eyebrow="Institutions"
+  [title]="inst.name"
+  [description]="subtitle() || '—'"
+>
+</app-page-header>
 
-  <app-page-header
-    title="{{ inst.name }}"
-    [description]="subtitle()"
-  >
-    <div actions class="flex gap-2">
-      <app-button size="sm" variant="outline" (click)="setTab('settings')">
-        <svg lucideSettings class="h-4 w-4 mr-1.5"></svg> Settings
-      </app-button>
-      <app-button size="sm" (click)="refresh()">
-        <svg lucideRefreshCw class="h-4 w-4 mr-1.5"></svg> Refresh
-      </app-button>
-    </div>
-  </app-page-header>
 
-  <!-- Tabs -->
-  <div class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1 mb-5 w-full overflow-x-auto">
-    @for (t of tabs; track t.id) {
-      <button
-        type="button"
-        class="flex-1 min-w-[5.5rem] px-3 py-1.5 text-sm rounded-md whitespace-nowrap transition"
-        [class.bg-background]="tab() === t.id"
-        [class.shadow-sm]="tab() === t.id"
-        [class.text-muted-foreground]="tab() !== t.id"
-        (click)="setTab(t.id)"
-      >
-        {{ t.label }}
-      </button>
-    }
+
+  <div class="inst-detail-tab-nav">
+    <p-selectbutton
+      [options]="tabs"
+      [ngModel]="tab()"
+      (ngModelChange)="setTab($event)"
+      optionLabel="label"
+      optionValue="id"
+      size="small"
+      aria-label="Institution sections"
+    />
   </div>
+
+  @if (showSummaryCards() && overview(); as ov) {
+    <section class="inst-kpi-section mb-4" aria-label="Institution summary">
+      <article class="inst-stat-kpi inst-stat-kpi--portfolio animate-fade-up">
+        <div class="inst-stat-kpi__accent" aria-hidden="true"></div>
+        <div class="inst-stat-kpi__grid-bg blueprint-grid-sm" aria-hidden="true"></div>
+        <div class="inst-stat-kpi__glow inst-stat-kpi__glow--portfolio" aria-hidden="true"></div>
+
+        <div class="inst-stat-kpi__head">
+          <div class="min-w-0 flex-1">
+            <p class="label-mono">Institution overview</p>
+            <div class="inst-stat-kpi__hero">
+              <p class="inst-stat-kpi__value">{{ ov.activeBranchCount }}</p>
+              <p class="inst-stat-kpi__unit">active branches on campus</p>
+            </div>
+            <div class="inst-stat-kpi__meta">
+              <span class="inst-stat-kpi__delta inst-stat-kpi__delta--neutral">
+                <svg lucideUsers class="h-3 w-3"></svg>
+                {{ ov.enrolledMemberCount.toLocaleString() }} members
+              </span>
+              <span
+                class="inst-stat-kpi__delta"
+                [class.inst-stat-kpi__delta--up]="institutionOccupancyTone() === 'high'"
+                [class.inst-stat-kpi__delta--mid]="institutionOccupancyTone() === 'mid'"
+                [class.inst-stat-kpi__delta--down]="institutionOccupancyTone() === 'low'"
+              >
+                {{ institutionOccupancy() }}% occupancy
+              </span>
+              <span class="inst-stat-kpi__hint">{{ institutionOccupancyLabel() }}</span>
+            </div>
+          </div>
+          <div class="inst-stat-kpi__icon inst-stat-kpi__icon--portfolio">
+            <svg lucideBuilding2 class="h-4 w-4"></svg>
+          </div>
+        </div>
+
+        <div class="inst-stat-kpi__grid">
+          @for (metric of institutionMetrics(); track metric.label) {
+            <div class="inst-stat-kpi__cell" [class.inst-stat-kpi__cell--highlight]="metric.highlight">
+              <span class="inst-stat-kpi__cell-label">{{ metric.label }}</span>
+              <span class="inst-stat-kpi__cell-value">{{ metric.value }}</span>
+            </div>
+          }
+        </div>
+      </article>
+
+      <article class="inst-stat-kpi inst-stat-kpi--revenue animate-fade-up" style="animation-delay: 80ms">
+        <div class="inst-stat-kpi__accent inst-stat-kpi__accent--revenue" aria-hidden="true"></div>
+        <div class="inst-stat-kpi__grid-bg blueprint-grid-sm" aria-hidden="true"></div>
+        <div class="inst-stat-kpi__glow inst-stat-kpi__glow--revenue" aria-hidden="true"></div>
+
+        <div class="inst-stat-kpi__head">
+          <div class="min-w-0 flex-1">
+            <p class="label-mono">Revenue MTD</p>
+            <div class="inst-stat-kpi__hero">
+              <p class="inst-stat-kpi__value">{{ revenueMtdLabel() }}</p>
+              <p class="inst-stat-kpi__unit">from member plan payments</p>
+            </div>
+            <div class="inst-stat-kpi__meta">
+              @if (revenueMtdDelta() !== undefined) {
+                <span
+                  class="inst-stat-kpi__delta"
+                  [class.inst-stat-kpi__delta--up]="(revenueMtdDelta() ?? 0) >= 0"
+                  [class.inst-stat-kpi__delta--down]="(revenueMtdDelta() ?? 0) < 0"
+                >
+                  {{ (revenueMtdDelta() ?? 0) >= 0 ? '▲' : '▼' }}
+                  {{ Math.abs(revenueMtdDelta()!).toFixed(1) }}%
+                </span>
+                <span class="inst-stat-kpi__hint">vs last month</span>
+              } @else {
+                <span class="inst-stat-kpi__hint">No revenue recorded last month</span>
+              }
+            </div>
+          </div>
+          <div class="inst-stat-kpi__icon inst-stat-kpi__icon--revenue">
+            <svg lucideIndianRupee class="h-4 w-4"></svg>
+          </div>
+        </div>
+
+        <div class="inst-stat-kpi__grid">
+          @for (period of revenuePeriods(); track period.label) {
+            <div class="inst-stat-kpi__cell" [class.inst-stat-kpi__cell--highlight]="period.highlight">
+              <span class="inst-stat-kpi__cell-label">{{ period.label }}</span>
+              <span class="inst-stat-kpi__cell-value">{{ period.value }}</span>
+            </div>
+          }
+        </div>
+      </article>
+    </section>
+  }
 
   <!-- Overview -->
   @if (tab() === 'overview') {
@@ -59,55 +136,60 @@
         </app-glass-card>
       } @else {
         <div class="space-y-4">
-          <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <app-kpi-card label="Branches" [value]="ov.activeBranchCount" hint="active">
-              <svg icon lucideBuilding2 class="h-4 w-4"></svg>
-            </app-kpi-card>
-            <app-kpi-card label="Libraries" [value]="ov.totalLibraryCount" hint="across branches">
-              <svg icon lucideLibrary class="h-4 w-4"></svg>
-            </app-kpi-card>
-            <app-kpi-card label="Members" [value]="ov.enrolledMemberCount.toLocaleString()" hint="enrolled">
-              <svg icon lucideUsers class="h-4 w-4"></svg>
-            </app-kpi-card>
-            <app-kpi-card label="Occupancy" [value]="ov.occupancyPercent + '%'" [hint]="ov.occupiedSeats + '/' + ov.totalSeats + ' seats'">
-              <svg icon lucideActivity class="h-4 w-4"></svg>
-            </app-kpi-card>
-          </section>
-
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <app-glass-card class="p-5 lg:col-span-2 block">
+            <app-glass-card class="lg:col-span-2 block">
               <app-section-header title="Revenue · 30 days" description="Daily revenue and renewals" />
-              <div class="mt-4 h-56 rounded-lg border border-dashed border-[var(--border)] bg-muted/20 flex items-center justify-center text-sm text-muted-foreground">
-                Chart coming soon — KPI counts are live from API
-              </div>
+              @if (ov.revenueTrend?.length) {
+                <div class="inst-detail-prime-chart inst-detail-prime-chart--line">
+                  <p-chart type="line" [data]="revenueChartData()" [options]="revenueChartOptions()" />
+                </div>
+              } @else {
+                <p class="inst-detail-trend__empty mt-4">No revenue data for the last 30 days.</p>
+              }
             </app-glass-card>
-            <app-glass-card class="p-5 block">
+            <app-glass-card class="block">
               <app-section-header title="Member mix" />
-              <div class="mt-4 space-y-3">
-                <div class="flex items-center justify-between text-sm">
-                  <span>Active</span>
-                  <span class="font-semibold tabular-nums">{{ ov.memberMix.active }}</span>
+              @if (hasMemberMixData()) {
+                <div class="inst-detail-mix-chart">
+                  <div class="inst-detail-prime-chart inst-detail-prime-chart--donut">
+                    <p-chart type="doughnut" [data]="memberMixChartData()" [options]="memberMixChartOptions()" />
+                  </div>
+                  <ul class="inst-detail-mix-legend">
+                    <li>
+                      <span class="inst-detail-mix-legend__swatch inst-detail-mix-legend__swatch--active"></span>
+                      <span>Active</span>
+                      <span class="tabular-nums font-semibold">{{ ov.memberMix.active }}</span>
+                    </li>
+                    <li>
+                      <span class="inst-detail-mix-legend__swatch inst-detail-mix-legend__swatch--inactive"></span>
+                      <span>Inactive</span>
+                      <span class="tabular-nums font-semibold">{{ ov.memberMix.inactive }}</span>
+                    </li>
+                    <li>
+                      <span class="inst-detail-mix-legend__swatch inst-detail-mix-legend__swatch--suspended"></span>
+                      <span>Suspended</span>
+                      <span class="tabular-nums font-semibold">{{ ov.memberMix.suspended }}</span>
+                    </li>
+                  </ul>
                 </div>
-                <div class="flex items-center justify-between text-sm">
-                  <span>Inactive</span>
-                  <span class="font-semibold tabular-nums">{{ ov.memberMix.inactive }}</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                  <span>Suspended</span>
-                  <span class="font-semibold tabular-nums">{{ ov.memberMix.suspended }}</span>
-                </div>
-              </div>
+              } @else {
+                <p class="inst-detail-trend__empty">No member data yet.</p>
+              }
             </app-glass-card>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <app-glass-card class="p-5 lg:col-span-2 block">
+            <app-glass-card class="lg:col-span-2 block">
               <app-section-header title="Occupancy trend · 30 days" description="Average daily occupancy across branches" />
-              <div class="mt-4 h-56 rounded-lg border border-dashed border-[var(--border)] bg-muted/20 flex items-center justify-center text-sm text-muted-foreground">
-                Trend chart coming soon
-              </div>
+              @if (ov.occupancyTrend?.length) {
+                <div class="inst-detail-prime-chart inst-detail-prime-chart--line">
+                  <p-chart type="line" [data]="occupancyChartData()" [options]="occupancyChartOptions()" />
+                </div>
+              } @else {
+                <p class="inst-detail-trend__empty mt-4">No occupancy data for the last 30 days.</p>
+              }
             </app-glass-card>
-            <app-glass-card class="p-5 block">
+            <app-glass-card class="block">
               <app-section-header title="Capacity utilization" />
               <div class="space-y-3 mt-2">
                 <div class="flex items-end justify-between">
@@ -115,12 +197,12 @@
                     <p class="text-3xl font-semibold tabular-nums">{{ ov.occupancyPercent }}%</p>
                     <p class="label-mono">{{ ov.occupiedSeats.toLocaleString() }} / {{ ov.totalSeats.toLocaleString() }} seats</p>
                   </div>
-                  <span class="text-xs rounded-md border px-2 py-0.5 font-medium" [class]="occupancyBadgeClass()">
+                  <span class="inst-detail-badge" [class]="occupancyBadgeClass()">
                     {{ occupancyLabel() }}
                   </span>
                 </div>
-                <div class="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
-                  <div class="h-full rounded-full bg-primary transition-all" [style.width.%]="ov.occupancyPercent"></div>
+                <div class="inst-detail-progress">
+                  <div class="inst-detail-progress__bar" [style.width.%]="ov.occupancyPercent"></div>
                 </div>
                 <div class="grid grid-cols-3 gap-2 pt-2 text-center">
                   <div>
@@ -140,8 +222,55 @@
             </app-glass-card>
           </div>
 
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <app-glass-card class="lg:col-span-2 block">
+              <app-section-header title="Attendance · 14 days" description="Present, late and absent" />
+              @if (ov.attendanceTrend?.length) {
+                <div class="inst-detail-prime-chart inst-detail-prime-chart--bar">
+                  <p-chart type="bar" [data]="attendanceChartData()" [options]="attendanceChartOptions()" />
+                </div>
+              } @else {
+                <p class="inst-detail-trend__empty mt-4">No attendance data for the last 14 days.</p>
+              }
+            </app-glass-card>
+            <app-glass-card class="block">
+              <app-section-header title="Weekly heatmap" description="Hourly occupancy" />
+              @if (hasHeatmap()) {
+                <div class="inst-detail-heatmap">
+                  <div class="inst-detail-heatmap__grid" [style.grid-template-columns]="'52px repeat(' + heatmap().hours.length + ', minmax(28px, 1fr))'">
+                    <div></div>
+                    @for (hour of heatmap().hours; track hour) {
+                      <div class="inst-detail-heatmap__hour">{{ hour }}</div>
+                    }
+                    @for (day of heatmap().days; track day) {
+                      <div class="inst-detail-heatmap__day">{{ day }}</div>
+                      @for (hour of heatmap().hours; track hour) {
+                        @let value = getHeatmapValue(heatmap().cells, day, hour);
+                        <div
+                          class="inst-detail-heatmap__cell"
+                          [style.background]="heatmapCellColor(value)"
+                          [attr.title]="day + ' ' + hour + ':00 — ' + value + '%'"
+                          [attr.aria-label]="day + ' ' + hour + ':00 occupancy ' + value + ' percent'"
+                        ></div>
+                      }
+                    }
+                  </div>
+                  <div class="inst-detail-heatmap__scale">
+                    <span>Less</span>
+                    @for (v of heatmapLegend; track v) {
+                      <span class="inst-detail-heatmap__scale-cell" [style.background]="heatmapCellColor(v)"></span>
+                    }
+                    <span>More</span>
+                  </div>
+                </div>
+              } @else {
+                <p class="inst-detail-trend__empty">No heatmap data yet.</p>
+              }
+            </app-glass-card>
+          </div>
+
           @if (ov.totalLibraryCount === 0) {
-            <app-glass-card class="p-5 border-dashed block">
+            <app-glass-card class="border-dashed block">
               <div class="flex items-center justify-between gap-4 flex-wrap">
                 <div class="flex items-start gap-3">
                   <svg lucideAlertTriangle class="h-4 w-4 text-warning mt-0.5 shrink-0"></svg>
@@ -154,6 +283,11 @@
               </div>
             </app-glass-card>
           }
+
+          <p class="inst-detail-footnote">
+            <svg lucideIndianRupee class="h-3 w-3"></svg>
+            Charts use live membership payments and attendance data from your institution.
+          </p>
         </div>
       }
     }
@@ -176,22 +310,8 @@
       </app-glass-card>
     } @else {
       <div class="space-y-4">
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <app-kpi-card label="Total branches" [value]="view.summary.totalBranches" hint="active">
-            <svg icon lucideBuilding2 class="h-4 w-4"></svg>
-          </app-kpi-card>
-          <app-kpi-card label="Total capacity" [value]="view.summary.totalCapacity.toLocaleString()" hint="seats">
-            <svg icon lucideUsers class="h-4 w-4"></svg>
-          </app-kpi-card>
-          <app-kpi-card label="Avg occupancy" [value]="view.summary.averageOccupancyPercent + '%'" hint="today">
-            <svg icon lucideActivity class="h-4 w-4"></svg>
-          </app-kpi-card>
-          <app-kpi-card label="Near capacity" [value]="view.summary.nearCapacityCount" hint="≥ 80% full">
-            <svg icon lucideAlertTriangle class="h-4 w-4"></svg>
-          </app-kpi-card>
-        </section>
 
-        <app-glass-card class="p-4 block">
+        <app-glass-card class="block">
           <div class="inst-filter-bar">
             <div class="inst-filter-search">
               <svg lucideSearch class="inst-filter-icon"></svg>
@@ -200,36 +320,28 @@
                 class="inst-filter-control w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-3 text-sm"
                 placeholder="Search by name, city or address…"
                 [ngModel]="branchQuery()"
-                (ngModelChange)="branchQuery.set($event)"
+                (ngModelChange)="onBranchQueryChange($event)"
               />
             </div>
-            <div class="flex flex-wrap gap-1.5">
-              @for (s of branchStatuses; track s) {
-                <button
-                  type="button"
-                  class="px-2.5 py-1 text-xs rounded-md border transition"
-                  [class.bg-primary]="branchStatus() === s"
-                  [class.text-primary-foreground]="branchStatus() === s"
-                  [class.border-primary]="branchStatus() === s"
-                  (click)="branchStatus.set(s)"
-                >
-                  {{ s === 'all' ? 'All' : s }}
-                </button>
-              }
-            </div>
-            <div class="flex flex-wrap gap-1.5">
-              @for (c of branchCaps; track c.value) {
-                <button
-                  type="button"
-                  class="px-2.5 py-1 text-xs rounded-md border transition"
-                  [class.bg-primary]="branchCap() === c.value"
-                  [class.text-primary-foreground]="branchCap() === c.value"
-                  [class.border-primary]="branchCap() === c.value"
-                  (click)="branchCap.set(c.value)"
-                >
-                  {{ c.label }}
-                </button>
-              }
+            <div class="flex flex-wrap items-center gap-2">
+              <select
+                class="inst-filter-select"
+                [ngModel]="branchStatus()"
+                (ngModelChange)="onBranchStatusChange($event)"
+              >
+                @for (s of branchStatuses; track s) {
+                  <option [value]="s">{{ s === 'all' ? 'All statuses' : s }}</option>
+                }
+              </select>
+              <select
+                class="inst-filter-select"
+                [ngModel]="branchCap()"
+                (ngModelChange)="onBranchCapChange($event)"
+              >
+                @for (c of branchCaps; track c.value) {
+                  <option [value]="c.value">{{ c.label }}</option>
+                }
+              </select>
             </div>
             <div class="inst-filter-count">
               <span class="tabular-nums text-xs text-muted-foreground">{{ filteredBranches().length }} / {{ view.branches.length }}</span>
@@ -243,7 +355,7 @@
         </app-glass-card>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <app-glass-card class="p-5 lg:col-span-2 block">
+          <app-glass-card class="inst-detail-branch-card lg:col-span-2 block">
             <app-section-header title="All branches" description="Live capacity and status">
               <div actions>
                 <a routerLink="/branches/create">
@@ -255,71 +367,134 @@
             </app-section-header>
 
             @if (!filteredBranches().length) {
-              <p class="py-10 text-center text-sm text-muted-foreground">No branches match your filters.</p>
+              <div class="inst-detail-inline-empty">
+                <div class="inst-detail-inline-empty__icon">
+                  <svg lucideSearch class="h-4 w-4"></svg>
+                </div>
+                <h4 class="inst-detail-inline-empty__title">No branches match your filters</h4>
+                <p class="inst-detail-inline-empty__desc">Try clearing search or filters to see all branches.</p>
+                <app-button size="sm" variant="outline" class="mt-2" (click)="clearBranchFilters()">Clear filters</app-button>
+              </div>
             } @else {
-              <div class="overflow-x-auto mt-3">
-                <table class="w-full text-sm">
+              <div class="overflow-x-auto">
+                <table class="inst-detail-branch-table w-full text-sm">
                   <thead>
-                    <tr class="text-left border-y label-mono">
-                      <th class="py-2 font-medium">Branch</th>
-                      <th class="font-medium">Contact</th>
-                      <th class="text-right font-medium">Capacity</th>
-                      <th class="font-medium">Occupancy</th>
-                      <th class="text-right font-medium">Libs</th>
-                      <th class="text-right font-medium">Members</th>
-                      <th class="font-medium">Status</th>
+                    <tr class="text-left border-y border-[var(--border)] label-mono">
+                      <th class="py-2 pr-4 font-medium">Branch</th>
+                      <th class="py-2 pr-4 font-medium">Contact</th>
+                      <th class="py-2 pr-4 text-right font-medium">Capacity</th>
+                      <th class="py-2 pr-4 font-medium min-w-[9rem]">Occupancy</th>
+                      <th class="py-2 pr-4 text-right font-medium">Libs</th>
+                      <th class="py-2 pr-4 text-right font-medium">Members</th>
+                      <th class="py-2 pr-4 font-medium">Status</th>
+                      <th class="py-2 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y">
-                    @for (b of filteredBranches(); track b.id) {
+                  <tbody class="divide-y divide-[var(--border)]">
+                    @for (b of pagedBranches(); track b.id) {
                       <tr class="hover:bg-muted/40">
-                        <td class="py-2.5">
-                          <div class="font-medium">{{ b.name }}</div>
-                          <div class="label-mono flex items-center gap-1 mt-0.5 text-muted-foreground">
-                            <svg lucideMapPin class="h-3 w-3"></svg>{{ b.city ?? '—' }}
+                        <td class="py-2.5 pr-4 align-middle">
+                          <a routerLink="/branches" class="font-medium hover:text-primary">{{ b.name }}</a>
+                          <div class="label-mono flex items-center gap-1 mt-0.5 text-[var(--muted-foreground)]">
+                            <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>{{ b.city ?? '—' }}
                           </div>
                         </td>
-                        <td class="text-muted-foreground text-xs">{{ b.contact ?? '—' }}</td>
-                        <td class="text-right tabular-nums">{{ b.capacity | number }}</td>
-                        <td class="min-w-[140px]">
+                        <td class="py-2.5 pr-4 align-middle text-[var(--muted-foreground)] text-xs whitespace-nowrap">
+                          {{ b.contact ?? '—' }}
+                        </td>
+                        <td class="py-2.5 pr-4 align-middle text-right tabular-nums whitespace-nowrap">
+                          {{ b.capacity | number }}
+                        </td>
+                        <td class="py-2.5 pr-4 align-middle min-w-[9rem]">
                           <div class="flex items-center gap-2">
-                            <div class="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
-                              <div class="h-full rounded-full bg-primary" [style.width.%]="b.occupancyPercent"></div>
+                            <div class="inst-detail-branch-occupancy__track flex-1">
+                              <div class="inst-detail-branch-occupancy__bar" [style.width.%]="b.occupancyPercent"></div>
                             </div>
-                            <span class="tabular-nums text-xs w-9 text-right">{{ b.occupancyPercent }}%</span>
+                            <span class="tabular-nums text-xs w-9 text-right shrink-0">{{ b.occupancyPercent }}%</span>
                           </div>
                         </td>
-                        <td class="text-right tabular-nums">{{ b.libraryCount }}</td>
-                        <td class="text-right tabular-nums">{{ b.memberCount }}</td>
-                        <td><app-status-badge [status]="b.status" /></td>
+                        <td class="py-2.5 pr-4 align-middle text-right tabular-nums whitespace-nowrap">
+                          {{ b.libraryCount }}
+                        </td>
+                        <td class="py-2.5 pr-4 align-middle text-right tabular-nums whitespace-nowrap">
+                          {{ b.memberCount }}
+                        </td>
+                        <td class="py-2.5 pr-4 align-middle whitespace-nowrap">
+                          <app-status-badge
+                            [status]="branchStatusLabel(b.status)"
+                            [variant]="branchStatusVariant(b.status)"
+                          />
+                        </td>
+                        <td class="py-2.5 align-middle text-right">
+                          <app-button variant="ghost" size="icon" [class]="'h-7 w-7'" title="Branch actions">
+                            <svg lucideMoreHorizontal class="h-4 w-4"></svg>
+                          </app-button>
+                        </td>
                       </tr>
                     }
                   </tbody>
                 </table>
               </div>
+              <div class="flex flex-wrap items-center justify-between gap-3 px-1 py-3 border-t border-[var(--border)]">
+                <div class="text-xs text-muted-foreground">
+                  Showing
+                  <span class="tabular-nums font-medium text-foreground">{{ branchPageStart() + 1 }}–{{ Math.min(branchPageStart() + branchPageSize(), filteredBranches().length) }}</span>
+                  of <span class="tabular-nums font-medium text-foreground">{{ filteredBranches().length }}</span>
+                </div>
+                <div class="flex items-center gap-3 ml-auto">
+                  <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>Rows</span>
+                    <select
+                      class="inst-filter-select inst-filter-select--compact"
+                      [ngModel]="branchPageSize()"
+                      (ngModelChange)="setBranchPageSize(+$event)"
+                    >
+                      @for (n of LIST_PAGE_SIZE_OPTS; track n) {
+                        <option [value]="n">{{ n }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="flex items-center gap-0.5">
+                    <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="branchCurrentPage() === 1" (click)="goToBranchPage(1)">
+                      <svg lucideChevronsLeft class="h-4 w-4"></svg>
+                    </app-button>
+                    <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="branchCurrentPage() === 1" (click)="goToBranchPage(branchCurrentPage() - 1)">
+                      <svg lucideChevronLeft class="h-4 w-4"></svg>
+                    </app-button>
+                    <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ branchCurrentPage() }} / {{ branchTotalPages() }}</span>
+                    <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="branchCurrentPage() === branchTotalPages()" (click)="goToBranchPage(branchCurrentPage() + 1)">
+                      <svg lucideChevronRight class="h-4 w-4"></svg>
+                    </app-button>
+                    <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="branchCurrentPage() === branchTotalPages()" (click)="goToBranchPage(branchTotalPages())">
+                      <svg lucideChevronsRight class="h-4 w-4"></svg>
+                    </app-button>
+                  </div>
+                </div>
+              </div>
             }
           </app-glass-card>
 
           <div class="space-y-4">
-            <app-glass-card class="p-5 block">
+            <app-glass-card class="inst-detail-branch-card block">
               <app-section-header title="Top performer" description="By occupancy" />
               @if (view.topPerformer; as top) {
                 <div class="space-y-3 mt-2">
-                  <div class="flex items-center justify-between">
-                    <div>
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
                       <p class="font-medium">{{ top.name }}</p>
+                      <p class="label-mono">{{ top.city ?? '—' }}</p>
                     </div>
-                    <span class="text-xs rounded-md border px-2 py-0.5 inline-flex items-center gap-1">
+                    <span class="inst-detail-performer-badge">
                       <svg lucideArrowUpRight class="h-3 w-3"></svg>{{ top.occupancyPercent }}%
                     </span>
                   </div>
-                  <div class="h-1.5 rounded-full bg-muted/60 overflow-hidden">
-                    <div class="h-full rounded-full bg-primary" [style.width.%]="top.occupancyPercent"></div>
+                  <div class="inst-detail-progress">
+                    <div class="inst-detail-progress__bar" [style.width.%]="top.occupancyPercent"></div>
                   </div>
                   <div class="grid grid-cols-3 gap-2 pt-1 text-center">
                     <div><p class="text-sm font-semibold tabular-nums">{{ top.memberCount }}</p><p class="label-mono">Members</p></div>
                     <div><p class="text-sm font-semibold tabular-nums">{{ top.libraryCount }}</p><p class="label-mono">Libraries</p></div>
-                    <div><p class="text-sm font-semibold tabular-nums">{{ top.capacity }}</p><p class="label-mono">Seats</p></div>
+                    <div><p class="text-sm font-semibold tabular-nums">{{ top.capacity | number }}</p><p class="label-mono">Seats</p></div>
                   </div>
                 </div>
               } @else {
@@ -327,19 +502,19 @@
               }
             </app-glass-card>
 
-            <app-glass-card class="p-5 block">
+            <app-glass-card class="inst-detail-branch-card block">
               <app-section-header title="Needs attention" description="Lowest occupancy" />
-              <ul class="space-y-2 mt-2">
+              <ul class="inst-detail-attention-list">
                 @for (b of view.needsAttention; track b.branchId) {
-                  <li class="flex items-center justify-between text-sm">
-                    <div>
+                  <li>
+                    <div class="min-w-0">
                       <p class="font-medium">{{ b.name }}</p>
-                      <p class="label-mono text-muted-foreground">{{ b.memberCount }} members</p>
+                      <p class="label-mono">{{ b.city ?? '—' }}</p>
                     </div>
-                    <span class="tabular-nums text-xs">{{ b.occupancyPercent }}%</span>
+                    <span class="inst-detail-attention-badge tabular-nums">{{ b.occupancyPercent }}%</span>
                   </li>
                 } @empty {
-                  <li class="text-sm text-muted-foreground">All branches performing well.</li>
+                  <li class="text-sm text-muted-foreground">All branches healthy.</li>
                 }
               </ul>
             </app-glass-card>
@@ -351,7 +526,7 @@
 
   <!-- Libraries -->
   @if (tab() === 'libraries') {
-    @if (!libraryRows().length) {
+    @if (!allLibraries().length) {
       <app-glass-card class="p-10 text-center block">
         <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
           <svg lucideLibrary class="h-5 w-5 text-muted-foreground"></svg>
@@ -366,23 +541,63 @@
       </app-glass-card>
     } @else {
       <div class="space-y-4">
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <app-kpi-card label="Branches w/ libs" [value]="libraryRows().length" hint="with libraries">
-            <svg icon lucideLibrary class="h-4 w-4"></svg>
-          </app-kpi-card>
-          <app-kpi-card label="Total libraries" [value]="overview()?.totalLibraryCount ?? 0" hint="across branches">
-            <svg icon lucideBuilding2 class="h-4 w-4"></svg>
-          </app-kpi-card>
-          <app-kpi-card label="Members" [value]="(overview()?.enrolledMemberCount ?? 0).toLocaleString()" hint="enrolled">
-            <svg icon lucideUsers class="h-4 w-4"></svg>
-          </app-kpi-card>
-          <app-kpi-card label="Avg occupancy" [value]="(overview()?.occupancyPercent ?? 0) + '%'" hint="institution">
-            <svg icon lucideActivity class="h-4 w-4"></svg>
-          </app-kpi-card>
-        </section>
+        <app-glass-card class="block">
+          <div class="inst-filter-bar">
+            <div class="inst-filter-search">
+              <svg lucideSearch class="inst-filter-icon"></svg>
+              <input
+                type="search"
+                class="inst-filter-control w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-3 text-sm"
+                placeholder="Search library, branch, city…"
+                [ngModel]="libraryQuery()"
+                (ngModelChange)="onLibraryQueryChange($event)"
+              />
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <select
+                class="inst-filter-select"
+                [ngModel]="libraryStatus()"
+                (ngModelChange)="onLibraryStatusChange($event)"
+              >
+                @for (s of libraryStatuses; track s) {
+                  <option [value]="s">{{ s === 'all' ? 'All statuses' : s }}</option>
+                }
+              </select>
+              <select
+                class="inst-filter-select inst-filter-select--wide"
+                [ngModel]="libraryBranch()"
+                (ngModelChange)="onLibraryBranchChange($event)"
+              >
+                <option value="all">All branches</option>
+                @for (b of libraryBranchOptions(); track b.id) {
+                  <option [value]="b.id">{{ b.name }}</option>
+                }
+              </select>
+              <select
+                class="inst-filter-select"
+                [ngModel]="libraryOcc()"
+                (ngModelChange)="onLibraryOccChange($event)"
+              >
+                @for (o of libraryOccFilters; track o.value) {
+                  <option [value]="o.value">{{ o.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="inst-filter-count">
+              <span class="tabular-nums text-xs text-muted-foreground">
+                {{ filteredLibraries().length }} / {{ allLibraries().length }}
+              </span>
+              @if (hasLibraryFilters()) {
+                <app-button size="sm" variant="ghost" class="h-7 px-2 text-xs" (click)="clearLibraryFilters()">
+                  <svg lucideX class="h-3 w-3 mr-1"></svg> Clear
+                </app-button>
+              }
+            </div>
+          </div>
+        </app-glass-card>
 
-        <app-glass-card class="p-5 block">
-          <app-section-header title="Libraries by branch" description="Library counts per branch location">
+        <app-glass-card class="inst-detail-branch-card block">
+          <app-section-header title="All libraries" description="Live occupancy and status across branches">
             <div actions>
               <a routerLink="/libraries/create">
                 <app-button size="sm">
@@ -391,34 +606,113 @@
               </a>
             </div>
           </app-section-header>
-          <div class="overflow-x-auto mt-3">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left border-b label-mono">
-                  <th class="py-2 font-medium">Branch</th>
-                  <th class="font-medium">City</th>
-                  <th class="text-right font-medium">Libraries</th>
-                  <th class="text-right font-medium">Members</th>
-                  <th class="text-right font-medium">Capacity</th>
-                  <th class="font-medium">Occupancy</th>
-                  <th class="font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                @for (row of libraryRows(); track row.branchId) {
-                  <tr class="hover:bg-muted/40">
-                    <td class="py-2.5 font-medium">{{ row.branchName }}</td>
-                    <td class="text-muted-foreground">{{ row.city ?? '—' }}</td>
-                    <td class="text-right tabular-nums">{{ row.libraryCount }}</td>
-                    <td class="text-right tabular-nums">{{ row.memberCount }}</td>
-                    <td class="text-right tabular-nums">{{ row.capacity }}</td>
-                    <td class="tabular-nums">{{ row.occupancyPercent }}%</td>
-                    <td><app-status-badge [status]="row.status" /></td>
+
+          @if (!filteredLibraries().length) {
+            <div class="inst-detail-inline-empty">
+              <div class="inst-detail-inline-empty__icon">
+                <svg lucideSearch class="h-4 w-4"></svg>
+              </div>
+              <h4 class="inst-detail-inline-empty__title">No libraries match your filters</h4>
+              <p class="inst-detail-inline-empty__desc">Try clearing search or filters to see all libraries.</p>
+              <app-button size="sm" variant="outline" class="mt-2" (click)="clearLibraryFilters()">Clear filters</app-button>
+            </div>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="inst-detail-branch-table w-full text-sm">
+                <thead>
+                  <tr class="text-left border-y border-[var(--border)] label-mono">
+                    <th class="py-2 pr-4 font-medium">Library</th>
+                    <th class="py-2 pr-4 font-medium">Branch</th>
+                    <th class="py-2 pr-4 text-right font-medium">Capacity</th>
+                    <th class="py-2 pr-4 font-medium min-w-[9rem]">Occupancy</th>
+                    <th class="py-2 pr-4 text-right font-medium">Members</th>
+                    <th class="py-2 pr-4 font-medium">Status</th>
+                    <th class="py-2 w-10"></th>
                   </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody class="divide-y divide-[var(--border)]">
+                  @for (lib of pagedLibraries(); track lib.id) {
+                    <tr class="hover:bg-muted/40">
+                      <td class="py-2.5 pr-4 align-middle">
+                        <a routerLink="/libraries" class="font-medium hover:text-primary">{{ lib.name }}</a>
+                        <div class="label-mono flex items-center gap-1 mt-0.5 text-[var(--muted-foreground)]">
+                          <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>
+                          {{ lib.city ?? '—' }}
+                          @if (lib.floor != null) {
+                            <span>· Floor {{ lib.floor }}</span>
+                          }
+                        </div>
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle text-[var(--muted-foreground)]">
+                        {{ lib.branchName }}
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle text-right tabular-nums whitespace-nowrap">
+                        {{ lib.capacity | number }}
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle min-w-[9rem]">
+                        <div class="flex items-center gap-2">
+                          <div class="inst-detail-branch-occupancy__track flex-1">
+                            <div class="inst-detail-branch-occupancy__bar" [style.width.%]="lib.occupancyPercent"></div>
+                          </div>
+                          <span class="tabular-nums text-xs w-9 text-right shrink-0">{{ lib.occupancyPercent }}%</span>
+                        </div>
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle text-right tabular-nums whitespace-nowrap">
+                        {{ lib.memberCount }}
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle whitespace-nowrap">
+                        <app-status-badge
+                          [status]="lib.status"
+                          [variant]="libraryStatusVariant(lib.status)"
+                        />
+                      </td>
+                      <td class="py-2.5 align-middle text-right">
+                        <app-button variant="ghost" size="icon" [class]="'h-7 w-7'" title="Library actions">
+                          <svg lucideMoreHorizontal class="h-4 w-4"></svg>
+                        </app-button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 px-1 py-3 border-t border-[var(--border)]">
+              <div class="text-xs text-muted-foreground">
+                Showing
+                <span class="tabular-nums font-medium text-foreground">{{ libraryPageStart() + 1 }}–{{ Math.min(libraryPageStart() + libraryPageSize(), filteredLibraries().length) }}</span>
+                of <span class="tabular-nums font-medium text-foreground">{{ filteredLibraries().length }}</span>
+              </div>
+              <div class="flex items-center gap-3 ml-auto">
+                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>Rows</span>
+                  <select
+                    class="inst-filter-select inst-filter-select--compact"
+                    [ngModel]="libraryPageSize()"
+                    (ngModelChange)="setLibraryPageSize(+$event)"
+                  >
+                    @for (n of LIST_PAGE_SIZE_OPTS; track n) {
+                      <option [value]="n">{{ n }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="flex items-center gap-0.5">
+                  <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="libraryCurrentPage() === 1" (click)="goToLibraryPage(1)">
+                    <svg lucideChevronsLeft class="h-4 w-4"></svg>
+                  </app-button>
+                  <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="libraryCurrentPage() === 1" (click)="goToLibraryPage(libraryCurrentPage() - 1)">
+                    <svg lucideChevronLeft class="h-4 w-4"></svg>
+                  </app-button>
+                  <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ libraryCurrentPage() }} / {{ libraryTotalPages() }}</span>
+                  <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="libraryCurrentPage() === libraryTotalPages()" (click)="goToLibraryPage(libraryCurrentPage() + 1)">
+                    <svg lucideChevronRight class="h-4 w-4"></svg>
+                  </app-button>
+                  <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="libraryCurrentPage() === libraryTotalPages()" (click)="goToLibraryPage(libraryTotalPages())">
+                    <svg lucideChevronsRight class="h-4 w-4"></svg>
+                  </app-button>
+                </div>
+              </div>
+            </div>
+          }
         </app-glass-card>
       </div>
     }
@@ -426,51 +720,171 @@
 
   <!-- Billing -->
   @if (tab() === 'billing') {
-    <div class="space-y-4">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <app-glass-card class="p-5 lg:col-span-2 block">
-          <app-section-header title="Subscription" description="Current plan & status">
-            <div actions>
-              <app-button size="sm" variant="outline">Change plan</app-button>
+    @if (billing(); as bill) {
+      <div class="space-y-4">
+
+        <app-glass-card class="inst-detail-branch-card block">
+          <app-section-header title="Invoices" description="Full billing history" />
+          @if (!allInvoices().length) {
+            <div class="inst-detail-inline-empty">
+              <div class="inst-detail-inline-empty__icon">
+                <svg lucideReceipt class="h-4 w-4"></svg>
+              </div>
+              <h4 class="inst-detail-inline-empty__title">No invoices yet</h4>
+              <p class="inst-detail-inline-empty__desc">Invoices will appear here after your first membership payment.</p>
             </div>
-          </app-section-header>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-            <div>
-              <p class="label-mono">Plan</p>
-              <p class="mt-1 text-sm font-medium">Growth</p>
+          } @else {
+            <div class="inst-filter-bar mt-3 mb-4">
+              <div class="inst-filter-search">
+                <svg lucideSearch class="inst-filter-icon"></svg>
+                <input
+                  type="search"
+                  class="inst-filter-control w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-3 text-sm"
+                  placeholder="Search invoice, member, plan…"
+                  [ngModel]="billingQuery()"
+                  (ngModelChange)="onBillingQueryChange($event)"
+                />
+              </div>
+              <select
+                class="inst-filter-select"
+                [ngModel]="billingStatus()"
+                (ngModelChange)="onBillingStatusChange($event)"
+              >
+                @for (s of billingStatuses; track s) {
+                  <option [value]="s">{{ s === 'all' ? 'All statuses' : (s | titlecase) }}</option>
+                }
+              </select>
+              <div class="inst-filter-count">
+                <span class="tabular-nums text-xs text-muted-foreground">
+                  {{ filteredInvoices().length }} / {{ allInvoices().length }}
+                </span>
+                @if (hasBillingFilters()) {
+                  <app-button size="sm" variant="ghost" class="h-7 px-2 text-xs" (click)="clearBillingFilters()">
+                    <svg lucideX class="h-3 w-3 mr-1"></svg> Clear
+                  </app-button>
+                }
+              </div>
             </div>
-            <div>
-              <p class="label-mono">MRR</p>
-              <p class="mt-1 text-lg font-semibold tabular-nums">₹11,999</p>
+
+            @if (!filteredInvoices().length) {
+              <div class="inst-detail-inline-empty">
+                <div class="inst-detail-inline-empty__icon">
+                  <svg lucideSearch class="h-4 w-4"></svg>
+                </div>
+                <h4 class="inst-detail-inline-empty__title">No invoices match your filters</h4>
+                <p class="inst-detail-inline-empty__desc">Try clearing search or status filter to see all invoices.</p>
+                <app-button size="sm" variant="outline" class="mt-2" (click)="clearBillingFilters()">Clear filters</app-button>
+              </div>
+            } @else {
+            <div class="overflow-x-auto">
+              <table class="inst-detail-branch-table w-full text-sm">
+                <thead>
+                  <tr class="text-left border-y border-[var(--border)] label-mono">
+                    <th class="py-2 pr-4 font-medium">Invoice</th>
+                    <th class="py-2 pr-4 font-medium">Member</th>
+                    <th class="py-2 pr-4 font-medium">Issued</th>
+                    <th class="py-2 pr-4 font-medium">Plan</th>
+                    <th class="py-2 pr-4 text-right font-medium">Amount</th>
+                    <th class="py-2 pr-4 font-medium">Status</th>
+                    <th class="py-2 w-24"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-[var(--border)]">
+                  @for (inv of pagedInvoices(); track inv.id) {
+                    <tr class="hover:bg-muted/40 cursor-pointer" (click)="openInvoice(inv)">
+                      <td class="py-2.5 pr-4 align-middle font-medium tabular-nums whitespace-nowrap">{{ inv.number }}</td>
+                      <td class="py-2.5 pr-4 align-middle">
+                        @if (inv.memberId) {
+                          <a
+                            [routerLink]="['/members', inv.memberId]"
+                            class="font-medium hover:text-primary"
+                            (click)="$event.stopPropagation()"
+                          >{{ inv.memberName || '—' }}</a>
+                        } @else {
+                          <span class="font-medium">{{ inv.memberName || '—' }}</span>
+                        }
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle text-[var(--muted-foreground)] whitespace-nowrap">
+                        {{ inv.issuedAtUtc | date:'d MMM y' }}
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle text-[var(--muted-foreground)]">
+                        {{ invoicePlanLabel(inv.description, inv.planName) }}
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle text-right tabular-nums whitespace-nowrap">
+                        {{ inv.amount | currency:'INR':'symbol':'1.0-0' }}
+                      </td>
+                      <td class="py-2.5 pr-4 align-middle whitespace-nowrap">
+                        <app-status-badge
+                          [status]="inv.status | titlecase"
+                          [variant]="invoiceStatusVariant(inv.status)"
+                        />
+                      </td>
+                      <td class="py-2.5 align-middle text-right">
+                        <app-button
+                          variant="ghost"
+                          size="sm"
+                          class="h-7 px-2 text-xs gap-1"
+                          (click)="$event.stopPropagation(); openInvoice(inv)"
+                        >
+                          <svg lucideDownload class="h-3 w-3"></svg> View
+                        </app-button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
-            <div>
-              <p class="label-mono">Status</p>
-              <p class="mt-1"><app-status-badge status="Active" /></p>
+            <div class="flex flex-wrap items-center justify-between gap-3 px-1 py-3 border-t border-[var(--border)]">
+              <div class="text-xs text-muted-foreground">
+                Showing
+                <span class="tabular-nums font-medium text-foreground">{{ billingPageStart() + 1 }}–{{ Math.min(billingPageStart() + billingPageSize(), filteredInvoices().length) }}</span>
+                of <span class="tabular-nums font-medium text-foreground">{{ filteredInvoices().length }}</span>
+              </div>
+              <div class="flex items-center gap-3 ml-auto">
+                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>Rows</span>
+                  <select
+                    class="inst-filter-select inst-filter-select--compact"
+                    [ngModel]="billingPageSize()"
+                    (ngModelChange)="setBillingPageSize(+$event)"
+                  >
+                    @for (n of LIST_PAGE_SIZE_OPTS; track n) {
+                      <option [value]="n">{{ n }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="flex items-center gap-0.5">
+                  <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="billingCurrentPage() === 1" (click)="goToBillingPage(1)">
+                    <svg lucideChevronsLeft class="h-4 w-4"></svg>
+                  </app-button>
+                  <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="billingCurrentPage() === 1" (click)="goToBillingPage(billingCurrentPage() - 1)">
+                    <svg lucideChevronLeft class="h-4 w-4"></svg>
+                  </app-button>
+                  <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ billingCurrentPage() }} / {{ billingTotalPages() }}</span>
+                  <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="billingCurrentPage() === billingTotalPages()" (click)="goToBillingPage(billingCurrentPage() + 1)">
+                    <svg lucideChevronRight class="h-4 w-4"></svg>
+                  </app-button>
+                  <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="billingCurrentPage() === billingTotalPages()" (click)="goToBillingPage(billingTotalPages())">
+                    <svg lucideChevronsRight class="h-4 w-4"></svg>
+                  </app-button>
+                </div>
+              </div>
             </div>
-            <div>
-              <p class="label-mono">Renews</p>
-              <p class="mt-1 text-sm">—</p>
-            </div>
-          </div>
-        </app-glass-card>
-        <app-glass-card class="p-5 block">
-          <app-section-header title="Payment methods" />
-          <div class="mt-3 rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-muted-foreground text-center">
-            <svg lucideCreditCard class="h-5 w-5 mx-auto mb-2 opacity-60"></svg>
-            Billing integration coming soon
-          </div>
+            }
+          }
         </app-glass-card>
       </div>
-      <app-glass-card class="p-5 block">
-        <app-section-header title="Invoices" description="Recent billing history" />
-        <p class="mt-4 text-sm text-muted-foreground text-center py-8">No invoices yet.</p>
+    } @else {
+      <app-glass-card class="p-10 text-center block">
+        <svg lucideReceipt class="h-5 w-5 mx-auto text-muted-foreground mb-2"></svg>
+        <p class="text-sm text-muted-foreground">Billing data is unavailable.</p>
       </app-glass-card>
-    </div>
+    }
   }
 
   <!-- Settings -->
   @if (tab() === 'settings') {
-    <app-glass-card class="p-5 block">
+    <app-glass-card class="block">
       <app-section-header title="Institution profile" description="Update identity, contact and location details." />
       <form class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" (ngSubmit)="saveSettings()">
         <div class="space-y-1.5 md:col-span-2">
@@ -528,3 +942,8 @@
     </app-glass-card>
   }
 }
+
+<app-invoice-detail-sheet
+  [invoice]="selectedInvoiceDocument()"
+  (closed)="closeInvoice()"
+/>

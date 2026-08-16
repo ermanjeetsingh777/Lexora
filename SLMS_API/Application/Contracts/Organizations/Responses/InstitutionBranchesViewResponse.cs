@@ -41,6 +41,7 @@ public class InstitutionBranchInsightResponse
 {
     public Guid BranchId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? City { get; set; }
     public decimal OccupancyPercent { get; set; }
     public int MemberCount { get; set; }
     public int LibraryCount { get; set; }

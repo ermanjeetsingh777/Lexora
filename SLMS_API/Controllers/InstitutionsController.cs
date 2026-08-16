@@ -68,6 +68,18 @@ public class InstitutionsController : ControllerBase
         return Ok(ApiResponse<InstitutionOverviewResponse>.Ok(overview));
     }
 
+    [HttpGet("{id:guid}/billing")]
+    public async Task<ActionResult<ApiResponse<InstitutionBillingResponse>>> GetBilling(Guid id, CancellationToken cancellationToken)
+    {
+        var billing = await _institutionService.GetBillingAsync(id, cancellationToken);
+        if (billing is null)
+        {
+            return NotFound(ApiResponse<InstitutionBillingResponse>.Fail("Institution not found."));
+        }
+
+        return Ok(ApiResponse<InstitutionBillingResponse>.Ok(billing));
+    }
+
     [HttpGet("{id:guid}/branches-view")]
     //[Permission(PermissionKey.InstitutionsManage)]
     public async Task<ActionResult<ApiResponse<InstitutionBranchesViewResponse>>> GetBranchesView(
@@ -82,6 +94,25 @@ public class InstitutionsController : ControllerBase
         }
 
         return Ok(ApiResponse<InstitutionBranchesViewResponse>.Ok(view));
+    }
+
+    [HttpGet("{id:guid}/libraries-view")]
+    public async Task<ActionResult<ApiResponse<InstitutionLibrariesViewResponse>>> GetLibrariesView(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var view = await _institutionService.GetLibrariesViewAsync(id, userId, cancellationToken);
+        if (view is null)
+        {
+            return NotFound(ApiResponse<InstitutionLibrariesViewResponse>.Fail("Institution not found."));
+        }
+
+        return Ok(ApiResponse<InstitutionLibrariesViewResponse>.Ok(view));
     }
 
     [HttpGet("my-institution")]

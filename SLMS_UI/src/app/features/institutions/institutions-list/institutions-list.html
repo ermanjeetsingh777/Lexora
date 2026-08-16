@@ -141,7 +141,7 @@
         @for (t of typeFilters; track t.value) {
           <button
             type="button"
-            class="px-3 py-1.5 text-xs rounded-md border transition-colors h-8"
+            class="px-3 py-1.5 text-xs rounded-md border transition-colors h-8 cursor-pointer"
             [class.bg-primary]="type() === t.value"
             [class.text-primary-foreground]="type() === t.value"
             [class.border-primary]="type() === t.value"
@@ -160,7 +160,7 @@
   </app-glass-card>
 
   @if (!filtered().length) {
-    <app-glass-card class="p-10 text-center block">
+    <app-glass-card class="text-center block">
       <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
         <svg lucideBuilding2 class="h-5 w-5 text-muted-foreground"></svg>
       </div>

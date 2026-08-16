@@ -1,0 +1,109 @@
+@if (invoice(); as inv) {
+  <div class="invoice-sheet-overlay flex justify-end">
+    <div class="invoice-sheet-overlay__backdrop" (click)="close()"></div>
+    <aside class="invoice-sheet relative w-full sm:max-w-lg bg-background border-l shadow-xl h-full flex flex-col overflow-hidden">
+      <button type="button" class="invoice-sheet__close" aria-label="Close invoice" (click)="close()">
+        <svg lucideX class="h-4 w-4"></svg>
+      </button>
+
+      <div class="invoice-sheet__body flex-1 overflow-y-auto p-6">
+        <header class="invoice-sheet__header">
+          <div class="min-w-0 flex-1">
+            <h2 class="text-lg font-semibold truncate leading-tight">{{ inv.number }}</h2>
+            <p class="text-sm text-muted-foreground mt-0.5">Issued {{ formatInvoiceDate(inv.issuedAtUtc) }}</p>
+          </div>
+          <app-status-badge [status]="inv.status | titlecase" [variant]="invoiceStatusVariant(inv.status)" />
+        </header>
+
+        <div class="mt-5 rounded-lg border border-[var(--border)] p-4 flex items-center justify-between gap-3">
+          <div>
+            <p class="label-mono">Total</p>
+            <p class="text-xl font-semibold tabular-nums mt-1">
+              {{ formatInvoiceCurrency(inv.amount, inv.currency ?? 'INR') }}
+            </p>
+          </div>
+          <div class="text-right">
+            <p class="label-mono">Member</p>
+            <p class="text-sm font-medium mt-1">{{ inv.memberName || '—' }}</p>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <p class="label-mono">Plan</p>
+            <p class="mt-0.5">{{ inv.planName || '—' }}</p>
+          </div>
+          <div>
+            <p class="label-mono">Institution</p>
+            <p class="mt-0.5">{{ inv.institution?.name || '—' }}</p>
+          </div>
+          <div>
+            <p class="label-mono">Paid at</p>
+            <p class="mt-0.5">{{ formatInvoiceDate(inv.paidAtUtc ?? inv.issuedAtUtc) }}</p>
+          </div>
+          <div>
+            <p class="label-mono">Plan start</p>
+            <p class="mt-0.5">{{ formatInvoiceDate(inv.planStartDate) }}</p>
+          </div>
+          <div>
+            <p class="label-mono">Plan end</p>
+            <p class="mt-0.5">{{ formatInvoiceDate(inv.planEndDate) }}</p>
+          </div>
+          <div>
+            <p class="label-mono">Status</p>
+            <p class="mt-0.5 capitalize">{{ inv.status }}</p>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <p class="label-mono mb-2">Line items</p>
+          <div class="overflow-x-auto rounded-lg border border-[var(--border)]">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-left border-b border-[var(--border)] label-mono bg-muted/30">
+                  <th class="px-3 py-2 font-medium">Description</th>
+                  <th class="px-3 py-2 text-right font-medium">Qty</th>
+                  <th class="px-3 py-2 text-right font-medium">Unit</th>
+                  <th class="px-3 py-2 text-right font-medium">Amount</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--border)]">
+                @for (item of inv.lineItems ?? []; track item.label) {
+                  <tr>
+                    <td class="px-3 py-2">{{ item.label }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ item.qty }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">
+                      {{ formatInvoiceCurrency(item.unit, inv.currency ?? 'INR') }}
+                    </td>
+                    <td class="px-3 py-2 text-right tabular-nums">
+                      {{ formatInvoiceCurrency(item.amount, inv.currency ?? 'INR') }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        @if (inv.notes) {
+          <div class="mt-4">
+            <p class="label-mono">Notes</p>
+            <p class="mt-1 text-xs text-muted-foreground">{{ inv.notes }}</p>
+          </div>
+        }
+
+        <div class="mt-6 flex flex-wrap items-center gap-2">
+          <app-button size="sm" (click)="downloadPdf()">
+            <svg lucideDownload class="h-3.5 w-3.5 mr-1"></svg> Download PDF
+          </app-button>
+          <app-button size="sm" variant="outline" (click)="print()">
+            <svg lucidePrinter class="h-3.5 w-3.5 mr-1"></svg> Print
+          </app-button>
+          <app-button size="sm" variant="outline" (click)="downloadHtml()">
+            <svg lucideDownload class="h-3.5 w-3.5 mr-1"></svg> Download HTML
+          </app-button>
+        </div>
+      </div>
+    </aside>
+  </div>
+}

@@ -6,9 +6,11 @@ import { CreateInstitutionRequest, InstitutionCardResponse } from '@core/models/
 import {
   InstitutionBranchListQuery,
   InstitutionBranchesView,
+  InstitutionBilling,
   InstitutionDetail,
   InstitutionListQuery,
   InstitutionListView,
+  InstitutionLibrariesView,
   InstitutionOverview,
   InstitutionQuickView,
   InstitutionQuickViewQuery,
@@ -55,6 +57,10 @@ export class InstitutionsService {
     return this.httpApi.get<InstitutionOverview>(`institutions/${id}/overview`).pipe(map((r) => r.data!));
   }
 
+  getBilling(id: string): Observable<InstitutionBilling> {
+    return this.httpApi.get<InstitutionBilling>(`institutions/${id}/billing`).pipe(map((r) => r.data!));
+  }
+
   getBranchesView(id: string, query?: InstitutionBranchListQuery): Observable<InstitutionBranchesView> {
     const params: Record<string, string> = {};
     if (query?.search) params['search'] = query.search;
@@ -62,6 +68,12 @@ export class InstitutionsService {
     if (query?.size) params['size'] = query.size;
     return this.httpApi
       .get<InstitutionBranchesView>(`institutions/${id}/branches-view`, { params })
+      .pipe(map((r) => r.data!));
+  }
+
+  getLibrariesView(id: string): Observable<InstitutionLibrariesView> {
+    return this.httpApi
+      .get<InstitutionLibrariesView>(`institutions/${id}/libraries-view`)
       .pipe(map((r) => r.data!));
   }
 

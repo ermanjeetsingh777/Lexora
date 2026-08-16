@@ -11,7 +11,9 @@ public interface IInstitutionService
     Task<IReadOnlyCollection<InstitutionResponse>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<InstitutionListViewResponse> GetListViewAsync(InstitutionListQuery query, Guid userId, CancellationToken cancellationToken = default);
     Task<InstitutionOverviewResponse?> GetOverviewAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<InstitutionBillingResponse?> GetBillingAsync(Guid id, CancellationToken cancellationToken = default);
     Task<InstitutionBranchesViewResponse?> GetBranchesViewAsync(Guid id, InstitutionBranchListQuery query, CancellationToken cancellationToken = default);
+    Task<InstitutionLibrariesViewResponse?> GetLibrariesViewAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
     Task<InstitutionResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);    
     Task<InstitutionResponse> UpdateAsync(Guid id, UpdateInstitutionRequest request, Guid userId, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, string? userId, CancellationToken cancellationToken = default);

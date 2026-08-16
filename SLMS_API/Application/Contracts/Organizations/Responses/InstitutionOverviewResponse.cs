@@ -19,6 +19,17 @@ public class InstitutionOverviewResponse
 
     public InstitutionCapacityUtilizationResponse CapacityUtilization { get; set; } = new();
     public InstitutionMemberMixResponse MemberMix { get; set; } = new();
+
+    public decimal RevenueMtd { get; set; }
+    public decimal RevenuePreviousMtd { get; set; }
+    public decimal RevenueMonthly { get; set; }
+    public decimal RevenueQuarterly { get; set; }
+    public decimal RevenueYearly { get; set; }
+    public decimal RevenueAllTime { get; set; }
+    public IReadOnlyCollection<InstitutionRevenueDayResponse> RevenueTrend { get; set; } = [];
+    public IReadOnlyCollection<InstitutionTrendPointResponse> OccupancyTrend { get; set; } = [];
+    public IReadOnlyCollection<InstitutionAttendanceDayResponse> AttendanceTrend { get; set; } = [];
+    public InstitutionOccupancyHeatmapResponse OccupancyHeatmap { get; set; } = new();
 }
 
 public class InstitutionCapacityUtilizationResponse

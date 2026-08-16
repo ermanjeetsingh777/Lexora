@@ -43,6 +43,63 @@ export interface InstitutionOverview {
     inactive: number;
     suspended: number;
   };
+  revenueMtd: number;
+  revenuePreviousMtd?: number;
+  revenueMonthly?: number;
+  revenueQuarterly?: number;
+  revenueYearly?: number;
+  revenueAllTime?: number;
+  revenueTrend?: InstitutionRevenueDay[];
+  occupancyTrend?: InstitutionTrendPoint[];
+  attendanceTrend?: InstitutionAttendanceDay[];
+  occupancyHeatmap?: InstitutionOccupancyHeatmap;
+}
+
+export interface InstitutionRevenueDay {
+  date: string;
+  revenue: number;
+  renewals: number;
+}
+
+export interface InstitutionAttendanceDay {
+  date: string;
+  present: number;
+  late: number;
+  absent: number;
+}
+
+export interface InstitutionOccupancyHeatmap {
+  days: string[];
+  hours: number[];
+  cells: { day: string; hour: number; value: number }[];
+}
+
+export interface InstitutionTrendPoint {
+  date: string;
+  value: number;
+}
+
+export interface InstitutionBilling {
+  status: string;
+  revenueMtd: number;
+  revenueAllTime: number;
+  activeMembers: number;
+  invoices: InstitutionBillingInvoice[];
+}
+
+export interface InstitutionBillingInvoice {
+  id: string;
+  memberId?: string | null;
+  memberName?: string | null;
+  number: string;
+  issuedAtUtc: string;
+  paidAtUtc?: string | null;
+  planStartDate?: string | null;
+  planEndDate?: string | null;
+  amount: number;
+  status: string;
+  description: string;
+  planName?: string | null;
 }
 
 export interface InstitutionBranchCard {
@@ -75,6 +132,7 @@ export interface InstitutionBranchesView {
   topPerformer?: {
     branchId: string;
     name: string;
+    city?: string | null;
     occupancyPercent: number;
     memberCount: number;
     libraryCount: number;
@@ -83,6 +141,7 @@ export interface InstitutionBranchesView {
   needsAttention: {
     branchId: string;
     name: string;
+    city?: string | null;
     occupancyPercent: number;
     memberCount: number;
     libraryCount: number;
@@ -156,14 +215,35 @@ export interface InstitutionBranchListQuery {
   size?: string;
 }
 
+export interface InstitutionLibraryCard {
+  id: string;
+  branchId: string;
+  name: string;
+  branchName: string;
+  city?: string | null;
+  floor?: number | null;
+  capacity: number;
+  memberCount: number;
+  occupancyPercent: number;
+  status: string;
+  isActive: boolean;
+}
+
+export interface InstitutionLibrariesView {
+  institutionId: string;
+  institutionName: string;
+  summary: {
+    totalLibraries: number;
+    activeLibraries: number;
+    totalCapacity: number;
+    averageOccupancyPercent: number;
+  };
+  libraries: InstitutionLibraryCard[];
+}
+
 export interface InstitutionQuickViewQuery {
   metric?: 'occupancy' | 'revenue';
   range?: 7 | 14 | 30;
-}
-
-export interface InstitutionTrendPoint {
-  date: string;
-  value: number;
 }
 
 export interface InstitutionQuickViewActivityItem {

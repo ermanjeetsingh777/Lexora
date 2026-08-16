@@ -9,9 +9,10 @@ import { InstitutionsService } from '@features/institutions/institutions.service
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { MemberService } from '../MemberService';
-import { CreateMemberRequest } from '@core/models/MemberRequest';
+import { switchMap, of, concat, last, Observable } from 'rxjs';
+import { APIResponseModel } from '@core/models/APIResponseModel';
+import { CreateMemberRequest, MemberDetailResponse } from '@core/models/MemberRequest';
 import { CommonService } from '@core/services/common.service';
-import { switchMap, of } from 'rxjs';
 
 
 
@@ -54,6 +55,9 @@ export class CreateMemberComponent implements OnDestroy {
   readonly busy = signal(false);
   readonly photoFile = signal<File | null>(null);
   readonly photoPreview = signal<string | null>(null);
+  readonly aadhaarFile = signal<File | null>(null);
+  readonly aadhaarPreview = signal<string | null>(null);
+  readonly aadhaarIsPdf = signal(false);
 
   institutions: WritableSignal<InstitutionDropdownResponse[]> = signal([]);
   branches: WritableSignal<BranchDropdownResponse[]> = signal([]);
@@ -149,9 +153,46 @@ export class CreateMemberComponent implements OnDestroy {
     this.photoPreview.set(null);
   }
 
+  onAadhaarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/');
+    if (!isPdf && !isImage) {
+      this.toast.error('Please select a JPG, PNG, WEBP, or PDF file.');
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      this.toast.error('Aadhaar document must be 10 MB or smaller.');
+      input.value = '';
+      return;
+    }
+
+    const previous = this.aadhaarPreview();
+    if (previous) URL.revokeObjectURL(previous);
+
+    this.aadhaarFile.set(file);
+    this.aadhaarIsPdf.set(isPdf);
+    this.aadhaarPreview.set(isPdf ? null : URL.createObjectURL(file));
+  }
+
+  clearAadhaar(): void {
+    const previous = this.aadhaarPreview();
+    if (previous) URL.revokeObjectURL(previous);
+    this.aadhaarFile.set(null);
+    this.aadhaarPreview.set(null);
+    this.aadhaarIsPdf.set(false);
+  }
+
   ngOnDestroy(): void {
     const previous = this.photoPreview();
     if (previous) URL.revokeObjectURL(previous);
+    const aadhaarPrevious = this.aadhaarPreview();
+    if (aadhaarPrevious) URL.revokeObjectURL(aadhaarPrevious);
   }
 
   async onSubmit(): Promise<void> {
@@ -176,12 +217,15 @@ export class CreateMemberComponent implements OnDestroy {
       switchMap((response) => {
         const memberId = response.data?.id;
         const photo = this.photoFile();
-        if (memberId && photo) {
-          return this.memberService.uploadPhoto(memberId, photo).pipe(
-            switchMap(() => of(response)),
-          );
-        }
-        return of(response);
+        const aadhaar = this.aadhaarFile();
+        if (!memberId) return of(response);
+
+        const uploads: Observable<APIResponseModel<MemberDetailResponse>>[] = [];
+        if (photo) uploads.push(this.memberService.uploadPhoto(memberId, photo));
+        if (aadhaar) uploads.push(this.memberService.uploadAadhaar(memberId, aadhaar));
+        if (uploads.length === 0) return of(response);
+
+        return concat(...uploads, of(response)).pipe(last());
       }),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
@@ -192,7 +236,7 @@ export class CreateMemberComponent implements OnDestroy {
       },
       error: (error) => {
         const message = error?.error?.message;
-        if (message?.toLowerCase().includes('photo')) {
+        if (message?.toLowerCase().includes('photo') || message?.toLowerCase().includes('aadhaar')) {
           this.toast.error(message);
         } else {
           this.toast.error(message || 'Unable to create member. Please try again.');

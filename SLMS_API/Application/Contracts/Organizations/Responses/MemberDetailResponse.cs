@@ -65,6 +65,7 @@ namespace SLMS_API.Application.Contracts.Organizations.Responses
         public DateTime CreatedAtUtc { get; set; }
 
         public bool HasPhoto { get; set; }
+        public bool HasAadhaar { get; set; }
 
         // Guardian / Emergency Contacts
         public IReadOnlyCollection<MemberContactResponse> Contacts { get; set; } =  new List<MemberContactResponse>();

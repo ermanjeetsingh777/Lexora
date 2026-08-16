@@ -99,6 +99,9 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly loading: WritableSignal<boolean> = signal<boolean>(true);
   readonly memberDetails: WritableSignal<MemberDetailResponse | null> = signal<MemberDetailResponse | null>(null);
   readonly memberPhotoPreview = signal<string | null>(null);
+  readonly memberAadhaarPreview = signal<string | null>(null);
+  readonly memberAadhaarIsPdf = signal(false);
+  readonly aadhaarUploading = signal(false);
   readonly plans = signal<PlanResponse[]>([]);
 
   readonly activeTab = signal<TabId>('overview');
@@ -559,6 +562,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.revokeMemberPhotoPreview();
+    this.revokeMemberAadhaarPreview();
   }
 
   setTab(tab: TabId): void {
@@ -642,6 +646,71 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     this.memberPhotoPreview.set(null);
   }
 
+  private loadMemberAadhaarPreview(memberId: string): void {
+    this.memberService.downloadAadhaar(memberId).subscribe({
+      next: (blob) => {
+        this.revokeMemberAadhaarPreview();
+        const isPdf = blob.type === 'application/pdf';
+        this.memberAadhaarIsPdf.set(isPdf);
+        this.memberAadhaarPreview.set(URL.createObjectURL(blob));
+      },
+      error: () => {
+        this.memberAadhaarIsPdf.set(false);
+        this.memberAadhaarPreview.set(null);
+      },
+    });
+  }
+
+  private revokeMemberAadhaarPreview(): void {
+    const current = this.memberAadhaarPreview();
+    if (current) URL.revokeObjectURL(current);
+    this.memberAadhaarPreview.set(null);
+    this.memberAadhaarIsPdf.set(false);
+  }
+
+  onAadhaarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/');
+    if (!isPdf && !isImage) {
+      this.toast.error('Please select a JPG, PNG, WEBP, or PDF file.');
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      this.toast.error('Aadhaar document must be 10 MB or smaller.');
+      input.value = '';
+      return;
+    }
+
+    this.aadhaarUploading.set(true);
+    this.memberService.uploadAadhaar(this.memberId, file).subscribe({
+      next: (response) => {
+        this.toast.success('Aadhaar document uploaded.');
+        if (response.data) {
+          this.memberDetails.update((current) => current ? { ...current, hasAadhaar: true } : current);
+        }
+        this.loadMemberAadhaarPreview(this.memberId);
+        this.aadhaarUploading.set(false);
+        input.value = '';
+      },
+      error: (error) => {
+        this.toast.error(error?.error?.message ?? 'Unable to upload Aadhaar document.');
+        this.aadhaarUploading.set(false);
+        input.value = '';
+      },
+    });
+  }
+
+  openAadhaarInNewTab(): void {
+    const url = this.memberAadhaarPreview();
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+
   loadMemberDetails(): void {
     this.loading.set(true);
     this.activityTimelineLimit.set(ACTIVITY_TIMELINE_PAGE_SIZE);
@@ -652,6 +721,10 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
         this.revokeMemberPhotoPreview();
         if (response.data?.hasPhoto) {
           this.loadMemberPhotoPreview(response.data.id);
+        }
+        this.revokeMemberAadhaarPreview();
+        if (response.data?.hasAadhaar) {
+          this.loadMemberAadhaarPreview(response.data.id);
         }
         if (response.data?.attendance?.length) {
           this.mergeCalendarDays(response.data.attendance);

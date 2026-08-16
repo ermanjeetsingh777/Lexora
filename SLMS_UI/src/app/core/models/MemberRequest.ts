@@ -28,6 +28,7 @@ export interface MemberListResponse {
   avatar: string;
   avatarHue: number;
   hasPhoto?: boolean;
+  hasAadhaar?: boolean;
 
   institution: string;
   branch: string;
@@ -107,6 +108,7 @@ export interface MemberDetailResponse {
 
   createdAtUtc: string;
   hasPhoto?: boolean;
+  hasAadhaar?: boolean;
   // Guardian / Emergency Contacts
   contacts: MemberContactResponse[];
   plans: MemberPlanResponse[];

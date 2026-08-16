@@ -1,6 +1,6 @@
 @if (open()) {
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="onClose()">
-  <div class="w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl border bg-background shadow-xl" (click)="$event.stopPropagation()">
+  <div class="w-full max-w-xl max-h-[90vh] flex flex-col rounded-xl border bg-background shadow-xl" (click)="$event.stopPropagation()">
     <div class="flex items-center justify-between border-b px-5 py-4 shrink-0">
       <div>
         <h2 class="text-lg font-semibold flex items-center gap-2">
@@ -15,6 +15,78 @@
     </div>
 
     <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Institution <span class="text-destructive">*</span></label>
+          <select
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            [disabled]="institutionSelectDisabled()"
+            [ngModel]="institutionId()"
+            (change)="onInstitutionChange($event)"
+          >
+            <option value="" disabled selected hidden>Select institution</option>
+            @for (inst of institutions(); track inst.value) {
+            <option [value]="inst.value">{{ inst.key }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Branch <span class="text-destructive">*</span></label>
+          <select
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            [disabled]="branchDisabled()"
+            [ngModel]="branchId()"
+            (change)="onBranchChange($event)"
+          >
+            <option value="" disabled selected hidden>
+              {{ institutionId() ? 'Select branch' : 'Select institution first' }}
+            </option>
+            @for (b of branches(); track b.value) {
+            <option [value]="b.value">{{ b.key }}</option>
+            }
+          </select>
+          @if (!isEdit() && !institutionId() && !institutionSelectDisabled()) {
+          <p class="text-[11px] text-muted-foreground">Choose an institution to see branches.</p>
+          }
+          @if (!isEdit() && institutionSelectDisabled()) {
+          <p class="text-[11px] text-muted-foreground">Your mapped institution.</p>
+          }
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Library <span class="text-destructive">*</span></label>
+        <select
+          class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          [disabled]="libraryDisabled()"
+          [ngModel]="libraryId()"
+          (ngModelChange)="onLibraryIdChange($event)"
+        >
+          <option value="" disabled selected hidden>
+            {{ branchId() ? 'Select library' : 'Select branch first' }}
+          </option>
+          @for (l of libraries(); track l.value) {
+          <option [value]="l.value">{{ l.key }}</option>
+          }
+        </select>
+        @if (!isEdit() && institutionId() && !branchId() && !branchDisabled()) {
+        <p class="text-[11px] text-muted-foreground">Choose a branch to see its libraries.</p>
+        }
+        @if (!isEdit() && branchDisabled() && branchId()) {
+        <p class="text-[11px] text-muted-foreground">Your mapped branch.</p>
+        }
+        @if (!isEdit() && libraryDisabled() && libraryId() && libraries().length <= 1) {
+        <p class="text-[11px] text-muted-foreground">Your mapped library.</p>
+        }
+        @if (scopeTouched() && !scopeValid()) {
+        <p class="text-xs text-destructive">Institution, branch, and library are required.</p>
+        }
+        @if (isEdit()) {
+        <p class="text-[11px] text-muted-foreground">Library cannot be changed when editing a book.</p>
+        }
+      </div>
+
       <div class="space-y-1.5">
         <label class="text-sm font-medium">Title <span class="text-destructive">*</span></label>
         <input type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"

@@ -5,12 +5,13 @@ import { FormsModule } from '@angular/forms';
 import {
   LucideAlertTriangle, LucideArrowDownToLine, LucideArrowUpFromLine, LucideBookOpen, LucideChevronRight,
   LucideDownload, LucideFileText, LucideLayoutGrid, LucideLibrary, LucideList, LucideMinus, LucidePackageX, LucidePencil,
-  LucidePlus, LucideSearch, LucideWrench, LucideX,
+  LucidePlus, LucideSearch, LucideWrench, LucideX, LucideChevronLeft, LucideChevronsLeft, LucideChevronsRight,
 } from '@lucide/angular';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import { ToastService } from '@core/services/toast.service';
 import { WhatsAppService } from '@core/services/whatsapp.service';
 import {
-  BOOK_STATUS_LABELS, BookDetail, BookListItem, BookStats, BookStockStatus, LibraryScope,
+  BOOK_STATUS_LABELS, BookDetail, BookStockStatus, LibraryScope,
 } from '@core/models/book.models';
 import { MemberListResponse } from '@core/models/MemberRequest';
 import { ButtonComponent } from '@shared/components/button/button.component';
@@ -25,10 +26,22 @@ import {
 } from '../book-format.util';
 import { BookService } from '../book.service';
 import { BookFormDialogComponent, BookFormPayload } from '../components/book-form-dialog/book-form-dialog.component';
+import { InstitutionDropdownResponse, BranchDropdownResponse, LibraryDropdownResponse } from '@core/models/institution-dropdown.model';
+import {
+  branchesForInstitution,
+  computeBookStats,
+  librariesForBranch,
+  libraryScopeLabels,
+  listMappedLibraries,
+  resolveDefaultLibraryScope,
+  ScopedBookListItem,
+} from '../library-scope.util';
 
 type ViewMode = 'table' | 'grid';
-type SortKey = 'title' | 'author' | 'available' | 'category';
+type SortKey = 'newest' | 'title' | 'author' | 'available' | 'category';
 type DrawerTab = 'activity' | 'stock' | 'audit';
+
+const PAGE_SIZE_OPTS = [10, 25, 50, 100] as const;
 
 @Component({
   selector: 'app-books-list',
@@ -39,6 +52,7 @@ type DrawerTab = 'activity' | 'stock' | 'audit';
     LucideBookOpen, LucidePlus, LucideSearch, LucideLayoutGrid, LucideList, LucideDownload,
     LucideLibrary, LucideAlertTriangle, LucidePackageX, LucideChevronRight, LucidePencil, LucideX, LucideFileText,
     LucideMinus, LucideWrench, LucideArrowDownToLine, LucideArrowUpFromLine,
+    LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
   ],
   providers: [BookService, InstitutionsService, MemberService],
   templateUrl: './books-list.component.html',
@@ -59,18 +73,24 @@ export class BooksListComponent implements OnInit {
   readonly bookCoverHue = bookCoverHue;
   readonly bookInitials = bookInitials;
   readonly formatBookDate = formatBookDate;
+  readonly Math = Math;
+  readonly PAGE_SIZE_OPTS = PAGE_SIZE_OPTS;
 
   readonly loading = signal(true);
-  readonly books = signal<BookListItem[]>([]);
-  readonly stats = signal<BookStats | null>(null);
-  readonly scope = signal<LibraryScope | null>(null);
-  readonly libraryLabel = signal('Library');
+  readonly allBooks = signal<ScopedBookListItem[]>([]);
+  readonly institutions = signal<InstitutionDropdownResponse[]>([]);
+
+  readonly filterInstitutionId = signal('');
+  readonly filterBranchId = signal('');
+  readonly filterLibraryId = signal('');
 
   readonly query = signal('');
   readonly category = signal('all');
   readonly status = signal<'all' | BookStockStatus>('all');
-  readonly sort = signal<SortKey>('title');
+  readonly sort = signal<SortKey>('newest');
   readonly view = signal<ViewMode>('table');
+  readonly page = signal(1);
+  readonly pageSize = signal(25);
 
   readonly showForm = signal(false);
   readonly editBook = signal<BookDetail | null>(null);
@@ -88,14 +108,45 @@ export class BooksListComponent implements OnInit {
   readonly checkoutLoanDays = signal(14);
   readonly members = signal<MemberListResponse[]>([]);
 
-  readonly categories = computed(() => Array.from(new Set(this.books().map(b => b.category))).sort());
+  readonly filterBranches = computed(() => {
+    const institutionId = this.filterInstitutionId();
+    if (!institutionId) return [];
+    return branchesForInstitution(this.institutions(), institutionId);
+  });
+
+  readonly filterLibraries = computed(() => {
+    const institutionId = this.filterInstitutionId();
+    const branchId = this.filterBranchId();
+    if (!institutionId || !branchId) return [];
+    return librariesForBranch(this.institutions(), institutionId, branchId);
+  });
+
+  readonly branchFilterDisabled = computed(() => !this.filterInstitutionId());
+  readonly libraryFilterDisabled = computed(() => !this.filterBranchId());
+
+  readonly scopeFilteredBooks = computed(() => {
+    const institutionId = this.filterInstitutionId();
+    const branchId = this.filterBranchId();
+    const libraryId = this.filterLibraryId();
+
+    return this.allBooks().filter(book => {
+      if (institutionId && book.institutionId !== institutionId) return false;
+      if (branchId && book.branchId !== branchId) return false;
+      if (libraryId && book.libraryId !== libraryId) return false;
+      return true;
+    });
+  });
+
+  readonly categories = computed(() =>
+    Array.from(new Set(this.scopeFilteredBooks().map(b => b.category))).sort()
+  );
 
   readonly filteredBooks = computed(() => {
     const q = this.query().trim().toLowerCase();
     const cat = this.category();
     const status = this.status();
     const sort = this.sort();
-    return [...this.books()]
+    return [...this.scopeFilteredBooks()]
       .filter(b => {
         if (cat !== 'all' && b.category !== cat) return false;
         if (status !== 'all' && b.status !== status) return false;
@@ -105,12 +156,58 @@ export class BooksListComponent implements OnInit {
           || b.isbn.includes(q);
       })
       .sort((a, b) => {
+        if (sort === 'newest') {
+          return new Date(b.createdAtUtc).getTime() - new Date(a.createdAtUtc).getTime();
+        }
         if (sort === 'available') return b.availableCopies - a.availableCopies;
         return String(a[sort]).localeCompare(String(b[sort]));
       });
   });
 
-  readonly existingIsbns = computed(() => this.books().map(b => b.isbn));
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredBooks().length / this.pageSize())));
+  readonly currentPage = computed(() => Math.min(this.page(), this.totalPages()));
+  readonly pageStart = computed(() => (this.currentPage() - 1) * this.pageSize());
+  readonly pagedBooks = computed(() => {
+    const start = this.pageStart();
+    return this.filteredBooks().slice(start, start + this.pageSize());
+  });
+
+  readonly displayStats = computed(() => computeBookStats(this.scopeFilteredBooks()));
+
+  readonly pageDescription = computed(() => {
+    const institutionId = this.filterInstitutionId();
+    const branchId = this.filterBranchId();
+    const libraryId = this.filterLibraryId();
+
+    if (!institutionId) return 'All books across your mapped libraries.';
+    if (!branchId) {
+      const name = this.institutions().find(i => i.value === institutionId)?.key ?? 'institution';
+      return `Books in ${name}.`;
+    }
+    if (!libraryId) {
+      const branch = this.filterBranches().find(b => b.value === branchId)?.key ?? 'branch';
+      return `Books in ${branch}.`;
+    }
+
+    const labels = libraryScopeLabels(this.institutions(), {
+      institutionId,
+      branchId,
+      libraryId,
+    });
+    return `Books in ${labels.libraryName}.`;
+  });
+
+  readonly showLibraryColumn = computed(() => !this.filterLibraryId());
+
+  readonly formDefaultScope = computed((): LibraryScope | null => {
+    const institutionId = this.filterInstitutionId();
+    const branchId = this.filterBranchId();
+    const libraryId = this.filterLibraryId();
+    if (institutionId && branchId && libraryId) {
+      return { institutionId, branchId, libraryId };
+    }
+    return resolveDefaultLibraryScope(this.institutions())?.scope ?? null;
+  });
 
   readonly overlayLeft = computed(() => {
     if (this.sidebar.isMobile()) return '0';
@@ -127,20 +224,15 @@ export class BooksListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
-          const inst = res.data?.[0];
-          const branch = inst?.branches?.[0];
-          const library = branch?.libraries?.[0];
-          if (!inst || !branch || !library) {
+          const data = res.data ?? [];
+          this.institutions.set(data);
+
+          if (!listMappedLibraries(data).length) {
             this.loading.set(false);
-            this.toast.error('No library found. Complete onboarding first.');
+            this.toast.error('No library mapping found for your account.');
             return;
           }
-          this.scope.set({
-            institutionId: inst.value,
-            branchId: branch.value,
-            libraryId: library.value,
-          });
-          this.libraryLabel.set(library.key);
+
           this.refresh();
         },
         error: () => {
@@ -158,27 +250,100 @@ export class BooksListComponent implements OnInit {
   }
 
   refresh(): void {
-    const scope = this.scope();
-    if (!scope) return;
+    const mappedLibraries = listMappedLibraries(this.institutions());
+    if (!mappedLibraries.length) {
+      this.allBooks.set([]);
+      this.loading.set(false);
+      return;
+    }
+
     this.loading.set(true);
-    this.bookService.getBooks(scope).subscribe({
-      next: (res) => {
-        this.books.set(res.data ?? []);
+    forkJoin(
+      mappedLibraries.map(entry =>
+        this.bookService.getBooks(entry.scope).pipe(
+          map(res => (res.data ?? []).map(book => ({
+            ...book,
+            institutionId: entry.scope.institutionId,
+            branchId: entry.scope.branchId,
+            libraryId: entry.scope.libraryId,
+            institutionName: entry.institutionName,
+            branchName: entry.branchName,
+            libraryName: entry.libraryName,
+          } satisfies ScopedBookListItem))),
+          catchError(() => of([] as ScopedBookListItem[])),
+        )
+      )
+    ).subscribe({
+      next: (results) => {
+        this.allBooks.set(results.flat());
         this.loading.set(false);
       },
       error: () => {
-        this.books.set([]);
+        this.allBooks.set([]);
         this.loading.set(false);
         this.toast.error('Failed to load books');
       },
     });
-    this.bookService.getStats(scope).subscribe({
-      next: (res) => this.stats.set(res.data ?? null),
-    });
+  }
+
+  onFilterInstitutionChange(institutionId: string): void {
+    this.filterInstitutionId.set(institutionId);
+    this.filterBranchId.set('');
+    this.filterLibraryId.set('');
+    this.resetPage();
+  }
+
+  onFilterBranchChange(branchId: string): void {
+    this.filterBranchId.set(branchId);
+    this.filterLibraryId.set('');
+    this.resetPage();
+  }
+
+  onFilterLibraryChange(libraryId: string): void {
+    this.filterLibraryId.set(libraryId);
+    this.resetPage();
+  }
+
+  onQueryChange(value: string): void {
+    this.query.set(value);
+    this.resetPage();
+  }
+
+  onCategoryChange(value: string): void {
+    this.category.set(value);
+    this.resetPage();
+  }
+
+  onStatusChange(value: 'all' | BookStockStatus): void {
+    this.status.set(value);
+    this.resetPage();
+  }
+
+  onSortChange(value: SortKey): void {
+    this.sort.set(value);
+    this.resetPage();
+  }
+
+  setPageSize(size: number): void {
+    this.pageSize.set(size);
+    this.resetPage();
+  }
+
+  goToPage(p: number): void {
+    this.page.set(Math.max(1, Math.min(p, this.totalPages())));
+  }
+
+  private resetPage(): void {
+    this.page.set(1);
   }
 
   openCreate(): void {
     this.editBook.set(null);
+    if (this.showForm()) {
+      this.showForm.set(false);
+      queueMicrotask(() => this.showForm.set(true));
+      return;
+    }
     this.showForm.set(true);
   }
 
@@ -194,28 +359,35 @@ export class BooksListComponent implements OnInit {
   }
 
   onBookSubmitted(payload: BookFormPayload): void {
-    const scope = this.scope();
-    if (!scope) return;
+    const scope: LibraryScope = {
+      institutionId: payload.institutionId,
+      branchId: payload.branchId,
+      libraryId: payload.libraryId,
+    };
     this.formBusy.set(true);
     const edit = this.editBook();
-    const { pdfFile, ...bookPayload } = payload;
+    const { pdfFile, institutionId: _i, branchId: _b, libraryId: _l, ...bookPayload } = payload;
+    const editScope = edit
+      ? { institutionId: edit.institutionId, branchId: edit.branchId, libraryId: edit.libraryId }
+      : scope;
     const req$ = edit
-      ? this.bookService.updateBook(scope, edit.id, bookPayload)
+      ? this.bookService.updateBook(editScope, edit.id, bookPayload)
       : this.bookService.createBook(scope, bookPayload);
     req$.subscribe({
       next: (res) => {
         const bookId = res.data?.id;
         if (bookId && pdfFile) {
-          this.bookService.uploadPdf(scope, bookId, pdfFile).subscribe({
-            next: (pdfRes) => this.finishBookSave(edit, pdfRes.data ?? res.data ?? null),
+          const pdfScope = edit ? editScope : scope;
+          this.bookService.uploadPdf(pdfScope, bookId, pdfFile).subscribe({
+            next: (pdfRes) => this.finishBookSave(edit, pdfRes.data ?? res.data ?? null, scope),
             error: () => {
-              this.finishBookSave(edit, res.data ?? null);
+              this.finishBookSave(edit, res.data ?? null, scope);
               this.toast.error('Book saved but PDF upload failed.');
             },
           });
           return;
         }
-        this.finishBookSave(edit, res.data ?? null);
+        this.finishBookSave(edit, res.data ?? null, scope);
       },
       error: (err) => {
         this.formBusy.set(false);
@@ -224,21 +396,38 @@ export class BooksListComponent implements OnInit {
     });
   }
 
-  private finishBookSave(edit: BookDetail | null, book: BookDetail | null): void {
+  private finishBookSave(edit: BookDetail | null, book: BookDetail | null, savedScope?: LibraryScope): void {
     this.formBusy.set(false);
     this.showForm.set(false);
     this.editBook.set(null);
-    this.toast.success(edit ? 'Book updated' : 'Book added');
+
+    if (!edit && savedScope) {
+      this.filterInstitutionId.set(savedScope.institutionId);
+      this.filterBranchId.set(savedScope.branchId);
+      this.filterLibraryId.set(savedScope.libraryId);
+      const labels = libraryScopeLabels(this.institutions(), savedScope);
+      this.toast.success(`Book added to ${labels.libraryName || 'library'}`);
+    } else {
+      this.toast.success(edit ? 'Book updated' : 'Book added');
+    }
+
     if (book && this.selectedBook()?.id === book.id) {
       this.selectedBook.set(book);
     }
     this.refresh();
   }
 
-  viewPdf(book: BookDetail | BookListItem): void {
-    const scope = this.scope();
-    if (!scope || !book.hasPdf) return;
-    this.bookService.downloadPdf(scope, book.id).subscribe({
+  private bookScope(book: ScopedBookListItem | BookDetail): LibraryScope {
+    return {
+      institutionId: book.institutionId,
+      branchId: book.branchId,
+      libraryId: book.libraryId,
+    };
+  }
+
+  viewPdf(book: ScopedBookListItem | BookDetail): void {
+    if (!book.hasPdf) return;
+    this.bookService.downloadPdf(this.bookScope(book), book.id).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank', 'noopener');
@@ -249,11 +438,10 @@ export class BooksListComponent implements OnInit {
   }
 
   onDrawerPdfSelected(event: Event): void {
-    const scope = this.scope();
     const book = this.selectedBook();
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!scope || !book || !file) return;
+    if (!book || !file) return;
 
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       this.toast.error('Please select a PDF file.');
@@ -262,7 +450,7 @@ export class BooksListComponent implements OnInit {
     }
 
     this.drawerBusy.set(true);
-    this.bookService.uploadPdf(scope, book.id, file).subscribe({
+    this.bookService.uploadPdf(this.bookScope(book), book.id, file).subscribe({
       next: (res) => {
         this.drawerBusy.set(false);
         this.selectedBook.set(res.data ?? book);
@@ -279,11 +467,10 @@ export class BooksListComponent implements OnInit {
   }
 
   removePdf(): void {
-    const scope = this.scope();
     const book = this.selectedBook();
-    if (!scope || !book?.hasPdf) return;
+    if (!book?.hasPdf) return;
     this.drawerBusy.set(true);
-    this.bookService.removePdf(scope, book.id).subscribe({
+    this.bookService.removePdf(this.bookScope(book), book.id).subscribe({
       next: (res) => {
         this.drawerBusy.set(false);
         this.selectedBook.set(res.data ?? book);
@@ -297,10 +484,8 @@ export class BooksListComponent implements OnInit {
     });
   }
 
-  openDrawer(book: BookListItem): void {
-    const scope = this.scope();
-    if (!scope) return;
-    this.bookService.getBook(scope, book.id).subscribe({
+  openDrawer(book: ScopedBookListItem): void {
+    this.bookService.getBook(this.bookScope(book), book.id).subscribe({
       next: (res) => {
         this.selectedBook.set(res.data ?? null);
         this.drawerOpen.set(true);
@@ -317,11 +502,10 @@ export class BooksListComponent implements OnInit {
   }
 
   adjustStock(delta: number): void {
-    const scope = this.scope();
     const book = this.selectedBook();
-    if (!scope || !book) return;
+    if (!book) return;
     this.drawerBusy.set(true);
-    this.bookService.adjustStock(scope, book.id, delta, this.stockNote() || undefined).subscribe({
+    this.bookService.adjustStock(this.bookScope(book), book.id, delta, this.stockNote() || undefined).subscribe({
       next: (res) => {
         this.drawerBusy.set(false);
         this.selectedBook.set(res.data ?? book);
@@ -337,11 +521,10 @@ export class BooksListComponent implements OnInit {
   }
 
   markCondition(kind: 'damaged' | 'lost'): void {
-    const scope = this.scope();
     const book = this.selectedBook();
-    if (!scope || !book) return;
+    if (!book) return;
     this.drawerBusy.set(true);
-    this.bookService.markCondition(scope, book.id, kind).subscribe({
+    this.bookService.markCondition(this.bookScope(book), book.id, kind).subscribe({
       next: (res) => {
         this.drawerBusy.set(false);
         this.selectedBook.set(res.data ?? book);
@@ -356,10 +539,9 @@ export class BooksListComponent implements OnInit {
   }
 
   checkout(): void {
-    const scope = this.scope();
     const book = this.selectedBook();
     const memberId = this.checkoutMemberId();
-    if (!scope || !book || !memberId) {
+    if (!book || !memberId) {
       this.toast.error('Select a member to issue the book.');
       return;
     }
@@ -369,7 +551,7 @@ export class BooksListComponent implements OnInit {
     }
     this.drawerBusy.set(true);
     const loanDays = this.checkoutLoanDays();
-    this.bookService.checkout(scope, book.id, memberId, loanDays).subscribe({
+    this.bookService.checkout(this.bookScope(book), book.id, memberId, loanDays).subscribe({
       next: (res) => {
         this.drawerBusy.set(false);
         this.selectedBook.set(res.data ?? book);
@@ -387,15 +569,14 @@ export class BooksListComponent implements OnInit {
   }
 
   returnLoan(activityId: string): void {
-    const scope = this.scope();
     const book = this.selectedBook();
-    if (!scope || !book) return;
+    if (!book) return;
     if (book.hasPdf) {
       this.toast.error('Digital books with a PDF do not require a physical return.');
       return;
     }
     this.drawerBusy.set(true);
-    this.bookService.returnLoan(scope, book.id, activityId).subscribe({
+    this.bookService.returnLoan(this.bookScope(book), book.id, activityId).subscribe({
       next: (res) => {
         this.drawerBusy.set(false);
         this.selectedBook.set(res.data?.book ?? book);
@@ -410,11 +591,10 @@ export class BooksListComponent implements OnInit {
   }
 
   sendReturnReminder(activityId: string): void {
-    const scope = this.scope();
     const book = this.selectedBook();
-    if (!scope || !book) return;
+    if (!book) return;
     this.drawerBusy.set(true);
-    this.bookService.sendReturnReminder(scope, book.id, activityId).subscribe({
+    this.bookService.sendReturnReminder(this.bookScope(book), book.id, activityId).subscribe({
       next: (res) => {
         this.drawerBusy.set(false);
         const reminder = res.data;
@@ -424,6 +604,7 @@ export class BooksListComponent implements OnInit {
         }
         this.toast.success('Return reminder sent.');
         if (reminder.memberPhone) {
+          const labels = libraryScopeLabels(this.institutions(), this.bookScope(book));
           this.whatsapp.bookReturnReminder(
             reminder.memberPhone,
             reminder.memberName,
@@ -431,7 +612,7 @@ export class BooksListComponent implements OnInit {
             this.formatBookDate(reminder.dueAtUtc),
             reminder.daysOverdue,
             reminder.estimatedFine,
-            this.libraryLabel(),
+            labels.libraryName,
           );
         }
         this.refresh();
@@ -446,8 +627,11 @@ export class BooksListComponent implements OnInit {
   exportCsv(): void {
     const rows = this.filteredBooks();
     const out = [
-      ['Title', 'Author', 'Category', 'ISBN', 'Available', 'Copies', 'Status'],
-      ...rows.map(b => [b.title, b.author, b.category, b.isbn, b.availableCopies, b.totalCopies, BOOK_STATUS_LABELS[b.status]]),
+      ['Title', 'Author', 'Category', 'ISBN', 'Library', 'Available', 'Copies', 'Status'],
+      ...rows.map(b => [
+        b.title, b.author, b.category, b.isbn, b.libraryName,
+        b.availableCopies, b.totalCopies, BOOK_STATUS_LABELS[b.status],
+      ]),
     ];
     const csv = out.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -459,8 +643,12 @@ export class BooksListComponent implements OnInit {
     this.toast.success(`Exported ${rows.length} books`);
   }
 
-  availabilityPercent(book: BookListItem): number {
+  availabilityPercent(book: ScopedBookListItem): number {
     if (!book.totalCopies) return 0;
     return Math.round((book.availableCopies / book.totalCopies) * 100);
+  }
+
+  trackBook(_index: number, book: ScopedBookListItem): string {
+    return `${book.libraryId}-${book.id}`;
   }
 }

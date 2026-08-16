@@ -159,6 +159,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         {
             entity.Property(x => x.PhotoStoragePath).HasMaxLength(500);
             entity.Property(x => x.PhotoFileName).HasMaxLength(260);
+            entity.Property(x => x.AadhaarStoragePath).HasMaxLength(500);
+            entity.Property(x => x.AadhaarFileName).HasMaxLength(260);
         });
 
         builder.Entity<SupportTicket>(entity =>

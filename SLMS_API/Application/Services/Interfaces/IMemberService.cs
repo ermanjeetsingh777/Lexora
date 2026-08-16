@@ -17,6 +17,8 @@ public interface IMemberService
     Task<MembershipSummaryResponse> GetMembershipSummaryAsync(CancellationToken cancellationToken = default);
     Task<MemberDetailResponse> UploadPhotoAsync(Guid memberId, IFormFile file, string? userId, CancellationToken cancellationToken = default);
     Task<(string FilePath, string ContentType, string FileName)?> GetPhotoAsync(Guid memberId, CancellationToken cancellationToken = default);
+    Task<MemberDetailResponse> UploadAadhaarAsync(Guid memberId, IFormFile file, string? userId, CancellationToken cancellationToken = default);
+    Task<(string FilePath, string ContentType, string FileName)?> GetAadhaarAsync(Guid memberId, CancellationToken cancellationToken = default);
     //Task<MemberResponse?> GetByIdAsync(Guid institutionId, Guid branchId, Guid libraryId, Guid memberId, CancellationToken cancellationToken = default);
     //Task<MemberResponse> UpdateAsync(Guid institutionId, Guid branchId, Guid libraryId, Guid memberId, UpdateMemberRequest request, string? userId, CancellationToken cancellationToken = default);
     //Task DeleteAsync(Guid institutionId, Guid branchId, Guid libraryId, Guid memberId, string? userId, CancellationToken cancellationToken = default);

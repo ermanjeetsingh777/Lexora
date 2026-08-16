@@ -175,6 +175,39 @@
         </div>
 
 
+        <!-- Aadhaar document (optional) -->
+        <div class="space-y-2">
+          <label class="text-sm font-medium">Aadhaar document <span class="text-muted-foreground font-normal">(optional)</span></label>
+          <div class="flex items-center gap-4">
+            @if (aadhaarPreview()) {
+              <img [src]="aadhaarPreview()!" alt="Aadhaar preview" class="h-20 w-32 rounded-md object-cover border" />
+            } @else if (aadhaarFile()) {
+              <div class="h-20 w-32 rounded-md border bg-muted/30 grid place-items-center text-xs text-muted-foreground text-center px-2">
+                PDF selected
+              </div>
+            } @else {
+              <div class="h-20 w-32 rounded-md border border-dashed bg-muted/30 grid place-items-center text-xs text-muted-foreground text-center px-2">
+                No document
+              </div>
+            }
+            <div class="space-y-2">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf,.pdf"
+                class="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground"
+                (change)="onAadhaarSelected($event)"
+              />
+              @if (aadhaarFile()) {
+                <button type="button" class="text-xs text-muted-foreground hover:text-foreground underline" (click)="clearAadhaar()">
+                  Remove document
+                </button>
+              }
+              <p class="text-[11px] text-muted-foreground">JPG, PNG, WEBP, or PDF · max 10 MB</p>
+            </div>
+          </div>
+        </div>
+
+
         <!-- Full Name + Phone -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 

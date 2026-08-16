@@ -499,7 +499,7 @@ public class InstitutionService : IInstitutionService
     {
         var userIdString = userId.ToString();
 
-        var institutions = await _dbContext.UserInstitutions
+         var institutions = await _dbContext.UserInstitutions
             .AsNoTracking()
             .Where(x => x.UserId == userIdString && x.IsActive)
             .Include(x => x.Institution)

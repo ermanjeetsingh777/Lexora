@@ -1,6 +1,6 @@
 <div class="space-y-6">
   <app-page-header eyebrow="Collection" title="Books & circulation"
-    [description]="'Catalogue and loans for ' + libraryLabel() + '.'">
+    [description]="pageDescription()">
     <div actions class="flex flex-wrap items-center gap-2">
       <app-button variant="outline" size="sm" (click)="exportCsv()">
         <svg lucideDownload class="h-4 w-4 mr-1"></svg> Export
@@ -12,38 +12,72 @@
   </app-page-header>
 
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-    <app-kpi-card label="Titles" [value]="stats()?.titleCount ?? 0" hint="Unique catalogue entries">
+    <app-kpi-card label="Titles" [value]="displayStats().titleCount" hint="Unique catalogue entries">
       <svg icon lucideBookOpen class="h-4 w-4"></svg>
     </app-kpi-card>
-    <app-kpi-card label="Total copies" [value]="stats()?.totalCopies ?? 0" [hint]="(stats()?.availableCopies ?? 0) + ' available'">
+    <app-kpi-card label="Total copies" [value]="displayStats().totalCopies" [hint]="displayStats().availableCopies + ' available'">
       <svg icon lucideLibrary class="h-4 w-4"></svg>
     </app-kpi-card>
-    <app-kpi-card label="On loan" [value]="stats()?.onLoanCount ?? 0" [hint]="(stats()?.overdueCount ?? 0) + ' overdue'">
+    <app-kpi-card label="On loan" [value]="displayStats().onLoanCount" [hint]="displayStats().overdueCount + ' overdue'">
       <svg icon lucideArrowDownToLine class="h-4 w-4"></svg>
     </app-kpi-card>
-    <app-kpi-card label="Low / out" [value]="(stats()?.lowStockCount ?? 0) + ' / ' + (stats()?.outOfStockCount ?? 0)" hint="Needs attention">
+    <app-kpi-card label="Low / out" [value]="displayStats().lowStockCount + ' / ' + displayStats().outOfStockCount" hint="Needs attention">
       <svg icon lucidePackageX class="h-4 w-4"></svg>
     </app-kpi-card>
   </div>
 
   <app-glass-card class="block p-0 overflow-hidden">
     <div class="p-3 border-b flex flex-wrap items-center gap-2">
+      <select
+        class="h-9 min-w-[150px] rounded-md border bg-background px-2 text-sm"
+        [ngModel]="filterInstitutionId()"
+        (ngModelChange)="onFilterInstitutionChange($event)"
+      >
+        <option value="">All institutions</option>
+        @for (inst of institutions(); track inst.value) {
+        <option [value]="inst.value">{{ inst.key }}</option>
+        }
+      </select>
+      <select
+        class="h-9 min-w-[140px] rounded-md border bg-background px-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="branchFilterDisabled()"
+        [ngModel]="filterBranchId()"
+        (ngModelChange)="onFilterBranchChange($event)"
+      >
+        <option value="">All branches</option>
+        @for (b of filterBranches(); track b.value) {
+        <option [value]="b.value">{{ b.key }}</option>
+        }
+      </select>
+      <select
+        class="h-9 min-w-[140px] rounded-md border bg-background px-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="libraryFilterDisabled()"
+        [ngModel]="filterLibraryId()"
+        (ngModelChange)="onFilterLibraryChange($event)"
+      >
+        <option value="">All libraries</option>
+        @for (l of filterLibraries(); track l.value) {
+        <option [value]="l.value">{{ l.key }}</option>
+        }
+      </select>
+      <div class="hidden sm:block w-px h-6 bg-border"></div>
       <div class="relative flex-1 min-w-[220px]">
         <svg lucideSearch class="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground"></svg>
         <input class="w-full h-9 rounded-md border bg-background pl-8 pr-3 text-sm"
-          placeholder="Search title, author, ISBN…" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+          placeholder="Search title, author, ISBN…" [ngModel]="query()" (ngModelChange)="onQueryChange($event)" />
       </div>
-      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="category()" (ngModelChange)="category.set($event)">
+      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="category()" (ngModelChange)="onCategoryChange($event)">
         <option value="all">All categories</option>
         @for (c of categories(); track c) { <option [ngValue]="c">{{ c }}</option> }
       </select>
-      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="status()" (ngModelChange)="status.set($event)">
+      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="status()" (ngModelChange)="onStatusChange($event)">
         <option value="all">All status</option>
         <option [ngValue]="BookStockStatus.Available">Available</option>
         <option [ngValue]="BookStockStatus.LowStock">Low stock</option>
         <option [ngValue]="BookStockStatus.OutOfStock">Out of stock</option>
       </select>
-      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+      <select class="h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="sort()" (ngModelChange)="onSortChange($event)">
+        <option value="newest">Sort: Newest first</option>
         <option value="title">Sort: Title</option>
         <option value="author">Sort: Author</option>
         <option value="category">Sort: Category</option>
@@ -75,13 +109,16 @@
             <th class="p-3 font-medium">Author</th>
             <th class="p-3 font-medium">Category</th>
             <th class="p-3 font-medium">ISBN</th>
+            @if (showLibraryColumn()) {
+            <th class="p-3 font-medium">Library</th>
+            }
             <th class="p-3 font-medium">Stock</th>
             <th class="p-3 font-medium">Status</th>
             <th class="p-3"></th>
           </tr>
         </thead>
         <tbody>
-          @for (book of filteredBooks(); track book.id) {
+          @for (book of pagedBooks(); track trackBook($index, book)) {
           <tr class="border-b hover:bg-muted/30 cursor-pointer" (click)="openDrawer(book)">
             <td class="p-3">
               <div class="flex items-center gap-3">
@@ -98,6 +135,9 @@
             <td class="p-3 text-muted-foreground">{{ book.author }}</td>
             <td class="p-3">{{ book.category }}</td>
             <td class="p-3 font-mono text-xs">{{ book.isbn }}</td>
+            @if (showLibraryColumn()) {
+            <td class="p-3 text-xs text-muted-foreground">{{ book.libraryName }}</td>
+            }
             <td class="p-3">
               <div class="text-xs tabular-nums">{{ book.availableCopies }}/{{ book.totalCopies }}</div>
               <div class="mt-1 h-1.5 rounded-full bg-muted overflow-hidden w-24">
@@ -113,7 +153,7 @@
     </div>
     } @else {
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-3">
-      @for (book of filteredBooks(); track book.id) {
+      @for (book of pagedBooks(); track trackBook($index, book)) {
       <button type="button" class="text-left rounded-lg border bg-card p-4 hover:border-primary/50 transition-colors"
         (click)="openDrawer(book)">
         <div class="flex gap-3">
@@ -132,10 +172,48 @@
               <app-status-badge [status]="BOOK_STATUS_LABELS[book.status]" [variant]="bookStatusVariant(book.status)" />
             </div>
             <div class="mt-2 text-xs tabular-nums">{{ book.availableCopies }}/{{ book.totalCopies }} available</div>
+            @if (showLibraryColumn()) {
+            <div class="mt-1 text-[10px] text-muted-foreground truncate">{{ book.libraryName }}</div>
+            }
           </div>
         </div>
       </button>
       }
+    </div>
+    }
+
+    @if (!loading() && filteredBooks().length > 0) {
+    <div class="flex flex-wrap items-center justify-between gap-3 px-3 py-3 border-t">
+      <div class="text-xs text-muted-foreground">
+        Showing <span class="tabular-nums font-medium text-foreground">{{ pageStart() + 1 }}–{{ Math.min(pageStart() + pageSize(), filteredBooks().length) }}</span>
+        of <span class="tabular-nums font-medium text-foreground">{{ filteredBooks().length }}</span>
+      </div>
+      <div class="flex items-center gap-3 ml-auto">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span>Rows</span>
+          <select class="h-8 rounded border bg-background px-1.5 text-xs" [ngModel]="pageSize()"
+            (ngModelChange)="setPageSize(+$event)">
+            @for (n of PAGE_SIZE_OPTS; track n) {
+            <option [value]="n">{{ n }}</option>
+            }
+          </select>
+        </div>
+        <div class="flex items-center gap-0.5">
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(1)">
+            <svg lucideChevronsLeft class="h-4 w-4"></svg>
+          </app-button>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+            <svg lucideChevronLeft class="h-4 w-4"></svg>
+          </app-button>
+          <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ currentPage() }} / {{ totalPages() }}</span>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+            <svg lucideChevronRight class="h-4 w-4"></svg>
+          </app-button>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(totalPages())">
+            <svg lucideChevronsRight class="h-4 w-4"></svg>
+          </app-button>
+        </div>
+      </div>
     </div>
     }
   </app-glass-card>
@@ -144,7 +222,8 @@
 <app-book-form-dialog
   [open]="showForm()"
   [book]="editBook()"
-  [existingIsbns]="existingIsbns()"
+  [userInstitutions]="institutions()"
+  [defaultScope]="formDefaultScope()"
   [busy]="formBusy()"
   (submitted)="onBookSubmitted($event)"
   (closed)="closeForm()" />

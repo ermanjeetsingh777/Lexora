@@ -218,5 +218,39 @@ namespace SLMS_API.Controllers
             }
         }
 
+        [HttpPost("{memberId:guid}/aadhaar")]
+        [RequestSizeLimit(10_485_760)]
+        public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> UploadAadhaar(
+            Guid memberId,
+            IFormFile file,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var member = await _memberService.UploadAadhaarAsync(memberId, file, _currentUserService.UserId, cancellationToken);
+                return Ok(ApiResponse<MemberDetailResponse>.Ok(member, "Aadhaar document uploaded successfully."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<MemberDetailResponse>.Fail(ex.Message));
+            }
+        }
+
+        [HttpGet("{memberId:guid}/aadhaar")]
+        public async Task<IActionResult> GetAadhaar(Guid memberId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _memberService.GetAadhaarAsync(memberId, cancellationToken);
+                if (result is null) return NotFound();
+                var (filePath, contentType, fileName) = result.Value;
+                return PhysicalFile(filePath, contentType, fileName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
     }
 }

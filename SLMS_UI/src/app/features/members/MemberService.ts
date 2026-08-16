@@ -74,4 +74,12 @@ export class MemberService {
     downloadPhoto(memberId: string): Observable<Blob> {
         return this.httpApi.download(`members/${memberId}/photo`);
     }
+
+    uploadAadhaar(memberId: string, file: File): Observable<APIResponseModel<MemberDetailResponse>> {
+        return this.httpApi.upload<MemberDetailResponse>(`members/${memberId}/aadhaar`, file);
+    }
+
+    downloadAadhaar(memberId: string): Observable<Blob> {
+        return this.httpApi.download(`members/${memberId}/aadhaar`);
+    }
 } 

@@ -20,6 +20,7 @@ namespace SLMS_API.Application.Services;
 public class MemberService : IMemberService
 {
     private const long MaxPhotoBytes = 5 * 1024 * 1024;
+    private const long MaxAadhaarBytes = 10 * 1024 * 1024;
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuthService _authService;
@@ -705,6 +706,7 @@ public class MemberService : IMemberService
                 m.Gender,
                 m.CreatedAtUtc,
                 m.PhotoStoragePath,
+                m.AadhaarStoragePath,
 
                 Name = m.User.FullName,
                 Email = m.User.Email,
@@ -885,6 +887,7 @@ public class MemberService : IMemberService
             DueDate = member.CurrentPlan?.EndDate,
             CreatedAtUtc = member.CreatedAtUtc,
             HasPhoto = !string.IsNullOrWhiteSpace(member.PhotoStoragePath),
+            HasAadhaar = !string.IsNullOrWhiteSpace(member.AadhaarStoragePath),
             Contacts = contacts
                 .Select(c => new MemberContactResponse
                 {
@@ -1055,6 +1058,96 @@ public class MemberService : IMemberService
         }
 
         File.Delete(member.PhotoStoragePath);
+    }
+
+    public async Task<MemberDetailResponse> UploadAadhaarAsync(
+        Guid memberId,
+        IFormFile file,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (file.Length <= 0)
+        {
+            throw new InvalidOperationException("Aadhaar document is empty.");
+        }
+
+        if (file.Length > MaxAadhaarBytes)
+        {
+            throw new InvalidOperationException("Aadhaar document exceeds the 10 MB limit.");
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (extension is not (".jpg" or ".jpeg" or ".png" or ".webp" or ".pdf"))
+        {
+            throw new InvalidOperationException("Only JPG, PNG, WEBP, or PDF files are allowed.");
+        }
+
+        var member = await _dbContext.Members
+            .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Member not found.");
+
+        DeleteAadhaarIfExists(member);
+
+        var uploadRoot = Path.Combine(_environment.ContentRootPath, "uploads", "members", "aadhaar");
+        Directory.CreateDirectory(uploadRoot);
+
+        var storagePath = Path.Combine(uploadRoot, $"{member.Id:N}{extension}");
+        await using (var stream = File.Create(storagePath))
+        {
+            await file.CopyToAsync(stream, cancellationToken);
+        }
+
+        member.AadhaarStoragePath = storagePath;
+        member.AadhaarFileName = Path.GetFileName(file.FileName);
+        member.UpdatedAtUtc = DateTime.UtcNow;
+        member.UpdatedBy = userId;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (await GetMemberDetailsByIdAsync(memberId, cancellationToken))!;
+    }
+
+    public async Task<(string FilePath, string ContentType, string FileName)?> GetAadhaarAsync(
+        Guid memberId,
+        CancellationToken cancellationToken = default)
+    {
+        var member = await _dbContext.Members.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken);
+
+        if (member is null || string.IsNullOrWhiteSpace(member.AadhaarStoragePath))
+        {
+            return null;
+        }
+
+        if (!File.Exists(member.AadhaarStoragePath))
+        {
+            throw new InvalidOperationException("Aadhaar document is missing on disk.");
+        }
+
+        var extension = Path.GetExtension(member.AadhaarStoragePath).ToLowerInvariant();
+        var contentType = extension switch
+        {
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".pdf" => "application/pdf",
+            _ => "image/jpeg",
+        };
+
+        var fileName = string.IsNullOrWhiteSpace(member.AadhaarFileName)
+            ? $"aadhaar-{member.FullName}{extension}"
+            : member.AadhaarFileName;
+
+        return (member.AadhaarStoragePath, contentType, fileName);
+    }
+
+    private static void DeleteAadhaarIfExists(Domain.Entities.Member member)
+    {
+        if (string.IsNullOrWhiteSpace(member.AadhaarStoragePath) || !File.Exists(member.AadhaarStoragePath))
+        {
+            return;
+        }
+
+        File.Delete(member.AadhaarStoragePath);
     }
 
     private static MemberResponse ToCreateResponse(Domain.Entities.Member entity) =>

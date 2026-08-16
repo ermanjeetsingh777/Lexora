@@ -35,3 +35,19 @@ export interface AdminAuditLog {
   ipAddress: string | null;
   createdAtUtc: string;
 }
+
+export interface AdminCreateUserRequest {
+  email: string;
+  password: string;
+  fullName?: string | null;
+  isActive?: boolean;
+}
+
+export interface AdminUpdateUserRequest {
+  fullName?: string | null;
+  isActive?: boolean | null;
+}
+
+export interface AdminAssignRolesRequest {
+  roles: string[];
+}

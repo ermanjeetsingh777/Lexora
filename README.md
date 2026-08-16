@@ -36,7 +36,8 @@ Implementation workflows (Angular + API, routes, endpoints, file maps):
 | M-06 Members (detail) | [docs/workflow/members-detail-workflow.md](docs/workflow/members-detail-workflow.md) |
 | M-12 Books & circulation | [docs/workflow/books-workflow.md](docs/workflow/books-workflow.md) |
 | **M-13 Attendance QR kiosk** | **[docs/workflow/attendance-kiosk-workflow.md](docs/workflow/attendance-kiosk-workflow.md)** |
-| M-15 Administration | [docs/workflow/administration-workflow.md](docs/workflow/administration-workflow.md) |
+| M-15 Administration (overview) | [docs/workflow/administration-workflow.md](docs/workflow/administration-workflow.md) |
+| **M-15 Users & roles** | **[docs/workflow/users-admin-workflow.md](docs/workflow/users-admin-workflow.md)** |
 
 Requirements (BRD / SRS): [docs/requirements/](docs/requirements/)
 

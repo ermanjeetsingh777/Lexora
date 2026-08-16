@@ -1,0 +1,439 @@
+<app-page-header
+  eyebrow="Admin"
+  title="Users"
+  description="Staff accounts with role-based permissions and scope mapping."
+>
+  @if (canCreate) {
+    <div actions>
+      <app-button size="sm" (click)="openCreate()">
+        <svg lucidePlus class="h-4 w-4 mr-1.5"></svg> Add user
+      </app-button>
+    </div>
+  }
+</app-page-header>
+
+@if (loading()) {
+  <p class="py-16 text-center text-sm text-muted-foreground">Loading users…</p>
+} @else if (error()) {
+  <p class="py-12 text-center text-sm text-destructive">{{ error() }}</p>
+} @else {
+  <!-- KPIs -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <app-kpi-card label="Total users" [value]="totals().total">
+      <svg lucideUsers icon class="h-5 w-5"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Active" [value]="totals().active">
+      <svg lucideUsers icon class="h-5 w-5"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Admins" [value]="totals().admins">
+      <svg lucideShield icon class="h-5 w-5"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Inactive" [value]="totals().inactive">
+      <svg lucideLock icon class="h-5 w-5"></svg>
+    </app-kpi-card>
+  </div>
+
+  <!-- Governance activity feed -->
+  <app-glass-card class="mt-5 p-0 overflow-hidden block">
+    <button
+      type="button"
+      class="w-full flex items-center justify-between p-3 hover:bg-muted/40 transition"
+      (click)="auditFeedOpen.set(!auditFeedOpen())"
+    >
+      <div class="flex items-center gap-2">
+        <svg lucideHistory class="h-4 w-4 text-muted-foreground"></svg>
+        <span class="text-sm font-medium">Recent governance activity</span>
+        <span class="text-[10px] rounded-md border bg-muted px-1.5 py-0.5">{{ audit().length }}</span>
+      </div>
+      <svg
+        lucideChevronDown
+        class="h-4 w-4 text-muted-foreground transition"
+        [class.rotate-180]="auditFeedOpen()"
+      ></svg>
+    </button>
+    @if (auditFeedOpen()) {
+      <div class="border-t max-h-72 overflow-y-auto">
+        @if (!governanceFeed().length) {
+          <p class="p-4 text-xs text-muted-foreground text-center">
+            No governance changes yet. Edit a user to start the log.
+          </p>
+        } @else {
+          <ul class="divide-y">
+            @for (e of governanceFeed(); track e.id) {
+              <li class="p-3 text-xs flex items-center gap-3">
+                <svg lucideShield class="h-3.5 w-3.5 text-muted-foreground shrink-0"></svg>
+                <div class="flex-1 min-w-0">
+                  <span class="font-medium">{{ e.eventType }}</span>
+                  @if (e.details) {
+                    <span class="text-muted-foreground"> · {{ e.details }}</span>
+                  }
+                </div>
+                <span class="text-muted-foreground shrink-0">{{ fmt(e.createdAtUtc) }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </app-glass-card>
+
+  <!-- Filters -->
+  <app-glass-card class="mt-4 block users-filters-card">
+    <div class="users-filter-bar">
+      <div class="users-filter-search">
+        <svg lucideSearch class="users-filter-icon"></svg>
+        <input
+          type="search"
+          class="users-filter-control w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)]"
+          placeholder="Search by name or email"
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event)"
+        />
+      </div>
+      <div class="users-filter-select-wrap">
+        <svg lucideFilter class="users-filter-icon users-filter-icon--select"></svg>
+        <select
+          class="users-filter-control users-filter-select w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-8 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)] appearance-none"
+          [ngModel]="roleFilter()"
+          (ngModelChange)="roleFilter.set($event)"
+        >
+          <option value="all">All roles</option>
+          @for (r of staffRoleOptions; track r.key) {
+            <option [value]="r.key">{{ r.label }}</option>
+          }
+        </select>
+        <svg lucideChevronDown class="users-filter-chevron"></svg>
+      </div>
+      <div class="users-filter-select-wrap">
+        <select
+          class="users-filter-control users-filter-select w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 pr-8 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)] appearance-none"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)"
+        >
+          <option value="all">All statuses</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <svg lucideChevronDown class="users-filter-chevron"></svg>
+      </div>
+    </div>
+  </app-glass-card>
+
+  <!-- Bulk actions -->
+  @if (selectedCount() > 0) {
+    <app-glass-card class="mt-3 p-3 flex flex-wrap items-center gap-2 border-primary/40 block">
+      <span class="text-sm font-medium">{{ selectedCount() }} selected</span>
+      <span class="h-5 w-px bg-border"></span>
+      @if (canUpdate) {
+        <app-button size="sm" variant="outline" (click)="bulkSetActive(true)">
+          <svg lucideUnlock class="h-3.5 w-3.5 mr-1"></svg> Enable
+        </app-button>
+        <app-button size="sm" variant="outline" (click)="bulkSetActive(false)">
+          <svg lucideLock class="h-3.5 w-3.5 mr-1"></svg> Disable
+        </app-button>
+      }
+      <app-button size="sm" variant="outline" (click)="bulkResetLinks()">
+        <svg lucideMail class="h-3.5 w-3.5 mr-1"></svg> Resend reset link
+      </app-button>
+      <div class="ml-auto">
+        <app-button size="sm" variant="ghost" (click)="clearSelection()">
+          <svg lucideX class="h-3.5 w-3.5 mr-1"></svg> Clear
+        </app-button>
+      </div>
+    </app-glass-card>
+  }
+
+  <!-- Table -->
+  <app-glass-card class="p-0 mt-4 overflow-hidden block">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left border-b label-mono">
+            <th class="px-3 py-2.5 w-8">
+              <input
+                type="checkbox"
+                class="h-4 w-4"
+                [checked]="allFilteredSelected()"
+                (change)="selectAllFiltered($any($event.target).checked)"
+                aria-label="Select all"
+              />
+            </th>
+            <th class="py-2.5 font-medium">User</th>
+            <th class="font-medium">Role</th>
+            <th class="font-medium">Scope</th>
+            <th class="font-medium">Status</th>
+            <th class="px-4 font-medium">Created</th>
+            <th class="px-4 text-right font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          @for (user of filtered(); track user.id) {
+            <tr class="hover:bg-muted/40 cursor-pointer" (click)="selectUser(user)">
+              <td class="px-3 py-2.5" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4"
+                  [checked]="selectedIds().has(user.id)"
+                  (change)="toggleSelect(user.id, $event)"
+                  [attr.aria-label]="'Select ' + userDisplayName(user)"
+                />
+              </td>
+              <td class="py-2.5">
+                <div class="flex items-center gap-2">
+                  <span class="h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-semibold grid place-items-center shrink-0">
+                    {{ userInitials(user) }}
+                  </span>
+                  <div>
+                    <div class="font-medium">{{ userDisplayName(user) }}</div>
+                    <div class="text-xs text-muted-foreground">{{ user.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="rounded-md border px-2 py-0.5 font-mono text-[11px]">{{ primaryRole(user) }}</span>
+              </td>
+              <td class="text-muted-foreground text-xs">Platform</td>
+              <td><app-status-badge [status]="userStatus(user)" /></td>
+              <td class="px-4 text-muted-foreground text-xs">{{ user.createdAtUtc | date: 'mediumDate' }}</td>
+              <td class="px-4 text-right" (click)="$event.stopPropagation()">
+                <div class="inline-flex gap-1">
+                  @if (canUpdate) {
+                    <app-button size="sm" variant="ghost" title="Edit" (click)="openEdit(user, $event)">
+                      <svg lucideUserCog class="h-4 w-4"></svg>
+                    </app-button>
+                    <app-button
+                      size="sm"
+                      variant="ghost"
+                      [title]="user.isActive ? 'Disable' : 'Enable'"
+                      (click)="toggleUserActive(user, $event)"
+                    >
+                      @if (user.isActive) {
+                        <svg lucideLock class="h-4 w-4"></svg>
+                      } @else {
+                        <svg lucideUnlock class="h-4 w-4"></svg>
+                      }
+                    </app-button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+          @if (!filtered().length) {
+            <tr>
+              <td colspan="7" class="text-center py-10 text-muted-foreground text-sm">
+                No users match these filters.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </app-glass-card>
+}
+
+<!-- Detail drawer -->
+@if (selectedUser(); as user) {
+  <div class="content-overlay flex justify-end" [style.left]="overlayLeft()">
+    <div class="absolute inset-0 bg-black/40" (click)="closeDrawer()"></div>
+    <div class="relative w-full sm:max-w-xl bg-background border-l shadow-xl h-full flex flex-col overflow-hidden">
+      <div class="p-6 border-b shrink-0">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="h-12 w-12 rounded-full bg-primary/10 text-primary font-semibold grid place-items-center shrink-0">
+              {{ userInitials(user) }}
+            </span>
+            <div class="min-w-0">
+              <h2 class="text-lg font-semibold truncate">{{ userDisplayName(user) }}</h2>
+              <p class="text-sm text-muted-foreground truncate">{{ user.email }}</p>
+            </div>
+          </div>
+          <button type="button" class="h-8 w-8 rounded-md hover:bg-muted grid place-items-center shrink-0" (click)="closeDrawer()">
+            <svg lucideX class="h-4 w-4"></svg>
+          </button>
+        </div>
+
+        <div class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1 mt-5 w-full overflow-x-auto">
+          @for (tab of [
+            { id: 'overview', label: 'Overview' },
+            { id: 'activity', label: 'Activity' },
+            { id: 'permissions', label: 'Perms' },
+            { id: 'audit', label: 'Audit' },
+            { id: 'security', label: 'Security' }
+          ]; track tab.id) {
+            <button
+              type="button"
+              class="flex-1 px-2.5 py-1 text-xs rounded-md whitespace-nowrap min-w-[4.5rem]"
+              [class.bg-background]="drawerTab() === tab.id"
+              [class.shadow-sm]="drawerTab() === tab.id"
+              (click)="drawerTab.set($any(tab.id))"
+            >
+              {{ tab.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6">
+        @if (drawerTab() === 'overview') {
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-md border p-2.5">
+              <p class="label-mono text-[10px]">Role</p>
+              <div class="mt-0.5">{{ roleLabel(primaryRole(user)) }}</div>
+            </div>
+            <div class="rounded-md border p-2.5">
+              <p class="label-mono text-[10px]">Scope</p>
+              <div class="mt-0.5">Platform</div>
+            </div>
+            <div class="rounded-md border p-2.5">
+              <p class="label-mono text-[10px]">Status</p>
+              <div class="mt-0.5"><app-status-badge [status]="userStatus(user)" /></div>
+            </div>
+            <div class="rounded-md border p-2.5">
+              <p class="label-mono text-[10px]">Created</p>
+              <div class="mt-0.5">{{ user.createdAtUtc | date: 'mediumDate' }}</div>
+            </div>
+            <div class="rounded-md border p-2.5 col-span-2">
+              <p class="label-mono text-[10px]">All roles</p>
+              <div class="mt-1 flex flex-wrap gap-1">
+                @for (role of user.roles; track role) {
+                  <span class="rounded-md border px-2 py-0.5 text-xs font-mono">{{ role }}</span>
+                } @empty {
+                  <span class="text-muted-foreground">No roles assigned</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t my-5"></div>
+
+          <div class="flex flex-wrap gap-2">
+            <app-button size="sm" variant="outline" (click)="copyEmail(user)">
+              <svg lucideCopy class="h-3.5 w-3.5 mr-1"></svg> Copy email
+            </app-button>
+            <app-button size="sm" variant="outline" (click)="sendResetLink(user)">
+              <svg lucideMail class="h-3.5 w-3.5 mr-1"></svg> Send reset link
+            </app-button>
+            @if (canUpdate) {
+              <app-button size="sm" variant="outline" (click)="toggleUserActive(user)">
+                @if (user.isActive) {
+                  <svg lucideLock class="h-3.5 w-3.5 mr-1"></svg> Disable account
+                } @else {
+                  <svg lucideUnlock class="h-3.5 w-3.5 mr-1"></svg> Enable account
+                }
+              </app-button>
+              <app-button size="sm" variant="outline" (click)="openEdit(user)">
+                <svg lucideUserCog class="h-3.5 w-3.5 mr-1"></svg> Edit
+              </app-button>
+            }
+            @if (canDelete) {
+              <app-button size="sm" variant="outline" class="text-destructive hover:text-destructive" (click)="deleteUser(user)">
+                <svg lucideTrash2 class="h-3.5 w-3.5 mr-1"></svg> Remove
+              </app-button>
+            }
+          </div>
+        }
+
+        @if (drawerTab() === 'activity') {
+          @if (!selectedUserAudit().length) {
+            <p class="text-xs text-muted-foreground text-center py-8">No activity recorded for this user yet.</p>
+          } @else {
+            <ol class="relative border-l ml-2 space-y-3">
+              @for (e of selectedUserAudit(); track e.id) {
+                <li class="ml-4 relative">
+                  <span class="absolute -left-[9px] top-1 flex items-center justify-center w-4 h-4 rounded-full bg-background border">
+                    <svg lucideHistory class="h-2.5 w-2.5 text-muted-foreground"></svg>
+                  </span>
+                  <div class="flex items-baseline justify-between gap-2">
+                    <p class="text-sm font-medium">{{ e.eventType }}</p>
+                    <p class="text-[11px] text-muted-foreground">{{ fmt(e.createdAtUtc) }}</p>
+                  </div>
+                  @if (e.details) {
+                    <p class="text-xs text-muted-foreground">{{ e.details }}</p>
+                  }
+                </li>
+              }
+            </ol>
+          }
+        }
+
+        @if (drawerTab() === 'permissions') {
+          <app-section-header
+            title="Effective permissions"
+            [description]="'Inherited from roles: ' + (user.roles.join(', ') || 'none')"
+          />
+          <div class="mt-3 grid grid-cols-1 gap-1.5">
+            @for (p of selectedUserPermissions(); track p.id) {
+              <div class="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                <div class="flex items-center gap-2">
+                  <svg lucideShield class="h-3.5 w-3.5 text-success"></svg>
+                  <span>{{ p.action }} {{ p.module }}</span>
+                  <code class="font-mono text-[10px] text-muted-foreground">{{ p.id }}</code>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full border bg-muted text-muted-foreground">default</span>
+              </div>
+            } @empty {
+              <p class="text-xs text-muted-foreground text-center py-6">No permissions from assigned roles.</p>
+            }
+          </div>
+        }
+
+        @if (drawerTab() === 'audit') {
+          <app-section-header title="Audit log" description="Role and permission changes recorded for this user." />
+          @if (!selectedUserAudit().length) {
+            <p class="text-xs text-muted-foreground text-center py-8">No audit entries yet.</p>
+          } @else {
+            <ol class="relative border-l ml-2 space-y-3 mt-4">
+              @for (e of selectedUserAudit(); track e.id) {
+                <li class="ml-4 relative">
+                  <span class="absolute -left-[9px] top-1 flex items-center justify-center w-4 h-4 rounded-full bg-background border">
+                    <svg lucideShieldAlert class="h-2.5 w-2.5 text-muted-foreground"></svg>
+                  </span>
+                  <div class="flex items-baseline justify-between gap-2">
+                    <p class="text-sm font-medium">{{ e.eventType }}</p>
+                    <p class="text-[11px] text-muted-foreground">{{ fmt(e.createdAtUtc) }}</p>
+                  </div>
+                  @if (e.details) {
+                    <p class="text-xs text-muted-foreground">{{ e.details }}</p>
+                  }
+                </li>
+              }
+            </ol>
+          }
+        }
+
+        @if (drawerTab() === 'security') {
+          <div class="space-y-3">
+            <div class="rounded-md border p-3 flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium">Two-factor authentication</p>
+                <p class="text-xs text-muted-foreground">Require an authenticator code on sign-in.</p>
+              </div>
+              <span class="text-xs rounded-md border px-2 py-0.5" [class.text-success]="user.twoFactorEnabled">
+                {{ user.twoFactorEnabled ? 'Enabled' : 'Disabled' }}
+              </span>
+            </div>
+            <div class="rounded-md border p-3 flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium">Force password rotation</p>
+                <p class="text-xs text-muted-foreground">Prompt this user to set a new password on next sign-in.</p>
+              </div>
+              <app-button size="sm" variant="outline" (click)="sendResetLink(user)">
+                <svg lucideKeyRound class="h-3.5 w-3.5 mr-1"></svg> Schedule
+              </app-button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<app-user-form-dialog
+  [open]="formOpen()"
+  [user]="editUser()"
+  [roles]="assignableRoles()"
+  [busy]="formBusy()"
+  [overlayLeft]="overlayLeft()"
+  (submitted)="onFormSubmit($event)"
+  (closed)="closeForm()"
+/>

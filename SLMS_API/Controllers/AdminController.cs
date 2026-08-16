@@ -31,9 +31,11 @@ public class AdminController : ControllerBase
 
     [HttpGet("users")]
     [Permission(PermissionKey.UsersList)]
-    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<AdminUserResponse>>>> GetUsers(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<AdminUserResponse>>>> GetUsers(
+        [FromQuery] bool staffOnly = false,
+        CancellationToken cancellationToken = default)
     {
-        var users = await _adminService.GetUsersAsync(cancellationToken);
+        var users = await _adminService.GetUsersAsync(staffOnly, cancellationToken);
         return Ok(ApiResponse<IReadOnlyCollection<AdminUserResponse>>.Ok(users));
     }
 

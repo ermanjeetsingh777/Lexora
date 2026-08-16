@@ -39,20 +39,46 @@ public class AdminService : IAdminService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyCollection<AdminUserResponse>> GetUsersAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<AdminUserResponse>> GetUsersAsync(bool staffOnly = false, CancellationToken cancellationToken = default)
     {
         var users = await _userManager.Users
             .OrderByDescending(x => x.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
+        HashSet<string>? memberLinkedUserIds = null;
+        if (staffOnly)
+        {
+            memberLinkedUserIds = await _dbContext.Members
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted && m.UserId != string.Empty)
+                .Select(m => m.UserId)
+                .ToHashSetAsync(cancellationToken);
+        }
+
         var result = new List<AdminUserResponse>(users.Count);
         foreach (var user in users)
         {
             var roles = await _userManager.GetRolesAsync(user);
+
+            if (staffOnly && ShouldExcludeStaffUser(user.Id, roles, memberLinkedUserIds!))
+            {
+                continue;
+            }
+
             result.Add(ToAdminUserResponse(user, roles));
         }
 
         return result;
+    }
+
+    private static bool ShouldExcludeStaffUser(string userId, IList<string> roles, HashSet<string> memberLinkedUserIds)
+    {
+        if (roles.Contains(RoleDefinitions.Members, StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return memberLinkedUserIds.Contains(userId);
     }
 
     public async Task<AdminUserResponse?> GetUserByIdAsync(string id, CancellationToken cancellationToken = default)

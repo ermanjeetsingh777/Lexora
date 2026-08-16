@@ -39,6 +39,7 @@ import {
   RoleScope,
   RoleView,
 } from './roles-list.util';
+import { PermissionKey } from '@core/constants/permissions';
 
 type ScopeFilter = 'all' | RoleScope;
 type DrawerTab = 'perms' | 'members' | 'audit';
@@ -579,14 +580,22 @@ export class RolesListComponent implements OnInit {
 
     const hasApiId = !updated.id.startsWith('def_') && !updated.id.startsWith('r_');
 
-    if (hasApiId && permissionKeys.length) {
-      this.admin.assignRolePermissions(updated.id, permissionKeys).subscribe({
-        next: () => finish(updated),
+    if (!isNew && hasApiId && prev && prev.name.trim() !== updated.name.trim()) {
+      this.admin.updateRole(updated.id, updated.name.trim()).subscribe({
+        next: (apiRole) => {
+          const role = { ...updated, id: apiRole.id, name: apiRole.name ?? updated.name };
+          this.saveRolePermissions(role, prev, isNew, permissionKeys, finish);
+        },
         error: () => {
           this.saving.set(false);
-          this.toast.error('Failed to save role permissions');
+          this.toast.error('Failed to update role name');
         },
       });
+      return;
+    }
+
+    if (hasApiId && permissionKeys.length) {
+      this.saveRolePermissions(updated, prev, isNew, permissionKeys, finish);
       return;
     }
 
@@ -611,6 +620,27 @@ export class RolesListComponent implements OnInit {
     }
 
     finish(updated);
+  }
+
+  private saveRolePermissions(
+    updated: RoleView,
+    prev: RoleView | null,
+    isNew: boolean,
+    permissionKeys: PermissionKey[],
+    finish: (role: RoleView) => void,
+  ): void {
+    if (!permissionKeys.length) {
+      finish(updated);
+      return;
+    }
+
+    this.admin.assignRolePermissions(updated.id, permissionKeys).subscribe({
+      next: () => finish(updated),
+      error: () => {
+        this.saving.set(false);
+        this.toast.error('Failed to save role permissions');
+      },
+    });
   }
 
   togglePermission(id: string, on: boolean): void {

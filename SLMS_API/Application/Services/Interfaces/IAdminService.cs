@@ -5,7 +5,7 @@ namespace SLMS_API.Application.Services.Interfaces;
 
 public interface IAdminService
 {
-    Task<IReadOnlyCollection<AdminUserResponse>> GetUsersAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<AdminUserResponse>> GetUsersAsync(bool staffOnly = false, CancellationToken cancellationToken = default);
     Task<AdminUserResponse?> GetUserByIdAsync(string id, CancellationToken cancellationToken = default);
     Task<AdminUserResponse> CreateUserAsync(AdminCreateUserRequest request, string? ipAddress, CancellationToken cancellationToken = default);
     Task<AdminUserResponse> UpdateUserAsync(string id, AdminUpdateUserRequest request, string? ipAddress, CancellationToken cancellationToken = default);

@@ -37,12 +37,12 @@ flowchart LR
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FR-15.1 | List users with role, status, last activity | In progress |
-| FR-15.2 | Create user with role default permissions | API done · UI pending |
-| FR-15.3 | Edit user (profile, permissions, activity tabs) | Planned |
+| FR-15.1 | List users with role, status, last activity | Done |
+| FR-15.2 | Create user with role assignment | Done |
+| FR-15.3 | Edit user (profile, active status, roles) | Done |
 | FR-15.4 | Visual permission diff (added/removed badges) | Planned |
-| FR-15.5 | Role catalogue + permission matrix | In progress |
-| FR-15.6 | Create/edit roles with change summary | API done · UI pending |
+| FR-15.5 | Role catalogue + permission matrix | Done |
+| FR-15.6 | Create/edit roles with change summary | Done |
 | FR-15.7 | Governance feed | API audit logs · UI pending |
 | FR-15.8 | Gate admin routes (`permissionGuard`) | Done |
 
@@ -164,6 +164,7 @@ On startup (`DbSeeder.MigrateAndSeedAsync`):
 
 ## 7. Related workflows
 
+- [Users & roles workflow](./users-admin-workflow.md) — create/edit users, assign roles, permission matrix
 - [Members list workflow](./members-list-workflow.md)
 - [Books workflow](./books-workflow.md)
 - [Attendance QR kiosk](./attendance-kiosk-workflow.md) — uses `attendance.scanner.use` (ID 109)
@@ -174,7 +175,7 @@ On startup (`DbSeeder.MigrateAndSeedAsync`):
 
 | Item | Notes |
 |------|-------|
-| User detail drawer (tabs) | Profile · Permissions · Activity |
+| User activity timeline | See [users-admin-workflow.md](./users-admin-workflow.md) §8 |
 | Governance feed UI | Wire `GET /api/v1/admin/audit-logs` |
 | Per-user permission overrides | BR-15.1 explicit overrides table |
 | SCIM / JIT elevation | Out of scope per M-15 |

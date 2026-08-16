@@ -1,0 +1,75 @@
+.content-overlay {
+  position: fixed;
+  top: 3.5rem;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  transition: left 200ms ease;
+}
+
+:host ::ng-deep app-glass-card.users-filters-card > .glass-card {
+  padding: 0.75rem;
+}
+
+.users-filter-bar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+@media (min-width: 640px) {
+  .users-filter-bar {
+    grid-template-columns: minmax(12rem, 1fr) 11.25rem 10rem;
+    align-items: center;
+  }
+}
+
+.users-filter-search,
+.users-filter-select-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.users-filter-control {
+  height: 2.25rem;
+  box-sizing: border-box;
+}
+
+.users-filter-icon {
+  position: absolute;
+  left: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.users-filter-icon--select {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.users-filter-chevron {
+  position: absolute;
+  right: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.users-filter-select {
+  cursor: pointer;
+}
+
+@media (max-width: 639px) {
+  .users-filter-select-wrap {
+    width: 100%;
+  }
+}

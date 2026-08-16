@@ -3,8 +3,11 @@ import { ApiService } from './api.service';
 import { Observable, map } from 'rxjs';
 import {
   AdminAuditLog,
+  AdminAssignRolesRequest,
+  AdminCreateUserRequest,
   AdminRole,
   AdminRolePermissions,
+  AdminUpdateUserRequest,
   AdminUser,
   PermissionItem,
 } from '@core/models/admin.models';
@@ -15,12 +18,33 @@ export class AdminService {
   private readonly api = inject(ApiService);
   private readonly base = 'admin';
 
-  getUsers(): Observable<AdminUser[]> {
-    return this.api.get<AdminUser[]>(`${this.base}/users`).pipe(map((r) => r.data ?? []));
+  getUsers(options?: { staffOnly?: boolean }): Observable<AdminUser[]> {
+    const params = options?.staffOnly ? { staffOnly: true } : undefined;
+    return this.api
+      .get<AdminUser[]>(`${this.base}/users`, { params })
+      .pipe(map((r) => r.data ?? []));
   }
 
   getUserById(id: string): Observable<AdminUser> {
     return this.api.getById<AdminUser>(`${this.base}/users`, id).pipe(map((r) => r.data!));
+  }
+
+  createUser(request: AdminCreateUserRequest): Observable<AdminUser> {
+    return this.api.post<AdminUser>(`${this.base}/users`, request).pipe(map((r) => r.data!));
+  }
+
+  updateUser(id: string, request: AdminUpdateUserRequest): Observable<AdminUser> {
+    return this.api.putTo<AdminUser>(`${this.base}/users/${id}`, request).pipe(map((r) => r.data!));
+  }
+
+  deleteUser(id: string): Observable<void> {
+    return this.api.deleteByPath(`${this.base}/users/${id}`).pipe(map(() => undefined));
+  }
+
+  assignUserRoles(id: string, request: AdminAssignRolesRequest): Observable<AdminUser> {
+    return this.api
+      .post<AdminUser>(`${this.base}/users/${id}/roles`, request)
+      .pipe(map((r) => r.data!));
   }
 
   getRoles(): Observable<AdminRole[]> {

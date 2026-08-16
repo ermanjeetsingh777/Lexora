@@ -27,6 +27,7 @@ export interface MemberListResponse {
   phone: string;
   avatar: string;
   avatarHue: number;
+  hasPhoto?: boolean;
 
   institution: string;
   branch: string;

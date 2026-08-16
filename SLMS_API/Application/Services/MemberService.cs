@@ -461,6 +461,7 @@ public class MemberService : IMemberService
             m.IsActive,
             m.MembershipNo,
             m.Shift,
+            m.PhotoStoragePath,
 
             fullName = m.User.FullName,
             UserName = m.User.UserName,
@@ -532,6 +533,7 @@ public class MemberService : IMemberService
                     $"https://api.dicebear.com/9.x/initials/svg?seed={Uri.EscapeDataString(x.fullName ?? x.UserName)}&backgroundType=gradientLinear",
 
                 AvatarHue = 0,
+                HasPhoto = !string.IsNullOrWhiteSpace(x.PhotoStoragePath),
 
                 Institution = x.LibraryMapping?.InstitutionName ?? string.Empty,
                 Branch = x.LibraryMapping?.BranchName ?? string.Empty,
@@ -580,6 +582,7 @@ public class MemberService : IMemberService
                 m.IsActive,
                 m.MembershipNo,
                 m.Shift,
+                m.PhotoStoragePath,
 
                 fullName = m.User.FullName,
                 Email = m.User.Email,
@@ -652,6 +655,7 @@ public class MemberService : IMemberService
                         $"https://api.dicebear.com/9.x/initials/svg?seed={Uri.EscapeDataString(name)}&backgroundType=gradientLinear",
 
                     AvatarHue = 0,
+                    HasPhoto = !string.IsNullOrWhiteSpace(x.PhotoStoragePath),
 
                     Institution = x.LibraryMapping?.InstitutionName ?? string.Empty,
                     Branch = x.LibraryMapping?.BranchName ?? string.Empty,

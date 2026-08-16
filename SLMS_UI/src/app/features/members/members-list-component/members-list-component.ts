@@ -36,6 +36,7 @@ interface ExpiryQuickOption {
 }
 
 import { RenewPlanDialogComponent } from '../components/renew-plan-dialog/renew-plan-dialog.component';
+import { MemberAvatarComponent } from '../components/member-avatar/member-avatar.component';
 
 type FilterKey = 'statuses' | 'plans' | 'branches' | 'shifts' | 'lifecycles';
 
@@ -64,6 +65,7 @@ interface MemberRow extends MemberListResponse {
     LucideArrowUp, LucideArrowDown, LucideChevronsUpDown,
     LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
     RenewPlanDialogComponent,
+    MemberAvatarComponent,
   ],
   templateUrl: './members-list-component.html',
   styleUrl: './members-list-component.css',

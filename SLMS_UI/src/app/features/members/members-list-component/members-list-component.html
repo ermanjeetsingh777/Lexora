@@ -422,10 +422,13 @@
           <tr class="hover:bg-muted/40" [class]="lifecycleRowClass(m.life.state)">
             <td class="px-4 py-2.5">
               <a [routerLink]="['/members', m.id]" class="flex items-center gap-2 group">
-                <span class="h-8 w-8 rounded-full flex items-center justify-center text-xs text-white font-medium shrink-0"
-                  [style.background]="commonService.avatarBg((i * 41) % 360)">
-                  {{ commonService.initials(m.name || m.userName || m.email) }}
-                </span>
+                <app-member-avatar
+                  [memberId]="m.id"
+                  [hasPhoto]="m.hasPhoto ?? false"
+                  [name]="m.name || m.userName || m.email"
+                  [hue]="(i * 41) % 360"
+                  size="sm"
+                />
                 <div>
                   <div class="font-medium group-hover:text-primary">{{ m.name || m.userName || m.email }}</div>
                   <div class="text-xs text-muted-foreground">{{ m.email }}</div>
@@ -582,10 +585,14 @@
         [class]="m.life.state === 'Expired' ? 'border-destructive/40' : (m.life.state === 'Expiring soon' || m.life.state === 'Grace') ? 'border-warning/40' : ''">
         <a [routerLink]="['/members', m.id]" class="absolute inset-0 rounded-lg" [attr.aria-label]="m.name"></a>
         <div class="flex items-center gap-3 relative z-10">
-          <span class="h-11 w-11 rounded-full flex items-center justify-center text-white font-medium shrink-0 pointer-events-none"
-            [style.background]="commonService.avatarBg((i * 41) % 360)">
-            {{ commonService.initials(m.name || m.userName || m.email) }}
-          </span>
+          <app-member-avatar
+            class="pointer-events-none"
+            [memberId]="m.id"
+            [hasPhoto]="m.hasPhoto ?? false"
+            [name]="m.name || m.userName || m.email"
+            [hue]="(i * 41) % 360"
+            size="md"
+          />
           <div class="flex-1 min-w-0">
             <div class="font-medium truncate group-hover:text-primary">{{ m.name || m.userName || m.email }}</div>
             <div class="text-xs text-muted-foreground truncate">{{ m.email }}</div>
@@ -720,10 +727,13 @@
   <div class="p-6">
     <div class="flex items-center justify-between mb-5">
       <div class="flex items-center gap-3">
-        <span class="h-11 w-11 rounded-full flex items-center justify-center text-white font-medium shrink-0"
-          [style.background]="commonService.avatarBg(qm.avatarHue ?? 200)">
-          {{ commonService.initials(qm.name || qm.userName || qm.email) }}
-        </span>
+        <app-member-avatar
+          [memberId]="qm.id"
+          [hasPhoto]="qm.hasPhoto ?? false"
+          [name]="qm.name || qm.userName || qm.email"
+          [hue]="qm.avatarHue ?? 200"
+          size="md"
+        />
         <div>
           <div class="font-semibold">{{ qm.name || qm.userName || qm.email }}</div>
           <div class="text-xs text-muted-foreground">{{ qm.email }}</div>

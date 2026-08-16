@@ -11,6 +11,7 @@ namespace SLMS_API.Application.Contracts.Organizations.Responses
         public string? Phone { get; set; }
         public string? Avatar { get; set; }
         public int AvatarHue { get; set; }
+        public bool HasPhoto { get; set; }
         public string Institution { get; set; } = string.Empty;
         public string Branch { get; set; } = string.Empty;
         public string Library { get; set; } = string.Empty;

@@ -155,6 +155,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(x => x.AttendanceQrToken).IsUnique();
         });
 
+        builder.Entity<Member>(entity =>
+        {
+            entity.Property(x => x.PhotoStoragePath).HasMaxLength(500);
+            entity.Property(x => x.PhotoFileName).HasMaxLength(260);
+        });
+
         builder.Entity<SupportTicket>(entity =>
         {
             entity.HasKey(x => x.Id);

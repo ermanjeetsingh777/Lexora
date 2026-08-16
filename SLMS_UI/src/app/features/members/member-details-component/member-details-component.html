@@ -698,9 +698,9 @@
     </div>
 
     @if (bookLoansLoading()) {
-    <app-glass-card class="block p-8 text-center text-sm text-muted-foreground">Loading borrow history…</app-glass-card>
+    <app-glass-card class="block text-center text-sm text-muted-foreground">Loading borrow history…</app-glass-card>
     } @else if (!bookLoans().length) {
-    <app-glass-card class="block p-8 text-center">
+    <app-glass-card class="block text-center">
       <svg lucideBookMarked class="h-10 w-10 mx-auto text-muted-foreground mb-3"></svg>
       <p class="text-sm text-muted-foreground">No borrow history yet.</p>
     </app-glass-card>

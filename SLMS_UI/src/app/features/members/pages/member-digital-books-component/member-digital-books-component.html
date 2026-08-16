@@ -25,9 +25,9 @@
   </div>
 
   @if (loading()) {
-    <app-glass-card class="block p-10 text-center text-sm text-muted-foreground">Loading digital books…</app-glass-card>
+    <app-glass-card class="block text-center text-sm text-muted-foreground">Loading digital books…</app-glass-card>
   } @else if (!filteredBooks().length) {
-    <app-glass-card class="block p-10 text-center">
+    <app-glass-card class="block text-center">
       <svg lucideBookOpen class="h-10 w-10 mx-auto text-muted-foreground mb-3"></svg>
       <p class="text-sm text-muted-foreground">No PDF books available in this library yet.</p>
     </app-glass-card>

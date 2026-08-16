@@ -231,6 +231,140 @@ public class AttendanceScannerService : IAttendanceScannerService
         };
     }
 
+    public async Task<MemberQrCodeResponse> GetMemberQrCodeAsync(
+        Guid memberId,
+        string? scanUrlBase,
+        CancellationToken cancellationToken = default)
+    {
+        var member = await _context.Members
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == memberId && !m.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Member not found.");
+
+        if (string.IsNullOrWhiteSpace(member.AttendanceQrToken))
+        {
+            var tracked = await _context.Members.FirstAsync(m => m.Id == memberId, cancellationToken);
+            tracked.AttendanceQrToken = Guid.NewGuid().ToString("N");
+            await _context.SaveChangesAsync(cancellationToken);
+            member.AttendanceQrToken = tracked.AttendanceQrToken;
+        }
+
+        var scanUrl = BuildMemberScanUrl(scanUrlBase, member.AttendanceQrToken);
+        return new MemberQrCodeResponse
+        {
+            MemberId = member.Id,
+            MembershipNo = member.MembershipNo,
+            FullName = member.FullName,
+            Token = member.AttendanceQrToken,
+            ScanUrl = scanUrl,
+            QrCodeBase64 = GenerateQrCodeBase64(scanUrl),
+        };
+    }
+
+    public async Task<MemberScannerContextResponse> GetMemberContextAsync(
+        string memberToken,
+        string? scanUrlBase,
+        CancellationToken cancellationToken = default)
+    {
+        var (member, library) = await ResolveMemberWithLibraryAsync(memberToken, cancellationToken);
+        await EnsureMemberTokenAsync(member, cancellationToken);
+
+        return new MemberScannerContextResponse
+        {
+            MemberId = member.Id,
+            MembershipNo = member.MembershipNo,
+            FullName = member.FullName,
+            Token = member.AttendanceQrToken!,
+            ScanUrl = BuildMemberScanUrl(scanUrlBase, member.AttendanceQrToken!),
+            LibraryId = library.Id,
+            LibraryName = library.Name,
+            BranchName = library.Branch?.Name ?? string.Empty,
+            InstitutionName = library.Institution?.Name ?? string.Empty,
+        };
+    }
+
+    public async Task<ScannerMemberStatusResponse> GetMemberStatusByTokenAsync(
+        string memberToken,
+        CancellationToken cancellationToken = default)
+    {
+        var (member, library) = await ResolveMemberWithLibraryAsync(memberToken, cancellationToken);
+        return await GetMemberStatusAsync(library.AttendanceQrToken!, member.Id, cancellationToken);
+    }
+
+    public async Task<ScannerAttendanceResultResponse> RecordByMemberTokenAsync(
+        MemberScannerRecordRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        var (member, library) = await ResolveMemberWithLibraryAsync(request.MemberToken, cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(library.AttendanceQrToken))
+        {
+            throw new InvalidOperationException("Library attendance QR is not configured.");
+        }
+
+        return await RecordAsync(new ScannerAttendanceRequest
+        {
+            LibraryToken = library.AttendanceQrToken,
+            MemberId = member.Id,
+            Action = request.Action,
+            SeatNumber = request.SeatNumber,
+            DeviceId = request.DeviceId ?? $"member-qr:{member.Id}",
+            Remarks = request.Remarks,
+        }, userId ?? "kiosk", cancellationToken);
+    }
+
+    private async Task<(Domain.Entities.Member Member, Library Library)> ResolveMemberWithLibraryAsync(
+        string memberToken,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(memberToken))
+        {
+            throw new InvalidOperationException("Member attendance QR token is required.");
+        }
+
+        var token = memberToken.Trim();
+        var member = await _context.Members
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.AttendanceQrToken == token && m.IsActive && !m.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Invalid or inactive member QR code.");
+
+        var memberLibrary = await _context.MemberLibraries
+            .AsNoTracking()
+            .Include(ml => ml.Library)
+                .ThenInclude(l => l.Branch)
+            .Include(ml => ml.Library)
+                .ThenInclude(l => l.Institution)
+            .Where(ml => ml.MemberId == member.Id && ml.IsActive && !ml.IsDeleted)
+            .OrderByDescending(ml => ml.IsCurrent)
+            .ThenByDescending(ml => ml.JoinedOn)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Member is not assigned to any library.");
+
+        var library = memberLibrary.Library
+            ?? throw new InvalidOperationException("Member library could not be resolved.");
+
+        if (!library.IsActive || library.IsDeleted)
+        {
+            throw new InvalidOperationException("Member library is inactive.");
+        }
+
+        return (member, library);
+    }
+
+    private async Task EnsureMemberTokenAsync(Domain.Entities.Member member, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(member.AttendanceQrToken))
+        {
+            return;
+        }
+
+        var tracked = await _context.Members.FirstAsync(m => m.Id == member.Id, cancellationToken);
+        tracked.AttendanceQrToken = Guid.NewGuid().ToString("N");
+        await _context.SaveChangesAsync(cancellationToken);
+        member.AttendanceQrToken = tracked.AttendanceQrToken;
+    }
+
     private async Task<Library> ResolveLibraryAsync(string libraryToken, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(libraryToken))
@@ -293,7 +427,18 @@ public class AttendanceScannerService : IAttendanceScannerService
     private static string BuildScanUrl(string? scanUrlBase, string token)
     {
         var baseUrl = string.IsNullOrWhiteSpace(scanUrlBase)
-            ? "/attendance/scanner"
+            ? "/kiosk/attendance/library"
+            : scanUrlBase.TrimEnd('/');
+
+        return baseUrl.Contains('?', StringComparison.Ordinal)
+            ? $"{baseUrl}&token={token}"
+            : $"{baseUrl}?token={token}";
+    }
+
+    private static string BuildMemberScanUrl(string? scanUrlBase, string token)
+    {
+        var baseUrl = string.IsNullOrWhiteSpace(scanUrlBase)
+            ? "/kiosk/attendance/member"
             : scanUrlBase.TrimEnd('/');
 
         return baseUrl.Contains('?', StringComparison.Ordinal)

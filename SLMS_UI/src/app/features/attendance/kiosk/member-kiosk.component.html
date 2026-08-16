@@ -1,0 +1,87 @@
+<div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white grid place-items-center px-4 py-10">
+  <div class="w-full max-w-md">
+    @if (loading()) {
+      <p class="text-center text-slate-400">Loading…</p>
+    } @else if (error()) {
+      <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-rose-200">
+        {{ error() }}
+      </div>
+    } @else if (context(); as ctx) {
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur text-center">
+        <div class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-sky-500/15 text-sky-300 mb-4">
+          <svg lucideQrCode class="h-7 w-7"></svg>
+        </div>
+
+        <h1 class="text-2xl font-semibold">{{ ctx.fullName }}</h1>
+        <p class="text-sm text-slate-400 font-mono mt-1">{{ ctx.membershipNo }}</p>
+        <p class="text-xs text-slate-500 mt-3">{{ ctx.libraryName }} · {{ ctx.branchName }}</p>
+
+        @if (memberStatus(); as status) {
+          <div class="mt-5">
+            <app-status-badge
+              [status]="status.isCheckedOutToday ? 'Checked out' : status.isCheckedInToday ? 'Checked in' : 'Not checked in'"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mt-5 text-left">
+            <div class="rounded-lg border border-white/10 p-3">
+              <p class="text-xs text-slate-400">Check-in</p>
+              <p class="font-medium mt-1">{{ status.checkInTime ?? '—' }}</p>
+            </div>
+            <div class="rounded-lg border border-white/10 p-3">
+              <p class="text-xs text-slate-400">Check-out</p>
+              <p class="font-medium mt-1">{{ status.checkOutTime ?? '—' }}</p>
+            </div>
+          </div>
+        }
+
+        <div class="kiosk-actions mt-6">
+          <button
+            type="button"
+            class="kiosk-btn kiosk-btn--check-in"
+            [class.kiosk-btn--highlight]="canCheckIn()"
+            [disabled]="busy() || !canCheckIn()"
+            (click)="record('check-in')"
+          >
+            <svg lucideLogIn class="kiosk-btn__icon"></svg>
+            <span>Check in</span>
+          </button>
+          <button
+            type="button"
+            class="kiosk-btn kiosk-btn--check-out"
+            [class.kiosk-btn--highlight]="canCheckOut()"
+            [disabled]="busy() || !canCheckOut()"
+            (click)="record('check-out')"
+          >
+            <svg lucideLogOut class="kiosk-btn__icon"></svg>
+            <span>Check out</span>
+          </button>
+          <button
+            type="button"
+            class="kiosk-btn kiosk-btn--auto"
+            [class.kiosk-btn--highlight]="!isDone()"
+            [disabled]="busy() || isDone()"
+            (click)="record('auto')"
+          >
+            <span>Auto check in / out</span>
+          </button>
+        </div>
+
+        @if (actionHint()) {
+          <p class="kiosk-hint">{{ actionHint() }}</p>
+        }
+
+        @if (lastMessage()) {
+          <p class="text-sm text-emerald-300 flex items-center justify-center gap-2 mt-4">
+            <svg lucideCheckCircle2 class="h-4 w-4"></svg>{{ lastMessage() }}
+          </p>
+        }
+        @if (isDone()) {
+          <p class="text-sm text-slate-400 flex items-center justify-center gap-2 mt-4">
+            <svg lucideXCircle class="h-4 w-4"></svg>Attendance completed for today.
+          </p>
+        }
+      </div>
+    }
+  </div>
+</div>

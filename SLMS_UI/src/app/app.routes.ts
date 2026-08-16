@@ -36,6 +36,15 @@ export const routes: Routes = [
         path: 'unauthorized',
         loadComponent: () => import('./features/auth/unauthorized/unauthorized.component').then((m) => m.UnauthorizedComponent),
     },
+    // Public attendance kiosk (no login)
+    {
+        path: 'kiosk/attendance/library',
+        loadComponent: () => import('./features/attendance/kiosk/library-kiosk.component').then((m) => m.LibraryKioskComponent),
+    },
+    {
+        path: 'kiosk/attendance/member',
+        loadComponent: () => import('./features/attendance/kiosk/member-kiosk.component').then((m) => m.MemberKioskComponent),
+    },
     {
         path: 'onboarding',
         canActivate: [onboardingGuard],

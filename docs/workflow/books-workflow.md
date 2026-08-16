@@ -2,7 +2,7 @@
 
 End-to-end workflow for **M-12 Books & Circulation** across **SLMS_UI** (Angular) and **SLMS_API** (.NET).
 
-**Module ID:** M-12 · **Owner:** Collection Management · **Depends on:** M-06 Members
+**Module ID:** M-12 · **Owner:** Collection Management · **Depends on:** M-06 Members, M-08 Libraries
 
 ---
 
@@ -10,20 +10,21 @@ End-to-end workflow for **M-12 Books & Circulation** across **SLMS_UI** (Angular
 
 | Layer | Entry | Strategy |
 |-------|--------|----------|
-| **Angular** | Route `/books` | Library-scoped catalogue; client-side filter/sort; drawer for detail & circulation |
-| **.NET** | `GET /api/v1/institutions/{i}/branches/{b}/libraries/{l}/books` | Library-scoped CRUD, stock, checkout/return |
+| **Angular** | Route `/books` | Load books from **all user-mapped libraries**; client-side scope/search/sort/pagination; drawer for detail & circulation |
+| **.NET** | `GET /api/v1/institutions/{i}/branches/{b}/libraries/{l}/books` | Per-library CRUD, stock, checkout/return |
 
 ```mermaid
 flowchart LR
   A[User opens /books] --> B[BooksListComponent]
   B --> C[InstitutionsService dropdown]
-  C --> D[Resolve library scope]
-  D --> E[BookService.getBooks + getStats]
+  C --> D[listMappedLibraries]
+  D --> E[forkJoin getBooks per library]
   E --> F[BooksController]
   F --> G[(Books / BookLoans / BookAuditEntries)]
-  B --> H[Grid or table + KPIs]
-  H --> I[Drawer: activity / stock / audit]
-  I --> J[checkout / return / adjust]
+  B --> H[Client filters + pagination]
+  H --> I[Grid or table + KPIs]
+  I --> J[Drawer: activity / stock / audit]
+  J --> K[checkout / return / adjust]
 ```
 
 ### Business rules
@@ -33,6 +34,8 @@ flowchart LR
 | **BR-12.1** ISBN checksum | `IsbnValidator` (API) + `isValidIsbn()` (Angular) block save |
 | **BR-12.2** Available ≤ total, never negative | `ValidateBookRequest`, `AdjustStockAsync`, checkout/return |
 | **BR-12.3** Overdue when due date passed | `ResolveLoanStatus()` on read; surfaced on book + member profile |
+| **BR-12.4** User sees only mapped libraries | `institutions/dropdown` + `listMappedLibraries()` |
+| **BR-12.5** Book belongs to one library | Cascading institution → branch → library on create/edit |
 
 ### Functional requirements (M-12)
 
@@ -44,6 +47,11 @@ flowchart LR
 | FR-12.4 | Adjust stock levels | Done |
 | FR-12.5 | Borrow/return timeline per book | Done |
 | FR-12.6 | Borrowing history on member profile | Done |
+| FR-12.7 | All mapped libraries by default | Done |
+| FR-12.8 | Institution / branch / library filter dropdowns | Done |
+| FR-12.9 | Sort by newest (default), title, author, available, category | Done |
+| FR-12.10 | Client-side pagination (10 / 25 / 50 / 100) | Done |
+| FR-12.11 | Cascading scope on add/edit book dialog | Done |
 
 ---
 
@@ -62,11 +70,14 @@ Navigation constants: `SLMS_UI/src/app/core/constants/navigation.ts`
 ### 2.2 Page layout
 
 ```
-PageHeader (title, library label, Add Book, Export CSV)
-├── KPI strip (titles, total copies, on loan, overdue)
+PageHeader (title, scope description, Add Book, Export CSV)
+├── KPI strip (titles, total copies, on loan, overdue — scoped to active filters)
+├── Scope filters (institution / branch / library — "All" options)
 ├── Filters (search, category, status, sort, grid/table toggle)
 ├── Catalogue (table or grid cards)
-├── BookFormDialog (create / edit — fixed overlay modal)
+│   └── Library column when viewing "All libraries"
+├── Pagination footer (page size, prev/next)
+├── BookFormDialog (create / edit — cascading scope + optional PDF)
 └── Book drawer (slide-over)
     ├── Tabs: Activity | Stock | Audit
     ├── Issue copy (member dropdown)
@@ -75,13 +86,26 @@ PageHeader (title, library label, Add Book, Export CSV)
 
 ### 2.3 Library scope resolution
 
-On `ngOnInit`, `BooksListComponent` calls `InstitutionsService.getDropdown()` and picks the **first** institution → branch → library. All book API calls use that `LibraryScope`:
+**Default load:** Books from **every library** the logged-in user is mapped to (via `institutions/dropdown`).
 
 ```typescript
-{ institutionId, branchId, libraryId }
+// library-scope.util.ts
+listMappedLibraries(institutions) → MappedLibraryScope[]
 ```
 
-If no library exists (onboarding incomplete), the page shows an error toast and stops loading.
+On `refresh()`, `BooksListComponent` runs `forkJoin` across all mapped libraries and merges results into `allBooks` with scope labels attached (`ScopedBookListItem`).
+
+**Filter dropdowns** (client-side, no re-fetch):
+
+| Filter | Value | Effect |
+|--------|-------|--------|
+| Institution | `''` (All) | Show all institutions |
+| Branch | `''` (All) | Show all branches in selected institution |
+| Library | `''` (All) | Show all libraries in selected branch |
+
+Branch dropdown disabled until institution selected. Library dropdown disabled until branch selected.
+
+If no mapped libraries exist → error toast: *"No library mapping found for your account."*
 
 ### 2.4 State management
 
@@ -89,16 +113,34 @@ If no library exists (onboarding incomplete), the page shows an error toast and 
 
 | Signal | Purpose |
 |--------|---------|
-| `scope`, `libraryLabel` | Active library context |
-| `books`, `stats` | Catalogue + KPI data |
-| `query`, `category`, `status`, `sort`, `view` | Client filter/sort/view mode |
-| `filteredBooks` | Computed pipeline from `books` |
+| `allBooks` | Merged catalogue from all mapped libraries |
+| `institutions` | Dropdown tree from API |
+| `filterInstitutionId`, `filterBranchId`, `filterLibraryId` | Client scope filters (`''` = All) |
+| `scopeFilteredBooks` | Books after institution/branch/library filter |
+| `query`, `category`, `status`, `sort`, `view` | Search, category, stock status, sort, view mode |
+| `filteredBooks` | Full client filter + sort pipeline |
+| `page`, `pageSize` | Pagination (default 25, options 10/25/50/100) |
+| `pagedBooks` | Current page slice |
+| `displayStats` | KPIs from `scopeFilteredBooks` via `computeBookStats()` |
+| `showLibraryColumn` | `true` when library filter is "All" |
+| `formDefaultScope` | Pre-fill add-book dialog from active list filters |
 | `showForm`, `editBook`, `formBusy` | Create/edit dialog |
-| `drawerOpen`, `selectedBook`, `drawerTab`, `drawerBusy` | Detail drawer |
-| `checkoutMemberId`, `showCheckout`, `stockNote` | Circulation & stock actions |
+| `drawerOpen`, `selectedBook`, `drawerTab` | Detail drawer |
 | `members` | Member list for checkout dropdown |
 
-### 2.5 Page load sequence
+### 2.5 Sort & pagination
+
+| Sort key | Behaviour |
+|----------|-----------|
+| `newest` **(default)** | `createdAtUtc` descending |
+| `title`, `author`, `category` | Locale string compare |
+| `available` | `availableCopies` descending |
+
+Filter or search changes call `resetPage()` → page 1.
+
+Pagination mirrors members list pattern: page size selector, page X of Y, first/prev/next/last controls.
+
+### 2.6 Page load sequence
 
 ```mermaid
 sequenceDiagram
@@ -109,39 +151,49 @@ sequenceDiagram
   participant MS as MemberService
 
   U->>C: Navigate to /books
-  C->>IS: getDropdown()
-  IS-->>C: institution / branch / library IDs
-  par Catalogue
-    C->>BS: getBooks(scope)
-    C->>BS: getStats(scope)
+  C->>IS: getInstitutionBranchForDropdown()
+  IS-->>C: mapped institution / branch / library tree
+  par All mapped libraries
+    C->>BS: forkJoin getBooks(scope₁…scopeₙ)
   and Members (checkout)
     C->>MS: getAllMembers()
   end
-  C->>C: Render KPIs + catalogue
+  C->>C: Merge → allBooks → client filter → pagedBooks
 ```
 
-### 2.6 Catalogue interactions
+### 2.7 Catalogue interactions
 
-| Action | UI | API |
-|--------|-----|-----|
-| Search | `query` signal — title, author, ISBN (client) | Optional server `?search=` on refresh |
-| Filter category | `category` dropdown | Client + server `?category=` |
-| Filter status | Available / Low / Out of stock | Client + server `?status=` |
-| Sort | title, author, available, category | Client-side |
+| Action | UI | Notes |
+|--------|-----|-------|
+| Scope filter | Institution / branch / library dropdowns | Client-side on `allBooks` |
+| Search | `query` — title, author, ISBN | Client-side |
+| Filter category | `category` dropdown | From scoped book categories |
+| Filter status | Available / Low / Out of stock | Client-side |
+| Sort | newest, title, author, available, category | Client-side; default `newest` |
+| Pagination | 10 / 25 / 50 / 100 per page | Client-side |
 | View mode | Table ↔ Grid | Local only |
-| Export CSV | `exportCsv()` | Client from `filteredBooks` |
+| Library column | Shown when library filter = All | `institutionName / libraryName` |
+| Export CSV | `exportCsv()` | From `filteredBooks` (all pages) |
 | Open drawer | Row/card click | `GET .../books/{id}` |
 
-### 2.7 Create / edit book
+### 2.8 Create / edit book
 
 **Component:** `BookFormDialogComponent` (`components/book-form-dialog/`)
 
-- Modal pattern matches `renew-plan-dialog` / `new-ticket-dialog` (`fixed inset-0 z-50`).
-- **ISBN validation (BR-12.1):** `isValidIsbn()` in `book-format.util.ts` — inline error blocks submit.
-- **Stock (BR-12.2):** `availableCopies` clamped to `0..totalCopies` in form.
-- On submit → `POST` (create) or `PUT` (update) → `refresh()`.
+| Feature | Implementation |
+|---------|----------------|
+| Cascading scope | Institution → branch → library dropdowns |
+| Single-option fields | Auto-selected and disabled when only one choice |
+| Init on open only | `wasOpen` flag — prevents form reset on parent re-render |
+| Scope pre-fill | `defaultScope` from list filters via `formDefaultScope` |
+| ISBN validation (BR-12.1) | `isValidIsbn()` in `book-format.util.ts` |
+| Stock (BR-12.2) | `availableCopies` clamped to `0..totalCopies` |
+| Optional PDF | Upload on create/update |
+| Save scope persistence | `finishBookSave()` applies saved library to list filters |
 
-### 2.8 Book drawer
+On submit → `POST` (create) or `PUT` (update) → `refresh()`.
+
+### 2.9 Book drawer
 
 | Tab | Content | Actions |
 |-----|---------|---------|
@@ -152,7 +204,7 @@ sequenceDiagram
 **Checkout flow:**
 
 1. Open drawer → Activity tab → Issue copy.
-2. Select member from `members` list (`membership` label).
+2. Select member from `members` list.
 3. `POST .../books/{id}/checkout` `{ memberId, loanDays: 14 }`.
 4. Available copies decremented; activity timeline updated.
 
@@ -162,26 +214,42 @@ sequenceDiagram
 2. `POST .../books/{id}/loans/{loanId}/return`.
 3. Available copies incremented (capped at total).
 
-### 2.9 Angular services & models
+### 2.10 Shared utilities
+
+**`library-scope.util.ts`**
+
+| Function | Purpose |
+|----------|---------|
+| `listMappedLibraries()` | Flatten dropdown tree to scope + labels |
+| `computeBookStats()` | KPI aggregation for filtered book set |
+| `resolveDefaultLibraryScope()` | First institution/branch/library fallback |
+| `branchesForInstitution()` | Branch dropdown options |
+| `librariesForBranch()` | Library dropdown options |
+| `libraryScopeLabels()` | Resolve display names from scope IDs |
+
+**`ScopedBookListItem`** extends `BookListItem` with `institutionId`, `branchId`, `libraryId`, and name labels for multi-library table view.
+
+### 2.11 Angular services & models
 
 | Service | Path | Scope |
 |---------|------|-------|
-| `BookService` | `SLMS_UI/src/app/features/books/book.service.ts` | Component |
-| `InstitutionsService` | `SLMS_UI/src/app/features/institutions/institutions.service.ts` | Component |
-| `MemberService` | `SLMS_UI/src/app/features/members/MemberService.ts` | Component (checkout) |
+| `BookService` | `features/books/book.service.ts` | Component |
+| `InstitutionsService` | `features/institutions/institutions.service.ts` | Component |
+| `MemberService` | `features/members/MemberService.ts` | Component (checkout) |
 
 | Model / util | Path |
 |--------------|------|
-| `BookListItem`, `BookDetail`, `BookStats`, `MemberBookLoan` | `SLMS_UI/src/app/core/models/book.models.ts` |
-| ISBN validation, status helpers | `SLMS_UI/src/app/features/books/book-format.util.ts` |
+| `BookListItem`, `BookDetail`, `BookStats`, `MemberBookLoan` | `core/models/book.models.ts` |
+| ISBN validation, status helpers | `features/books/book-format.util.ts` |
+| Scope helpers | `features/books/library-scope.util.ts` |
 
 #### API call summary (books page)
 
 | HTTP | Endpoint | Trigger |
 |------|----------|---------|
-| GET | `institutions/dropdown` | Resolve library scope |
-| GET | `institutions/.../libraries/.../books` | `refresh()` |
-| GET | `institutions/.../libraries/.../books/stats` | `refresh()` |
+| GET | `institutions/dropdown` | Load mapped library tree |
+| GET | `institutions/.../libraries/.../books` | `refresh()` — once per mapped library |
+| GET | `institutions/.../libraries/.../books/stats` | Available per-library (optional) |
 | GET | `institutions/.../libraries/.../books/{id}` | Open drawer |
 | POST | `institutions/.../libraries/.../books` | Create book |
 | PUT | `institutions/.../libraries/.../books/{id}` | Update book |
@@ -299,56 +367,66 @@ Used by **Member Details → Books tab** (see [members-detail-workflow.md](./mem
 ### 3.6 Database
 
 - Migration: `Infrastructure/Data/Migrations/*AddBooksModule*`
-- Seed: `Infrastructure/Data/BooksSeedData.cs` (sample catalogue per library)
+- PDF support: `*AddBookPdf*`
+- Fines & notifications: `*AddBookLoanFinesAndNotifications*`
+- Seed: `Infrastructure/Data/BooksSeedData.cs`
 - DI: `ServiceCollectionExtensions.cs` → `IBookService` / `BookService`
 
 ---
 
 ## 4. Member profile integration
 
-Borrowing history is **not** on the books page — it lives on the member profile:
+Borrowing history lives on the member profile:
 
 | Location | Data |
 |----------|------|
 | KPI strip (sidebar) | `bookLoanStats()` — active count |
 | Books tab | Full loan table with Active / Overdue / Returned stats |
 
-See **§2.5 Books** in [members-detail-workflow.md](./members-detail-workflow.md).
+See **Books tab** in [members-detail-workflow.md](./members-detail-workflow.md).
 
 ---
 
 ## 5. User journeys
 
-### 5.1 Add a title to the catalogue
+### 5.1 View all books across mapped libraries
 
 ```
-/books → Add Book → fill form → ISBN validated inline → Save
-  → POST .../books
-  → Toast + catalogue refresh
+/books → loads all mapped libraries via forkJoin
+  → KPIs + table with Library column
+  → Filter by institution / branch / library as needed
 ```
 
-### 5.2 Issue a copy
+### 5.2 Add a title to a specific library
+
+```
+/books → filter to target library (optional)
+  → Add Book → cascading scope pre-filled
+  → ISBN validated → Save
+  → List switches to saved library scope
+```
+
+### 5.3 Issue a copy
 
 ```
 /books → open book drawer → Issue copy → select member → Issue
   → POST .../checkout
-  → availableCopies -= 1, activity shows borrow entry
+  → availableCopies -= 1
 ```
 
-### 5.3 Return a copy
+### 5.4 Return a copy
 
 ```
 Drawer → Activity → Return on active loan
   → POST .../loans/{id}/return
-  → availableCopies += 1, activity shows return entry
+  → availableCopies += 1
 ```
 
-### 5.4 Review member borrow history
+### 5.5 Review member borrow history
 
 ```
 /members/:id → Books tab
   → GET members/{id}/book-loans
-  → KPI cards + loan table (overdue highlighted)
 ```
 
 ---
@@ -359,11 +437,12 @@ Drawer → Activity → Return on active loan
 
 ```
 SLMS_UI/src/app/
-├── app.routes.ts                          # /books lazy route
+├── app.routes.ts
 ├── core/models/book.models.ts
 └── features/books/
     ├── book.service.ts
-    ├── book-format.util.ts                # ISBN, status, date helpers
+    ├── book-format.util.ts
+    ├── library-scope.util.ts              # Multi-library scope helpers
     ├── books-list-component/
     │   ├── books-list.component.ts
     │   ├── books-list.component.html
@@ -389,7 +468,7 @@ SLMS_API/
 ├── Common/Enums/Book*.cs
 └── Infrastructure/Data/
     ├── BooksSeedData.cs
-    └── Migrations/*AddBooksModule*
+    └── Migrations/*AddBooksModule*, *AddBookPdf*, *AddBookLoanFines*
 ```
 
 ---
@@ -398,11 +477,12 @@ SLMS_API/
 
 | Area | Status |
 |------|--------|
-| Library picker on `/books` | Uses first library from dropdown only |
-| Fines automation | Out of scope (M-12) |
+| Server-side pagination | Full catalogue loaded per mapped library; pagination is client-side |
+| Cross-library book search API | Single aggregated endpoint not implemented |
+| Fines automation | Partial — fines fields exist; full automation out of scope |
 | External catalogue federation | Out of scope |
-| Server-side pagination | Full catalogue loaded per library |
-| Category donut chart | KPI categories available in stats API; chart optional |
+| Category donut chart | KPI categories in `computeBookStats()`; chart optional |
+| Digital books (member e-books) | Separate feature — `member-digital-books-component` |
 
 ---
 
@@ -410,4 +490,5 @@ SLMS_API/
 
 - Member details (Books tab): [members-detail-workflow.md](./members-detail-workflow.md)
 - Members list: [members-list-workflow.md](./members-list-workflow.md)
+- Attendance QR kiosk: [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md)
 - Lovable reference: `docs/lovable-source/src/routes/_authenticated.books.index.tsx`

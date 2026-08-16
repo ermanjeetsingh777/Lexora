@@ -431,6 +431,22 @@
       </div>
     </div>
 
+    <!-- Attendance QR -->
+    <app-glass-card class="block">
+      <app-section-header title="Attendance QR" description="Member scans this to check in or check out — no login required" />
+      @if (memberAttendanceQr()) {
+        <div class="mt-4 flex flex-wrap items-center gap-4">
+          <img [src]="memberAttendanceQr()!" alt="Member attendance QR" class="h-36 w-36 rounded-lg border bg-white p-2" />
+          <div class="text-xs text-muted-foreground break-all max-w-md">
+            <p class="font-medium text-foreground mb-1">Scan URL</p>
+            {{ memberAttendanceScanUrl() }}
+          </div>
+        </div>
+      } @else {
+        <p class="text-sm text-muted-foreground mt-4">Unable to load attendance QR.</p>
+      }
+    </app-glass-card>
+
     <!-- Documents -->
     <app-glass-card class="block">
       <app-section-header title="Documents" description="Member identity documents" />

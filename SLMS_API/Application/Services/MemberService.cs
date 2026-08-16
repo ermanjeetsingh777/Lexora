@@ -114,6 +114,7 @@ public class MemberService : IMemberService
                 DateOfBirth = DateOnly.FromDateTime(request.DateOfBirth),
                 Gender = request.Gender,
                 Shift = request.Shift,
+                AttendanceQrToken = Guid.NewGuid().ToString("N"),
                 CreatedBy = _currentUserService.UserId
             };
 

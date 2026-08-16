@@ -1,0 +1,144 @@
+<div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+  <div class="mx-auto max-w-5xl px-4 py-8">
+    <header class="text-center mb-8">
+      <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Library attendance</p>
+      @if (context(); as ctx) {
+        <h1 class="text-2xl font-semibold mt-2">{{ ctx.libraryName }}</h1>
+        <p class="text-sm text-slate-400 mt-1">{{ ctx.institutionName }} · {{ ctx.branchName }}</p>
+      } @else {
+        <h1 class="text-2xl font-semibold mt-2">Attendance kiosk</h1>
+      }
+    </header>
+
+    @if (loading()) {
+      <p class="text-center text-slate-400 py-20">Loading members…</p>
+    } @else if (error()) {
+      <div class="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-rose-200">
+        {{ error() }}
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <section class="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+          <div class="flex items-center gap-2 mb-3">
+            <svg lucideUsers class="h-4 w-4 text-sky-400"></svg>
+            <h2 class="font-medium text-sm">Members</h2>
+            <span class="ml-auto text-xs text-slate-400">{{ filteredMembers().length }}</span>
+          </div>
+
+          <div class="relative mb-3">
+            <svg lucideSearch class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></svg>
+            <input
+              type="search"
+              class="w-full rounded-lg border border-white/10 bg-black/20 py-2.5 pl-9 pr-3 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="Search name or membership no…"
+              [ngModel]="memberSearch()"
+              (ngModelChange)="memberSearch.set($event)"
+            />
+          </div>
+
+          <ul class="max-h-[28rem] overflow-y-auto space-y-1 pr-1">
+            @for (m of filteredMembers(); track m.id) {
+              <li>
+                <button
+                  type="button"
+                  class="w-full rounded-lg px-3 py-2.5 text-left transition-colors"
+                  [class]="selectedMember()?.id === m.id ? 'bg-sky-500/20 border border-sky-400/40' : 'hover:bg-white/5 border border-transparent'"
+                  (click)="selectMember(m)"
+                >
+                  <div class="font-medium text-sm">{{ m.fullName }}</div>
+                  <div class="text-xs text-slate-400 font-mono mt-0.5">{{ m.membershipNo }}</div>
+                </button>
+              </li>
+            } @empty {
+              <li class="text-sm text-slate-500 py-8 text-center">No members found for this library.</li>
+            }
+          </ul>
+        </section>
+
+        <section class="lg:col-span-3 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+          @if (selectedMember(); as member) {
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-5">
+              <div>
+                <h2 class="text-xl font-semibold">{{ member.fullName }}</h2>
+                <p class="text-sm text-slate-400 font-mono mt-1">{{ member.membershipNo }}</p>
+              </div>
+              @if (memberStatus(); as status) {
+                <app-status-badge
+                  [status]="status.isCheckedOutToday ? 'Checked out' : status.isCheckedInToday ? 'Checked in' : 'Not checked in'"
+                />
+              }
+              <button type="button" class="kiosk-back-btn" (click)="clearMember()">Back to list</button>
+            </div>
+
+            @if (memberStatus(); as status) {
+              <div class="grid grid-cols-2 gap-3 mb-5">
+                <div class="rounded-lg border border-white/10 p-3">
+                  <p class="text-xs text-slate-400">Check-in</p>
+                  <p class="font-medium mt-1">{{ status.checkInTime ?? '—' }}</p>
+                </div>
+                <div class="rounded-lg border border-white/10 p-3">
+                  <p class="text-xs text-slate-400">Check-out</p>
+                  <p class="font-medium mt-1">{{ status.checkOutTime ?? '—' }}</p>
+                </div>
+              </div>
+            }
+
+            <div class="kiosk-actions kiosk-actions--row">
+              <button
+                type="button"
+                class="kiosk-btn kiosk-btn--check-in"
+                [class.kiosk-btn--highlight]="canCheckIn()"
+                [disabled]="busy() || !canCheckIn()"
+                (click)="record('check-in')"
+              >
+                <svg lucideLogIn class="kiosk-btn__icon"></svg>
+                <span>Check in</span>
+              </button>
+              <button
+                type="button"
+                class="kiosk-btn kiosk-btn--check-out"
+                [class.kiosk-btn--highlight]="canCheckOut()"
+                [disabled]="busy() || !canCheckOut()"
+                (click)="record('check-out')"
+              >
+                <svg lucideLogOut class="kiosk-btn__icon"></svg>
+                <span>Check out</span>
+              </button>
+              <button
+                type="button"
+                class="kiosk-btn kiosk-btn--auto"
+                [class.kiosk-btn--highlight]="!isDone()"
+                [disabled]="busy() || isDone()"
+                (click)="record('auto')"
+              >
+                <span>Auto</span>
+              </button>
+            </div>
+
+            @if (actionHint()) {
+              <p class="kiosk-hint">{{ actionHint() }}</p>
+            }
+
+            @if (lastMessage()) {
+              <p class="text-sm text-emerald-300 flex items-center gap-2 mt-4">
+                <svg lucideCheckCircle2 class="h-4 w-4"></svg>{{ lastMessage() }}
+              </p>
+            }
+            @if (isDone()) {
+              <p class="text-sm text-slate-400 flex items-center gap-2 mt-4">
+                <svg lucideXCircle class="h-4 w-4"></svg>Attendance completed for today.
+              </p>
+            }
+          } @else {
+            <div class="h-full min-h-[20rem] grid place-items-center text-center text-slate-400">
+              <div>
+                <svg lucideUsers class="h-10 w-10 mx-auto mb-3 opacity-40"></svg>
+                <p class="text-sm">Select a member from the list to check in or check out.</p>
+              </div>
+            </div>
+          }
+        </section>
+      </div>
+    }
+  </div>
+</div>

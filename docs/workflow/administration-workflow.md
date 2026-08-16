@@ -166,6 +166,7 @@ On startup (`DbSeeder.MigrateAndSeedAsync`):
 
 - [Members list workflow](./members-list-workflow.md)
 - [Books workflow](./books-workflow.md)
+- [Attendance QR kiosk](./attendance-kiosk-workflow.md) — uses `attendance.scanner.use` (ID 109)
 
 ---
 

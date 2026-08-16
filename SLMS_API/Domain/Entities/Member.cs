@@ -21,6 +21,8 @@ namespace SLMS_API.Domain.Entities
         public string? AadhaarStoragePath { get; set; }
         public string? AadhaarFileName { get; set; }
 
+        public string? AttendanceQrToken { get; set; }
+
         public string? Gender { get; set; }
         public string Shift { get; set; } = string.Empty;
 

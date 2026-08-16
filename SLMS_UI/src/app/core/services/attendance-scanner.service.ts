@@ -3,6 +3,7 @@ import { map, Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
   AttendanceResponse,
+  MemberQrCode,
   ScannerAttendanceRequest,
   ScannerAttendanceResult,
   ScannerContext,
@@ -48,6 +49,12 @@ export class AttendanceScannerService {
   getLibraryQr(libraryId: string): Observable<ScannerQrCode> {
     return this.api
       .get<ScannerQrCode>(`${this.base}/libraries/${libraryId}/qr`)
+      .pipe(map((r) => r.data!));
+  }
+
+  getMemberQr(memberId: string): Observable<MemberQrCode> {
+    return this.api
+      .get<MemberQrCode>(`${this.base}/members/${memberId}/qr`)
       .pipe(map((r) => r.data!));
   }
 }

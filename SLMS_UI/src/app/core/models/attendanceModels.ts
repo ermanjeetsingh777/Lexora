@@ -160,3 +160,32 @@ export interface ScannerQrCode {
     scanUrl: string;
     qrCodeBase64: string;
 }
+
+export interface MemberScannerContext {
+    memberId: string;
+    membershipNo: string;
+    fullName: string;
+    token: string;
+    scanUrl: string;
+    libraryId: string;
+    libraryName: string;
+    branchName: string;
+    institutionName: string;
+}
+
+export interface MemberScannerRecordRequest {
+    memberToken: string;
+    action: 'check-in' | 'check-out' | 'auto';
+    seatNumber?: string;
+    deviceId?: string;
+    remarks?: string;
+}
+
+export interface MemberQrCode {
+    memberId: string;
+    membershipNo: string;
+    fullName: string;
+    token: string;
+    scanUrl: string;
+    qrCodeBase64: string;
+}

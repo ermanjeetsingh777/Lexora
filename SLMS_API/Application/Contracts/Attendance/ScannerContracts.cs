@@ -64,3 +64,36 @@ public class ScannerQrCodeResponse
     public string ScanUrl { get; set; } = string.Empty;
     public string QrCodeBase64 { get; set; } = string.Empty;
 }
+
+public class MemberScannerContextResponse
+{
+    public Guid MemberId { get; set; }
+    public string MembershipNo { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
+    public string ScanUrl { get; set; } = string.Empty;
+    public Guid LibraryId { get; set; }
+    public string LibraryName { get; set; } = string.Empty;
+    public string BranchName { get; set; } = string.Empty;
+    public string InstitutionName { get; set; } = string.Empty;
+}
+
+public class MemberScannerRecordRequest
+{
+    public string MemberToken { get; set; } = string.Empty;
+    /// <summary>check-in | check-out | auto</summary>
+    public string Action { get; set; } = "auto";
+    public string? SeatNumber { get; set; }
+    public string? DeviceId { get; set; }
+    public string? Remarks { get; set; }
+}
+
+public class MemberQrCodeResponse
+{
+    public Guid MemberId { get; set; }
+    public string MembershipNo { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
+    public string ScanUrl { get; set; } = string.Empty;
+    public string QrCodeBase64 { get; set; } = string.Empty;
+}

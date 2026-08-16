@@ -33,6 +33,7 @@ import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from 
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, MemberDetailResponse } from '@core/models/MemberRequest';
 import { MemberService } from '../MemberService';
+import { AttendanceScannerService } from '@core/services/attendance-scanner.service';
 import { BookService } from '@features/books/book.service';
 import { BookLoanStatus, LOAN_STATUS_LABELS, MemberBookLoan } from '@core/models/book.models';
 import { formatBookDate } from '@features/books/book-format.util';
@@ -91,6 +92,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly whatsapp = inject(WhatsAppService);
   private readonly memberService = inject(MemberService);
+  private readonly attendanceScanner = inject(AttendanceScannerService);
   private readonly bookService = inject(BookService);
   readonly commonService = inject(CommonService);
   readonly attendanceService = inject(AttendanceService);
@@ -102,6 +104,8 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly memberAadhaarPreview = signal<string | null>(null);
   readonly memberAadhaarIsPdf = signal(false);
   readonly aadhaarUploading = signal(false);
+  readonly memberAttendanceQr = signal<string | null>(null);
+  readonly memberAttendanceScanUrl = signal<string | null>(null);
   readonly plans = signal<PlanResponse[]>([]);
 
   readonly activeTab = signal<TabId>('overview');
@@ -711,6 +715,19 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     if (url) window.open(url, '_blank', 'noopener');
   }
 
+  private loadMemberAttendanceQr(): void {
+    this.attendanceScanner.getMemberQr(this.memberId).subscribe({
+      next: (qr) => {
+        this.memberAttendanceQr.set(qr.qrCodeBase64);
+        this.memberAttendanceScanUrl.set(qr.scanUrl);
+      },
+      error: () => {
+        this.memberAttendanceQr.set(null);
+        this.memberAttendanceScanUrl.set(null);
+      },
+    });
+  }
+
   loadMemberDetails(): void {
     this.loading.set(true);
     this.activityTimelineLimit.set(ACTIVITY_TIMELINE_PAGE_SIZE);
@@ -726,6 +743,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
         if (response.data?.hasAadhaar) {
           this.loadMemberAadhaarPreview(response.data.id);
         }
+        this.loadMemberAttendanceQr();
         if (response.data?.attendance?.length) {
           this.mergeCalendarDays(response.data.attendance);
         }

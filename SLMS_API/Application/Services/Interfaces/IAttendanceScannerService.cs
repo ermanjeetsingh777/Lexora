@@ -9,4 +9,8 @@ public interface IAttendanceScannerService
     Task<ScannerMemberStatusResponse> GetMemberStatusAsync(string libraryToken, Guid memberId, CancellationToken cancellationToken = default);
     Task<ScannerAttendanceResultResponse> RecordAsync(ScannerAttendanceRequest request, string? userId, CancellationToken cancellationToken = default);
     Task<ScannerQrCodeResponse> GetQrCodeAsync(Guid libraryId, string? scanUrlBase, CancellationToken cancellationToken = default);
+    Task<MemberScannerContextResponse> GetMemberContextAsync(string memberToken, string? scanUrlBase, CancellationToken cancellationToken = default);
+    Task<ScannerMemberStatusResponse> GetMemberStatusByTokenAsync(string memberToken, CancellationToken cancellationToken = default);
+    Task<ScannerAttendanceResultResponse> RecordByMemberTokenAsync(MemberScannerRecordRequest request, string? userId, CancellationToken cancellationToken = default);
+    Task<MemberQrCodeResponse> GetMemberQrCodeAsync(Guid memberId, string? scanUrlBase, CancellationToken cancellationToken = default);
 }

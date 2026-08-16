@@ -3,39 +3,33 @@ using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Services.Interfaces;
-using SLMS_API.Common.Enums;
-using SLMS_API.Infrastructure.Authorization;
 
 namespace SLMS_API.Controllers;
 
 /// <summary>
-/// QR attendance scanner — one shared library token, member lookup, check-in/out.
+/// Public attendance kiosk — no login. Secured by library or member QR tokens.
 /// </summary>
 [ApiController]
-[Route("api/v1/attendance/scanner")]
-[Authorize]
-public class AttendanceScannerController : ControllerBase
+[Route("api/v1/attendance/kiosk")]
+[AllowAnonymous]
+public class AttendanceKioskController : ControllerBase
 {
     private readonly IAttendanceScannerService _scannerService;
-    private readonly ICurrentUserService _currentUserService;
     private readonly IConfiguration _configuration;
-    private readonly ILogger<AttendanceScannerController> _logger;
+    private readonly ILogger<AttendanceKioskController> _logger;
 
-    public AttendanceScannerController(
+    public AttendanceKioskController(
         IAttendanceScannerService scannerService,
-        ICurrentUserService currentUserService,
         IConfiguration configuration,
-        ILogger<AttendanceScannerController> logger)
+        ILogger<AttendanceKioskController> logger)
     {
         _scannerService = scannerService;
-        _currentUserService = currentUserService;
         _configuration = configuration;
         _logger = logger;
     }
 
-    [HttpGet("context")]
-    [Permission(PermissionKey.AttendanceScannerUse)]
-    public async Task<ActionResult<ApiResponse<ScannerContextResponse>>> GetContext(
+    [HttpGet("library/context")]
+    public async Task<ActionResult<ApiResponse<ScannerContextResponse>>> GetLibraryContext(
         [FromQuery] string token,
         CancellationToken cancellationToken)
     {
@@ -50,8 +44,7 @@ public class AttendanceScannerController : ControllerBase
         }
     }
 
-    [HttpGet("members")]
-    [Permission(PermissionKey.AttendanceScannerUse)]
+    [HttpGet("library/members")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ScannerMemberOption>>>> SearchMembers(
         [FromQuery] string token,
         [FromQuery] string? search,
@@ -68,8 +61,7 @@ public class AttendanceScannerController : ControllerBase
         }
     }
 
-    [HttpGet("members/{memberId:guid}/status")]
-    [Permission(PermissionKey.AttendanceScannerUse)]
+    [HttpGet("library/members/{memberId:guid}/status")]
     public async Task<ActionResult<ApiResponse<ScannerMemberStatusResponse>>> GetMemberStatus(
         [FromQuery] string token,
         Guid memberId,
@@ -86,9 +78,8 @@ public class AttendanceScannerController : ControllerBase
         }
     }
 
-    [HttpPost("record")]
-    [Permission(PermissionKey.AttendanceScannerUse)]
-    public async Task<ActionResult<ApiResponse<ScannerAttendanceResultResponse>>> Record(
+    [HttpPost("library/record")]
+    public async Task<ActionResult<ApiResponse<ScannerAttendanceResultResponse>>> RecordLibrary(
         [FromBody] ScannerAttendanceRequest request,
         CancellationToken cancellationToken)
     {
@@ -99,52 +90,69 @@ public class AttendanceScannerController : ControllerBase
                 return BadRequest(ApiResponse<ScannerAttendanceResultResponse>.Fail("Member has already completed attendance for today."));
             }
 
-            var result = await _scannerService.RecordAsync(request, _currentUserService.UserId, cancellationToken);
+            var result = await _scannerService.RecordAsync(request, "kiosk", cancellationToken);
             return Ok(ApiResponse<ScannerAttendanceResultResponse>.Ok(result, result.Message));
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Scanner record failed for member {MemberId}", request.MemberId);
+            _logger.LogWarning(ex, "Kiosk library record failed for member {MemberId}", request.MemberId);
             return BadRequest(ApiResponse<ScannerAttendanceResultResponse>.Fail(ex.Message));
         }
     }
 
-    [HttpGet("libraries/{libraryId:guid}/qr")]
-    [Permission(PermissionKey.AttendanceScannerUse)]
-    public async Task<ActionResult<ApiResponse<ScannerQrCodeResponse>>> GetLibraryQr(
-        Guid libraryId,
+    [HttpGet("member/context")]
+    public async Task<ActionResult<ApiResponse<MemberScannerContextResponse>>> GetMemberContext(
+        [FromQuery] string token,
         CancellationToken cancellationToken)
     {
         try
         {
-            var qr = await _scannerService.GetQrCodeAsync(libraryId, GetLibraryKioskUrlBase(), cancellationToken);
-            return Ok(ApiResponse<ScannerQrCodeResponse>.Ok(qr));
+            var context = await _scannerService.GetMemberContextAsync(token, GetMemberKioskUrlBase(), cancellationToken);
+            return Ok(ApiResponse<MemberScannerContextResponse>.Ok(context));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ApiResponse<ScannerQrCodeResponse>.Fail(ex.Message));
+            return BadRequest(ApiResponse<MemberScannerContextResponse>.Fail(ex.Message));
         }
     }
 
-    [HttpGet("members/{memberId:guid}/qr")]
-    [Permission(PermissionKey.AttendanceScannerUse)]
-    public async Task<ActionResult<ApiResponse<MemberQrCodeResponse>>> GetMemberQr(
-        Guid memberId,
+    [HttpGet("member/status")]
+    public async Task<ActionResult<ApiResponse<ScannerMemberStatusResponse>>> GetMemberSelfStatus(
+        [FromQuery] string token,
         CancellationToken cancellationToken)
     {
         try
         {
-            var qr = await _scannerService.GetMemberQrCodeAsync(memberId, GetMemberKioskUrlBase(), cancellationToken);
-            return Ok(ApiResponse<MemberQrCodeResponse>.Ok(qr));
+            var status = await _scannerService.GetMemberStatusByTokenAsync(token, cancellationToken);
+            return Ok(ApiResponse<ScannerMemberStatusResponse>.Ok(status));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ApiResponse<MemberQrCodeResponse>.Fail(ex.Message));
+            return BadRequest(ApiResponse<ScannerMemberStatusResponse>.Fail(ex.Message));
         }
     }
 
-    private string? GetScanUrlBase() =>
-        _configuration["Attendance:ScannerUrlBase"];
+    [HttpPost("member/record")]
+    public async Task<ActionResult<ApiResponse<ScannerAttendanceResultResponse>>> RecordMember(
+        [FromBody] MemberScannerRecordRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.Equals(request.Action, "done", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(ApiResponse<ScannerAttendanceResultResponse>.Fail("Attendance already completed for today."));
+            }
+
+            var result = await _scannerService.RecordByMemberTokenAsync(request, "kiosk", cancellationToken);
+            return Ok(ApiResponse<ScannerAttendanceResultResponse>.Ok(result, result.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Kiosk member record failed");
+            return BadRequest(ApiResponse<ScannerAttendanceResultResponse>.Fail(ex.Message));
+        }
+    }
 
     private string? GetLibraryKioskUrlBase() =>
         _configuration["Attendance:LibraryKioskUrlBase"]

@@ -56,7 +56,7 @@ PageHeader (back, copy ID, actions)
 
 | Tab ID | Label | Status | Child / content |
 |--------|-------|--------|-----------------|
-| `overview` | Overview | Implemented | Insights, contacts, activity timeline |
+| `overview` | Overview | Implemented | Insights, contacts, activity timeline, Aadhaar docs, **Attendance QR** |
 | `attendance` | Attendance | Implemented | KPIs, calendar, check-in log, heatmap |
 | `books` | Books | Implemented | Loan KPIs + borrow history via `BookService` |
 | `plans` | Payments & Plans | Implemented | `MemberPaymentsComponent` |
@@ -596,4 +596,5 @@ SLMS_API/
 
 - Members list workflow: [members-list-workflow.md](./members-list-workflow.md)
 - Books & circulation: [books-workflow.md](./books-workflow.md)
+- Attendance QR kiosk: [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md)
 - Membership expiry plan: `docs/lovable-source/.lovable/plan/membership-expiry-across-members-list-details-2026-08-04.md`

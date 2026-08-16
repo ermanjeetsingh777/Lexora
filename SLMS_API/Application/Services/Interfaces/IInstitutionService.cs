@@ -15,6 +15,7 @@ public interface IInstitutionService
     Task<InstitutionResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);    
     Task<InstitutionResponse> UpdateAsync(Guid id, UpdateInstitutionRequest request, Guid userId, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, string? userId, CancellationToken cancellationToken = default);
+    Task<InstitutionQuickViewResponse?> GetQuickViewAsync(Guid id, Guid userId, InstitutionQuickViewQuery query, CancellationToken cancellationToken = default);
     Task<OrganizationAnalyticsResponse> GetAnalyticsAsync(Guid id, CancellationToken cancellationToken = default);
     Task<List<InstitutionDropdownResponse>> GetInstitutionDropdownAsync( Guid userId, CancellationToken cancellationToken = default);
 

@@ -10,6 +10,8 @@ import {
   InstitutionListQuery,
   InstitutionListView,
   InstitutionOverview,
+  InstitutionQuickView,
+  InstitutionQuickViewQuery,
   UpdateInstitutionRequest,
 } from '@core/models/institution-detail.models';
 import { InstitutionDropdownResponse } from '@core/models/institution-dropdown.model';
@@ -60,6 +62,15 @@ export class InstitutionsService {
     if (query?.size) params['size'] = query.size;
     return this.httpApi
       .get<InstitutionBranchesView>(`institutions/${id}/branches-view`, { params })
+      .pipe(map((r) => r.data!));
+  }
+
+  getQuickView(id: string, query?: InstitutionQuickViewQuery): Observable<InstitutionQuickView> {
+    const params: Record<string, string> = {};
+    if (query?.metric) params['metric'] = query.metric;
+    if (query?.range) params['range'] = String(query.range);
+    return this.httpApi
+      .get<InstitutionQuickView>(`institutions/${id}/quick-view`, { params })
       .pipe(map((r) => r.data!));
   }
 

@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SLMS_API.Application.Contracts.Organizations.Queries;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations.Responses;
 using SLMS_API.Application.Helpers;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 using SLMS_API.Domain.Entities;
 using SLMS_API.Infrastructure.Data;
@@ -14,10 +16,16 @@ public class InstitutionService : IInstitutionService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuthService _authService;
-    public InstitutionService(ApplicationDbContext dbContext, IAuthService authService)
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public InstitutionService(
+        ApplicationDbContext dbContext,
+        IAuthService authService,
+        UserManager<ApplicationUser> userManager)
     {
         _dbContext = dbContext;
         _authService = authService;
+        _userManager = userManager;
     }
 
 
@@ -137,11 +145,17 @@ public class InstitutionService : IInstitutionService
     {
         var userIdString = userId.ToString();
         var nowUtc = DateTime.UtcNow;
+        var isSuperAdmin = await IsSuperAdminAsync(userId, cancellationToken);
 
         var institutionsQuery = _dbContext.Institutions
             .AsNoTracking()
-            .Where(x => !x.IsDeleted)
-            .Where(x => x.UserInstitutions.Any(ui => ui.UserId == userIdString && ui.IsActive));
+            .Where(x => !x.IsDeleted);
+
+        if (!isSuperAdmin)
+        {
+            institutionsQuery = institutionsQuery.Where(x =>
+                x.UserInstitutions.Any(ui => ui.UserId == userIdString && ui.IsActive));
+        }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -470,6 +484,55 @@ public class InstitutionService : IInstitutionService
         };
     }
 
+    public async Task<InstitutionQuickViewResponse?> GetQuickViewAsync(
+        Guid id,
+        Guid userId,
+        InstitutionQuickViewQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdString = userId.ToString();
+        var isSuperAdmin = await IsSuperAdminAsync(userId, cancellationToken);
+
+        var institutionQuery = _dbContext.Institutions
+            .AsNoTracking()
+            .Where(x => x.Id == id && !x.IsDeleted);
+
+        if (!isSuperAdmin)
+        {
+            institutionQuery = institutionQuery.Where(x =>
+                x.UserInstitutions.Any(ui => ui.UserId == userIdString && ui.IsActive));
+        }
+
+        var exists = await institutionQuery.AnyAsync(cancellationToken);
+
+        if (!exists)
+        {
+            return null;
+        }
+
+        var metric = InstitutionQuickViewHelper.NormalizeMetric(query.Metric);
+        var rangeDays = InstitutionQuickViewHelper.NormalizeRange(query.Range);
+        var endDate = DateTime.UtcNow.Date;
+        var startDate = endDate.AddDays(-(rangeDays - 1));
+
+        var points = metric == "revenue"
+            ? await InstitutionQuickViewHelper.BuildRevenueTrendAsync(_dbContext, id, startDate, endDate, cancellationToken)
+            : await InstitutionQuickViewHelper.BuildOccupancyTrendAsync(_dbContext, id, startDate, endDate, cancellationToken);
+
+        var activity = await InstitutionQuickViewHelper.BuildActivityAsync(_dbContext, id, cancellationToken);
+
+        return new InstitutionQuickViewResponse
+        {
+            Trend = new InstitutionQuickViewTrendResponse
+            {
+                Metric = metric,
+                RangeDays = rangeDays,
+                Points = points
+            },
+            Activity = activity
+        };
+    }
+
     public async Task<InstitutionResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await _dbContext.Institutions
@@ -618,6 +681,17 @@ public class InstitutionService : IInstitutionService
                     .ToList()
             })
             .ToList();
+    }
+
+    private async Task<bool> IsSuperAdminAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return false;
+        }
+
+        return await _userManager.IsInRoleAsync(user, RoleDefinitions.SuperAdmin);
     }
 
     private static InstitutionResponse ToResponse(Institution entity) =>

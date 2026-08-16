@@ -191,6 +191,26 @@ public class InstitutionsController : ControllerBase
         }
     }
 
+    [HttpGet("{id:guid}/quick-view")]
+    public async Task<ActionResult<ApiResponse<InstitutionQuickViewResponse>>> GetQuickView(
+        Guid id,
+        [FromQuery] InstitutionQuickViewQuery query,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var view = await _institutionService.GetQuickViewAsync(id, userId, query, cancellationToken);
+        if (view is null)
+        {
+            return NotFound(ApiResponse<InstitutionQuickViewResponse>.Fail("Institution not found."));
+        }
+
+        return Ok(ApiResponse<InstitutionQuickViewResponse>.Ok(view));
+    }
+
     [HttpGet("{id:guid}/analytics")]
     //[Permission(PermissionKey.InstitutionsManage)]
     public async Task<ActionResult<ApiResponse<OrganizationAnalyticsResponse>>> GetAnalytics(Guid id, CancellationToken cancellationToken)

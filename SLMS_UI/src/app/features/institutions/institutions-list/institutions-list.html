@@ -49,25 +49,20 @@
             <p class="inst-stat-kpi__value">{{ summary().totalInstitutions }}</p>
             <p class="inst-stat-kpi__unit">institutions mapped to you</p>
           </div>
-          <p class="inst-stat-kpi__sub">
-            <svg lucideUsers class="h-3.5 w-3.5 shrink-0"></svg>
-            {{ summary().totalMembers.toLocaleString() }} members enrolled
-          </p>
-
-          <div class="inst-stat-kpi__occupancy">
-            <div class="inst-stat-kpi__occupancy-head">
-              <span class="label-mono">Avg occupancy</span>
-              <span class="inst-stat-kpi__occupancy-value">{{ portfolioOccupancy() }}%</span>
-            </div>
-            <div class="inst-stat-kpi__occupancy-track" role="progressbar" [attr.aria-valuenow]="portfolioOccupancy()" aria-valuemin="0" aria-valuemax="100">
-              <div
-                class="inst-stat-kpi__occupancy-fill"
-                [class.inst-stat-kpi__occupancy-fill--high]="portfolioOccupancyTone() === 'high'"
-                [class.inst-stat-kpi__occupancy-fill--mid]="portfolioOccupancyTone() === 'mid'"
-                [class.inst-stat-kpi__occupancy-fill--low]="portfolioOccupancyTone() === 'low'"
-                [style.width.%]="portfolioOccupancy() > 100 ? 100 : portfolioOccupancy()"
-              ></div>
-            </div>
+          <div class="inst-stat-kpi__meta">
+            <span class="inst-stat-kpi__delta inst-stat-kpi__delta--neutral">
+              <svg lucideUsers class="h-3 w-3"></svg>
+              {{ summary().totalMembers.toLocaleString() }} members
+            </span>
+            <span
+              class="inst-stat-kpi__delta"
+              [class.inst-stat-kpi__delta--up]="portfolioOccupancyTone() === 'high'"
+              [class.inst-stat-kpi__delta--mid]="portfolioOccupancyTone() === 'mid'"
+              [class.inst-stat-kpi__delta--down]="portfolioOccupancyTone() === 'low'"
+            >
+              {{ portfolioOccupancy() }}% occupancy
+            </span>
+            <span class="inst-stat-kpi__hint">{{ portfolioOccupancyLabel() }}</span>
           </div>
         </div>
         <div class="inst-stat-kpi__icon inst-stat-kpi__icon--portfolio">
@@ -77,18 +72,8 @@
 
       <div class="inst-stat-kpi__grid">
         @for (metric of portfolioMetrics(); track metric.label) {
-          <div class="inst-stat-kpi__cell">
-            <div class="inst-stat-kpi__cell-top">
-              <span class="inst-stat-kpi__cell-icon">
-                @switch (metric.icon) {
-                  @case ('institutions') { <svg lucideBuilding2 class="h-3.5 w-3.5"></svg> }
-                  @case ('branches') { <svg lucideLayers class="h-3.5 w-3.5"></svg> }
-                  @case ('libraries') { <svg lucideLibrary class="h-3.5 w-3.5"></svg> }
-                  @case ('members') { <svg lucideUsers class="h-3.5 w-3.5"></svg> }
-                }
-              </span>
-              <span class="inst-stat-kpi__cell-label">{{ metric.label }}</span>
-            </div>
+          <div class="inst-stat-kpi__cell" [class.inst-stat-kpi__cell--highlight]="metric.highlight">
+            <span class="inst-stat-kpi__cell-label">{{ metric.label }}</span>
             <span class="inst-stat-kpi__cell-value">{{ metric.value }}</span>
           </div>
         }
@@ -121,23 +106,6 @@
             } @else {
               <span class="inst-stat-kpi__hint">No revenue recorded last month</span>
             }
-          </div>
-
-          <div class="inst-stat-kpi__compare" aria-label="Month over month revenue comparison">
-            <div class="inst-stat-kpi__compare-row">
-              <span class="inst-stat-kpi__compare-label">This month</span>
-              <div class="inst-stat-kpi__compare-track">
-                <div class="inst-stat-kpi__compare-fill inst-stat-kpi__compare-fill--current" [style.width.%]="revenueMtdCompareWidth()"></div>
-              </div>
-              <span class="inst-stat-kpi__compare-amount">{{ revenueMtdLabel() }}</span>
-            </div>
-            <div class="inst-stat-kpi__compare-row">
-              <span class="inst-stat-kpi__compare-label">Last month</span>
-              <div class="inst-stat-kpi__compare-track">
-                <div class="inst-stat-kpi__compare-fill inst-stat-kpi__compare-fill--prev" [style.width.%]="revenuePrevCompareWidth()"></div>
-              </div>
-              <span class="inst-stat-kpi__compare-amount">{{ formatRevenue(summary().revenuePreviousMtd) }}</span>
-            </div>
           </div>
         </div>
         <div class="inst-stat-kpi__icon inst-stat-kpi__icon--revenue">
@@ -298,28 +266,30 @@
 @if (quickView(); as inst) {
   <div class="content-overlay flex justify-end" [style.left]="overlayLeft()">
     <div class="absolute inset-0 bg-black/40" (click)="closeQuickView()"></div>
-    <aside class="relative w-full sm:max-w-md bg-background border-l shadow-xl h-full flex flex-col overflow-hidden">
-      <div class="p-6 border-b shrink-0">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="inst-avatar">{{ inst.initials || initials(inst.name) }}</div>
-            <div class="min-w-0">
-              <h2 class="text-lg font-semibold truncate">{{ inst.name }}</h2>
-              <p class="text-sm text-muted-foreground flex items-center gap-1.5 truncate">
-                <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>
-                {{ inst.type || 'Institution' }} · {{ inst.location || '—' }}
-              </p>
-            </div>
-          </div>
-          <button type="button" class="h-8 w-8 rounded-md hover:bg-muted grid place-items-center shrink-0" (click)="closeQuickView()">
-            <svg lucideX class="h-4 w-4"></svg>
-          </button>
-        </div>
-        <div class="mt-3"><app-status-badge [status]="inst.status" /></div>
-      </div>
+    <aside class="inst-quick-sheet relative w-full sm:max-w-md bg-background border-l shadow-xl h-full flex flex-col overflow-hidden">
+      <button
+        type="button"
+        class="inst-quick-sheet__close"
+        aria-label="Close quick view"
+        (click)="closeQuickView()"
+      >
+        <svg lucideX class="h-4 w-4"></svg>
+      </button>
 
-      <div class="flex-1 overflow-y-auto p-6">
-        <div class="grid grid-cols-2 gap-3">
+      <div class="inst-quick-sheet__body flex-1 overflow-y-auto p-6">
+        <header class="inst-quick-sheet__header">
+          <div class="inst-avatar inst-quick-sheet__avatar">{{ inst.initials || initials(inst.name) }}</div>
+          <div class="min-w-0 flex-1">
+            <h2 class="text-lg font-semibold truncate leading-tight">{{ inst.name }}</h2>
+            <p class="text-sm text-muted-foreground flex items-center gap-1.5 truncate mt-0.5">
+              <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>
+              {{ inst.type || 'Institution' }} · {{ inst.location || '—' }}
+            </p>
+          </div>
+          <app-status-badge [status]="inst.status" />
+        </header>
+
+        <div class="mt-6 grid grid-cols-3 gap-2">
           <div>
             <div class="label-mono">Branches</div>
             <div class="font-semibold tabular-nums mt-1">{{ inst.branchCount }}</div>
@@ -332,16 +302,122 @@
             <div class="label-mono">Occupancy</div>
             <div class="font-semibold tabular-nums mt-1">{{ inst.occupancyPercent }}%</div>
           </div>
-          <div>
-            <div class="label-mono">Total revenue</div>
-            <div class="font-semibold tabular-nums mt-1">{{ revenueLabel(inst.revenue) }}</div>
-          </div>
         </div>
 
-        <div class="mt-6">
-          <div class="label-mono mb-2">Trend</div>
-          <div class="rounded-lg border border-dashed border-[var(--border)] bg-muted/20 p-6 text-center text-sm text-muted-foreground min-h-[180px] flex items-center justify-center">
-            Occupancy & revenue trends coming soon
+        <div class="mt-6 space-y-3">
+          <div class="inst-trend__toolbar">
+            <div class="label-mono">Trend</div>
+            <div class="inst-trend__controls">
+              <div class="inst-trend__toggle" role="group" aria-label="Trend metric">
+                <button
+                  type="button"
+                  class="inst-trend__toggle-btn"
+                  [class.inst-trend__toggle-btn--active]="quickViewMetric() === 'occupancy'"
+                  (click)="setQuickViewMetric('occupancy')"
+                >
+                  Occupancy
+                </button>
+                <button
+                  type="button"
+                  class="inst-trend__toggle-btn"
+                  [class.inst-trend__toggle-btn--active]="quickViewMetric() === 'revenue'"
+                  (click)="setQuickViewMetric('revenue')"
+                >
+                  Revenue
+                </button>
+              </div>
+              <div class="inst-trend__toggle" role="group" aria-label="Trend range">
+                @for (days of trendRangeOptions; track days) {
+                  <button
+                    type="button"
+                    class="inst-trend__toggle-btn inst-trend__toggle-btn--compact"
+                    [class.inst-trend__toggle-btn--active]="quickViewRange() === days"
+                    (click)="setQuickViewRange(days)"
+                  >
+                    {{ days }}d
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="inst-trend__panel inst-trend__panel--sheet">
+            @if (quickViewState() === 'loading') {
+              <div class="inst-trend__loading" aria-busy="true" aria-label="Loading trend">
+                <div class="inst-skeleton inst-skeleton--title"></div>
+                <div class="inst-skeleton inst-trend__skeleton-chart"></div>
+              </div>
+            } @else if (quickViewState() === 'error') {
+              <div class="inst-trend__error">
+                <svg lucideAlertTriangle class="h-5 w-5 text-warning mb-2"></svg>
+                <div class="text-sm font-medium">Couldn't load trend</div>
+                <p class="text-xs text-muted-foreground mt-1">Try again in a moment.</p>
+                <app-button size="sm" variant="outline" class="mt-3" (click)="retryQuickViewLoad()">
+                  <svg lucideRefreshCw class="h-3.5 w-3.5 mr-1"></svg> Retry
+                </app-button>
+              </div>
+            } @else if (!quickViewTrendPoints().length) {
+              <p class="inst-trend__empty">No data for this range.</p>
+            } @else {
+              @let chart = quickViewTrendChart();
+              <div class="inst-trend__chart-wrap" (mouseleave)="clearTrendTooltip()">
+                @if (trendTooltip(); as tip) {
+                  <div
+                    class="inst-trend__tooltip"
+                    [style.left.px]="tip.left"
+                    [style.top.px]="tip.top"
+                    role="tooltip"
+                  >
+                    {{ tip.text }}
+                  </div>
+                }
+                <svg
+                  class="inst-trend__chart inst-trend__chart--sheet"
+                  [attr.viewBox]="'0 0 ' + chart.width + ' ' + chart.height"
+                  preserveAspectRatio="none"
+                  role="img"
+                  aria-label="Institution trend chart"
+                >
+                  <defs>
+                    <linearGradient [attr.id]="'trend-fill-' + inst.id" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" [attr.stop-color]="chart.color" stop-opacity="0.45" />
+                      <stop offset="100%" [attr.stop-color]="chart.color" stop-opacity="0.02" />
+                    </linearGradient>
+                  </defs>
+                  @for (y of chart.gridLines; track y) {
+                    <line x1="40" [attr.y1]="y" x2="312" [attr.y2]="y" class="inst-trend__grid-line" stroke-dasharray="3 3" />
+                  }
+                  <path [attr.d]="chart.area" [attr.fill]="'url(#trend-fill-' + inst.id + ')'" />
+                  <path [attr.d]="chart.line" class="inst-trend__line" [style.stroke]="chart.color" />
+                  @for (label of chart.yLabels; track label.text) {
+                    <text [attr.x]="4" [attr.y]="label.y" class="inst-trend__axis-text">{{ label.text }}</text>
+                  }
+                  @for (label of chart.xLabels; track label.text) {
+                    <text [attr.x]="label.x" y="178" class="inst-trend__axis-text inst-trend__axis-text--x" text-anchor="middle">{{ label.text }}</text>
+                  }
+                  @for (pt of chart.plotPoints; track $index) {
+                    <circle
+                      [attr.cx]="pt.x"
+                      [attr.cy]="pt.y"
+                      r="10"
+                      class="inst-trend__hit"
+                      [class.inst-trend__hit--active]="trendHoverIndex() === $index"
+                      (mouseenter)="showTrendTooltip($event, $index, chart.width, chart.height)"
+                      (mousemove)="showTrendTooltip($event, $index, chart.width, chart.height)"
+                    />
+                    @if (trendHoverIndex() === $index) {
+                      <circle
+                        [attr.cx]="pt.x"
+                        [attr.cy]="pt.y"
+                        r="3.5"
+                        class="inst-trend__dot"
+                        [style.stroke]="chart.color"
+                      />
+                    }
+                  }
+                </svg>
+              </div>
+            }
           </div>
         </div>
 
@@ -349,22 +425,49 @@
           <div class="label-mono mb-2 flex items-center gap-1.5">
             <svg lucideActivity class="h-3.5 w-3.5"></svg> Recent activity
           </div>
-          <ul class="space-y-2">
-            @for (a of quickViewActivity(inst); track $index) {
-              <li class="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-card/60 p-3 text-sm">
-                <span class="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" [class.bg-warning]="a.warn" [class.bg-primary]="!a.warn"></span>
-                <div class="flex-1">
-                  <div>{{ a.text }}</div>
-                  <div class="label-mono mt-0.5 text-xs text-muted-foreground">{{ a.when }}</div>
-                </div>
-              </li>
+          @if (quickViewState() === 'loading') {
+            <div class="space-y-2">
+              @for (i of [0, 1, 2]; track i) {
+                <div class="inst-skeleton inst-skeleton--activity"></div>
+              }
+            </div>
+          } @else if (quickViewState() === 'error') {
+            <div class="inst-quick-sheet__empty-state">Activity unavailable.</div>
+          } @else if (!quickViewActivity().length) {
+            <div class="inst-quick-sheet__empty-state">No recent activity yet.</div>
+          } @else {
+            <ul class="space-y-2">
+              @for (a of visibleQuickViewActivity(); track $index) {
+                <li class="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-card/60 p-3 text-sm">
+                  <span
+                    class="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
+                    [class.bg-warning]="a.severity === 'warn'"
+                    [class.bg-primary]="a.severity !== 'warn'"
+                  ></span>
+                  <div class="flex-1">
+                    <div>{{ a.text }}</div>
+                    <div class="label-mono mt-0.5 text-xs text-muted-foreground">{{ formatRelativeTime(a.occurredAtUtc) }}</div>
+                  </div>
+                </li>
+              }
+            </ul>
+            @if (hasMoreActivity()) {
+              <button type="button" class="inst-activity-load-more" (click)="loadMoreActivity()">
+                Load more
+                <span class="text-muted-foreground">({{ remainingActivityCount() }} remaining)</span>
+              </button>
             }
-          </ul>
+          }
         </div>
       </div>
 
       <div class="p-6 border-t shrink-0">
-        <a [routerLink]="['/institutions', inst.id]" class="block" (click)="closeQuickView()">
+        <a
+          [routerLink]="['/institutions', inst.id]"
+          [queryParams]="{ range: quickViewRange(), metric: quickViewMetric() }"
+          class="block"
+          (click)="closeQuickView()"
+        >
           <app-button class="w-full">
             Open full details <svg lucideArrowUpRight class="h-4 w-4 ml-1"></svg>
           </app-button>

@@ -9,10 +9,9 @@ import {
   LucideBuilding2,
   LucideEye,
   LucideIndianRupee,
-  LucideLayers,
-  LucideLibrary,
   LucideMapPin,
   LucidePlus,
+  LucideRefreshCw,
   LucideSearch,
   LucideTrendingUp,
   LucideUsers,
@@ -25,6 +24,15 @@ import { StatusBadgeComponent } from '@shared/components/status-badge/status-bad
 import { InstitutionListItem, InstitutionListView } from '@core/models/institution-detail.models';
 import { InstitutionsService } from '../institutions.service';
 import { SidebarService } from '../../../layouts/sidebar/sidebar.service';
+import {
+  buildAreaTrendSvg,
+  formatRelativeTime,
+  QuickViewActivityItem,
+  QuickViewLoadState,
+  TrendMetric,
+  TrendPoint,
+  TrendRangeDays,
+} from './institutions-list.util';
 
 type TypeFilter = 'All' | 'School' | 'College' | 'Library' | 'CoachingCenter' | 'University' | 'Coaching' | 'Other';
 
@@ -50,10 +58,9 @@ const TYPE_FILTERS: { value: TypeFilter; label: string; apiType?: string }[] = [
     StatusBadgeComponent,
     LucideBuilding2,
     LucidePlus,
+    LucideRefreshCw,
     LucideSearch,
     LucideUsers,
-    LucideLayers,
-    LucideLibrary,
     LucideIndianRupee,
     LucideTrendingUp,
     LucideMapPin,
@@ -92,6 +99,18 @@ export class InstitutionsListComponent implements OnInit {
   readonly query = signal('');
   readonly type = signal<TypeFilter>('All');
   readonly quickView = signal<InstitutionListItem | null>(null);
+  readonly quickViewMetric = signal<TrendMetric>('occupancy');
+  readonly quickViewRange = signal<TrendRangeDays>(14);
+  readonly quickViewState = signal<QuickViewLoadState>('ready');
+  readonly quickViewTrendPoints = signal<TrendPoint[]>([]);
+  readonly quickViewActivityItems = signal<QuickViewActivityItem[]>([]);
+  readonly activityVisibleCount = signal(4);
+
+  readonly activityPageSize = 4;
+
+  readonly trendRangeOptions: TrendRangeDays[] = [7, 14, 30];
+
+  protected readonly formatRelativeTime = formatRelativeTime;
 
   readonly typeFilters = TYPE_FILTERS;
 
@@ -135,14 +154,35 @@ export class InstitutionsListComponent implements OnInit {
   readonly portfolioMetrics = computed(() => {
     const s = this.summary();
     return [
-      { label: 'Institutions', value: s.totalInstitutions.toLocaleString(), icon: 'institutions' as const },
-      { label: 'Branches', value: s.totalBranches.toLocaleString(), icon: 'branches' as const },
-      { label: 'Libraries', value: s.totalLibraries.toLocaleString(), icon: 'libraries' as const },
-      { label: 'Members', value: s.totalMembers.toLocaleString(), icon: 'members' as const },
+      { label: 'Institutions', value: s.totalInstitutions.toLocaleString(), highlight: true },
+      { label: 'Branches', value: s.totalBranches.toLocaleString(), highlight: false },
+      { label: 'Libraries', value: s.totalLibraries.toLocaleString(), highlight: false },
+      { label: 'Members', value: s.totalMembers.toLocaleString(), highlight: false },
     ];
   });
 
+  readonly portfolioCompareMax = computed(() => {
+    const s = this.summary();
+    return Math.max(s.totalBranches, s.totalLibraries, s.totalMembers, 1);
+  });
+
+  readonly branchesCompareWidth = computed(
+    () => (this.summary().totalBranches / this.portfolioCompareMax()) * 100,
+  );
+
+  readonly librariesCompareWidth = computed(
+    () => (this.summary().totalLibraries / this.portfolioCompareMax()) * 100,
+  );
+
   readonly portfolioOccupancy = computed(() => this.summary().averageOccupancyPercent);
+
+  readonly portfolioOccupancyLabel = computed(() => {
+    const occ = this.portfolioOccupancy();
+    if (occ >= 80) return 'High utilization';
+    if (occ >= 50) return 'Moderate utilization';
+    if (occ > 0) return 'Low utilization';
+    return 'No occupancy data';
+  });
 
   readonly portfolioOccupancyTone = computed(() => {
     const occ = this.portfolioOccupancy();
@@ -150,6 +190,28 @@ export class InstitutionsListComponent implements OnInit {
     if (occ >= 50) return 'mid';
     return 'low';
   });
+
+  readonly quickViewTrendChart = computed(() =>
+    buildAreaTrendSvg(this.quickViewTrendPoints(), this.quickViewMetric()),
+  );
+
+  readonly quickViewActivity = computed(() => this.quickViewActivityItems());
+
+  readonly visibleQuickViewActivity = computed(() =>
+    this.quickViewActivityItems().slice(0, this.activityVisibleCount()),
+  );
+
+  readonly hasMoreActivity = computed(
+    () => this.quickViewActivityItems().length > this.activityVisibleCount(),
+  );
+
+  readonly remainingActivityCount = computed(
+    () => this.quickViewActivityItems().length - this.activityVisibleCount(),
+  );
+
+  readonly trendTooltip = signal<{ left: number; top: number; text: string } | null>(null);
+
+  readonly trendHoverIndex = signal<number | null>(null);
 
   ngOnInit(): void {
     this.search$
@@ -193,11 +255,101 @@ export class InstitutionsListComponent implements OnInit {
   openQuickView(inst: InstitutionListItem, event: Event): void {
     event.preventDefault();
     event.stopPropagation();
+    this.quickViewMetric.set('occupancy');
+    this.quickViewRange.set(14);
+    this.activityVisibleCount.set(this.activityPageSize);
     this.quickView.set(inst);
+    this.loadQuickView(inst.id);
   }
 
   closeQuickView(): void {
     this.quickView.set(null);
+    this.quickViewTrendPoints.set([]);
+    this.quickViewActivityItems.set([]);
+    this.activityVisibleCount.set(this.activityPageSize);
+    this.quickViewState.set('ready');
+    this.clearTrendTooltip();
+  }
+
+  setQuickViewMetric(metric: TrendMetric): void {
+    if (this.quickViewMetric() === metric) return;
+    this.quickViewMetric.set(metric);
+    const inst = this.quickView();
+    if (inst) this.loadQuickView(inst.id);
+  }
+
+  setQuickViewRange(days: TrendRangeDays): void {
+    if (this.quickViewRange() === days) return;
+    this.quickViewRange.set(days);
+    const inst = this.quickView();
+    if (inst) this.loadQuickView(inst.id);
+  }
+
+  retryQuickViewLoad(): void {
+    const inst = this.quickView();
+    if (inst) this.loadQuickView(inst.id);
+  }
+
+  showTrendTooltip(event: MouseEvent, index: number, chartWidth: number, chartHeight: number): void {
+    const chart = this.quickViewTrendChart();
+    const pt = chart.plotPoints[index];
+    if (!pt) return;
+
+    const wrap = (event.currentTarget as SVGElement).closest('.inst-trend__chart-wrap') as HTMLElement | null;
+    if (!wrap) return;
+
+    const svg = wrap.querySelector('svg');
+    if (!svg) return;
+
+    const svgRect = svg.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const scaleX = svgRect.width / chartWidth;
+    const scaleY = svgRect.height / chartHeight;
+    const cx = pt.x * scaleX;
+    const cy = pt.y * scaleY;
+
+    this.trendHoverIndex.set(index);
+    this.trendTooltip.set({
+      left: cx + (svgRect.left - wrapRect.left),
+      top: Math.max(0, cy + (svgRect.top - wrapRect.top) - 36),
+      text: pt.label,
+    });
+  }
+
+  clearTrendTooltip(): void {
+    this.trendTooltip.set(null);
+    this.trendHoverIndex.set(null);
+  }
+
+  loadMoreActivity(): void {
+    const next = this.activityVisibleCount() + this.activityPageSize;
+    this.activityVisibleCount.set(
+      Math.min(next, this.quickViewActivityItems().length),
+    );
+  }
+
+  private loadQuickView(institutionId: string): void {
+    this.clearTrendTooltip();
+    this.activityVisibleCount.set(this.activityPageSize);
+    this.quickViewState.set('loading');
+    this.institutions
+      .getQuickView(institutionId, {
+        metric: this.quickViewMetric(),
+        range: this.quickViewRange(),
+      })
+      .pipe(catchError(() => of(null)))
+      .subscribe((view) => {
+        if (!view) {
+          this.quickViewTrendPoints.set([]);
+          this.quickViewActivityItems.set([]);
+          this.quickViewState.set('error');
+          return;
+        }
+
+        this.quickViewTrendPoints.set(view.trend?.points ?? []);
+        this.quickViewActivityItems.set(view.activity ?? []);
+        this.quickViewState.set('ready');
+      });
   }
 
   initials(name: string): string {
@@ -230,17 +382,6 @@ export class InstitutionsListComponent implements OnInit {
 
   revenueLabel(revenue: number): string {
     return this.formatRevenue(revenue);
-  }
-
-  quickViewActivity(inst: InstitutionListItem): { when: string; text: string; warn: boolean }[] {
-    const items: { when: string; text: string; warn: boolean }[] = [
-      { when: '2h ago', text: `${Math.max(1, Math.round(inst.memberCount * 0.08))} new check-ins recorded`, warn: false },
-      { when: 'Yesterday', text: `${Math.max(1, Math.round(inst.branchCount / 2))} branch report submitted`, warn: false },
-    ];
-    const occ = Number(inst.occupancyPercent);
-    if (occ >= 85) items.unshift({ when: 'now', text: 'Capacity nearing limit', warn: true });
-    if (occ > 0 && occ < 35) items.unshift({ when: 'now', text: 'Low utilization alert', warn: true });
-    return items;
   }
 
   private fetchList() {

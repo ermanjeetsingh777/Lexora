@@ -155,3 +155,28 @@ export interface InstitutionBranchListQuery {
   status?: string;
   size?: string;
 }
+
+export interface InstitutionQuickViewQuery {
+  metric?: 'occupancy' | 'revenue';
+  range?: 7 | 14 | 30;
+}
+
+export interface InstitutionTrendPoint {
+  date: string;
+  value: number;
+}
+
+export interface InstitutionQuickViewActivityItem {
+  occurredAtUtc: string;
+  text: string;
+  severity: 'info' | 'warn';
+}
+
+export interface InstitutionQuickView {
+  trend: {
+    metric: string;
+    rangeDays: number;
+    points: InstitutionTrendPoint[];
+  };
+  activity: InstitutionQuickViewActivityItem[];
+}

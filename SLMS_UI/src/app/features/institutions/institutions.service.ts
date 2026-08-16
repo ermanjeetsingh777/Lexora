@@ -3,11 +3,20 @@ import * as mock from '@core/constants/lovable-mock.data';
 import { Branch, Institution, Library } from '@core/constants/lovable-mock.data';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { CreateInstitutionRequest, InstitutionCardResponse } from '@core/models/CreateInstitutionRequest';
+import {
+  InstitutionBranchListQuery,
+  InstitutionBranchesView,
+  InstitutionDetail,
+  InstitutionListQuery,
+  InstitutionListView,
+  InstitutionOverview,
+  UpdateInstitutionRequest,
+} from '@core/models/institution-detail.models';
 import { InstitutionDropdownResponse } from '@core/models/institution-dropdown.model';
 import { ApiService } from '@core/services/api.service';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class InstitutionsService {
   private readonly httpApi = inject(ApiService);
   // mock-first in-memory mutation (client-side)
@@ -28,6 +37,36 @@ export class InstitutionsService {
     return this.httpApi.get<InstitutionDropdownResponse[]>('institutions/dropdown');
   }
 
+  getListView(query?: InstitutionListQuery): Observable<InstitutionListView> {
+    const params: Record<string, string> = {};
+    if (query?.search) params['search'] = query.search;
+    if (query?.type) params['type'] = query.type;
+    if (query?.status) params['status'] = query.status;
+    return this.httpApi.get<InstitutionListView>('institutions/list', { params }).pipe(map((r) => r.data!));
+  }
+
+  getById(id: string): Observable<InstitutionDetail> {
+    return this.httpApi.getById<InstitutionDetail>('institutions', id).pipe(map((r) => r.data!));
+  }
+
+  getOverview(id: string): Observable<InstitutionOverview> {
+    return this.httpApi.get<InstitutionOverview>(`institutions/${id}/overview`).pipe(map((r) => r.data!));
+  }
+
+  getBranchesView(id: string, query?: InstitutionBranchListQuery): Observable<InstitutionBranchesView> {
+    const params: Record<string, string> = {};
+    if (query?.search) params['search'] = query.search;
+    if (query?.status) params['status'] = query.status;
+    if (query?.size) params['size'] = query.size;
+    return this.httpApi
+      .get<InstitutionBranchesView>(`institutions/${id}/branches-view`, { params })
+      .pipe(map((r) => r.data!));
+  }
+
+  updateInstitution(id: string, request: UpdateInstitutionRequest): Observable<InstitutionDetail> {
+    return this.httpApi.putTo<InstitutionDetail>(`institutions/${id}`, request).pipe(map((r) => r.data!));
+  }
+
   listInstitutions(): Institution[] {
     return this._institutions;
   }
@@ -36,15 +75,13 @@ export class InstitutionsService {
     return this._institutions.find((i) => i.id === id) ?? this._institutions[0];
   }
 
-
-
-  updateInstitution(id: string, patch: Partial<Institution>): Institution {
+  patchInstitutionLocal(id: string, patch: Partial<Institution>): Institution {
     this._institutions = this._institutions.map((i) => (i.id === id ? { ...i, ...patch } : i));
     return this.institutionById(id);
   }
 
   deactivateInstitution(id: string): Institution {
-    return this.updateInstitution(id, { status: 'Inactive' });
+    return this.patchInstitutionLocal(id, { status: 'Inactive' });
   }
 
   listBranches(institutionId: string): Branch[] {

@@ -1,0 +1,530 @@
+@if (loading()) {
+  <p class="py-16 text-center text-sm text-muted-foreground">Loading institution…</p>
+} @else if (error()) {
+  <app-page-header title="Institution" [description]="error()!" />
+  <app-glass-card class="p-8 text-center block">
+    <p class="text-sm text-muted-foreground">{{ error() }}</p>
+    <a routerLink="/institutions" class="inline-block mt-4 text-sm text-primary hover:underline">Back to institutions</a>
+  </app-glass-card>
+} @else if (institution(); as inst) {
+  <a routerLink="/institutions" class="inline-flex items-center label-mono text-muted-foreground hover:text-foreground mb-3 text-xs">
+    <svg lucideArrowLeft class="h-3 w-3 mr-1"></svg> Institutions
+  </a>
+
+  <app-page-header
+    title="{{ inst.name }}"
+    [description]="subtitle()"
+  >
+    <div actions class="flex gap-2">
+      <app-button size="sm" variant="outline" (click)="setTab('settings')">
+        <svg lucideSettings class="h-4 w-4 mr-1.5"></svg> Settings
+      </app-button>
+      <app-button size="sm" (click)="refresh()">
+        <svg lucideRefreshCw class="h-4 w-4 mr-1.5"></svg> Refresh
+      </app-button>
+    </div>
+  </app-page-header>
+
+  <!-- Tabs -->
+  <div class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1 mb-5 w-full overflow-x-auto">
+    @for (t of tabs; track t.id) {
+      <button
+        type="button"
+        class="flex-1 min-w-[5.5rem] px-3 py-1.5 text-sm rounded-md whitespace-nowrap transition"
+        [class.bg-background]="tab() === t.id"
+        [class.shadow-sm]="tab() === t.id"
+        [class.text-muted-foreground]="tab() !== t.id"
+        (click)="setTab(t.id)"
+      >
+        {{ t.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Overview -->
+  @if (tab() === 'overview') {
+    @if (overview(); as ov) {
+      @if (ov.activeBranchCount === 0) {
+        <app-glass-card class="p-10 text-center block">
+          <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+            <svg lucideBuilding2 class="h-5 w-5 text-muted-foreground"></svg>
+          </div>
+          <h3 class="font-semibold">No branches yet</h3>
+          <p class="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+            Add your first branch to start tracking occupancy, members, and revenue.
+          </p>
+          <app-button size="sm" class="mt-4" (click)="setTab('branches')">
+            <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
+          </app-button>
+        </app-glass-card>
+      } @else {
+        <div class="space-y-4">
+          <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <app-kpi-card label="Branches" [value]="ov.activeBranchCount" hint="active">
+              <svg icon lucideBuilding2 class="h-4 w-4"></svg>
+            </app-kpi-card>
+            <app-kpi-card label="Libraries" [value]="ov.totalLibraryCount" hint="across branches">
+              <svg icon lucideLibrary class="h-4 w-4"></svg>
+            </app-kpi-card>
+            <app-kpi-card label="Members" [value]="ov.enrolledMemberCount.toLocaleString()" hint="enrolled">
+              <svg icon lucideUsers class="h-4 w-4"></svg>
+            </app-kpi-card>
+            <app-kpi-card label="Occupancy" [value]="ov.occupancyPercent + '%'" [hint]="ov.occupiedSeats + '/' + ov.totalSeats + ' seats'">
+              <svg icon lucideActivity class="h-4 w-4"></svg>
+            </app-kpi-card>
+          </section>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <app-glass-card class="p-5 lg:col-span-2 block">
+              <app-section-header title="Revenue · 30 days" description="Daily revenue and renewals" />
+              <div class="mt-4 h-56 rounded-lg border border-dashed border-[var(--border)] bg-muted/20 flex items-center justify-center text-sm text-muted-foreground">
+                Chart coming soon — KPI counts are live from API
+              </div>
+            </app-glass-card>
+            <app-glass-card class="p-5 block">
+              <app-section-header title="Member mix" />
+              <div class="mt-4 space-y-3">
+                <div class="flex items-center justify-between text-sm">
+                  <span>Active</span>
+                  <span class="font-semibold tabular-nums">{{ ov.memberMix.active }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span>Inactive</span>
+                  <span class="font-semibold tabular-nums">{{ ov.memberMix.inactive }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span>Suspended</span>
+                  <span class="font-semibold tabular-nums">{{ ov.memberMix.suspended }}</span>
+                </div>
+              </div>
+            </app-glass-card>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <app-glass-card class="p-5 lg:col-span-2 block">
+              <app-section-header title="Occupancy trend · 30 days" description="Average daily occupancy across branches" />
+              <div class="mt-4 h-56 rounded-lg border border-dashed border-[var(--border)] bg-muted/20 flex items-center justify-center text-sm text-muted-foreground">
+                Trend chart coming soon
+              </div>
+            </app-glass-card>
+            <app-glass-card class="p-5 block">
+              <app-section-header title="Capacity utilization" />
+              <div class="space-y-3 mt-2">
+                <div class="flex items-end justify-between">
+                  <div>
+                    <p class="text-3xl font-semibold tabular-nums">{{ ov.occupancyPercent }}%</p>
+                    <p class="label-mono">{{ ov.occupiedSeats.toLocaleString() }} / {{ ov.totalSeats.toLocaleString() }} seats</p>
+                  </div>
+                  <span class="text-xs rounded-md border px-2 py-0.5 font-medium" [class]="occupancyBadgeClass()">
+                    {{ occupancyLabel() }}
+                  </span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
+                  <div class="h-full rounded-full bg-primary transition-all" [style.width.%]="ov.occupancyPercent"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 pt-2 text-center">
+                  <div>
+                    <p class="text-sm font-semibold tabular-nums">{{ ov.capacityUtilization.totalLibraries }}</p>
+                    <p class="label-mono">Libraries</p>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold tabular-nums">{{ ov.capacityUtilization.currentMembers }}</p>
+                    <p class="label-mono">Members</p>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold tabular-nums">{{ ov.capacityUtilization.totalSeats }}</p>
+                    <p class="label-mono">Seats</p>
+                  </div>
+                </div>
+              </div>
+            </app-glass-card>
+          </div>
+
+          @if (ov.totalLibraryCount === 0) {
+            <app-glass-card class="p-5 border-dashed block">
+              <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div class="flex items-start gap-3">
+                  <svg lucideAlertTriangle class="h-4 w-4 text-warning mt-0.5 shrink-0"></svg>
+                  <div>
+                    <p class="text-sm font-medium">No libraries set up yet</p>
+                    <p class="label-mono mt-0.5">{{ inst.name }} has branches but no libraries — add one to start tracking seats.</p>
+                  </div>
+                </div>
+                <app-button size="sm" variant="outline" (click)="setTab('libraries')">Manage libraries</app-button>
+              </div>
+            </app-glass-card>
+          }
+        </div>
+      }
+    }
+  }
+
+  <!-- Branches -->
+  @if (tab() === 'branches' && branchesView(); as view) {
+    @if (view.branches.length === 0) {
+      <app-glass-card class="p-10 text-center block">
+        <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+          <svg lucideBuilding2 class="h-5 w-5 text-muted-foreground"></svg>
+        </div>
+        <h3 class="font-semibold">No branches yet</h3>
+        <p class="text-sm text-muted-foreground mt-1">Branches let you organize libraries and members by physical location.</p>
+        <a routerLink="/branches/create">
+          <app-button size="sm" class="mt-4">
+            <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
+          </app-button>
+        </a>
+      </app-glass-card>
+    } @else {
+      <div class="space-y-4">
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <app-kpi-card label="Total branches" [value]="view.summary.totalBranches" hint="active">
+            <svg icon lucideBuilding2 class="h-4 w-4"></svg>
+          </app-kpi-card>
+          <app-kpi-card label="Total capacity" [value]="view.summary.totalCapacity.toLocaleString()" hint="seats">
+            <svg icon lucideUsers class="h-4 w-4"></svg>
+          </app-kpi-card>
+          <app-kpi-card label="Avg occupancy" [value]="view.summary.averageOccupancyPercent + '%'" hint="today">
+            <svg icon lucideActivity class="h-4 w-4"></svg>
+          </app-kpi-card>
+          <app-kpi-card label="Near capacity" [value]="view.summary.nearCapacityCount" hint="≥ 80% full">
+            <svg icon lucideAlertTriangle class="h-4 w-4"></svg>
+          </app-kpi-card>
+        </section>
+
+        <app-glass-card class="p-4 block">
+          <div class="inst-filter-bar">
+            <div class="inst-filter-search">
+              <svg lucideSearch class="inst-filter-icon"></svg>
+              <input
+                type="search"
+                class="inst-filter-control w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-3 text-sm"
+                placeholder="Search by name, city or address…"
+                [ngModel]="branchQuery()"
+                (ngModelChange)="branchQuery.set($event)"
+              />
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              @for (s of branchStatuses; track s) {
+                <button
+                  type="button"
+                  class="px-2.5 py-1 text-xs rounded-md border transition"
+                  [class.bg-primary]="branchStatus() === s"
+                  [class.text-primary-foreground]="branchStatus() === s"
+                  [class.border-primary]="branchStatus() === s"
+                  (click)="branchStatus.set(s)"
+                >
+                  {{ s === 'all' ? 'All' : s }}
+                </button>
+              }
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              @for (c of branchCaps; track c.value) {
+                <button
+                  type="button"
+                  class="px-2.5 py-1 text-xs rounded-md border transition"
+                  [class.bg-primary]="branchCap() === c.value"
+                  [class.text-primary-foreground]="branchCap() === c.value"
+                  [class.border-primary]="branchCap() === c.value"
+                  (click)="branchCap.set(c.value)"
+                >
+                  {{ c.label }}
+                </button>
+              }
+            </div>
+            <div class="inst-filter-count">
+              <span class="tabular-nums text-xs text-muted-foreground">{{ filteredBranches().length }} / {{ view.branches.length }}</span>
+              @if (hasBranchFilters()) {
+                <app-button size="sm" variant="ghost" class="h-7 px-2 text-xs" (click)="clearBranchFilters()">
+                  <svg lucideX class="h-3 w-3 mr-1"></svg> Clear
+                </app-button>
+              }
+            </div>
+          </div>
+        </app-glass-card>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <app-glass-card class="p-5 lg:col-span-2 block">
+            <app-section-header title="All branches" description="Live capacity and status">
+              <div actions>
+                <a routerLink="/branches/create">
+                  <app-button size="sm">
+                    <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
+                  </app-button>
+                </a>
+              </div>
+            </app-section-header>
+
+            @if (!filteredBranches().length) {
+              <p class="py-10 text-center text-sm text-muted-foreground">No branches match your filters.</p>
+            } @else {
+              <div class="overflow-x-auto mt-3">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left border-y label-mono">
+                      <th class="py-2 font-medium">Branch</th>
+                      <th class="font-medium">Contact</th>
+                      <th class="text-right font-medium">Capacity</th>
+                      <th class="font-medium">Occupancy</th>
+                      <th class="text-right font-medium">Libs</th>
+                      <th class="text-right font-medium">Members</th>
+                      <th class="font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    @for (b of filteredBranches(); track b.id) {
+                      <tr class="hover:bg-muted/40">
+                        <td class="py-2.5">
+                          <div class="font-medium">{{ b.name }}</div>
+                          <div class="label-mono flex items-center gap-1 mt-0.5 text-muted-foreground">
+                            <svg lucideMapPin class="h-3 w-3"></svg>{{ b.city ?? '—' }}
+                          </div>
+                        </td>
+                        <td class="text-muted-foreground text-xs">{{ b.contact ?? '—' }}</td>
+                        <td class="text-right tabular-nums">{{ b.capacity | number }}</td>
+                        <td class="min-w-[140px]">
+                          <div class="flex items-center gap-2">
+                            <div class="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
+                              <div class="h-full rounded-full bg-primary" [style.width.%]="b.occupancyPercent"></div>
+                            </div>
+                            <span class="tabular-nums text-xs w-9 text-right">{{ b.occupancyPercent }}%</span>
+                          </div>
+                        </td>
+                        <td class="text-right tabular-nums">{{ b.libraryCount }}</td>
+                        <td class="text-right tabular-nums">{{ b.memberCount }}</td>
+                        <td><app-status-badge [status]="b.status" /></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </app-glass-card>
+
+          <div class="space-y-4">
+            <app-glass-card class="p-5 block">
+              <app-section-header title="Top performer" description="By occupancy" />
+              @if (view.topPerformer; as top) {
+                <div class="space-y-3 mt-2">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="font-medium">{{ top.name }}</p>
+                    </div>
+                    <span class="text-xs rounded-md border px-2 py-0.5 inline-flex items-center gap-1">
+                      <svg lucideArrowUpRight class="h-3 w-3"></svg>{{ top.occupancyPercent }}%
+                    </span>
+                  </div>
+                  <div class="h-1.5 rounded-full bg-muted/60 overflow-hidden">
+                    <div class="h-full rounded-full bg-primary" [style.width.%]="top.occupancyPercent"></div>
+                  </div>
+                  <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+                    <div><p class="text-sm font-semibold tabular-nums">{{ top.memberCount }}</p><p class="label-mono">Members</p></div>
+                    <div><p class="text-sm font-semibold tabular-nums">{{ top.libraryCount }}</p><p class="label-mono">Libraries</p></div>
+                    <div><p class="text-sm font-semibold tabular-nums">{{ top.capacity }}</p><p class="label-mono">Seats</p></div>
+                  </div>
+                </div>
+              } @else {
+                <p class="text-sm text-muted-foreground mt-2">No data.</p>
+              }
+            </app-glass-card>
+
+            <app-glass-card class="p-5 block">
+              <app-section-header title="Needs attention" description="Lowest occupancy" />
+              <ul class="space-y-2 mt-2">
+                @for (b of view.needsAttention; track b.branchId) {
+                  <li class="flex items-center justify-between text-sm">
+                    <div>
+                      <p class="font-medium">{{ b.name }}</p>
+                      <p class="label-mono text-muted-foreground">{{ b.memberCount }} members</p>
+                    </div>
+                    <span class="tabular-nums text-xs">{{ b.occupancyPercent }}%</span>
+                  </li>
+                } @empty {
+                  <li class="text-sm text-muted-foreground">All branches performing well.</li>
+                }
+              </ul>
+            </app-glass-card>
+          </div>
+        </div>
+      </div>
+    }
+  }
+
+  <!-- Libraries -->
+  @if (tab() === 'libraries') {
+    @if (!libraryRows().length) {
+      <app-glass-card class="p-10 text-center block">
+        <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+          <svg lucideLibrary class="h-5 w-5 text-muted-foreground"></svg>
+        </div>
+        <h3 class="font-semibold">No libraries yet</h3>
+        <p class="text-sm text-muted-foreground mt-1">Add libraries to your branches to start managing seats and zones.</p>
+        <a routerLink="/libraries/create">
+          <app-button size="sm" class="mt-4">
+            <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
+          </app-button>
+        </a>
+      </app-glass-card>
+    } @else {
+      <div class="space-y-4">
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <app-kpi-card label="Branches w/ libs" [value]="libraryRows().length" hint="with libraries">
+            <svg icon lucideLibrary class="h-4 w-4"></svg>
+          </app-kpi-card>
+          <app-kpi-card label="Total libraries" [value]="overview()?.totalLibraryCount ?? 0" hint="across branches">
+            <svg icon lucideBuilding2 class="h-4 w-4"></svg>
+          </app-kpi-card>
+          <app-kpi-card label="Members" [value]="(overview()?.enrolledMemberCount ?? 0).toLocaleString()" hint="enrolled">
+            <svg icon lucideUsers class="h-4 w-4"></svg>
+          </app-kpi-card>
+          <app-kpi-card label="Avg occupancy" [value]="(overview()?.occupancyPercent ?? 0) + '%'" hint="institution">
+            <svg icon lucideActivity class="h-4 w-4"></svg>
+          </app-kpi-card>
+        </section>
+
+        <app-glass-card class="p-5 block">
+          <app-section-header title="Libraries by branch" description="Library counts per branch location">
+            <div actions>
+              <a routerLink="/libraries/create">
+                <app-button size="sm">
+                  <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
+                </app-button>
+              </a>
+            </div>
+          </app-section-header>
+          <div class="overflow-x-auto mt-3">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left border-b label-mono">
+                  <th class="py-2 font-medium">Branch</th>
+                  <th class="font-medium">City</th>
+                  <th class="text-right font-medium">Libraries</th>
+                  <th class="text-right font-medium">Members</th>
+                  <th class="text-right font-medium">Capacity</th>
+                  <th class="font-medium">Occupancy</th>
+                  <th class="font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                @for (row of libraryRows(); track row.branchId) {
+                  <tr class="hover:bg-muted/40">
+                    <td class="py-2.5 font-medium">{{ row.branchName }}</td>
+                    <td class="text-muted-foreground">{{ row.city ?? '—' }}</td>
+                    <td class="text-right tabular-nums">{{ row.libraryCount }}</td>
+                    <td class="text-right tabular-nums">{{ row.memberCount }}</td>
+                    <td class="text-right tabular-nums">{{ row.capacity }}</td>
+                    <td class="tabular-nums">{{ row.occupancyPercent }}%</td>
+                    <td><app-status-badge [status]="row.status" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </app-glass-card>
+      </div>
+    }
+  }
+
+  <!-- Billing -->
+  @if (tab() === 'billing') {
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <app-glass-card class="p-5 lg:col-span-2 block">
+          <app-section-header title="Subscription" description="Current plan & status">
+            <div actions>
+              <app-button size="sm" variant="outline">Change plan</app-button>
+            </div>
+          </app-section-header>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+            <div>
+              <p class="label-mono">Plan</p>
+              <p class="mt-1 text-sm font-medium">Growth</p>
+            </div>
+            <div>
+              <p class="label-mono">MRR</p>
+              <p class="mt-1 text-lg font-semibold tabular-nums">₹11,999</p>
+            </div>
+            <div>
+              <p class="label-mono">Status</p>
+              <p class="mt-1"><app-status-badge status="Active" /></p>
+            </div>
+            <div>
+              <p class="label-mono">Renews</p>
+              <p class="mt-1 text-sm">—</p>
+            </div>
+          </div>
+        </app-glass-card>
+        <app-glass-card class="p-5 block">
+          <app-section-header title="Payment methods" />
+          <div class="mt-3 rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-muted-foreground text-center">
+            <svg lucideCreditCard class="h-5 w-5 mx-auto mb-2 opacity-60"></svg>
+            Billing integration coming soon
+          </div>
+        </app-glass-card>
+      </div>
+      <app-glass-card class="p-5 block">
+        <app-section-header title="Invoices" description="Recent billing history" />
+        <p class="mt-4 text-sm text-muted-foreground text-center py-8">No invoices yet.</p>
+      </app-glass-card>
+    </div>
+  }
+
+  <!-- Settings -->
+  @if (tab() === 'settings') {
+    <app-glass-card class="p-5 block">
+      <app-section-header title="Institution profile" description="Update identity, contact and location details." />
+      <form class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" (ngSubmit)="saveSettings()">
+        <div class="space-y-1.5 md:col-span-2">
+          <label class="text-sm font-medium">Name</label>
+          <input class="inst-field" [ngModel]="settingsForm().name" (ngModelChange)="updateSettings('name', $event)" name="name" required />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Type</label>
+          <input class="inst-field" [ngModel]="settingsForm().type" (ngModelChange)="updateSettings('type', $event)" name="type" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Email</label>
+          <input type="email" class="inst-field" [ngModel]="settingsForm().email" (ngModelChange)="updateSettings('email', $event)" name="email" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Phone</label>
+          <input class="inst-field" [ngModel]="settingsForm().phone" (ngModelChange)="updateSettings('phone', $event)" name="phone" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Website</label>
+          <input class="inst-field" [ngModel]="settingsForm().websiteUrl" (ngModelChange)="updateSettings('websiteUrl', $event)" name="websiteUrl" />
+        </div>
+        <div class="space-y-1.5 md:col-span-2">
+          <label class="text-sm font-medium">Address</label>
+          <input class="inst-field" [ngModel]="settingsForm().address" (ngModelChange)="updateSettings('address', $event)" name="address" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">City</label>
+          <input class="inst-field" [ngModel]="settingsForm().city" (ngModelChange)="updateSettings('city', $event)" name="city" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">State</label>
+          <input class="inst-field" [ngModel]="settingsForm().state" (ngModelChange)="updateSettings('state', $event)" name="state" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Country</label>
+          <input class="inst-field" [ngModel]="settingsForm().country" (ngModelChange)="updateSettings('country', $event)" name="country" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Time zone</label>
+          <input class="inst-field" [ngModel]="settingsForm().timeZone" (ngModelChange)="updateSettings('timeZone', $event)" name="timeZone" />
+        </div>
+        <div class="md:col-span-2 flex items-center justify-between rounded-lg border border-[var(--border)] p-3">
+          <div>
+            <div class="text-sm font-medium">Active institution</div>
+            <p class="text-xs text-muted-foreground">Inactive institutions are hidden from operations.</p>
+          </div>
+          <input type="checkbox" class="h-4 w-4" [ngModel]="settingsForm().isActive" (ngModelChange)="updateSettings('isActive', $event)" name="isActive" />
+        </div>
+        <div class="md:col-span-2 flex justify-end gap-2 pt-2">
+          <app-button type="button" variant="outline" (click)="load()">Reset</app-button>
+          <app-button type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save changes' }}</app-button>
+        </div>
+      </form>
+    </app-glass-card>
+  }
+}

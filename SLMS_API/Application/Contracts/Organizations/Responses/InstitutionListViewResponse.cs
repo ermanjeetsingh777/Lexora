@@ -10,8 +10,14 @@ public class InstitutionListSummaryResponse
 {
     public int TotalInstitutions { get; set; }
     public int TotalBranches { get; set; }
+    public int TotalLibraries { get; set; }
     public int TotalMembers { get; set; }
     public decimal RevenueMtd { get; set; }
+    public decimal RevenuePreviousMtd { get; set; }
+    public decimal RevenueMonthly { get; set; }
+    public decimal RevenueQuarterly { get; set; }
+    public decimal RevenueYearly { get; set; }
+    public decimal RevenueAllTime { get; set; }
     public decimal AverageOccupancyPercent { get; set; }
 }
 

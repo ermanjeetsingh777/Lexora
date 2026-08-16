@@ -9,7 +9,7 @@ public interface IInstitutionService
     Task<InstitutionResponse> CreateAsync(CreateInstitutionRequest request, Guid userId, CancellationToken cancellationToken = default);
     Task<InstitutionCardResponse?> GetInstitutionByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<InstitutionResponse>> GetAllAsync(CancellationToken cancellationToken = default);
-    Task<InstitutionListViewResponse> GetListViewAsync(InstitutionListQuery query, CancellationToken cancellationToken = default);
+    Task<InstitutionListViewResponse> GetListViewAsync(InstitutionListQuery query, Guid userId, CancellationToken cancellationToken = default);
     Task<InstitutionOverviewResponse?> GetOverviewAsync(Guid id, CancellationToken cancellationToken = default);
     Task<InstitutionBranchesViewResponse?> GetBranchesViewAsync(Guid id, InstitutionBranchListQuery query, CancellationToken cancellationToken = default);
     Task<InstitutionResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);    

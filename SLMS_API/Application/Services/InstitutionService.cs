@@ -133,11 +133,15 @@ public class InstitutionService : IInstitutionService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<InstitutionListViewResponse> GetListViewAsync(InstitutionListQuery query, CancellationToken cancellationToken = default)
+    public async Task<InstitutionListViewResponse> GetListViewAsync(InstitutionListQuery query, Guid userId, CancellationToken cancellationToken = default)
     {
+        var userIdString = userId.ToString();
+        var nowUtc = DateTime.UtcNow;
+
         var institutionsQuery = _dbContext.Institutions
             .AsNoTracking()
-            .Where(x => !x.IsDeleted);
+            .Where(x => !x.IsDeleted)
+            .Where(x => x.UserInstitutions.Any(ui => ui.UserId == userIdString && ui.IsActive));
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -166,33 +170,74 @@ public class InstitutionService : IInstitutionService
 
         var institutionIds = institutions.Select(x => x.Id).ToList();
 
-        var branchStats = await _dbContext.Branches
-            .AsNoTracking()
-            .Where(x => !x.IsDeleted && institutionIds.Contains(x.InstitutionId))
-            .GroupBy(x => x.InstitutionId)
-            .Select(g => new
-            {
-                InstitutionId = g.Key,
-                BranchCount = g.Count(),
-                ActiveBranchCount = g.Count(x => x.IsActive),
-                TotalCapacity = g.Sum(x => x.Capacity ?? 0)
-            })
-            .ToDictionaryAsync(x => x.InstitutionId, cancellationToken);
+        var branchStats = institutionIds.Count == 0
+            ? new Dictionary<Guid, (int BranchCount, int ActiveBranchCount, int TotalCapacity)>()
+            : await _dbContext.Branches
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted && institutionIds.Contains(x.InstitutionId))
+                .GroupBy(x => x.InstitutionId)
+                .Select(g => new
+                {
+                    InstitutionId = g.Key,
+                    BranchCount = g.Count(),
+                    ActiveBranchCount = g.Count(x => x.IsActive),
+                    TotalCapacity = g.Sum(x => x.Capacity ?? 0)
+                })
+                .ToDictionaryAsync(
+                    x => x.InstitutionId,
+                    x => (x.BranchCount, x.ActiveBranchCount, x.TotalCapacity),
+                    cancellationToken);
 
-        var libraryStats = await _dbContext.Libraries
-            .AsNoTracking()
-            .Where(x => !x.IsDeleted)
-            .GroupBy(x => x.BranchId)
-            .Select(g => new { InstitutionId = g.Key, LibraryCount = g.Count() })
-            .ToDictionaryAsync(x => x.InstitutionId, x => x.LibraryCount, cancellationToken);
+        var memberStats = institutionIds.Count == 0
+            ? new Dictionary<Guid, int>()
+            : await _dbContext.MemberLibraries
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted && x.IsCurrent && institutionIds.Contains(x.InstitutionId))
+                .GroupBy(x => x.InstitutionId)
+                .Select(g => new
+                {
+                    InstitutionId = g.Key,
+                    MemberCount = g.Select(x => x.MemberId).Distinct().Count()
+                })
+                .ToDictionaryAsync(x => x.InstitutionId, x => x.MemberCount, cancellationToken);
 
-        var globalBranchCount = await _dbContext.Branches.CountAsync(x => !x.IsDeleted, cancellationToken);
+        var planRevenueRows = institutionIds.Count == 0
+            ? []
+            : await (
+                from mp in _dbContext.MemberPlans.AsNoTracking()
+                join ml in _dbContext.MemberLibraries.AsNoTracking() on mp.MemberId equals ml.MemberId
+                where !mp.IsDeleted && !ml.IsDeleted && ml.IsCurrent && institutionIds.Contains(ml.InstitutionId)
+                select new { ml.InstitutionId, mp.PaidAmount, mp.CreatedAtUtc }
+            ).ToListAsync(cancellationToken);
+
+        var revenueByInstitution = InstitutionRevenueHelper.AggregateByInstitution(
+            planRevenueRows.Select(x => (x.InstitutionId, x.PaidAmount, x.CreatedAtUtc)),
+            nowUtc);
+
+        var globalBranchCount = branchStats.Values.Sum(x => x.BranchCount);
+        var globalMemberCount = memberStats.Values.Sum();
+
+        var globalLibraryCount = institutionIds.Count == 0
+            ? 0
+            : await (
+                from lib in _dbContext.Libraries.AsNoTracking()
+                join br in _dbContext.Branches.AsNoTracking() on lib.BranchId equals br.Id
+                where !lib.IsDeleted && !br.IsDeleted && institutionIds.Contains(br.InstitutionId)
+                select lib.Id
+            ).CountAsync(cancellationToken);
 
         var items = institutions.Select(entity =>
         {
             branchStats.TryGetValue(entity.Id, out var branches);
-            libraryStats.TryGetValue(entity.Id, out var libraryCount);
-            var branchCount = branches?.BranchCount ?? 0;
+            memberStats.TryGetValue(entity.Id, out var memberCount);
+            revenueByInstitution.TryGetValue(entity.Id, out var revenue);
+            revenue ??= InstitutionRevenueMetrics.Empty;
+
+            var branchCount = branches.BranchCount;
+            var totalCapacity = branches.TotalCapacity;
+            var occupancyPercent = totalCapacity > 0
+                ? Math.Round((decimal)memberCount / totalCapacity * 100m, 1)
+                : 0m;
 
             return new InstitutionCardResponse
             {
@@ -204,15 +249,23 @@ public class InstitutionService : IInstitutionService
                 Location = InstitutionUiHelper.ToLocation(entity),
                 Status = InstitutionUiHelper.ToStatusLabel(entity.IsActive),
                 UpdateCount = InstitutionUiHelper.GetUpdateCount(entity.CreatedAtUtc, entity.UpdatedAtUtc),
-                OccupancyPercent = 0,
+                OccupancyPercent = occupancyPercent,
                 BranchCount = branchCount,
-                MemberCount = 0,
-                Revenue = 0,
+                MemberCount = memberCount,
+                Revenue = revenue.AllTime,
                 HealthStatus = InstitutionUiHelper.ToHealthStatus(entity.IsActive, branchCount),
                 LogoUrl = entity.LogoUrl,
                 IsActive = entity.IsActive
             };
         }).ToList();
+
+        var avgOccupancy = items.Count > 0
+            ? Math.Round(items.Average(x => x.OccupancyPercent), 1)
+            : 0m;
+
+        var summaryRevenue = revenueByInstitution.Count > 0
+            ? InstitutionRevenueMetrics.Sum(revenueByInstitution.Values)
+            : InstitutionRevenueMetrics.Empty;
 
         return new InstitutionListViewResponse
         {
@@ -220,9 +273,15 @@ public class InstitutionService : IInstitutionService
             {
                 TotalInstitutions = items.Count,
                 TotalBranches = globalBranchCount,
-                TotalMembers = 0,
-                RevenueMtd = 0,
-                AverageOccupancyPercent = 0
+                TotalLibraries = globalLibraryCount,
+                TotalMembers = globalMemberCount,
+                RevenueMtd = summaryRevenue.Mtd,
+                RevenuePreviousMtd = summaryRevenue.PreviousMtd,
+                RevenueMonthly = summaryRevenue.Monthly,
+                RevenueQuarterly = summaryRevenue.Quarterly,
+                RevenueYearly = summaryRevenue.Yearly,
+                RevenueAllTime = summaryRevenue.AllTime,
+                AverageOccupancyPercent = avgOccupancy
             },
             Items = items
         };

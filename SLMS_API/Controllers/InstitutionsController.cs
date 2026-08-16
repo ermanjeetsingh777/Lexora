@@ -46,7 +46,12 @@ public class InstitutionsController : ControllerBase
         [FromQuery] InstitutionListQuery query,
         CancellationToken cancellationToken)
     {
-        var view = await _institutionService.GetListViewAsync(query, cancellationToken);
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var view = await _institutionService.GetListViewAsync(query, userId, cancellationToken);
         return Ok(ApiResponse<InstitutionListViewResponse>.Ok(view));
     }
 

@@ -114,7 +114,7 @@ export class InstitutionCreate {
 
   save(): void {
     const id = this.route.snapshot.params['institutionId'];
-    this.institutionsService.updateInstitution(id, {
+    this.institutionsService.patchInstitutionLocal(id, {
       name: this.inst.name,
       city: this.inst.city,
       country: this.inst.country,

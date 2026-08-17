@@ -1,6 +1,16 @@
 @if(showPageHeader()){
-<app-page-header eyebrow="Libraries" title="Library Directory"
-    description="Manage library information, branches, and operational status from a single place." />
+  @if (fromInstitutionDetail) {
+    <app-page-header
+      [isBack]="true"
+      [routerLink]="backLink"
+      [queryParams]="backQueryParams"
+      eyebrow="Institutions"
+      title="Add library"
+      description="Create a new library under this institution." />
+  } @else {
+    <app-page-header eyebrow="Libraries" title="Library Directory"
+        description="Manage library information, branches, and operational status from a single place." />
+  }
 }
 
 <div class="min-h-screen blueprint-grid">
@@ -285,7 +295,7 @@
                 <!-- Actions -->
                 <div class="flex gap-3 pt-2">
                     @if(!isOnboarding()){
-                    <button type="button" class="ui-btn-outline flex-1" (click)="router.navigate(['/libraries'])">
+                    <button type="button" class="ui-btn-outline flex-1" (click)="cancel()">
                         Cancel
                     </button>
                     }

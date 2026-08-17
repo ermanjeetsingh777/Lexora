@@ -1,16 +1,15 @@
-import { Component, DestroyRef, inject, input, signal, WritableSignal } from '@angular/core';
+import { Component, DestroyRef, inject, input, OnInit, signal, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { branches } from '@core/constants/lovable-mock.data';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CreateLibraryRequest } from '@core/models/CreateLibraryRequest ';
-import { BranchDropdownResponse, InstitutionDropdownResponse, KeyValueResponse } from '@core/models/institution-dropdown.model';
+import { BranchDropdownResponse, InstitutionDropdownResponse } from '@core/models/institution-dropdown.model';
 import { CommonService } from '@core/services/common.service';
 import { StorageService } from '@core/services/storage.service';
 import { ToastService } from '@core/services/toast.service';
 import { InstitutionsService } from '@features/institutions/institutions.service';
-import { PageHeaderComponent } from "@shared/components/page-header/page-header.component";
-import { concat } from 'rxjs';
+import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { catchError, map, of, switchMap } from 'rxjs';
 import { LibraryService } from '../library.service';
 import { InstitutionStatus, OnboardingSteps } from '@core/enums/OnbardingSteps';
 
@@ -19,10 +18,11 @@ import { InstitutionStatus, OnboardingSteps } from '@core/enums/OnbardingSteps';
   imports: [PageHeaderComponent, ReactiveFormsModule],
   templateUrl: './create-library.html',
   styleUrl: './create-library.css',
-  providers: [InstitutionsService, LibraryService]
+  providers: [InstitutionsService, LibraryService],
 })
-export class CreateLibrary {
+export class CreateLibrary implements OnInit {
   readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly institutionsService = inject(InstitutionsService);
   private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
@@ -32,11 +32,11 @@ export class CreateLibrary {
   private readonly libraryService = inject(LibraryService);
 
   showPageHeader = input(true, {
-    transform: (value: boolean | undefined) => value ?? true
+    transform: (value: boolean | undefined) => value ?? true,
   });
 
   isOnboarding = input(false, {
-    transform: (value: boolean | undefined) => value ?? false
+    transform: (value: boolean | undefined) => value ?? false,
   });
 
   institutions: WritableSignal<InstitutionDropdownResponse[]> = signal([]);
@@ -44,45 +44,73 @@ export class CreateLibrary {
   disabledInstitutionSelect = signal(false);
   disabledBranchSelect = signal(false);
   loader = signal(false);
+  readonly presetInstitutionId = this.route.snapshot.paramMap.get('institutionId');
+  readonly fromInstitutionDetail = this.router.url.includes('/addlibrary') && !!this.presetInstitutionId;
+
+  get backLink(): string | string[] {
+    if (this.fromInstitutionDetail && this.presetInstitutionId) {
+      return ['/institutions', this.presetInstitutionId];
+    }
+    return '/libraries';
+  }
+
+  get backQueryParams(): { tab: string } | undefined {
+    if (this.fromInstitutionDetail && this.presetInstitutionId) {
+      return { tab: 'libraries' };
+    }
+    return undefined;
+  }
 
   librariesForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
-    institutionId: [{ value: '', disabled: this.disabledInstitutionSelect() },[Validators.required]],
-    branchId: [{ value: '', disabled: this.disabledBranchSelect() },[Validators.required]],
+    institutionId: [{ value: '', disabled: this.disabledInstitutionSelect() }, [Validators.required]],
+    branchId: [{ value: '', disabled: this.disabledBranchSelect() }, [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     phone: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
     floor: [0, [Validators.min(0), Validators.max(10)]],
     address: ['', [Validators.required, Validators.minLength(5)]],
-    capacity: [0, [Validators.min(1), Validators.max(100000)]]
+    capacity: [0, [Validators.min(1), Validators.max(100000)]],
   });
 
   ngOnInit() {
-    this.institutionsService.getInstitutionBranchForDropdown().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (response) => {
-        if (response && response.data) {
-          this.institutions.set(response.data);
-          this.branches.set(this.institutions().length === 1 ? this.institutions()[0].branches : [])
-          this.librariesForm.controls['institutionId'].setValue((this.institutions().length === 1) ? this.institutions()[0].value : '');
-          this.librariesForm.controls['branchId'].setValue((this.branches().length === 1) ? this.branches()[0].value : '');
-          this.disabledInstitutionSelect.set((this.institutions().length <= 1 || this.isOnboarding()));
-          if (this.institutions().length == 1) {
-            this.disabledBranchSelect.set((this.institutions()[0].branches.length <= 1 || this.isOnboarding()));
-          }
-          this.disabledInstitutionSelect() ? this.librariesForm.get('institutionId')?.disable() : this.librariesForm.get('institutionId')?.enable();
-          this.disabledBranchSelect() ? this.librariesForm.get('branchId')?.disable() : this.librariesForm.get('branchId')?.enable();
+    this.librariesForm.controls.institutionId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((institutionId) => {
+        if (!this.fromInstitutionDetail) {
+          this.onInstitutionChange(institutionId ?? '');
         }
-      },
-      error: (error) => {
-        this.institutions.set([]);
-        this.disabledInstitutionSelect.set(false);
-        this.disabledBranchSelect.set(false);
-      }
-    });
-    this.librariesForm.controls.institutionId.valueChanges.subscribe((institutionId) => {
-      this.onInstitutionChange(institutionId ?? '');
-    });
+      });
+
+    if (this.fromInstitutionDetail && this.presetInstitutionId) {
+      this.loadInstitutions(this.presetInstitutionId, true);
+      return;
+    }
+
+    this.institutionsService
+      .getInstitutionBranchForDropdown()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          const items = response?.data ?? [];
+          this.applyInstitutionSelection(items);
+        },
+        error: () => {
+          this.institutions.set([]);
+          this.disabledInstitutionSelect.set(false);
+          this.disabledBranchSelect.set(false);
+        },
+      });
   }
-  
+
+  cancel(): void {
+    if (this.fromInstitutionDetail && this.presetInstitutionId) {
+      this.router.navigate(['/institutions', this.presetInstitutionId], { queryParams: { tab: 'libraries' } });
+      return;
+    }
+
+    this.router.navigate(['/libraries']);
+  }
+
   onInstitutionChange(institutionId: string): void {
     if (!institutionId) {
       this.branches.set([]);
@@ -90,27 +118,23 @@ export class CreateLibrary {
       return;
     }
 
-    const institution = this.institutions().find(
-      x => x.value === institutionId
-    );
+    const institution = this.institutions().find((x) => x.value === institutionId);
+    const branchItems = institution?.branches ?? [];
 
-    const branches = institution?.branches ?? [];
+    if (branchItems.length > 0) {
+      this.applyBranchSelection(branchItems);
+      return;
+    }
 
-    this.branches.set(branches);
-
-    this.disabledBranchSelect.set(branches.length <= 1);
-
-    this.librariesForm.controls.branchId.setValue(
-      branches.length === 1 ? branches[0].value : ''
-    );
+    this.loadBranchesForInstitution(institutionId);
   }
-
 
   createlibraries(): void {
     if (this.librariesForm.invalid) {
       this.librariesForm.markAllAsTouched();
       return;
     }
+
     this.loader.set(true);
     const formValues = this.librariesForm.getRawValue();
 
@@ -123,27 +147,144 @@ export class CreateLibrary {
       isActive: true,
       isPrimary: this.isOnboarding(),
       isOnboarding: this.isOnboarding(),
-      status: InstitutionStatus.Active
+      status: InstitutionStatus.Active,
     };
-    this.loader.set(true);
 
-    this.libraryService.createlibrary(formValues.institutionId ?? '', formValues.branchId ?? '', request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (response) => {
-        if (this.isOnboarding()) {
-          const loggedInUser = this.storageService.user();
-          if (loggedInUser) {
-            loggedInUser.onboardingStep = OnboardingSteps.Completed;
-            this.storageService.setUser(loggedInUser);
+    this.libraryService
+      .createlibrary(formValues.institutionId ?? '', formValues.branchId ?? '', request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          if (this.isOnboarding()) {
+            const loggedInUser = this.storageService.user();
+            if (loggedInUser) {
+              loggedInUser.onboardingStep = OnboardingSteps.Completed;
+              this.storageService.setUser(loggedInUser);
+            }
           }
-        }
-        this.toast.success(this.commonService.onboardingMessages.libraryCreated);
-        // this.router.navigate([this.isOnboarding() ? '/onboarding/library' : '/libraries/create']);
-        this.loader.set(false);
-      },
-      error: (error) => {
-        this.toast.error(error.error.message || 'Unable to create library. Please try again.');
-        this.loader.set(false);
-      }
-    });
+
+          this.toast.success(this.commonService.onboardingMessages.libraryCreated);
+
+          if (this.isOnboarding()) {
+            this.router.navigate(['/dashboard']);
+          } else if (this.fromInstitutionDetail && this.presetInstitutionId) {
+            this.router.navigate(['/institutions', this.presetInstitutionId], { queryParams: { tab: 'libraries' } });
+          } else {
+            this.router.navigate(['/libraries']);
+          }
+
+          this.loader.set(false);
+        },
+        error: (error) => {
+          this.toast.error(error.error.message || 'Unable to create library. Please try again.');
+          this.loader.set(false);
+        },
+      });
+  }
+
+  private loadInstitutions(preferredId: string, lockSelection: boolean): void {
+    this.institutionsService
+      .getInstitutionBranchForDropdown()
+      .pipe(
+        switchMap((response) => {
+          const items = [...(response?.data ?? [])];
+          if (items.some((item) => item.value === preferredId)) {
+            return of(items);
+          }
+
+          return this.institutionsService.getById(preferredId).pipe(
+            map((institution) => [
+              { key: institution.name, value: institution.id, branches: [] },
+              ...items,
+            ]),
+            catchError(() => of(items)),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (items) => this.applyInstitutionSelection(items, preferredId, lockSelection),
+        error: () => this.ensureInstitutionFromApi(preferredId, lockSelection),
+      });
+  }
+
+  private ensureInstitutionFromApi(preferredId: string, lockSelection: boolean): void {
+    this.institutionsService
+      .getById(preferredId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (institution) => {
+          this.applyInstitutionSelection(
+            [{ key: institution.name, value: institution.id, branches: [] }],
+            preferredId,
+            lockSelection,
+          );
+        },
+        error: () => {
+          this.institutions.set([]);
+          this.librariesForm.controls.institutionId.setValue(preferredId);
+          this.disabledInstitutionSelect.set(lockSelection);
+          if (lockSelection) {
+            this.librariesForm.get('institutionId')?.disable();
+          }
+          this.loadBranchesForInstitution(preferredId);
+        },
+      });
+  }
+
+  private applyInstitutionSelection(
+    items: InstitutionDropdownResponse[],
+    preferredId?: string | null,
+    lockSelection = false,
+  ): void {
+    this.institutions.set(items);
+
+    const selectedId = preferredId ?? (items.length === 1 ? items[0].value : '');
+    this.librariesForm.controls.institutionId.setValue(selectedId);
+    this.disabledInstitutionSelect.set(lockSelection || items.length <= 1 || this.isOnboarding());
+
+    if (this.disabledInstitutionSelect()) {
+      this.librariesForm.get('institutionId')?.disable();
+    } else {
+      this.librariesForm.get('institutionId')?.enable();
+    }
+
+    if (selectedId) {
+      this.onInstitutionChange(selectedId);
+    }
+  }
+
+  private loadBranchesForInstitution(institutionId: string): void {
+    this.institutionsService
+      .getBranchesView(institutionId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (view) => {
+          const branchItems = (view?.branches ?? []).map((branch) => ({
+            key: branch.name,
+            value: branch.id,
+            libraries: [],
+          }));
+          this.applyBranchSelection(branchItems);
+        },
+        error: () => {
+          this.branches.set([]);
+          this.librariesForm.controls.branchId.setValue('');
+          this.disabledBranchSelect.set(false);
+          this.librariesForm.get('branchId')?.enable();
+        },
+      });
+  }
+
+  private applyBranchSelection(branchItems: BranchDropdownResponse[]): void {
+    this.branches.set(branchItems);
+    this.disabledBranchSelect.set(branchItems.length <= 1 || this.isOnboarding());
+    this.librariesForm.controls.branchId.setValue(branchItems.length === 1 ? branchItems[0].value : '');
+
+    if (this.disabledBranchSelect()) {
+      this.librariesForm.get('branchId')?.disable();
+    } else {
+      this.librariesForm.get('branchId')?.enable();
+    }
   }
 }

@@ -535,7 +535,7 @@
         </div>
         <h3 class="font-semibold">No libraries yet</h3>
         <p class="text-sm text-muted-foreground mt-1">Add libraries to your branches to start managing seats and zones.</p>
-        <a routerLink="/libraries/create">
+        <a [routerLink]="['/institutions', institutionId(), 'addlibrary']">
           <app-button size="sm" class="mt-4">
             <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
           </app-button>
@@ -601,7 +601,7 @@
         <app-glass-card class="inst-detail-branch-card block">
           <app-section-header title="All libraries" description="Live occupancy and status across branches">
             <div actions>
-              <a routerLink="/libraries/create">
+              <a [routerLink]="['/institutions', institutionId(), 'addlibrary']">
                 <app-button size="sm">
                   <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
                 </app-button>

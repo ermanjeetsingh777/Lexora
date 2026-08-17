@@ -36,10 +36,16 @@ flowchart TB
 |-------|-----------|------|
 | `/institutions` | `InstitutionsListComponent` | `SLMS_UI/src/app/features/institutions/institutions-list/` |
 | `/institutions/:institutionId` | `InstitutionDetailComponent` | `SLMS_UI/src/app/features/institutions/institution-detail/` |
+| `/institutions/:institutionId/addbranch` | `BranchCreate` (reused) | `SLMS_UI/src/app/features/branches/branch-create/` |
+| `/institutions/:institutionId/addlibrary` | `CreateLibrary` (reused) | `SLMS_UI/src/app/features/libraries/create-library/` |
+| `/branches/create` | `BranchCreate` | Same branch module — institution select enabled |
+| `/libraries/create` | `CreateLibrary` | Same library module — institution select enabled |
 
 Route param: `institutionId` from `ActivatedRoute.snapshot.paramMap`.
 
 Optional query param: `?tab=branches|libraries|billing|settings` (default: `overview`).
+
+**Route order:** `:institutionId/addbranch` and `:institutionId/addlibrary` must be registered **before** `:institutionId` in `app.routes.ts`.
 
 Entry from list: `routerLink="['/institutions', item.id]"`.
 
@@ -48,7 +54,7 @@ Entry from list: `routerLink="['/institutions', item.id]"`.
 ```
 PageHeader (back, refresh, institution name + subtitle)
 ├── Summary KPI cards (Overview, Branches, Libraries, Billing tabs only)
-├── PrimeNG SelectButton tab nav (pill style)
+├── PrimeNG SelectButton tab nav (pill style, allowEmpty=false)
 └── Tab content
     ├── Overview — revenue, occupancy, member mix, attendance, heatmap
     ├── Branches — filters, table, sidebar cards, pagination
@@ -96,9 +102,47 @@ sequenceDiagram
 
 **Tab switch (`setTab`):**
 
-- Clears branch, library, and billing filters.
+- Ignores `null`/invalid values (prevents tab clear on double-click).
+- `p-selectbutton` uses `[allowEmpty]="false"` so the active tab cannot be deselected.
+- Clears branch, library, and billing filters when tab actually changes.
 - Closes invoice detail sheet.
 - Updates `?tab` query param (`overview` omits the param).
+
+### 2.4.1 Add branch / library from institution detail
+
+Institution detail reuses existing create forms from the **Branches** and **Libraries** modules. No duplicate forms.
+
+| Action | Route from detail | Standalone module route |
+|--------|-------------------|-------------------------|
+| Add branch | `/institutions/:institutionId/addbranch` | `/branches/create` |
+| Add library | `/institutions/:institutionId/addlibrary` | `/libraries/create` |
+
+**Institution-context behavior** (`fromInstitutionDetail`):
+
+| Field / UI | Add branch | Add library |
+|------------|------------|-------------|
+| Institution | Pre-selected from route, **disabled** | Pre-selected from route, **disabled** |
+| Branch | N/A | Loaded for institution; user selects branch (auto-select + disable if only one) |
+| Page header | Back arrow → institution Branches tab | Back arrow → institution Libraries tab |
+| Cancel | `/institutions/{id}?tab=branches` | `/institutions/{id}?tab=libraries` |
+| After save | Same as cancel | Same as cancel |
+
+**Back navigation:** `PageHeaderComponent` uses `[routerLink]` as an array plus `[queryParams]` (not a encoded `?tab=` string) to avoid `%3Ftab%3D` URL bugs.
+
+**Detection in create components:**
+
+```typescript
+readonly presetInstitutionId = this.route.snapshot.paramMap.get('institutionId');
+readonly fromInstitutionDetail =
+  this.router.url.includes('/addbranch') && !!this.presetInstitutionId; // or /addlibrary
+```
+
+Institution detail **Add branch** / **Add library** buttons:
+
+```html
+[routerLink]="['/institutions', institutionId(), 'addbranch']"
+[routerLink]="['/institutions', institutionId(), 'addlibrary']"
+```
 
 ### 2.5 Tab workflows
 
@@ -123,6 +167,7 @@ Chart builders live in `institution-detail.util.ts`.
 | Table columns | Branch, city, capacity, occupancy, libraries, members, status |
 | Sidebar | Top performer card, needs-attention list |
 | Pagination | Client-side; page sizes 5 / 10 / 15 / 30 |
+| Add branch CTA | Links to `/institutions/{id}/addbranch` |
 
 Filters reset when switching tabs.
 
@@ -134,6 +179,7 @@ Filters reset when switching tabs.
 | Filters | Search, status, branch, occupancy dropdowns |
 | Table columns | Library, branch, floor, capacity, members, occupancy, status |
 | Pagination | Client-side; page sizes 5 / 10 / 15 / 30 |
+| Add library CTA | Links to `/institutions/{id}/addlibrary` |
 
 #### Billing
 
@@ -195,6 +241,8 @@ Shared invoice utilities: `SLMS_UI/src/app/shared/utils/invoice-pdf.util.ts`
 | GET | `institutions/{id}/libraries-view` | `load()` (requires auth) |
 | GET | `institutions/{id}/billing` | `load()` |
 | PUT | `institutions/{id}` | Settings save |
+| POST | `institutions/{id}/branches` | Add branch (`BranchCreate` from detail or `/branches/create`) |
+| POST | `institutions/{id}/branches/{branchId}/libraries` | Add library (`CreateLibrary` via `LibraryService`) |
 
 ---
 
@@ -296,6 +344,8 @@ sequenceDiagram
 flowchart TB
   subgraph UI["SLMS_UI"]
     ID[InstitutionDetailComponent]
+    BC[BranchCreate]
+    CL[CreateLibrary]
     IDS[InvoiceDetailSheetComponent]
     UTIL[institution-detail.util.ts]
     PDF[invoice-pdf.util.ts]
@@ -303,6 +353,8 @@ flowchart TB
 
   subgraph AngularServices["Angular Services"]
     IS[InstitutionsService]
+    BS[BranchService]
+    LS[LibraryService]
   end
 
   subgraph API["SLMS_API"]
@@ -325,9 +377,14 @@ flowchart TB
   end
 
   ID --> IS & UTIL
+  ID -->|addbranch / addlibrary| BC & CL
+  BC --> BS
+  CL --> LS
   ID --> IDS
   IDS --> PDF
   IS --> IC
+  BS --> IC
+  LS --> IC
   IC --> InstSvc
   InstSvc --> Stats & Overview
   InstSvc --> I & B & L & MP & ML & M
@@ -354,12 +411,32 @@ Open Branches tab
   → Review top performer and needs-attention sidebar cards
 ```
 
+### 5.2.1 Add branch from institution detail
+
+```
+Branches tab (or Overview empty state) → Add branch
+  → /institutions/{id}/addbranch
+  → BranchCreate: institution locked, form submit
+  → POST institutions/{id}/branches
+  → Redirect to /institutions/{id}?tab=branches
+```
+
 ### 5.3 Review libraries
 
 ```
 Open Libraries tab
   → Filter by status / branch / occupancy / search
   → Paginate table
+```
+
+### 5.3.1 Add library from institution detail
+
+```
+Libraries tab → Add library
+  → /institutions/{id}/addlibrary
+  → CreateLibrary: institution locked, branch dropdown populated
+  → POST institutions/{id}/branches/{branchId}/libraries
+  → Redirect to /institutions/{id}?tab=libraries
 ```
 
 ### 5.4 View and download invoice
@@ -394,8 +471,18 @@ SLMS_UI/src/app/
 │   ├── models/institution-detail.models.ts
 │   └── models/invoice-document.model.ts
 ├── shared/
-│   ├── components/invoice-detail-sheet/
+│   ├── components/
+│   │   ├── invoice-detail-sheet/
+│   │   └── page-header/page-header.component.ts  # back link + queryParams
 │   └── utils/invoice-pdf.util.ts
+├── features/branches/
+│   └── branch-create/
+│       ├── branch-create.ts
+│       └── branch-create.html
+├── features/libraries/
+│   └── create-library/
+│       ├── create-library.ts
+│       └── create-library.html
 └── features/institutions/
     ├── institutions.service.ts
     ├── institutions-list/
@@ -434,7 +521,8 @@ SLMS_API/
 | Area | Status |
 |------|--------|
 | Payment methods (Billing tab) | UI placeholder only |
-| Branch / library row actions | No drill-down routes yet |
+| Branch / library row drill-down | No detail routes yet; add flows implemented via `/addbranch` and `/addlibrary` |
+| Tab deselect on double-click | Fixed — `allowEmpty=false` + `setTab` null guard |
 | Billing invoice limit | API returns latest 20 paid plans |
 | Invoice PDF | Browser print dialog (no server-side PDF) |
 | `libraries-view` | Requires authenticated user (`401` if not logged in) |

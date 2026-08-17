@@ -611,7 +611,11 @@ export class InstitutionDetailComponent implements OnInit {
     });
   }
 
-  setTab(tab: InstitutionDetailTab): void {
+  setTab(tab: InstitutionDetailTab | null | undefined): void {
+    if (!tab || !this.tabs.some((item) => item.id === tab)) {
+      return;
+    }
+
     if (this.tab() !== tab) {
       this.clearBranchFilters();
       this.clearLibraryFilters();

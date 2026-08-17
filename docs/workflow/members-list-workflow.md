@@ -40,7 +40,25 @@ flowchart LR
 Route config: `SLMS_UI/src/app/app.routes.ts`  
 Navigation: `SLMS_UI/src/app/core/constants/navigation.ts`
 
-### 2.2 Page load sequence
+Entry from navigation: sidebar **Members** → `/members`.
+
+### 2.2 Page layout
+
+```
+PageHeader (Export placeholder, Add member → /members/create)
+├── KPI row (5 cards — Active, Expiring ≤7d, Expired, Fees due, Premium)
+├── Needs-action banner (when actionCount > 0 and needsAction filter off)
+├── Glass card
+│   ├── Filter bar (search, expiry/status/plan/branch/shift dropdowns)
+│   ├── View toggle (table | grid) — default: grid
+│   ├── Table or grid of members
+│   ├── Pagination (first / prev / page / next / last + page size)
+│   └── Empty / loading / error states
+├── Quick-view side panel (slide-over, no route change)
+└── RenewPlanDialogComponent (renew or assign plan)
+```
+
+### 2.3 Page load sequence
 
 ```mermaid
 sequenceDiagram
@@ -67,7 +85,7 @@ sequenceDiagram
 4. `members` computed adds `life` via `computeMemberLifecycle()`.
 5. Pipeline: `filtered` → `sorted` → `paged` → template.
 
-### 2.3 State management
+### 2.4 State management
 
 **Pattern:** Angular signals + computed (no NgRx).
 
@@ -76,7 +94,7 @@ sequenceDiagram
 | `membersList` | Raw API rows |
 | `loading`, `error` | Fetch state |
 | `query`, `statuses`, `plans`, `branches`, `shifts`, `lifecycles`, `needsAction` | Filters |
-| `view` | `table` \| `grid` |
+| `view` | `table` \| `grid` (default **`grid`**) |
 | `sortKey`, `sortDir` | Client sort |
 | `page`, `pageSize` | Client pagination (10/25/50/100) |
 | `openFilter` | Active filter dropdown |
@@ -93,10 +111,10 @@ membersList
   → paged
 ```
 
-**Filter persistence:** `localStorage` key `members:filters:v3` via `persistFilters()`.  
-`hydrateFilters()` is currently commented out (save works, restore disabled).
+**Filter persistence:** `localStorage` key `members:filters:v3` (`MEMBERS_FILTER_STORAGE_KEY`) via `persistFilters()` on filter/sort/view changes.  
+`hydrateFilters()` is commented out in `ngOnInit` (save works, restore disabled).
 
-### 2.4 Key UI features
+### 2.5 Key UI features
 
 #### KPI row (client-computed)
 
@@ -108,6 +126,10 @@ membersList
 | Fees due | sum of `feesOwed` |
 | Premium | plan `Yearly` or `Half Yearly` |
 
+#### Needs-action banner
+
+Shown when `actionCount() > 0` and the **Needs action** filter is not active. Summarizes expired + expiring counts; **Review now** applies `applyNeedsActionFilter()`.
+
 #### Filters
 
 - **Search:** name, email, phone, id, institution, branch, library, shift, plan
@@ -118,16 +140,38 @@ membersList
 - **KPI quick filters:** expiring, expired, grace, no-plan, needs-action
 - **Outside click** closes filter dropdowns (`document:click` host listener)
 
+#### Sorting (table view)
+
+| Sort key | Column |
+|----------|--------|
+| `name` | Member (default asc) |
+| `status` | Status |
+| `plan` | Plan |
+| `shift` | Shift |
+| `branch` | Branch |
+| `attendanceRate` | Attendance % |
+| `feesOwed` | Fees owed |
+| `joinDate` | Join date |
+| `planExpiry` | Plan expiry |
+
+Click column header to toggle asc/desc. **Reset sort** restores `name` ascending.
+
 #### Views & actions
 
-- **Table view** — sortable columns, row action menu
-- **Grid view** — card layout
-- **Quick view** — slide-over panel
-- **Renew plan** — `RenewPlanDialogComponent` → `POST members/{id}/renew`
-- **Copy member ID**
+- **Table view** — sortable columns, row action menu, lifecycle row tinting
+- **Grid view** — card layout (default)
+- **Quick view** — `quickId` signal; slide-over panel with profile summary and links
+- **Renew plan** — `RenewPlanDialogComponent`:
+  - Has plan → `POST members/{id}/renew`
+  - No plan → load member detail + library plans → `POST members/{id}/plan-or-shift` `{ planId }`
+- **Copy member ID** — clipboard toast
 - **Export** — UI button only (not wired)
 
-### 2.5 Lifecycle (client-side)
+#### Pagination
+
+Client-side on `sorted` results. Controls: first, previous, page indicator, next, last. Page sizes: **10 / 25 / 50 / 100** (default 25). Filter or search changes reset to page 1.
+
+### 2.6 Lifecycle (client-side)
 
 File: `SLMS_UI/src/app/features/members/member-lifecycle.util.ts`
 
@@ -144,7 +188,7 @@ Computed from `planEndDate`, `joinDate`, `feesOwed`:
 
 Drives row styling, filters, KPI clicks, and “needs action” banner.
 
-### 2.6 Angular services & models
+### 2.7 Angular services & models
 
 | Item | Path |
 |------|------|
@@ -161,6 +205,9 @@ Drives row styling, filters, KPI clicks, and “needs action” banner.
 |--------|------|----------|
 | `getAllMembers()` | GET | `members` |
 | `renewMembership(id)` | POST | `members/{id}/renew` |
+| `changePlanOrShift(id, body)` | POST | `members/{id}/plan-or-shift` |
+| `getMemberById(id)` | GET | `members/{id}` |
+| `getLibraryPlan(inst, branch, lib)` | GET | `institutions/.../libraries/.../plans` |
 
 > `GET members/summary` exists on API but is **not used** by the list page.
 
@@ -270,11 +317,13 @@ Open /members
 ### 4.2 Quick actions from list
 
 ```
-Row action menu
+Row action menu / card actions
   → View profile → /members/:id
-  → Renew plan → dialog → POST members/:id/renew → reload list
+  → Quick view → side panel (quickId)
+  → Renew plan → dialog
+      → Has plan: POST members/:id/renew
+      → No plan: GET member + plans → POST members/:id/plan-or-shift
   → Copy ID → clipboard
-  → Quick view panel (no route change)
 ```
 
 ### 4.3 Expiry-driven filtering
@@ -284,6 +333,15 @@ Click KPI "Expiring ≤ 7d" or "Expired"
   → applyExpiryQuick() sets lifecycle filters
   → filtered computed updates
   → table/grid shows matching members
+```
+
+### 4.4 Create member
+
+```
+Page header → Add member
+  → /members/create
+  → POST institutions/{id}/branches/{id}/libraries/{id}/members
+  → (see create-member-component)
 ```
 
 ---
@@ -306,10 +364,13 @@ SLMS_UI/src/app/
     ├── MemberService.ts
     ├── member-lifecycle.util.ts
     ├── members-list-component/
-    │   ├── members-list-component.ts
+    │   ├── members-list-component.ts   # signals, filters, sort, page, quick view
     │   ├── members-list-component.html
     │   └── members-list-component.css
-    └── components/renew-plan-dialog/
+    ├── create-member-component/
+    └── components/
+        ├── renew-plan-dialog/
+        └── member-avatar/
 ```
 
 ### .NET
@@ -344,6 +405,8 @@ SLMS_API/
 
 ## 7. Related docs
 
-- Member details workflow: [members-detail-workflow.md](./members-detail-workflow.md)
+- Member details: [members-detail-workflow.md](./members-detail-workflow.md)
+- Institution details: [institution-detail-workflow.md](./institution-detail-workflow.md)
 - Books & circulation: [books-workflow.md](./books-workflow.md)
+- Attendance kiosk: [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md)
 - Membership expiry plan: `docs/lovable-source/.lovable/plan/membership-expiry-across-members-list-details-2026-08-04.md`

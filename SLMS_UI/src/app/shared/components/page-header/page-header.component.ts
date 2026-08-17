@@ -11,7 +11,9 @@ import { RouterLink } from '@angular/router';
         @if (eyebrow()) {
           <p class="label-mono flex items-center gap-1.5">
             @if (isBack()) {
-              <app-icon class='table-cursor cursorPointer' name="arrow-left" [size]="14" [routerLink]="routerLink()"></app-icon>
+              <a class="table-cursor cursorPointer inline-flex" [routerLink]="routerLink()!" [queryParams]="queryParams()">
+                <app-icon name="arrow-left" [size]="14"></app-icon>
+              </a>
             }
             {{ eyebrow() }}
           </p>
@@ -33,7 +35,8 @@ export class PageHeaderComponent {
   readonly isBack = input<boolean>(false);
   readonly title = input.required<string>();
   readonly description = input<string>();
-  readonly routerLink = input<string>();
+  readonly routerLink = input<string | readonly unknown[]>();
+  readonly queryParams = input<Record<string, string | number | boolean | null | undefined>>();
 }
 
 @Component({

@@ -130,9 +130,11 @@
           <p class="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
             Add your first branch to start tracking occupancy, members, and revenue.
           </p>
-          <app-button size="sm" class="mt-4" (click)="setTab('branches')">
-            <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
-          </app-button>
+          <a [routerLink]="['/institutions', institutionId(), 'addbranch']">
+            <app-button size="sm" class="mt-4">
+              <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
+            </app-button>
+          </a>
         </app-glass-card>
       } @else {
         <div class="space-y-4">
@@ -302,7 +304,7 @@
         </div>
         <h3 class="font-semibold">No branches yet</h3>
         <p class="text-sm text-muted-foreground mt-1">Branches let you organize libraries and members by physical location.</p>
-        <a routerLink="/branches/create">
+        <a [routerLink]="['/institutions', institutionId(), 'addbranch']">
           <app-button size="sm" class="mt-4">
             <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
           </app-button>
@@ -358,7 +360,7 @@
           <app-glass-card class="inst-detail-branch-card lg:col-span-2 block">
             <app-section-header title="All branches" description="Live capacity and status">
               <div actions>
-                <a routerLink="/branches/create">
+                <a [routerLink]="['/institutions', institutionId(), 'addbranch']">
                   <app-button size="sm">
                     <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
                   </app-button>

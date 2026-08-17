@@ -109,6 +109,7 @@ export const routes: Routes = [
                 children: [
                     { path: '', loadComponent: () => import('./features/institutions/institutions-list/institutions-list').then((m) => m.InstitutionsListComponent) },
                     { path: 'create', loadComponent: () => import('./features/institutions/institution-create/institution-create').then((m) => m.InstitutionCreate) },
+                    { path: ':institutionId/addbranch', loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
                     { path: ':institutionId', loadComponent: () => import('./features/institutions/institution-detail/institution-detail.component').then((m) => m.InstitutionDetailComponent) },
                 ],
             },

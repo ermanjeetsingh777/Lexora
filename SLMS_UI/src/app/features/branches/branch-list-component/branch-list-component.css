@@ -1,0 +1,145 @@
+:host button.inst-stat-kpi__cell {
+  cursor: pointer;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+
+:host button.inst-stat-kpi__delta {
+  cursor: pointer;
+  border: none;
+  font: inherit;
+}
+
+:host ::ng-deep app-glass-card.branch-insight-card > .glass-card {
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.branch-insight-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.branch-insight-stats {
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.branch-insight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in oklch, var(--card) 85%, var(--muted));
+}
+
+.branch-insight-badge--up {
+  color: var(--success);
+}
+
+.branch-insight-badge--down {
+  color: var(--warning);
+}
+
+.branch-insights-section {
+  align-items: stretch;
+}
+
+:host ::ng-deep app-glass-card.branch-card > .glass-card {
+  padding: 1.25rem;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+:host ::ng-deep app-glass-card.branch-card:hover > .glass-card {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklch, var(--primary) 25%, var(--border));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.06);
+}
+
+.branch-card-glow {
+  pointer-events: none;
+  position: absolute;
+  top: -4rem;
+  right: -4rem;
+  height: 10rem;
+  width: 10rem;
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+  filter: blur(24px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.group:hover .branch-card-glow {
+  opacity: 1;
+}
+
+.branch-occ-track {
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--muted) 60%, transparent);
+  overflow: hidden;
+}
+
+.branch-occ-bar {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.35s ease;
+}
+
+.branch-occ-bar--high {
+  background: var(--success);
+}
+
+.branch-occ-bar--mid {
+  background: var(--primary);
+}
+
+.branch-occ-bar--low {
+  background: var(--warning);
+}
+
+.branch-filter-input {
+  height: 2.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  padding-right: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.branch-filter-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.branch-filter-select {
+  height: 2.25rem;
+  min-width: 8.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.branch-filter-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+}

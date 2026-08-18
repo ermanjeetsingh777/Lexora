@@ -57,4 +57,25 @@ public static class InstitutionRevenueHelper
                     Yearly = g.Where(x => x.CreatedAtUtc >= yearStart).Sum(x => x.PaidAmount)
                 });
     }
+
+    public static Dictionary<Guid, InstitutionRevenueMetrics> AggregateByBranch(
+        IEnumerable<(Guid BranchId, decimal PaidAmount, DateTime CreatedAtUtc)> rows,
+        DateTime nowUtc)
+    {
+        var (monthStart, previousMonthStart, quarterStart, yearStart) = GetPeriodStartsUtc(nowUtc);
+
+        return rows
+            .GroupBy(x => x.BranchId)
+            .ToDictionary(
+                g => g.Key,
+                g => new InstitutionRevenueMetrics
+                {
+                    AllTime = g.Sum(x => x.PaidAmount),
+                    Mtd = g.Where(x => x.CreatedAtUtc >= monthStart).Sum(x => x.PaidAmount),
+                    PreviousMtd = g.Where(x => x.CreatedAtUtc >= previousMonthStart && x.CreatedAtUtc < monthStart).Sum(x => x.PaidAmount),
+                    Monthly = g.Where(x => x.CreatedAtUtc >= monthStart).Sum(x => x.PaidAmount),
+                    Quarterly = g.Where(x => x.CreatedAtUtc >= quarterStart).Sum(x => x.PaidAmount),
+                    Yearly = g.Where(x => x.CreatedAtUtc >= yearStart).Sum(x => x.PaidAmount)
+                });
+    }
 }

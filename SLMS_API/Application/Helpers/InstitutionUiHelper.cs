@@ -56,6 +56,9 @@ public static class InstitutionUiHelper
         };
     }
 
+    public static string ToBranchStatusLabel(InstitutionStatus status, bool isActive) =>
+        ToLibraryStatusLabel(status, isActive);
+
     public static string ToHealthStatus(bool isActive, int branchCount) =>
         isActive && branchCount > 0 ? "Healthy" : isActive ? "Needs Attention" : "Inactive";
 

@@ -18,7 +18,7 @@ import { catchError, map, of, switchMap } from 'rxjs';
   imports: [PageHeaderComponent, FormsModule, ReactiveFormsModule],
   templateUrl: './branch-create.html',
   styleUrl: './branch-create.css',
-  providers: [InstitutionsService, BranchService]
+  providers: [InstitutionsService]
 })
 export class BranchCreate implements OnInit {
   readonly router = inject(Router);

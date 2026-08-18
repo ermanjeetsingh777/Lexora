@@ -1,3 +1,4 @@
+using SLMS_API.Application.Contracts.Organizations.Queries;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations.Responses;
 
@@ -5,6 +6,7 @@ namespace SLMS_API.Application.Services.Interfaces;
 
 public interface IBranchService
 {
+    Task<BranchListViewResponse> GetListViewAsync(BranchListQuery query, Guid userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<BranchResponse>> GetByInstitutionAsync(Guid institutionId, CancellationToken cancellationToken = default);
     Task<BranchResponse?> GetByIdAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default);
     Task<BranchResponse> CreateAsync(Guid institutionId, CreateBranchRequest request, Guid userId, CancellationToken cancellationToken = default);

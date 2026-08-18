@@ -97,6 +97,12 @@ public static class InstitutionStatsHelper
         Guid institutionId,
         IReadOnlyCollection<Guid> branchIds,
         CancellationToken cancellationToken)
+        => await GetBranchStatsAsync(dbContext, branchIds, cancellationToken);
+
+    public static async Task<Dictionary<Guid, InstitutionBranchStats>> GetBranchStatsAsync(
+        ApplicationDbContext dbContext,
+        IReadOnlyCollection<Guid> branchIds,
+        CancellationToken cancellationToken)
     {
         if (branchIds.Count == 0)
         {
@@ -105,7 +111,7 @@ public static class InstitutionStatsHelper
 
         var memberCounts = await dbContext.MemberLibraries
             .AsNoTracking()
-            .Where(x => !x.IsDeleted && x.IsCurrent && x.InstitutionId == institutionId && branchIds.Contains(x.BranchId))
+            .Where(x => !x.IsDeleted && x.IsCurrent && branchIds.Contains(x.BranchId))
             .GroupBy(x => x.BranchId)
             .Select(g => new
             {

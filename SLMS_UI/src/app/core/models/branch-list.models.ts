@@ -22,6 +22,7 @@ export interface BranchListItem {
   name: string;
   city?: string | null;
   contact?: string | null;
+  managerName?: string | null;
   capacity: number;
   memberCount: number;
   occupancyPercent: number;

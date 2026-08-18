@@ -34,6 +34,7 @@ public class BranchListItemResponse
     public string Name { get; set; } = string.Empty;
     public string? City { get; set; }
     public string? Contact { get; set; }
+    public string? ManagerName { get; set; }
     public int Capacity { get; set; }
     public int MemberCount { get; set; }
     public decimal OccupancyPercent { get; set; }

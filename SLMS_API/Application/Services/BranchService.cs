@@ -68,7 +68,13 @@ public class BranchService : IBranchService
                 (x.Address != null && x.Address.Contains(search)) ||
                 (x.Phone != null && x.Phone.Contains(search)) ||
                 (x.Email != null && x.Email.Contains(search)) ||
-                x.Institution.Name.Contains(search));
+                x.Institution.Name.Contains(search) ||
+                x.UserBranches.Any(ub =>
+                    ub.IsActive &&
+                    (
+                        (ub.User.FullName != null && ub.User.FullName.Contains(search)) ||
+                        (ub.User.UserName != null && ub.User.UserName.Contains(search))
+                    )));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Status) && !query.Status.Equals("all", StringComparison.OrdinalIgnoreCase))
@@ -131,6 +137,8 @@ public class BranchService : IBranchService
         var branchStats = await InstitutionStatsHelper.GetBranchStatsAsync(
             _dbContext, branchIds, cancellationToken);
 
+        var managerNames = await GetBranchManagerNamesAsync(branchIds, cancellationToken);
+
         var nowUtc = DateTime.UtcNow;
         var planRevenueRows = await LoadBranchPlanRevenueRowsAsync(branchIds, cancellationToken);
 
@@ -145,6 +153,7 @@ public class BranchService : IBranchService
             libraryCounts.TryGetValue(branch.Id, out var libraryCount);
             branchStats.TryGetValue(branch.Id, out var stats);
             stats ??= new InstitutionBranchStats();
+            managerNames.TryGetValue(branch.Id, out var managerName);
 
             return new BranchListItemResponse
             {
@@ -154,6 +163,7 @@ public class BranchService : IBranchService
                 Name = branch.Name,
                 City = branch.City,
                 Contact = branch.Phone ?? branch.Email,
+                ManagerName = managerName,
                 Capacity = branch.Capacity,
                 MemberCount = stats.MemberCount,
                 OccupancyPercent = stats.OccupancyPercent,
@@ -239,6 +249,44 @@ public class BranchService : IBranchService
         ).ToListAsync(cancellationToken);
 
         return rows.Select(x => (x.BranchId, x.PaidAmount, x.CreatedAtUtc)).ToList();
+    }
+
+    private async Task<Dictionary<Guid, string>> GetBranchManagerNamesAsync(
+        IReadOnlyCollection<Guid> branchIds,
+        CancellationToken cancellationToken)
+    {
+        if (branchIds.Count == 0)
+        {
+            return [];
+        }
+
+        var assignments = await (
+            from ub in _dbContext.UserBranches.AsNoTracking()
+            join u in _dbContext.Users.AsNoTracking() on ub.UserId equals u.Id
+            where branchIds.Contains(ub.BranchId) && ub.IsActive
+            select new
+            {
+                ub.BranchId,
+                ub.IsPrimary,
+                ub.AssignedAtUtc,
+                ManagerName = u.FullName ?? u.UserName ?? u.Email ?? string.Empty,
+                IsBranchManager = _dbContext.UserRoles
+                    .Any(ur => ur.UserId == u.Id &&
+                               _dbContext.Roles.Any(r => r.Id == ur.RoleId && r.Name == RoleDefinitions.BranchManager)),
+            }
+        ).ToListAsync(cancellationToken);
+
+        return assignments
+            .Where(x => !string.IsNullOrWhiteSpace(x.ManagerName))
+            .GroupBy(x => x.BranchId)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .OrderByDescending(x => x.IsBranchManager)
+                    .ThenByDescending(x => x.IsPrimary)
+                    .ThenBy(x => x.AssignedAtUtc)
+                    .First()
+                    .ManagerName);
     }
 
     private async Task<bool> IsSuperAdminAsync(Guid userId, CancellationToken cancellationToken)

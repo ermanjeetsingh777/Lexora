@@ -37,7 +37,6 @@ import { ButtonComponent } from '@shared/components/button/button.component';
 import {
   GlassCardComponent,
   PageHeaderComponent,
-  SectionHeaderComponent,
 } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { BranchService } from '../branch.service';
@@ -59,7 +58,6 @@ const PAGE_SIZE_OPTS = [12, 24, 48] as const;
     ButtonComponent,
     PageHeaderComponent,
     GlassCardComponent,
-    SectionHeaderComponent,
     StatusBadgeComponent,
     LucideBuilding2,
     LucidePlus,
@@ -137,11 +135,15 @@ export class BranchListComponent implements OnInit {
     const s = this.summary();
     return [
       { label: 'Active', value: s.activeBranches.toLocaleString(), highlight: true },
+      { label: 'Libraries', value: s.totalLibraries.toLocaleString(), highlight: false },
       { label: 'Cities', value: s.cityCount.toLocaleString(), highlight: false },
-      { label: 'Capacity', value: s.totalCapacity.toLocaleString(), highlight: false },
-      { label: 'Members', value: s.totalOccupied.toLocaleString(), highlight: false },
+      { label: 'Near capacity', value: s.nearCapacityCount.toLocaleString(), highlight: false },
     ];
   });
+
+  readonly needsAttentionIds = computed(() => new Set(this.needsAttention().map((b) => b.branchId)));
+
+  readonly topPerformerId = computed(() => this.topPerformer()?.branchId ?? null);
 
   readonly revenueMtdLabel = computed(() => this.formatRevenue(this.summary().revenueMtd));
 
@@ -322,6 +324,14 @@ export class BranchListComponent implements OnInit {
     if (occupancy >= 80) return 'branch-occ-bar branch-occ-bar--high';
     if (occupancy >= 50) return 'branch-occ-bar branch-occ-bar--mid';
     return 'branch-occ-bar branch-occ-bar--low';
+  }
+
+  isNeedsAttention(branchId: string): boolean {
+    return this.needsAttentionIds().has(branchId);
+  }
+
+  isTopPerformer(branchId: string): boolean {
+    return this.topPerformerId() === branchId;
   }
 
   private buildQuery(search: string) {

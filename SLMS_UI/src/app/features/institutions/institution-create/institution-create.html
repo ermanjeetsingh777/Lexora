@@ -1,5 +1,5 @@
 @if(showPageHeader()){
-<app-page-header eyebrow="Organization" title="Institutions"
+<app-page-header eyebrow="Organization" title="Institutions" [isBack]="(!isOnboarding()) ? true : false" backLink="/institutions"
     description="Set up an institution profile, add its first branch, and control activation." />
 }
 

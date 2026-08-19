@@ -8,7 +8,7 @@
       title="Add branch"
       description="Create a new branch under this institution." />
   } @else {
-    <app-page-header eyebrow="Organization" title="Institutions"
+    <app-page-header eyebrow="Organization" title="Institutions" [isBack]="(!isOnboarding()) ? true : false" backLink="/branches"
         description="Set up an institution profile, add its first branch, and control activation." />
   }
 }

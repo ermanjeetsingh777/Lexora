@@ -16,7 +16,7 @@
       title="Add library"
       description="Create a new library under this institution." />
   } @else {
-    <app-page-header eyebrow="Libraries" title="Library Directory"
+    <app-page-header eyebrow="Libraries" title="Library Directory" [isBack]="(!isOnboarding()) ? true : false" backLink="/libraries"
         description="Manage library information, branches, and operational status from a single place." />
   }
 }

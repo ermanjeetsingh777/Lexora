@@ -153,6 +153,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(x => x.OverdueFinePerDay).HasPrecision(18, 2).HasDefaultValue(10m);
             entity.Property(x => x.AttendanceQrToken).HasMaxLength(64).IsRequired();
             entity.HasIndex(x => x.AttendanceQrToken).IsUnique();
+            entity.HasIndex(x => new { x.IsDeleted, x.InstitutionId, x.BranchId });
+        });
+
+        builder.Entity<MemberLibrary>(entity =>
+        {
+            entity.HasIndex(x => new { x.LibraryId, x.IsDeleted, x.IsCurrent });
+            entity.HasIndex(x => new { x.BranchId, x.IsDeleted, x.IsCurrent });
+            entity.HasIndex(x => new { x.InstitutionId, x.IsDeleted, x.IsCurrent });
+        });
+
+        builder.Entity<MemberPlan>(entity =>
+        {
+            entity.HasIndex(x => new { x.MemberId, x.IsDeleted });
         });
 
         builder.Entity<Member>(entity =>

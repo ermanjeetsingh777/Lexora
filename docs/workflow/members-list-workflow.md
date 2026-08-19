@@ -407,6 +407,7 @@ SLMS_API/
 
 - Member details: [members-detail-workflow.md](./members-detail-workflow.md)
 - Institution details: [institution-detail-workflow.md](./institution-detail-workflow.md)
+- Libraries list: [libraries-list-workflow.md](./libraries-list-workflow.md)
 - Books & circulation: [books-workflow.md](./books-workflow.md)
 - Attendance kiosk: [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md)
 - Membership expiry plan: `docs/lovable-source/.lovable/plan/membership-expiry-across-members-list-details-2026-08-04.md`

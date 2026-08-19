@@ -521,17 +521,18 @@ SLMS_API/
 | Area | Status |
 |------|--------|
 | Payment methods (Billing tab) | UI placeholder only |
-| Branch / library row drill-down | No detail routes yet; add flows implemented via `/addbranch` and `/addlibrary` |
+| Branch / library row drill-down | Branch detail at `/branches/:branchId`; library detail route not yet implemented — global list links to branch Libraries tab |
 | Tab deselect on double-click | Fixed — `allowEmpty=false` + `setTab` null guard |
 | Billing invoice limit | API returns latest 20 paid plans |
 | Invoice PDF | Browser print dialog (no server-side PDF) |
 | `libraries-view` | Requires authenticated user (`401` if not logged in) |
-| List workflow doc | Not yet created |
+| Global libraries list | Implemented — see [libraries-list-workflow.md](./libraries-list-workflow.md) |
 
 ---
 
 ## 8. Related docs
 
+- Libraries list (global): [libraries-list-workflow.md](./libraries-list-workflow.md)
 - Member details: [members-detail-workflow.md](./members-detail-workflow.md)
 - Members list: [members-list-workflow.md](./members-list-workflow.md)
 - Lovable reference: `docs/lovable-source/src/components/institution/billing-tab.tsx`, `invoice-detail-sheet.tsx`

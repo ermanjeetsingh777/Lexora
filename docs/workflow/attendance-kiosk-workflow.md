@@ -308,6 +308,7 @@ SLMS_UI/src/app/
 |--------|-----|----------|
 | M-06 Members | [members-list-workflow.md](./members-list-workflow.md) | Member library assignment, QR token |
 | M-06 Members | [members-detail-workflow.md](./members-detail-workflow.md) | Attendance tab, member QR display |
+| Libraries list | [libraries-list-workflow.md](./libraries-list-workflow.md) | `/libraries` — future library QR print UI |
 | M-15 Administration | [administration-workflow.md](./administration-workflow.md) | `attendance.scanner.use` permission |
 
 ---
@@ -315,6 +316,6 @@ SLMS_UI/src/app/
 ## 8. Planned enhancements
 
 - Browser camera QR scanner (html5-qrcode / zxing)
-- Library management UI — print library QR from `/libraries`
+- Library QR print from [libraries list](./libraries-list-workflow.md) (`/libraries`)
 - Rate limiting on public kiosk endpoints
 - Production `Attendance:*KioskUrlBase` in `appsettings.json`

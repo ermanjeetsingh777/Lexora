@@ -1,279 +1,444 @@
-<app-page-header eyebrow="Organization" title="Libraries" description="All library spaces across your branches.">
-    <div actions class="flex gap-2">
-        <a routerLink="/libraries/create"><app-button size="sm">
-                <svg lucidePlus class="h-4 w-4 mr-1"></svg> New library
-            </app-button></a>
-    </div>
+<app-page-header
+  eyebrow="Organization"
+  title="Libraries"
+  [description]="headerDescription()"
+>
+  <div actions class="flex gap-2">
+    <a routerLink="/branches">
+      <app-button size="sm" variant="outline">View branches</app-button>
+    </a>
+    <a routerLink="/libraries/create">
+      <app-button size="sm">
+        <svg lucidePlus class="h-4 w-4 mr-1"></svg> New library
+      </app-button>
+    </a>
+  </div>
 </app-page-header>
 
-<!-- KPIs -->
-<section class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <!-- <app-kpi-card label="Total libraries" [value]="all().length">
-        <svg icon lucideBookOpen class="h-4 w-4"></svg>
-    </app-kpi-card>
-    <app-kpi-card label="Total capacity" [value]="totalCap().toLocaleString()">
-        <svg icon lucideUsers class="h-4 w-4"></svg>
-    </app-kpi-card>
-    <app-kpi-card label="Avg occupancy" [value]="avgOcc() + '%'">
-        <svg icon lucideActivity class="h-4 w-4"></svg>
-    </app-kpi-card>
-    <app-kpi-card label="Active" [value]="activeCount()">
-        <svg icon lucideBookOpen class="h-4 w-4"></svg>
-    </app-kpi-card> -->
-</section>
-
-<!-- Filter -->
-<!-- <app-glass-card>
-    <div class="flex flex-wrap items-center gap-2">
-        <div class="relative flex-1 min-w-[220px]">
-            <svg lucideSearch
-                class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"></svg>
-            <input [(ngModel)]="query" placeholder="Search library, branch, city…"
-                class="w-full pl-8 pr-3 h-9 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+@if (loading() && !items().length) {
+  <section class="inst-kpi-section" aria-busy="true" aria-label="Loading overview">
+    @for (i of [0, 1]; track i) {
+      <div class="inst-stat-kpi inst-stat-kpi--skeleton">
+        <div class="inst-skeleton inst-skeleton--title"></div>
+        <div class="inst-skeleton inst-skeleton--value"></div>
+        <div class="inst-skeleton inst-skeleton--meta"></div>
+        <div class="inst-stat-kpi__grid">
+          @for (j of [0, 1, 2, 3]; track j) {
+            <div class="inst-skeleton inst-skeleton--cell"></div>
+          }
         </div>
-        <select [(ngModel)]="statusFilter"
-            class="h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
-            <option value="">All statuses</option>
-            <option value="Active">Active</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="Closed">Closed</option>
-        </select>
-        <span class="text-xs text-muted-foreground tabular-nums ml-auto">{{ filtered().length }} / {{ all().length
-            }}</span>
-    </div>
-</app-glass-card> -->
-
-<!-- <div class="rounded-xl border glass shadow-elegant p-4" data-tsd-source="/src/components/page-header.tsx:80:5">
-    <div class="flex flex-wrap items-center gap-2"
-        data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:214:9">
-        <div class="relative flex-1 min-w-[220px]"
-            data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:215:11"><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-search absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
-                aria-hidden="true" data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:216:13">
-                <path d="m21 21-4.34-4.34"></path>
-                <circle cx="11" cy="11" r="8"></circle>
-            </svg><input
-                class="flex w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-8 h-9"
-                placeholder="Search library, branch, city…"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:217:13" value=""></div><button
-            class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md px-3 text-xs h-9 gap-1.5"
-            data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:459:9" type="button" aria-haspopup="dialog"
-            aria-expanded="false" aria-controls="radix-_r_2r_" data-state="closed"><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-shield-check h-3.5 w-3.5" aria-hidden="true">
-                <path
-                    d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z">
-                </path>
-                <path d="m9 12 2 2 4-4"></path>
-            </svg><span data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:461:11">Status</span>
-            <div class="inline-flex items-center rounded-md border py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 h-4 px-1 text-[10px]"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:462:35">3</div><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-chevron-down h-3 w-3 opacity-60" aria-hidden="true"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:463:11">
-                <path d="m6 9 6 6 6-6"></path>
-            </svg>
-        </button><button
-            class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md px-3 text-xs h-9 gap-1.5"
-            data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:459:9" type="button" aria-haspopup="dialog"
-            aria-expanded="false" aria-controls="radix-_r_2s_" data-state="closed"><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-building2 lucide-building-2 h-3.5 w-3.5" aria-hidden="true">
-                <path d="M10 12h4"></path>
-                <path d="M10 8h4"></path>
-                <path d="M14 21v-3a2 2 0 0 0-4 0v3"></path>
-                <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"></path>
-                <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path>
-            </svg><span data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:461:11">Branch</span><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-chevron-down h-3 w-3 opacity-60" aria-hidden="true"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:463:11">
-                <path d="m6 9 6 6 6-6"></path>
-            </svg></button><button
-            class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md px-3 text-xs h-9 gap-1.5"
-            data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:459:9" type="button" aria-haspopup="dialog"
-            aria-expanded="false" aria-controls="radix-_r_2t_" data-state="closed"><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-activity h-3.5 w-3.5" aria-hidden="true">
-                <path
-                    d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2">
-                </path>
-            </svg><span data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:461:11">Occupancy</span><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-chevron-down h-3 w-3 opacity-60" aria-hidden="true"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:463:11">
-                <path d="m6 9 6 6 6-6"></path>
-            </svg></button><button
-            class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md px-3 text-xs h-9 gap-1.5"
-            data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:459:9" type="button" aria-haspopup="dialog"
-            aria-expanded="false" aria-controls="radix-_r_2u_" data-state="closed"><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-layers h-3.5 w-3.5" aria-hidden="true">
-                <path
-                    d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z">
-                </path>
-                <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path>
-                <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path>
-            </svg><span data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:461:11">Floor</span><svg
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-chevron-down h-3 w-3 opacity-60" aria-hidden="true"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:463:11">
-                <path d="m6 9 6 6 6-6"></path>
-            </svg></button>
-        <div class="ml-auto flex items-center gap-3"
-            data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:242:11"><span
-                class="text-xs text-muted-foreground tabular-nums"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:243:13">91 / 91</span><button
-                class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground rounded-md h-7 px-2 text-xs gap-1"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:244:28"><svg
-                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="lucide lucide-x h-3 w-3" aria-hidden="true"
-                    data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:245:17">
-                    <path d="M18 6 6 18"></path>
-                    <path d="m6 6 12 12"></path>
-                </svg> Clear</button><button
-                class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md px-3 text-xs h-9 gap-1.5"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:247:13"><svg
-                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="lucide lucide-link2 lucide-link-2 h-3.5 w-3.5" aria-hidden="true"
-                    data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:248:61">
-                    <path d="M9 17H7A5 5 0 0 1 7 7h2"></path>
-                    <path d="M15 7h2a5 5 0 1 1 0 10h-2"></path>
-                    <line x1="8" x2="16" y1="12" y2="12"></line>
-                </svg><span class="text-xs"
-                    data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:249:15">Share</span></button>
-            <div dir="ltr" data-orientation="horizontal"
-                data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:251:13">
-                <div role="tablist" aria-orientation="horizontal"
-                    class="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground h-9"
-                    data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:254:15" tabindex="0"
-                    data-orientation="horizontal" style="outline: none;"><button type="button" role="tab"
-                        aria-selected="true" aria-controls="radix-_r_2v_-content-grid" data-state="active"
-                        id="radix-_r_2v_-trigger-grid"
-                        class="inline-flex items-center justify-center whitespace-nowrap rounded-md py-1 text-sm font-medium ring-offset-background cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow px-2"
-                        data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:255:17" tabindex="-1"
-                        data-orientation="horizontal" data-radix-collection-item=""><svg
-                            xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="lucide lucide-layout-grid h-3.5 w-3.5" aria-hidden="true"
-                            data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:255:60">
-                            <rect width="7" height="7" x="3" y="3" rx="1"></rect>
-                            <rect width="7" height="7" x="14" y="3" rx="1"></rect>
-                            <rect width="7" height="7" x="14" y="14" rx="1"></rect>
-                            <rect width="7" height="7" x="3" y="14" rx="1"></rect>
-                        </svg></button><button type="button" role="tab" aria-selected="false"
-                        aria-controls="radix-_r_2v_-content-table" data-state="inactive" id="radix-_r_2v_-trigger-table"
-                        class="inline-flex items-center justify-center whitespace-nowrap rounded-md py-1 text-sm font-medium ring-offset-background cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow px-2"
-                        data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:256:17" tabindex="-1"
-                        data-orientation="horizontal" data-radix-collection-item=""><svg
-                            xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="lucide lucide-list h-3.5 w-3.5" aria-hidden="true"
-                            data-tsd-source="/src/routes/_authenticated.libraries.index.tsx:256:61">
-                            <path d="M3 5h.01"></path>
-                            <path d="M3 12h.01"></path>
-                            <path d="M3 19h.01"></path>
-                            <path d="M8 5h13"></path>
-                            <path d="M8 12h13"></path>
-                            <path d="M8 19h13"></path>
-                        </svg></button></div>
-            </div>
-        </div>
-    </div>
-</div> -->
-
-<!-- Grid -->
-
-<!-- <div class="space-y-2 overflow-y-auto pr-1 ">
-    <div class="mt-4 grid gap-4 lg:grid-cols-3">
-        @for (lib of filtered(); track lib.id) {
-        <div [routerLink]="['/branches', lib.id]"
-            class="lg:col-span-1 transition-all hover:-translate-y-1 hover:shadow-lg "
-            style="opacity: 1; transform: none;">
-            <button type="button"
-                class="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-left transition-colors">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                        <div class="truncate text-sm font-semibold">{{ lib.name }}</div>
-                        <div class="label-mono mt-0.5 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
-                            <span>{{ b.type }}</span>
-                            <span>·</span>
-                            <svg lucideMapPin class="h-3 w-3"></svg>
-                            <span class="truncate">{{ lib.city }} · Floor {{ lib.floor }}</span>
-                        </div>
-                    </div>
-                    <app-status-badge [status]="lib.status" />
-                </div>
-
-                <div class="mt-2">
-                    <div class="flex items-center justify-between text-xs mb-1.5">
-                        <span class="label-mono">Live occupancy</span>
-                        <span class="font-mono flex items-center gap-1 tabular-nums">
-                            @if (6 >= 0) {
-                            <svg lucideArrowUpRight class="h-3 w-3 text-emerald-500"></svg>+{{ 6 }}%
-                            } @else {
-                            <svg lucideArrowDownRight class="h-3 w-3 text-amber-500"></svg>{{ 6 }}%
-                            }
-                        </span>
-                    </div>
-                    <div class="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
-                        <div class="h-full rounded-full transition-all" [class.bg-success]="lib.occupancyPct >= 80"
-                            [class.bg-primary]="lib.occupancyPct >= 50 && lib.occupancyPct < 80"
-                            [class.bg-warning]="lib.occupancyPct < 50" [style.width.%]="lib.occupancyPct"></div>
-                    </div>
-                    <div class="mt-1 flex items-center justify-between text-xs tabular-nums">
-                        <span class="font-medium">{{ lib.occupied }} / {{ lib.capacity }}</span>
-                        <span class="text-muted-foreground">{{ lib.occupancyPct }}%</span>
-                    </div>
-                </div>
-
-                <div class="mt-2 grid grid-cols-3 gap-2">
-                    <div class="rounded-md border border-[var(--border)] px-2 py-1 table-cursor">
-                        <div class="text-[10px] text-[var(--muted-foreground)]">Libraries</div>
-                        <div class="text-sm font-semibold">{{ 4 }}</div>
-                    </div>
-                    <div class="rounded-md border border-[var(--border)] px-2 py-1">
-                        <div class="text-[10px] text-[var(--muted-foreground)]">Members</div>
-                        <div class="text-sm font-semibold">{{ 4 }}</div>
-                    </div>
-                    <div class="rounded-md border border-[var(--border)] px-2 py-1">
-                        <div class="text-[10px] text-[var(--muted-foreground)]">Revenue</div>
-                        <div class="text-sm font-semibold">₹{{ (350000 / 1000).toFixed(0) }}k</div>
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                    <span
-                        class="inline-flex items-center gap-1 font-medium text-primary group-hover:opacity-100 transition-opacity table-cursor"
-                        [routerLink]="lib.id">View
-                        details
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="lucide lucide-arrow-up-right h-3.5 w-3.5" aria-hidden="true">
-                            <path d="M7 7h10v10"></path>
-                            <path d="M7 17 17 7"></path>
-                        </svg></span>
-                </div>
-            </button>
-
-        </div>
-        }
-    </div>
-
-    @if (filtered().length === 0) {
-    <div class="rounded-lg border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted-foreground)]">
-        No libraries found.
-    </div>
+      </div>
     }
-</div> -->
+  </section>
+  <div class="inst-skeleton inst-skeleton--filters mb-4"></div>
+  <p class="py-10 text-center text-sm text-muted-foreground">Loading libraries…</p>
+} @else if (error() && !items().length) {
+  <app-glass-card class="text-center block">
+    <p class="text-sm text-destructive">{{ error() }}</p>
+    <app-button size="sm" class="mt-4" (click)="load()">Retry</app-button>
+  </app-glass-card>
+} @else {
+  <section class="inst-kpi-section" aria-label="Library network overview">
+    <article class="inst-stat-kpi inst-stat-kpi--portfolio animate-fade-up">
+      <div class="inst-stat-kpi__accent" aria-hidden="true"></div>
+      <div class="inst-stat-kpi__grid-bg blueprint-grid-sm" aria-hidden="true"></div>
+      <div class="inst-stat-kpi__glow inst-stat-kpi__glow--portfolio" aria-hidden="true"></div>
+
+      <div class="inst-stat-kpi__head">
+        <div class="min-w-0 flex-1">
+          <p class="label-mono">Your libraries</p>
+          <div class="inst-stat-kpi__hero">
+            <p class="inst-stat-kpi__value">{{ summary().totalLibraries }}</p>
+            <p class="inst-stat-kpi__unit">library spaces mapped to you</p>
+          </div>
+          <div class="inst-stat-kpi__meta">
+            <span class="inst-stat-kpi__delta inst-stat-kpi__delta--neutral">
+              <svg lucideShieldCheck class="h-3 w-3"></svg>
+              {{ summary().activeLibraries }} active
+            </span>
+            <span
+              class="inst-stat-kpi__delta"
+              [class.inst-stat-kpi__delta--up]="networkOccupancyTone() === 'high'"
+              [class.inst-stat-kpi__delta--mid]="networkOccupancyTone() === 'mid'"
+              [class.inst-stat-kpi__delta--down]="networkOccupancyTone() === 'low'"
+            >
+              {{ networkOccupancy() }}% occupancy
+            </span>
+            <span class="inst-stat-kpi__hint">{{ networkOccupancyLabel() }}</span>
+          </div>
+        </div>
+        <div class="inst-stat-kpi__icon inst-stat-kpi__icon--portfolio">
+          <svg lucideBookOpen class="h-4 w-4"></svg>
+        </div>
+      </div>
+
+      <div class="inst-stat-kpi__grid">
+        @for (metric of networkMetrics(); track metric.label) {
+          <div class="inst-stat-kpi__cell" [class.inst-stat-kpi__cell--highlight]="metric.highlight">
+            <span class="inst-stat-kpi__cell-label">{{ metric.label }}</span>
+            <span class="inst-stat-kpi__cell-value">{{ metric.value }}</span>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="inst-stat-kpi inst-stat-kpi--revenue animate-fade-up" style="animation-delay: 80ms">
+      <div class="inst-stat-kpi__accent inst-stat-kpi__accent--revenue" aria-hidden="true"></div>
+      <div class="inst-stat-kpi__grid-bg blueprint-grid-sm" aria-hidden="true"></div>
+      <div class="inst-stat-kpi__glow inst-stat-kpi__glow--revenue" aria-hidden="true"></div>
+
+      <div class="inst-stat-kpi__head">
+        <div class="min-w-0 flex-1">
+          <p class="label-mono">Revenue MTD</p>
+          <div class="inst-stat-kpi__hero">
+            <p class="inst-stat-kpi__value">{{ revenueMtdLabel() }}</p>
+            <p class="inst-stat-kpi__unit">from member plan payments</p>
+          </div>
+          <div class="inst-stat-kpi__meta">
+            @if (revenueMtdDelta() !== undefined) {
+              <span
+                class="inst-stat-kpi__delta"
+                [class.inst-stat-kpi__delta--up]="(revenueMtdDelta() ?? 0) >= 0"
+                [class.inst-stat-kpi__delta--down]="(revenueMtdDelta() ?? 0) < 0"
+              >
+                {{ (revenueMtdDelta() ?? 0) >= 0 ? '▲' : '▼' }}
+                {{ Math.abs(revenueMtdDelta()!).toFixed(1) }}%
+              </span>
+              <span class="inst-stat-kpi__hint">vs last month</span>
+            } @else {
+              <span class="inst-stat-kpi__hint">No revenue recorded last month</span>
+            }
+          </div>
+        </div>
+        <div class="inst-stat-kpi__icon inst-stat-kpi__icon--revenue">
+          <svg lucideIndianRupee class="h-4 w-4"></svg>
+        </div>
+      </div>
+
+      <div class="inst-stat-kpi__grid">
+        @for (period of revenuePeriods(); track period.label) {
+          <div class="inst-stat-kpi__cell" [class.inst-stat-kpi__cell--highlight]="period.highlight">
+            <span class="inst-stat-kpi__cell-label">{{ period.label }}</span>
+            <span class="inst-stat-kpi__cell-value">{{ period.value }}</span>
+          </div>
+        }
+      </div>
+    </article>
+  </section>
+
+  <app-glass-card class="block mb-4">
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="relative flex-1 min-w-[220px]">
+        <svg lucideSearch class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"></svg>
+        <input
+          class="branch-filter-input w-full pl-8 pr-8"
+          placeholder="Search library, branch, city…"
+          [ngModel]="query()"
+          (ngModelChange)="onQueryChange($event)"
+        />
+        @if (query()) {
+          <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" (click)="onQueryChange('')">
+            <svg lucideX class="h-3.5 w-3.5"></svg>
+          </button>
+        }
+      </div>
+
+      <select class="branch-filter-select" [ngModel]="statusFilter()" (ngModelChange)="onStatusChange($event)">
+        @for (s of STATUS_OPTS; track s) {
+          <option [value]="s">{{ s === 'all' ? 'All statuses' : s }}</option>
+        }
+      </select>
+
+      <select class="branch-filter-select" [ngModel]="institutionFilter()" (ngModelChange)="onInstitutionChange($event)">
+        <option value="all">All institutions</option>
+        @for (inst of institutionOptions(); track inst.id) {
+          <option [value]="inst.id">{{ inst.name }}</option>
+        }
+      </select>
+
+      <select
+        class="branch-filter-select"
+        [disabled]="branchFilterDisabled()"
+        [ngModel]="branchFilter()"
+        (ngModelChange)="onBranchChange($event)"
+      >
+        <option value="all">{{ branchFilterDisabled() ? 'Select institution first' : 'All branches' }}</option>
+        @for (branch of branchOptions(); track branch.id) {
+          <option [value]="branch.id">{{ branch.name }}</option>
+        }
+      </select>
+
+      <select class="branch-filter-select" [ngModel]="occFilter()" (ngModelChange)="onOccChange($event)">
+        @for (o of OCC_OPTS; track o.value) {
+          <option [value]="o.value">{{ o.label }}</option>
+        }
+      </select>
+
+      <select class="branch-filter-select" [ngModel]="floorFilter()" (ngModelChange)="onFloorChange($event)">
+        <option value="all">All floors</option>
+        @for (floor of floorOptions(); track floor) {
+          <option [value]="floor">Floor {{ floor }}</option>
+        }
+      </select>
+
+      <div class="ml-auto flex items-center gap-2">
+        <span class="text-xs text-muted-foreground tabular-nums">{{ filtered().length }} / {{ items().length }}</span>
+        @if (query() || statusFilter() !== 'all' || hasClientFilters()) {
+          <app-button size="sm" variant="ghost" (click)="clearAllFilters()">
+            <svg lucideX class="h-3.5 w-3.5 mr-1"></svg> Clear
+          </app-button>
+        }
+        <app-button [variant]="view() === 'table' ? 'default' : 'outline'" size="sm" (click)="setView('table')">
+          <svg lucideList class="h-4 w-4"></svg>
+        </app-button>
+        <app-button [variant]="view() === 'grid' ? 'default' : 'outline'" size="sm" (click)="setView('grid')">
+          <svg lucideLayoutGrid class="h-4 w-4"></svg>
+        </app-button>
+      </div>
+    </div>
+  </app-glass-card>
+
+  <div class="space-y-4">
+    @if (filtered().length === 0) {
+      <app-glass-card class="text-center block">
+        <svg lucideSearch class="h-5 w-5 mx-auto text-muted-foreground mb-2"></svg>
+        <h3 class="font-semibold">No libraries match</h3>
+        <p class="text-sm text-muted-foreground mt-1">Try adjusting your search or filters.</p>
+        @if (query() || statusFilter() !== 'all' || hasClientFilters()) {
+          <app-button size="sm" variant="outline" class="mt-4" (click)="clearAllFilters()">Clear filters</app-button>
+        } @else {
+          <a routerLink="/libraries/create" class="inline-block mt-4">
+            <app-button size="sm">
+              <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> New library
+            </app-button>
+          </a>
+        }
+      </app-glass-card>
+    } @else if (view() === 'grid') {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (l of paged(); track l.id) {
+          <a
+            [routerLink]="['/branches', l.branchId]"
+            [queryParams]="{ tab: 'libraries' }"
+            class="block h-full group"
+          >
+            <app-glass-card
+              class="branch-card block h-full"
+              [class.branch-card--top]="isTopPerformer(l.id)"
+              [class.branch-card--attention]="isNeedsAttention(l.id)"
+            >
+              <div class="branch-card-glow" aria-hidden="true"></div>
+
+              @if (isTopPerformer(l.id) || isNeedsAttention(l.id)) {
+                <div class="branch-card-flags">
+                  @if (isTopPerformer(l.id)) {
+                    <span class="branch-flag branch-flag--top">
+                      <svg lucideArrowUpRight class="h-3 w-3"></svg> Top performer
+                    </span>
+                  }
+                  @if (isNeedsAttention(l.id)) {
+                    <span class="branch-flag branch-flag--attention">
+                      <svg lucideAlertTriangle class="h-3 w-3"></svg> Needs attention
+                    </span>
+                  }
+                </div>
+              }
+
+              <div class="flex items-start justify-between gap-3 relative">
+                <div class="min-w-0">
+                  <p class="font-semibold tracking-tight truncate">{{ l.name }}</p>
+                  <p class="label-mono mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                    <svg lucideBuilding2 class="h-3 w-3 shrink-0"></svg>
+                    <span class="truncate">{{ l.branchName }} · {{ floorLabel(l.floor) }}</span>
+                  </p>
+                </div>
+                <app-status-badge [status]="l.status" [variant]="libraryStatusVariant(l.status)" />
+              </div>
+
+              <div class="mt-4 space-y-1.5">
+                <div class="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Occupancy</span>
+                  <span class="tabular-nums font-medium text-foreground">{{ l.memberCount }} / {{ l.capacity }}</span>
+                </div>
+                <div class="branch-occ-track">
+                  <div
+                    [class]="occupancyBarClass(l.occupancyPercent)"
+                    [style.width.%]="l.occupancyPercent > 100 ? 100 : l.occupancyPercent"
+                  ></div>
+                </div>
+                <div class="flex items-center justify-between text-xs tabular-nums">
+                  <span class="font-medium">{{ l.occupancyPercent }}%</span>
+                  @if (l.city) {
+                    <span class="text-muted-foreground flex items-center gap-1">
+                      <svg lucideMapPin class="h-3 w-3"></svg>{{ l.city }}
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-[var(--border)] text-center">
+                <div>
+                  <p class="label-mono">Capacity</p>
+                  <p class="font-semibold tabular-nums mt-1">{{ l.capacity }}</p>
+                </div>
+                <div>
+                  <p class="label-mono">Members</p>
+                  <p class="font-semibold tabular-nums mt-1">{{ l.memberCount }}</p>
+                </div>
+                <div>
+                  <p class="label-mono">Hours</p>
+                  <p class="font-semibold tabular-nums mt-1 text-xs">{{ l.hoursStart || '—' }}–{{ l.hoursEnd || '—' }}</p>
+                </div>
+              </div>
+
+              <div class="mt-3 pt-3 border-t border-[var(--border)] flex items-center justify-between gap-2 text-xs">
+                <span class="text-muted-foreground truncate">{{ l.institutionName }}</span>
+                <span class="label-mono shrink-0">View →</span>
+              </div>
+            </app-glass-card>
+          </a>
+        }
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 px-1 py-3 border-t border-[var(--border)]">
+        <div class="text-xs text-muted-foreground">
+          Showing
+          <span class="tabular-nums font-medium text-foreground">{{ pageStart() + 1 }}–{{ Math.min(pageStart() + pageSize(), filtered().length) }}</span>
+          of <span class="tabular-nums font-medium text-foreground">{{ filtered().length }}</span>
+        </div>
+        <div class="flex items-center gap-3 ml-auto">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Rows</span>
+            <select
+              class="inst-filter-select inst-filter-select--compact"
+              [ngModel]="pageSize()"
+              (ngModelChange)="setPageSize(+$event)"
+            >
+              @for (size of PAGE_SIZE_OPTS; track size) {
+                <option [value]="size">{{ size }}</option>
+              }
+            </select>
+          </div>
+          <div class="flex items-center gap-0.5">
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(1)">
+              <svg lucideChevronsLeft class="h-4 w-4"></svg>
+            </app-button>
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+              <svg lucideChevronLeft class="h-4 w-4"></svg>
+            </app-button>
+            <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ currentPage() }} / {{ totalPages() }}</span>
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+              <svg lucideChevronRight class="h-4 w-4"></svg>
+            </app-button>
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(totalPages())">
+              <svg lucideChevronsRight class="h-4 w-4"></svg>
+            </app-button>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <app-glass-card class="inst-detail-branch-card p-0 overflow-hidden block">
+        <table class="inst-detail-branch-table w-full text-sm">
+          <thead>
+            <tr class="text-left border-b label-mono bg-muted/30">
+              <th class="py-2 px-3">Library</th>
+              <th class="px-3">Branch</th>
+              <th class="px-3">Institution</th>
+              <th class="px-3 text-right">Floor</th>
+              <th class="px-3 text-right">Capacity</th>
+              <th class="px-3 min-w-[160px]">Occupancy</th>
+              <th class="px-3 text-right">Members</th>
+              <th class="px-3">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            @for (l of paged(); track l.id) {
+              <tr
+                class="hover:bg-muted/40 cursor-pointer"
+                [class.branch-row--attention]="isNeedsAttention(l.id)"
+                [class.branch-row--top]="isTopPerformer(l.id)"
+                [routerLink]="['/branches', l.branchId]"
+                [queryParams]="{ tab: 'libraries' }"
+              >
+                <td class="py-2.5 px-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div class="min-w-0 flex-1">
+                      <div class="font-medium truncate">{{ l.name }}</div>
+                      @if (l.city) {
+                        <div class="label-mono flex items-center gap-1 mt-0.5 text-muted-foreground">
+                          <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>
+                          <span class="truncate">{{ l.city }}</span>
+                        </div>
+                      }
+                    </div>
+                    @if (isTopPerformer(l.id)) {
+                      <span class="branch-flag branch-flag--top shrink-0">Top</span>
+                    } @else if (isNeedsAttention(l.id)) {
+                      <span class="branch-flag branch-flag--attention shrink-0">Low</span>
+                    }
+                  </div>
+                </td>
+                <td class="px-3 text-muted-foreground">{{ l.branchName }}</td>
+                <td class="px-3 text-muted-foreground">{{ l.institutionName }}</td>
+                <td class="px-3 text-right tabular-nums">{{ l.floor ?? '—' }}</td>
+                <td class="px-3 text-right tabular-nums">{{ l.capacity.toLocaleString() }}</td>
+                <td class="px-3">
+                  <div class="flex items-center gap-2">
+                    <div class="branch-occ-track flex-1">
+                      <div
+                        [class]="occupancyBarClass(l.occupancyPercent)"
+                        [style.width.%]="l.occupancyPercent > 100 ? 100 : l.occupancyPercent"
+                      ></div>
+                    </div>
+                    <span class="tabular-nums text-xs w-9 text-right">{{ l.occupancyPercent }}%</span>
+                  </div>
+                </td>
+                <td class="px-3 text-right tabular-nums">{{ l.memberCount }}</td>
+                <td class="px-3">
+                  <app-status-badge [status]="l.status" [variant]="libraryStatusVariant(l.status)" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </app-glass-card>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 px-1 py-3 border-t border-[var(--border)]">
+        <div class="text-xs text-muted-foreground">
+          Showing
+          <span class="tabular-nums font-medium text-foreground">{{ pageStart() + 1 }}–{{ Math.min(pageStart() + pageSize(), filtered().length) }}</span>
+          of <span class="tabular-nums font-medium text-foreground">{{ filtered().length }}</span>
+        </div>
+        <div class="flex items-center gap-3 ml-auto">
+          <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Rows</span>
+            <select
+              class="inst-filter-select inst-filter-select--compact"
+              [ngModel]="pageSize()"
+              (ngModelChange)="setPageSize(+$event)"
+            >
+              @for (size of PAGE_SIZE_OPTS; track size) {
+                <option [value]="size">{{ size }}</option>
+              }
+            </select>
+          </div>
+          <div class="flex items-center gap-0.5">
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(1)">
+              <svg lucideChevronsLeft class="h-4 w-4"></svg>
+            </app-button>
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+              <svg lucideChevronLeft class="h-4 w-4"></svg>
+            </app-button>
+            <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ currentPage() }} / {{ totalPages() }}</span>
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+              <svg lucideChevronRight class="h-4 w-4"></svg>
+            </app-button>
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(totalPages())">
+              <svg lucideChevronsRight class="h-4 w-4"></svg>
+            </app-button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}

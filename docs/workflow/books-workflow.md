@@ -488,6 +488,7 @@ SLMS_API/
 
 ## 8. Related docs
 
+- Libraries list: [libraries-list-workflow.md](./libraries-list-workflow.md)
 - Member details (Books tab): [members-detail-workflow.md](./members-detail-workflow.md)
 - Members list: [members-list-workflow.md](./members-list-workflow.md)
 - Attendance QR kiosk: [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md)

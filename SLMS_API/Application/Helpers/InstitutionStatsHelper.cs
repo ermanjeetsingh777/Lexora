@@ -144,6 +144,39 @@ public static class InstitutionStatsHelper
             });
     }
 
+    public static async Task<Dictionary<Guid, int>> GetLibraryMemberCountsAsync(
+        ApplicationDbContext dbContext,
+        IReadOnlyCollection<Guid> libraryIds,
+        CancellationToken cancellationToken)
+    {
+        if (libraryIds.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await GetLibraryMemberCountsAsync(
+            dbContext,
+            dbContext.Libraries.AsNoTracking().Where(x => libraryIds.Contains(x.Id)).Select(x => x.Id),
+            cancellationToken);
+    }
+
+    public static async Task<Dictionary<Guid, int>> GetLibraryMemberCountsAsync(
+        ApplicationDbContext dbContext,
+        IQueryable<Guid> scopedLibraryIds,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.MemberLibraries
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsCurrent && scopedLibraryIds.Contains(x.LibraryId))
+            .GroupBy(x => x.LibraryId)
+            .Select(g => new
+            {
+                LibraryId = g.Key,
+                MemberCount = g.Count(),
+            })
+            .ToDictionaryAsync(x => x.LibraryId, x => x.MemberCount, cancellationToken);
+    }
+
     public static async Task<int> GetLibraryCountAsync(
         ApplicationDbContext dbContext,
         Guid institutionId,

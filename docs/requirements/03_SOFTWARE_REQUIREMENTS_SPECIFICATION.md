@@ -1160,7 +1160,8 @@ GET    /api/v1/institutions/{instId}/branches/{branchId}/analytics - Branch anal
 
 #### Library Endpoints
 ```
-GET    /api/v1/institutions/{instId}/branches/{branchId}/libraries                  - List libraries
+GET    /api/v1/libraries/list                                                       - Global library list (KPIs, occupancy, revenue, user-scoped)
+GET    /api/v1/institutions/{instId}/branches/{branchId}/libraries                  - List libraries (branch-scoped)
 POST   /api/v1/institutions/{instId}/branches/{branchId}/libraries                  - Create library
 GET    /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}          - Get library
 PUT    /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}          - Update library

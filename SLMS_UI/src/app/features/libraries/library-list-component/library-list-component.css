@@ -1,0 +1,8 @@
+:host {
+  display: block;
+}
+
+:host .branch-filter-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

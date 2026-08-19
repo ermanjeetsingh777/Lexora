@@ -248,7 +248,7 @@ SaaS (Software-as-a-Service) B2B Platform
 - **FR-2.3.5**: System shall support library operational hours
 - **FR-2.3.6**: System shall support library resource tracking
 - **FR-2.3.7**: System shall support library license management
-- **FR-2.3.8**: System shall track library utilization metrics
+- **FR-2.3.8**: System shall track library utilization metrics *(global list at `/libraries` — [libraries-list-workflow.md](../workflow/libraries-list-workflow.md))*
 - **FR-2.3.9**: System shall support library staff assignment
 - **FR-2.3.10**: System shall support library deactivation
 

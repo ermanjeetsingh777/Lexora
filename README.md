@@ -32,6 +32,8 @@ Implementation workflows (Angular + API, routes, endpoints, file maps):
 
 | Module | Doc |
 |--------|-----|
+| Institution detail | [docs/workflow/institution-detail-workflow.md](docs/workflow/institution-detail-workflow.md) |
+| **Libraries (list)** | **[docs/workflow/libraries-list-workflow.md](docs/workflow/libraries-list-workflow.md)** |
 | M-06 Members (list) | [docs/workflow/members-list-workflow.md](docs/workflow/members-list-workflow.md) |
 | M-06 Members (detail) | [docs/workflow/members-detail-workflow.md](docs/workflow/members-detail-workflow.md) |
 | M-12 Books & circulation | [docs/workflow/books-workflow.md](docs/workflow/books-workflow.md) |

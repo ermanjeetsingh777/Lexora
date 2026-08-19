@@ -7,6 +7,7 @@ import { BranchDropdownResponse, InstitutionDropdownResponse } from '@core/model
 import { CommonService } from '@core/services/common.service';
 import { StorageService } from '@core/services/storage.service';
 import { ToastService } from '@core/services/toast.service';
+import { BranchService } from '@features/branches/branch.service';
 import { InstitutionsService } from '@features/institutions/institutions.service';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { catchError, map, of, switchMap } from 'rxjs';
@@ -23,6 +24,7 @@ import { InstitutionStatus, OnboardingSteps } from '@core/enums/OnbardingSteps';
 export class CreateLibrary implements OnInit {
   readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly branchService = inject(BranchService);
   private readonly institutionsService = inject(InstitutionsService);
   private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
@@ -45,9 +47,14 @@ export class CreateLibrary implements OnInit {
   disabledBranchSelect = signal(false);
   loader = signal(false);
   readonly presetInstitutionId = this.route.snapshot.paramMap.get('institutionId');
-  readonly fromInstitutionDetail = this.router.url.includes('/addlibrary') && !!this.presetInstitutionId;
+  readonly presetBranchId = this.route.snapshot.paramMap.get('branchId');
+  readonly fromInstitutionDetail = !!this.presetInstitutionId;
+  readonly fromBranchDetail = !!this.presetBranchId;
 
   get backLink(): string | string[] {
+    if (this.fromBranchDetail && this.presetBranchId) {
+      return ['/branches', this.presetBranchId];
+    }
     if (this.fromInstitutionDetail && this.presetInstitutionId) {
       return ['/institutions', this.presetInstitutionId];
     }
@@ -55,6 +62,9 @@ export class CreateLibrary implements OnInit {
   }
 
   get backQueryParams(): { tab: string } | undefined {
+    if (this.fromBranchDetail && this.presetBranchId) {
+      return { tab: 'libraries' };
+    }
     if (this.fromInstitutionDetail && this.presetInstitutionId) {
       return { tab: 'libraries' };
     }
@@ -76,10 +86,15 @@ export class CreateLibrary implements OnInit {
     this.librariesForm.controls.institutionId.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((institutionId) => {
-        if (!this.fromInstitutionDetail) {
+        if (!this.fromInstitutionDetail && !this.fromBranchDetail) {
           this.onInstitutionChange(institutionId ?? '');
         }
       });
+
+    if (this.fromBranchDetail && this.presetBranchId) {
+      this.loadBranchContext(this.presetBranchId);
+      return;
+    }
 
     if (this.fromInstitutionDetail && this.presetInstitutionId) {
       this.loadInstitutions(this.presetInstitutionId, true);
@@ -103,6 +118,11 @@ export class CreateLibrary implements OnInit {
   }
 
   cancel(): void {
+    if (this.fromBranchDetail && this.presetBranchId) {
+      this.router.navigate(['/branches', this.presetBranchId], { queryParams: { tab: 'libraries' } });
+      return;
+    }
+
     if (this.fromInstitutionDetail && this.presetInstitutionId) {
       this.router.navigate(['/institutions', this.presetInstitutionId], { queryParams: { tab: 'libraries' } });
       return;
@@ -167,6 +187,8 @@ export class CreateLibrary implements OnInit {
 
           if (this.isOnboarding()) {
             this.router.navigate(['/dashboard']);
+          } else if (this.fromBranchDetail && this.presetBranchId) {
+            this.router.navigate(['/branches', this.presetBranchId], { queryParams: { tab: 'libraries' } });
           } else if (this.fromInstitutionDetail && this.presetInstitutionId) {
             this.router.navigate(['/institutions', this.presetInstitutionId], { queryParams: { tab: 'libraries' } });
           } else {
@@ -178,6 +200,40 @@ export class CreateLibrary implements OnInit {
         error: (error) => {
           this.toast.error(error.error.message || 'Unable to create library. Please try again.');
           this.loader.set(false);
+        },
+      });
+  }
+
+  private loadBranchContext(branchId: string): void {
+    this.branchService
+      .getDetailView(branchId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (branch) => {
+          const branchItem: BranchDropdownResponse = {
+            key: branch.name,
+            value: branch.id,
+            libraries: [],
+          };
+          const institutionItem: InstitutionDropdownResponse = {
+            key: branch.institutionName,
+            value: branch.institutionId,
+            branches: [branchItem],
+          };
+
+          this.institutions.set([institutionItem]);
+          this.librariesForm.controls.institutionId.setValue(branch.institutionId);
+          this.disabledInstitutionSelect.set(true);
+          this.librariesForm.get('institutionId')?.disable();
+
+          this.branches.set([branchItem]);
+          this.librariesForm.controls.branchId.setValue(branch.id);
+          this.disabledBranchSelect.set(true);
+          this.librariesForm.get('branchId')?.disable();
+        },
+        error: () => {
+          this.toast.error('Unable to load branch details.');
+          this.router.navigate(['/branches']);
         },
       });
   }

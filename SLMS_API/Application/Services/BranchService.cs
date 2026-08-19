@@ -232,6 +232,159 @@ public class BranchService : IBranchService
         };
     }
 
+    public async Task<BranchDetailViewResponse?> GetDetailViewAsync(
+        Guid branchId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await CanAccessBranchAsync(branchId, userId, cancellationToken))
+        {
+            return null;
+        }
+
+        var branch = await _dbContext.Branches
+            .AsNoTracking()
+            .Where(x => x.Id == branchId && !x.IsDeleted)
+            .Select(b => new
+            {
+                b.Id,
+                b.InstitutionId,
+                InstitutionName = b.Institution.Name,
+                b.Name,
+                b.Description,
+                b.City,
+                b.Address,
+                b.Email,
+                b.Phone,
+                Capacity = b.Capacity ?? 0,
+                b.Status,
+                b.IsActive,
+                b.OperatingHoursStart,
+                b.OperatingHoursEnd,
+                b.Latitude,
+                b.Longitude,
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (branch is null)
+        {
+            return null;
+        }
+
+        var branchIds = new[] { branchId };
+        var branchStats = await InstitutionStatsHelper.GetBranchStatsAsync(
+            _dbContext, branchIds, cancellationToken);
+        branchStats.TryGetValue(branchId, out var stats);
+        stats ??= new InstitutionBranchStats();
+
+        var managerNames = await GetBranchManagerNamesAsync(branchIds, cancellationToken);
+        managerNames.TryGetValue(branchId, out var managerName);
+
+        var nowUtc = DateTime.UtcNow;
+        var planRevenueRows = await LoadBranchPlanRevenueRowsAsync(branchIds, cancellationToken);
+        var revenue = InstitutionRevenueHelper.AggregateByBranch(planRevenueRows, nowUtc)
+            .GetValueOrDefault(branchId, InstitutionRevenueMetrics.Empty);
+
+        var endDate = nowUtc.Date;
+        var startDate14 = endDate.AddDays(-13);
+
+        var occupancyTrend = await BranchOverviewHelper.BuildOccupancyTrendAsync(
+            _dbContext, branchId, branch.Capacity, startDate14, endDate, cancellationToken);
+        var attendanceTrend = await BranchOverviewHelper.BuildAttendanceTrendAsync(
+            _dbContext, branchId, 14, cancellationToken);
+        var occupancyHeatmap = await BranchOverviewHelper.BuildOccupancyHeatmapAsync(
+            _dbContext, branchId, branch.Capacity, cancellationToken);
+        var peakHours = await BranchOverviewHelper.BuildPeakHoursAsync(
+            _dbContext, branchId, cancellationToken);
+        var footfallByShift = await BranchOverviewHelper.BuildFootfallByShiftAsync(
+            _dbContext, branchId, cancellationToken);
+        var avgFootfall = await BranchOverviewHelper.BuildAvgFootfallPerDayAsync(
+            _dbContext, branchId, cancellationToken);
+        var activity = await BranchOverviewHelper.BuildActivityAsync(
+            _dbContext, branchId, cancellationToken);
+
+        var libraries = await _dbContext.Libraries
+            .AsNoTracking()
+            .Where(x => x.BranchId == branchId && !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+
+        var libraryIds = libraries.Select(x => x.Id).ToList();
+        var libraryMemberCounts = libraryIds.Count == 0
+            ? new Dictionary<Guid, int>()
+            : await _dbContext.MemberLibraries
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted && x.IsCurrent && libraryIds.Contains(x.LibraryId))
+                .GroupBy(x => x.LibraryId)
+                .Select(g => new { LibraryId = g.Key, Count = g.Select(x => x.MemberId).Distinct().Count() })
+                .ToDictionaryAsync(x => x.LibraryId, x => x.Count, cancellationToken);
+
+        var libraryCards = libraries.Select(lib =>
+        {
+            libraryMemberCounts.TryGetValue(lib.Id, out var memberCount);
+            var capacity = lib.Capacity ?? 0;
+            var occupancyPercent = capacity > 0
+                ? Math.Round((decimal)memberCount / capacity * 100m, 1)
+                : 0m;
+
+            return new InstitutionLibraryCardResponse
+            {
+                Id = lib.Id,
+                BranchId = lib.BranchId,
+                Name = lib.Name,
+                BranchName = branch.Name,
+                City = branch.City,
+                Floor = lib.Floor,
+                Capacity = capacity,
+                MemberCount = memberCount,
+                OccupancyPercent = occupancyPercent,
+                Status = InstitutionUiHelper.ToLibraryStatusLabel(lib.Status, lib.IsActive),
+                IsActive = lib.IsActive
+            };
+        }).ToList();
+
+        var staff = await LoadBranchStaffAsync(branchId, cancellationToken);
+
+        return new BranchDetailViewResponse
+        {
+            Id = branch.Id,
+            InstitutionId = branch.InstitutionId,
+            InstitutionName = branch.InstitutionName,
+            Name = branch.Name,
+            Description = branch.Description,
+            City = branch.City,
+            Address = branch.Address,
+            Email = branch.Email,
+            Phone = branch.Phone,
+            ManagerName = managerName,
+            Status = InstitutionUiHelper.ToBranchStatusLabel(branch.Status, branch.IsActive),
+            IsActive = branch.IsActive,
+            HoursStart = branch.OperatingHoursStart?.ToString("HH:mm"),
+            HoursEnd = branch.OperatingHoursEnd?.ToString("HH:mm"),
+            Latitude = branch.Latitude,
+            Longitude = branch.Longitude,
+            Capacity = branch.Capacity,
+            MemberCount = stats.MemberCount,
+            OccupancyPercent = stats.OccupancyPercent,
+            LibraryCount = libraryCards.Count,
+            AvgFootfallPerDay = avgFootfall,
+            RevenueMtd = revenue.Mtd,
+            RevenuePreviousMtd = revenue.PreviousMtd,
+            RevenueMonthly = revenue.Monthly,
+            RevenueQuarterly = revenue.Quarterly,
+            RevenueYearly = revenue.Yearly,
+            RevenueAllTime = revenue.AllTime,
+            OccupancyTrend = occupancyTrend,
+            AttendanceTrend = attendanceTrend,
+            OccupancyHeatmap = occupancyHeatmap,
+            PeakHours = peakHours,
+            FootfallByShift = footfallByShift,
+            Libraries = libraryCards,
+            Staff = staff,
+            Activity = activity,
+        };
+    }
+
     private async Task<List<(Guid BranchId, decimal PaidAmount, DateTime CreatedAtUtc)>> LoadBranchPlanRevenueRowsAsync(
         IReadOnlyCollection<Guid> branchIds,
         CancellationToken cancellationToken)
@@ -287,6 +440,94 @@ public class BranchService : IBranchService
                     .ThenBy(x => x.AssignedAtUtc)
                     .First()
                     .ManagerName);
+    }
+
+    private async Task<bool> CanAccessBranchAsync(
+        Guid branchId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (await IsSuperAdminAsync(userId, cancellationToken))
+        {
+            return await _dbContext.Branches
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == branchId && !x.IsDeleted, cancellationToken);
+        }
+
+        var userIdString = userId.ToString();
+        var branch = await _dbContext.Branches
+            .AsNoTracking()
+            .Where(x => x.Id == branchId && !x.IsDeleted)
+            .Select(x => new { x.InstitutionId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (branch is null)
+        {
+            return false;
+        }
+
+        var hasInstitutionAccess = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .AnyAsync(ui => ui.UserId == userIdString && ui.IsActive && ui.InstitutionId == branch.InstitutionId, cancellationToken);
+
+        if (hasInstitutionAccess)
+        {
+            return true;
+        }
+
+        return await _dbContext.UserBranches
+            .AsNoTracking()
+            .AnyAsync(ub => ub.UserId == userIdString && ub.IsActive && ub.BranchId == branchId, cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<BranchStaffMemberResponse>> LoadBranchStaffAsync(
+        Guid branchId,
+        CancellationToken cancellationToken)
+    {
+        var assignments = await (
+            from ub in _dbContext.UserBranches.AsNoTracking()
+            join u in _dbContext.Users.AsNoTracking() on ub.UserId equals u.Id
+            where ub.BranchId == branchId && ub.IsActive
+            select new
+            {
+                u.Id,
+                Name = u.FullName ?? u.UserName ?? u.Email ?? "User",
+                u.PhoneNumber,
+                u.Email,
+                ub.IsPrimary,
+            }
+        ).ToListAsync(cancellationToken);
+
+        if (assignments.Count == 0)
+        {
+            return [];
+        }
+
+        var userIds = assignments.Select(x => x.Id).ToList();
+        var roleRows = await (
+            from ur in _dbContext.UserRoles.AsNoTracking()
+            join r in _dbContext.Roles.AsNoTracking() on ur.RoleId equals r.Id
+            where userIds.Contains(ur.UserId)
+            select new { ur.UserId, RoleName = r.Name }
+        ).ToListAsync(cancellationToken);
+
+        var rolesByUser = roleRows
+            .GroupBy(x => x.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.RoleName).FirstOrDefault());
+
+        return assignments
+            .OrderByDescending(x => x.IsPrimary)
+            .ThenBy(x => x.Name)
+            .Select(x => new BranchStaffMemberResponse
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Role = rolesByUser.GetValueOrDefault(x.Id),
+                Phone = x.PhoneNumber,
+                Email = x.Email,
+                IsPrimary = x.IsPrimary,
+            })
+            .ToList();
     }
 
     private async Task<bool> IsSuperAdminAsync(Guid userId, CancellationToken cancellationToken)

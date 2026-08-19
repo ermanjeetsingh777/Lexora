@@ -109,6 +109,7 @@ export const routes: Routes = [
                 children: [
                     { path: '', loadComponent: () => import('./features/institutions/institutions-list/institutions-list').then((m) => m.InstitutionsListComponent) },
                     { path: 'create', loadComponent: () => import('./features/institutions/institution-create/institution-create').then((m) => m.InstitutionCreate) },
+                    { path: ':institutionId/branches/:branchId', loadComponent: () => import('./features/branches/branch-detail-component/branch-detail.component').then((m) => m.BranchDetailComponent) },
                     { path: ':institutionId/addbranch', loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
                     { path: ':institutionId/addlibrary', loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
                     { path: ':institutionId', loadComponent: () => import('./features/institutions/institution-detail/institution-detail.component').then((m) => m.InstitutionDetailComponent) },
@@ -121,7 +122,8 @@ export const routes: Routes = [
                 children: [
                     { path: '', loadComponent: () => import('./features/branches/branch-list-component/branch-list-component').then((m) => m.BranchListComponent) },
                     { path: 'create', loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
-                    // { path: ':branchId', loadComponent: () => import('./features/branches/branch-detail.component').then((m) => m.BranchDetailComponent) },
+                    { path: ':branchId/addlibrary', loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
+                    { path: ':branchId', loadComponent: () => import('./features/branches/branch-detail-component/branch-detail.component').then((m) => m.BranchDetailComponent) },
                 ],
             },
 

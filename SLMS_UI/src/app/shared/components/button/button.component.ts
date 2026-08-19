@@ -4,13 +4,13 @@ import { buttonVariants, type ButtonSize, type ButtonVariant } from './button.va
 /**
  * Standalone button matching the shadcn/ui `Button` variants (default, destructive,
  * outline, secondary, ghost, link) and sizes (default, sm, lg, icon).
- * `host: { style: 'display:contents' }` keeps the wrapper transparent to layout,
- * so `<app-button>` behaves visually like a plain `<button>`.
+ * `host: { class: 'inline-flex' }` keeps the wrapper aligned with button layout
+ * so click handlers on `<app-button>` receive events reliably.
  */
 @Component({
   selector: 'app-button',
   standalone: true,
-  host: { style: 'display:contents' },
+  host: { class: 'inline-flex' },
   template: `
     <button [type]="type()" [disabled]="disabled()" [class]="classes()">
       <ng-content />

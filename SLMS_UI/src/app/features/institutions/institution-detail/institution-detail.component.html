@@ -7,7 +7,7 @@
     <a routerLink="/institutions" class="inline-block mt-4 text-sm text-primary hover:underline">Back to institutions</a>
   </app-glass-card>
 } @else if (institution(); as inst) {
-  <app-page-header [isBack]="true" routerLink="/institutions"
+  <app-page-header [isBack]="true" [backLink]="'/institutions'"
   eyebrow="Institutions"
   [title]="inst.name"
   [description]="subtitle() || '—'"
@@ -397,7 +397,7 @@
                     @for (b of pagedBranches(); track b.id) {
                       <tr class="hover:bg-muted/40">
                         <td class="py-2.5 pr-4 align-middle">
-                          <a routerLink="/branches" class="font-medium hover:text-primary">{{ b.name }}</a>
+                          <a [routerLink]="['/institutions', institutionId(), 'branches', b.id]" class="font-medium hover:text-primary">{{ b.name }}</a>
                           <div class="label-mono flex items-center gap-1 mt-0.5 text-[var(--muted-foreground)]">
                             <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>{{ b.city ?? '—' }}
                           </div>
@@ -484,7 +484,7 @@
                 <div class="space-y-3 mt-2">
                   <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0">
-                      <p class="font-medium">{{ top.name }}</p>
+                      <a [routerLink]="['/institutions', institutionId(), 'branches', top.branchId]" class="font-medium hover:text-primary">{{ top.name }}</a>
                       <p class="label-mono">{{ top.city ?? '—' }}</p>
                     </div>
                     <span class="inst-detail-performer-badge">
@@ -511,7 +511,7 @@
                 @for (b of view.needsAttention; track b.branchId) {
                   <li>
                     <div class="min-w-0">
-                      <p class="font-medium">{{ b.name }}</p>
+                      <a [routerLink]="['/institutions', institutionId(), 'branches', b.branchId]" class="font-medium hover:text-primary">{{ b.name }}</a>
                       <p class="label-mono">{{ b.city ?? '—' }}</p>
                     </div>
                     <span class="inst-detail-attention-badge tabular-nums">{{ b.occupancyPercent }}%</span>

@@ -1,0 +1,139 @@
+.branch-activity-filter {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  color: var(--muted-foreground);
+  background: var(--background);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.branch-activity-filter:hover {
+  border-color: color-mix(in oklch, var(--primary) 25%, var(--border));
+  color: var(--foreground);
+}
+
+.branch-activity-filter--active {
+  background: color-mix(in oklch, var(--primary) 12%, var(--background));
+  border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
+  color: var(--primary);
+}
+
+.branch-occupancy-chart-card {
+  /* padding: 1.25rem; */
+}
+
+.branch-occupancy-chart {
+  height: 240px;
+  margin-top: 0.5rem;
+}
+
+.branch-occupancy-chart :where(p-chart),
+.branch-occupancy-chart :where(canvas) {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.branch-footfall-chart-card {
+  /* padding: 1.25rem; */
+}
+
+.branch-footfall-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+}
+
+.branch-footfall-chart {
+  height: 220px;
+}
+
+.branch-footfall-chart :where(p-chart),
+.branch-footfall-chart :where(canvas) {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.branch-footfall-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  padding-top: 0.125rem;
+}
+
+.branch-footfall-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: var(--muted-foreground);
+}
+
+.branch-footfall-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.branch-shift-mix-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  margin-top: 0.125rem;
+}
+
+.branch-shift-mix-donut {
+  width: 100%;
+  max-width: 180px;
+  height: 180px;
+  margin-inline: auto;
+  flex: 0 0 auto;
+}
+
+.branch-shift-mix-donut :where(p-chart),
+.branch-shift-mix-donut :where(canvas) {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.branch-shift-mix-legend {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: center;
+  column-gap: 1rem;
+  row-gap: 0.375rem;
+  width: 100%;
+  padding-top: 0.125rem;
+}
+
+.branch-shift-mix-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.branch-shift-mix-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}

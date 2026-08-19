@@ -1,9 +1,17 @@
 @if(showPageHeader()){
-  @if (fromInstitutionDetail) {
+  @if (fromBranchDetail) {
     <app-page-header
       [isBack]="true"
-      [routerLink]="backLink"
-      [queryParams]="backQueryParams"
+      [backLink]="backLink"
+      [backQueryParams]="backQueryParams"
+      eyebrow="Branches"
+      title="Add library"
+      description="Create a new library under this branch." />
+  } @else if (fromInstitutionDetail) {
+    <app-page-header
+      [isBack]="true"
+      [backLink]="backLink"
+      [backQueryParams]="backQueryParams"
       eyebrow="Institutions"
       title="Add library"
       description="Create a new library under this institution." />

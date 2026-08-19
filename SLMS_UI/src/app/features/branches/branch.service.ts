@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { BranchListQuery, BranchListView } from '@core/models/branch-list.models';
+import { BranchDetailView } from '@core/models/branch-detail.models';
 import { CreateBranchRequest } from '@core/models/CreateBranchRequest';
 import { ApiService } from '@core/services/api.service';
 import { map, Observable } from 'rxjs';
@@ -15,6 +16,10 @@ export class BranchService {
     if (query?.status) params['status'] = query.status;
     if (query?.institutionId) params['institutionId'] = query.institutionId;
     return this.httpApi.get<BranchListView>('branches/list', { params }).pipe(map((r) => r.data!));
+  }
+
+  getDetailView(branchId: string): Observable<BranchDetailView> {
+    return this.httpApi.get<BranchDetailView>(`branches/${branchId}`).pipe(map((r) => r.data!));
   }
 
   createBranches(payload: CreateBranchRequest): Observable<APIResponseModel<CreateBranchRequest>> {

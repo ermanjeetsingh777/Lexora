@@ -206,8 +206,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           @for (b of paged(); track b.id) {
             <a
-              [routerLink]="['/institutions', b.institutionId]"
-              [queryParams]="{ tab: 'branches' }"
+              [routerLink]="['/branches', b.id]"
               class="block h-full group"
             >
               <app-glass-card
@@ -345,8 +344,7 @@
                   class="hover:bg-muted/40 cursor-pointer"
                   [class.branch-row--attention]="isNeedsAttention(b.id)"
                   [class.branch-row--top]="isTopPerformer(b.id)"
-                  [routerLink]="['/institutions', b.institutionId]"
-                  [queryParams]="{ tab: 'branches' }"
+                  [routerLink]="['/branches', b.id]"
                 >
                   <td class="py-2.5 px-3">
                     <div class="flex items-center gap-2 min-w-0">

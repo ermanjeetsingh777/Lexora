@@ -32,4 +32,23 @@ public class BranchListController : ControllerBase
         var view = await _branchService.GetListViewAsync(query, userId, cancellationToken);
         return Ok(ApiResponse<BranchListViewResponse>.Ok(view));
     }
+
+    [HttpGet("{branchId:guid}")]
+    public async Task<ActionResult<ApiResponse<BranchDetailViewResponse>>> GetDetailView(
+        Guid branchId,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var view = await _branchService.GetDetailViewAsync(branchId, userId, cancellationToken);
+        if (view is null)
+        {
+            return NotFound(ApiResponse<BranchDetailViewResponse>.Fail("Branch not found."));
+        }
+
+        return Ok(ApiResponse<BranchDetailViewResponse>.Ok(view));
+    }
 }

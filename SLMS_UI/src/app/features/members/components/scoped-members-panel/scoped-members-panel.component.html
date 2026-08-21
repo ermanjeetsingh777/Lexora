@@ -1,7 +1,7 @@
 <app-section-header [title]="title()" [description]="description()">
   <div actions class="flex items-center gap-2">
     <span class="label-mono tabular-nums">{{ members().length }} total · {{ activeCount() }} active</span>
-    <a routerLink="/members/create">
+    <a [routerLink]="createMemberLink()">
       <app-button size="sm">
         <svg lucideUsers class="h-3.5 w-3.5 mr-1"></svg>
         Add member

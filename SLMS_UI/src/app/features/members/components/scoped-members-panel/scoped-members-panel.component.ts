@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -56,6 +56,7 @@ const STATUS_OPTS = ['Active', 'Inactive', 'Suspended'] as const;
 })
 export class ScopedMembersPanelComponent {
   private readonly memberService = inject(MemberService);
+  private readonly router = inject(Router);
   readonly commonService = inject(CommonService);
 
   readonly scope = input.required<MemberScope>();
@@ -121,6 +122,28 @@ export class ScopedMembersPanelComponent {
 
   readonly showBranchColumn = computed(() => this.scope() === 'institution');
   readonly showLibraryColumn = computed(() => this.scope() !== 'library');
+
+  readonly createMemberLink = computed((): string[] => {
+    const scope = this.scope();
+    const institutionId = this.institutionId();
+    const branchId = this.branchId();
+    const libraryId = this.libraryId();
+    const onInstitutionRoute = this.router.url.includes('/institutions/');
+
+    if (scope === 'library' && libraryId) {
+      return ['/libraries', libraryId, 'members', 'create'];
+    }
+    if (scope === 'branch' && branchId) {
+      if (onInstitutionRoute && institutionId) {
+        return ['/institutions', institutionId, 'branches', branchId, 'members', 'create'];
+      }
+      return ['/branches', branchId, 'members', 'create'];
+    }
+    if (scope === 'institution' && institutionId) {
+      return ['/institutions', institutionId, 'members', 'create'];
+    }
+    return ['/members', 'create'];
+  });
 
   constructor() {
     effect(() => {

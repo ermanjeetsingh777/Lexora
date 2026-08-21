@@ -1,11 +1,13 @@
-import { Component, DestroyRef, inject, input, OnDestroy, signal, WritableSignal } from '@angular/core';
+import { Component, DestroyRef, inject, input, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Shift } from '@core/constType';
 import { BranchDropdownResponse, InstitutionDropdownResponse, KeyValueResponse, LibraryDropdownResponse } from '@core/models/institution-dropdown.model';
 import { ToastService } from '@core/services/toast.service';
+import { BranchService } from '@features/branches/branch.service';
 import { InstitutionsService } from '@features/institutions/institutions.service';
+import { LibraryService } from '@features/libraries/library.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { MemberService } from '../MemberService';
@@ -14,26 +16,37 @@ import { APIResponseModel } from '@core/models/APIResponseModel';
 import { CreateMemberRequest, MemberDetailResponse } from '@core/models/MemberRequest';
 import { CommonService } from '@core/services/common.service';
 
-
-
 @Component({
   selector: 'app-create-member-component',
   imports: [FormsModule, ButtonComponent, PageHeaderComponent, GlassCardComponent, ReactiveFormsModule],
   templateUrl: './create-member-component.html',
   styleUrl: './create-member-component.css',
-  providers: [InstitutionsService, MemberService]
+  providers: [InstitutionsService, MemberService],
 })
-export class CreateMemberComponent implements OnDestroy {
+export class CreateMemberComponent implements OnInit, OnDestroy {
   private readonly institutionsService = inject(InstitutionsService);
   private readonly memberService = inject(MemberService);
+  private readonly branchService = inject(BranchService);
+  private readonly libraryService = inject(LibraryService);
   readonly commonService = inject(CommonService);
   private destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
 
+  private scopeInstitutionId: string | null = null;
+  private scopeBranchId: string | null = null;
+  private scopeLibraryId: string | null = null;
+  private scopeApplied = false;
+  private dropdownReady = false;
+
+  readonly lockedInstitution = signal(false);
+  readonly lockedBranch = signal(false);
+  readonly lockedLibrary = signal(false);
+
   showPageHeader = input(true, {
-    transform: (value: boolean | undefined) => value ?? true
+    transform: (value: boolean | undefined) => value ?? true,
   });
 
   memberForm = this.fb.nonNullable.group({
@@ -46,12 +59,13 @@ export class CreateMemberComponent implements OnDestroy {
     phone: ['', [Validators.pattern(/^[6-9]\d{9}$/), Validators.required]],
     email: ['', [Validators.email, Validators.maxLength(150), Validators.required]],
     dateOfBirth: [null as Date | null, Validators.required],
-    gender: ['', Validators.required]
+    gender: ['', Validators.required],
   });
 
   get f() {
     return this.memberForm.controls;
   }
+
   readonly busy = signal(false);
   readonly photoFile = signal<File | null>(null);
   readonly photoPreview = signal<string | null>(null);
@@ -65,31 +79,198 @@ export class CreateMemberComponent implements OnDestroy {
   plans: WritableSignal<KeyValueResponse[]> = signal([]);
   loader = signal(false);
 
-  ngOnInit() {
+  get routeParams(): Record<string, string> {
+    const params: Record<string, string> = {};
+    let snapshot = this.route.snapshot;
+    while (snapshot) {
+      for (const [key, value] of Object.entries(snapshot.params)) {
+        if (value) params[key] = value;
+      }
+      snapshot = snapshot.parent!;
+    }
+    return params;
+  }
+
+  get fromLibraryDetail(): boolean {
+    return !!this.routeParams['libraryId'];
+  }
+
+  get fromBranchDetail(): boolean {
+    return !!this.routeParams['branchId'] && !this.routeParams['libraryId'];
+  }
+
+  get fromInstitutionDetail(): boolean {
+    return !!this.routeParams['institutionId'] && !this.routeParams['branchId'] && !this.routeParams['libraryId'];
+  }
+
+  get fromMembersList(): boolean {
+    return !this.fromLibraryDetail && !this.fromBranchDetail && !this.fromInstitutionDetail;
+  }
+
+  get backLink(): string | string[] {
+    const params = this.routeParams;
+    if (params['libraryId']) {
+      return ['/libraries', params['libraryId']];
+    }
+    if (params['branchId'] && params['institutionId']) {
+      return ['/institutions', params['institutionId'], 'branches', params['branchId']];
+    }
+    if (params['branchId']) {
+      return ['/branches', params['branchId']];
+    }
+    if (params['institutionId']) {
+      return ['/institutions', params['institutionId']];
+    }
+    return ['/members'];
+  }
+
+  get backQueryParams(): { tab: string } | undefined {
+    if (this.fromMembersList) return undefined;
+    return { tab: 'members' };
+  }
+
+  ngOnInit(): void {
     this.institutionsService.getInstitutionBranchForDropdown().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
-        if (response && response.data) {
+        if (response?.data) {
           this.institutions.set(response.data);
           this.memberForm.get('branchId')?.disable();
           this.memberForm.get('libraryId')?.disable();
-         this.memberForm.get('planId')?.disable();
+          this.memberForm.get('planId')?.disable();
+          this.dropdownReady = true;
+          this.initRouteScope();
         }
       },
-      error: (error) => {
+      error: () => {
         this.institutions.set([]);
-      }
+      },
     });
+  }
+
+  private initRouteScope(): void {
+    const params = this.routeParams;
+
+    if (params['libraryId']) {
+      this.scopeLibraryId = params['libraryId'];
+      this.lockedLibrary.set(true);
+
+      if (params['institutionId'] && params['branchId']) {
+        this.scopeInstitutionId = params['institutionId'];
+        this.scopeBranchId = params['branchId'];
+        this.lockedInstitution.set(true);
+        this.lockedBranch.set(true);
+        this.applyScopeSelection();
+        return;
+      }
+
+      this.libraryService.getDetailView(params['libraryId']).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (library) => {
+          this.scopeInstitutionId = library.institutionId;
+          this.scopeBranchId = library.branchId;
+          this.lockedInstitution.set(true);
+          this.lockedBranch.set(true);
+          this.applyScopeSelection();
+        },
+        error: () => this.toast.error('Unable to load library context.'),
+      });
+      return;
+    }
+
+    if (params['branchId']) {
+      this.scopeBranchId = params['branchId'];
+      this.lockedBranch.set(true);
+
+      if (params['institutionId']) {
+        this.scopeInstitutionId = params['institutionId'];
+        this.lockedInstitution.set(true);
+        this.applyScopeSelection();
+        return;
+      }
+
+      this.branchService.getDetailView(params['branchId']).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (branch) => {
+          this.scopeInstitutionId = branch.institutionId;
+          this.lockedInstitution.set(true);
+          this.applyScopeSelection();
+        },
+        error: () => this.toast.error('Unable to load branch context.'),
+      });
+      return;
+    }
+
+    if (params['institutionId']) {
+      this.scopeInstitutionId = params['institutionId'];
+      this.lockedInstitution.set(true);
+      this.applyScopeSelection();
+    }
+  }
+
+  private applyScopeSelection(): void {
+    if (this.scopeApplied || !this.dropdownReady || !this.scopeInstitutionId) return;
+
+    const institution = this.institutions().find((i) => i.value === this.scopeInstitutionId);
+    if (!institution) return;
+
+    this.f.institutionId.setValue(this.scopeInstitutionId);
+    this.loadBranchesForInstitution(this.scopeInstitutionId);
+
+    if (this.scopeBranchId) {
+      const branch = this.branches().find((b) => b.value === this.scopeBranchId);
+      if (!branch) return;
+
+      this.f.branchId.setValue(this.scopeBranchId);
+      this.loadLibrariesForBranch(this.scopeBranchId);
+
+      if (this.scopeLibraryId) {
+        const library = this.libraries().find((l) => l.value === this.scopeLibraryId);
+        if (!library) return;
+
+        this.f.libraryId.setValue(this.scopeLibraryId);
+        this.loadPlansForLibrary(this.scopeLibraryId);
+        this.memberForm.get('planId')?.enable();
+      } else {
+        this.memberForm.get('libraryId')?.enable();
+      }
+    } else {
+      this.memberForm.get('branchId')?.enable();
+    }
+
+    if (this.lockedInstitution()) {
+      this.memberForm.get('institutionId')?.disable();
+    }
+    if (this.lockedBranch()) {
+      this.memberForm.get('branchId')?.disable();
+    }
+    if (this.lockedLibrary()) {
+      this.memberForm.get('libraryId')?.disable();
+    }
+
+    this.scopeApplied = true;
+  }
+
+  private loadBranchesForInstitution(institutionId: string): void {
+    const institution = this.institutions().find((i) => i.value === institutionId);
+    this.branches.set(institution?.branches ?? []);
+  }
+
+  private loadLibrariesForBranch(branchId: string): void {
+    const branch = this.branches().find((b) => b.value === branchId);
+    this.libraries.set(branch?.libraries ?? []);
+  }
+
+  private loadPlansForLibrary(libraryId: string): void {
+    const library = this.libraries().find((l) => l.value === libraryId);
+    this.plans.set(library?.plans ?? []);
   }
 
   onInstitutionChange(): void {
     const institutionId = this.f.institutionId.value;
-    const branches = this.institutions().filter((b) => b.value === institutionId)[0].branches;
-    this.branches.set(branches);
     this.libraries.set([]);
     this.plans.set([]);
     this.f.branchId.reset();
     this.f.libraryId.reset();
     this.f.planId.reset();
+    this.loadBranchesForInstitution(institutionId);
     this.memberForm.get('branchId')?.enable();
     this.memberForm.get('libraryId')?.disable();
     this.memberForm.get('planId')?.disable();
@@ -102,11 +283,7 @@ export class CreateMemberComponent implements OnDestroy {
     this.f.planId.reset();
     this.libraries.set([]);
     this.plans.set([]);
-    // Simulate libraries per branch
-    const branch = this.branches().find((b) => b.value === branchId);
-    if (branch) {
-      this.libraries.set(this.branches().filter((b) => b.value === branchId)[0].libraries);
-    }
+    this.loadLibrariesForBranch(branchId);
     this.memberForm.get('libraryId')?.enable();
     this.memberForm.get('planId')?.disable();
   }
@@ -114,11 +291,7 @@ export class CreateMemberComponent implements OnDestroy {
   onlibrariesChange(): void {
     const libraryId = this.f.libraryId.value;
     this.f.planId.reset();
-    // Simulate libraries per branch
-    const library = this.libraries().find((b) => b.value === libraryId);
-    if (library) {
-      this.plans.set(this.libraries().filter((b) => b.value === libraryId)[0].plans);
-    }
+    this.loadPlansForLibrary(libraryId);
     this.memberForm.get('planId')?.enable();
   }
 
@@ -195,6 +368,13 @@ export class CreateMemberComponent implements OnDestroy {
     if (aadhaarPrevious) URL.revokeObjectURL(aadhaarPrevious);
   }
 
+  private navigateBack(): void {
+    const link = this.backLink;
+    this.router.navigate(Array.isArray(link) ? link : [link], {
+      queryParams: this.backQueryParams,
+    });
+  }
+
   async onSubmit(): Promise<void> {
     if (this.memberForm.invalid) {
       this.memberForm.markAllAsTouched();
@@ -211,7 +391,7 @@ export class CreateMemberComponent implements OnDestroy {
       gender: formValue.gender,
       planId: formValue.planId,
       shift: formValue.shift,
-    }
+    };
 
     this.memberService.createMember(formValue.institutionId, formValue.branchId, formValue.libraryId, request).pipe(
       switchMap((response) => {
@@ -231,7 +411,7 @@ export class CreateMemberComponent implements OnDestroy {
     ).subscribe({
       next: () => {
         this.toast.success('Member created successfully.');
-        this.router.navigate(['/members']);
+        this.navigateBack();
         this.loader.set(false);
       },
       error: (error) => {
@@ -242,13 +422,12 @@ export class CreateMemberComponent implements OnDestroy {
           this.toast.error(message || 'Unable to create member. Please try again.');
         }
         this.loader.set(false);
-      }
+      },
     });
-
   }
 
   cancel(): void {
-    this.memberForm.reset();
-    this.router.navigate(['/members']);
+    this.memberForm.reset({ shift: 'General' });
+    this.navigateBack();
   }
 }

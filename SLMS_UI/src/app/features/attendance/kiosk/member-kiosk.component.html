@@ -89,8 +89,15 @@
         }
 
         @if (lastMessage()) {
-          <p class="text-sm text-emerald-300 flex items-center justify-center gap-2 mt-4">
-            <svg lucideCheckCircle2 class="h-4 w-4"></svg>{{ lastMessage() }}
+          <p class="text-sm flex items-center justify-center gap-2 mt-4"
+            [class.text-emerald-300]="!lastMessageIsError()"
+            [class.text-rose-300]="lastMessageIsError()">
+            @if (lastMessageIsError()) {
+              <svg lucideXCircle class="h-4 w-4"></svg>
+            } @else {
+              <svg lucideCheckCircle2 class="h-4 w-4"></svg>
+            }
+            {{ lastMessage() }}
           </p>
         }
         @if (isDone()) {

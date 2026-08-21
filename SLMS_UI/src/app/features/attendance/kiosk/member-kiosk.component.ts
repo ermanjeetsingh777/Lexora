@@ -4,6 +4,7 @@ import {
   LucideCheckCircle2, LucideLogIn, LucideLogOut, LucideQrCode, LucideXCircle,
 } from '@lucide/angular';
 import { AttendanceKioskService } from '@core/services/attendance-kiosk.service';
+import { KioskDeviceService } from '@core/services/kiosk-device.service';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { MemberScannerContext, ScannerMemberStatus, AttendanceSeatOption } from '@core/models/attendanceModels';
 import { AttendanceSeatPickerComponent } from '../components/attendance-seat-picker/attendance-seat-picker.component';
@@ -22,6 +23,7 @@ import { formatAttendanceDisplayTime } from '../attendance-format.util';
 export class MemberKioskComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly kiosk = inject(AttendanceKioskService);
+  private readonly device = inject(KioskDeviceService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -29,6 +31,7 @@ export class MemberKioskComponent implements OnInit {
   readonly context = signal<MemberScannerContext | null>(null);
   readonly memberStatus = signal<ScannerMemberStatus | null>(null);
   readonly lastMessage = signal<string | null>(null);
+  readonly lastMessageIsError = signal(false);
   readonly librarySeats = signal<AttendanceSeatOption[]>([]);
   readonly seatsLoading = signal(false);
   readonly selectedSeatNumber = signal<string | null>(null);
@@ -53,8 +56,17 @@ export class MemberKioskComponent implements OnInit {
       return;
     }
 
-    this.kiosk.getMemberContext(token).subscribe({
+    const deviceId = this.device.getDeviceId();
+
+    this.kiosk.getMemberContext(token, deviceId).subscribe({
       next: (ctx) => {
+        const blocked = this.device.validateMemberAccess(ctx.memberId);
+        if (blocked) {
+          this.loading.set(false);
+          this.error.set(blocked);
+          return;
+        }
+
         this.context.set(ctx);
         this.loading.set(false);
         this.loadStatus(ctx.token);
@@ -76,7 +88,7 @@ export class MemberKioskComponent implements OnInit {
       : action;
 
     if (resolvedAction === 'check-in' && !this.selectedSeatNumber()) {
-      this.lastMessage.set('Please select an available seat before checking in.');
+      this.setMessage('Please select an available seat before checking in.', true);
       return;
     }
 
@@ -84,20 +96,27 @@ export class MemberKioskComponent implements OnInit {
     this.kiosk.recordMember({
       memberToken: ctx.token,
       action,
+      deviceId: this.device.getDeviceId(),
       seatNumber: resolvedAction === 'check-in' ? this.selectedSeatNumber() ?? undefined : undefined,
     }).subscribe({
       next: (result) => {
         this.busy.set(false);
-        this.lastMessage.set(result.message);
+        this.setMessage(result.message, false);
+        this.device.bindMember(ctx.memberId, ctx.fullName);
         this.selectedSeatNumber.set(null);
         this.loadStatus(ctx.token);
         this.loadSeats(ctx.token);
       },
       error: (err) => {
         this.busy.set(false);
-        this.lastMessage.set(err?.error?.message ?? 'Attendance action failed');
+        this.setMessage(err?.error?.message ?? 'Attendance action failed', true);
       },
     });
+  }
+
+  private setMessage(message: string | null, isError = false): void {
+    this.lastMessage.set(message);
+    this.lastMessageIsError.set(isError);
   }
 
   private loadStatus(token: string): void {

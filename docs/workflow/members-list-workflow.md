@@ -36,6 +36,11 @@ flowchart LR
 | `/members` | `MembersListComponent` | `SLMS_UI/src/app/features/members/members-list-component/` |
 | `/members/create` | `CreateMemberComponent` | `SLMS_UI/src/app/features/members/create-member-component/` |
 | `/members/:memberId` | `MemberDetailsComponent` | `SLMS_UI/src/app/features/members/member-details-component/` |
+| `/institutions/:institutionId/members/create` | `CreateMemberComponent` | Institution scope locked |
+| `/branches/:branchId/members/create` | `CreateMemberComponent` | Branch scope locked |
+| `/libraries/:libraryId/members/create` | `CreateMemberComponent` | Library scope locked |
+
+> Full nested route matrix: [scoped-members-workflow.md](./scoped-members-workflow.md)
 
 Route config: `SLMS_UI/src/app/app.routes.ts`  
 Navigation: `SLMS_UI/src/app/core/constants/navigation.ts`
@@ -204,6 +209,9 @@ Drives row styling, filters, KPI clicks, and “needs action” banner.
 | Method | HTTP | Endpoint |
 |--------|------|----------|
 | `getAllMembers()` | GET | `members` |
+| `getInstitutionMembers(institutionId)` | GET | `institutions/{id}/members` |
+| `getBranchMembers(institutionId, branchId)` | GET | `institutions/{id}/branches/{branchId}/members` |
+| `getLibraryMember(inst, branch, lib)` | GET | `institutions/.../libraries/.../members` |
 | `renewMembership(id)` | POST | `members/{id}/renew` |
 | `changePlanOrShift(id, body)` | POST | `members/{id}/plan-or-shift` |
 | `getMemberById(id)` | GET | `members/{id}` |
@@ -260,6 +268,25 @@ sequenceDiagram
 | POST | `/` | `Create` |
 
 Used for library-scoped list/create; global list page uses `AllMembersController`.
+
+#### `InstitutionMembersController`
+
+**Route:** `api/v1/institutions/{institutionId}/members`  
+**Auth:** Manual `UserId` check → `401` if unauthenticated.
+
+| HTTP | Route | Action |
+|------|-------|--------|
+| GET | `/` | `GetInstitutionMemberListAsync` |
+
+#### `BranchMembersController`
+
+**Route:** `api/v1/institutions/{institutionId}/branches/{branchId}/members`
+
+| HTTP | Route | Action |
+|------|-------|--------|
+| GET | `/` | `GetBranchMemberListAsync` |
+
+See [scoped-members-workflow.md](./scoped-members-workflow.md) for UI integration.
 
 ### 3.3 `GetAllMemberListAsync` logic
 
@@ -379,6 +406,8 @@ SLMS_UI/src/app/
 SLMS_API/
 ├── Controllers/AllMembersController.cs
 ├── Controllers/MembersController.cs
+├── Controllers/InstitutionMembersController.cs
+├── Controllers/BranchMembersController.cs
 ├── Application/Services/MemberService.cs
 ├── Application/Services/Interfaces/IMemberService.cs
 ├── Application/Contracts/Organizations/Responses/MemberListResponse.cs
@@ -406,6 +435,7 @@ SLMS_API/
 ## 7. Related docs
 
 - Member details: [members-detail-workflow.md](./members-detail-workflow.md)
+- Scoped members (detail tabs): [scoped-members-workflow.md](./scoped-members-workflow.md)
 - Institution details: [institution-detail-workflow.md](./institution-detail-workflow.md)
 - Libraries list: [libraries-list-workflow.md](./libraries-list-workflow.md)
 - Books & circulation: [books-workflow.md](./books-workflow.md)

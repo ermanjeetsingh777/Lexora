@@ -8,8 +8,10 @@ End-to-end workflow for the **Member Details** feature across **SLMS_UI** (Angul
 
 | Layer | Entry | Strategy |
 |-------|--------|----------|
-| **Angular** | Route `/members/:memberId` | Tabbed single page; multiple API calls per tab/feature |
+| **Angular** | Route `/members/:memberId` or nested contextual routes | Tabbed single page; multiple API calls per tab/feature |
 | **.NET** | `GET /api/v1/members/{id}` + attendance endpoints | Aggregated detail DTO + separate attendance APIs |
+
+> Nested routes (e.g. `/institutions/{id}/members/{memberId}`) use the same component and API; back navigation is context-aware via `entity-routes.util.ts`. See [scoped-members-workflow.md](./scoped-members-workflow.md).
 
 ```mermaid
 flowchart TB
@@ -32,11 +34,15 @@ flowchart TB
 
 | Route | Component | File |
 |-------|-----------|------|
-| `/members/:memberId` | `MemberDetailsComponent` | `SLMS_UI/src/app/features/members/member-details-component/` |
+| `/members/:memberId` | `MemberDetailsComponent` | Global entry |
+| `/institutions/:institutionId/members/:memberId` | Same | Back → institution `?tab=members` |
+| `/institutions/:institutionId/branches/:branchId/members/:memberId` | Same | Back → branch `?tab=members` |
+| `/branches/:branchId/members/:memberId` | Same | Back → branch `?tab=members` |
+| `/libraries/:libraryId/members/:memberId` | Same | Back → library `?tab=members` |
 
-Route param: `memberId` from `ActivatedRoute.snapshot.paramMap`.
+Route params: `memberId` plus optional `institutionId`, `branchId`, `libraryId` from parent segments (`collectRouteParams`).
 
-Entry from list: `routerLink="['/members', m.id]"`.
+Entry from list: `routerLink` via `memberDetailLink()` or `['/members', m.id]`.
 
 ### 2.2 Page layout
 
@@ -536,6 +542,7 @@ SLMS_UI/src/app/
 │   ├── models/MemberRequest.ts
 │   ├── models/attendanceModels.ts
 │   ├── models/book.models.ts
+│   ├── utils/entity-routes.util.ts          # memberBackNav, memberDetailLink
 │   └── services/attendance.service.ts
 └── features/
     ├── books/
@@ -595,6 +602,7 @@ SLMS_API/
 ## 8. Related docs
 
 - Members list workflow: [members-list-workflow.md](./members-list-workflow.md)
+- Scoped members (detail tabs + nested URLs): [scoped-members-workflow.md](./scoped-members-workflow.md)
 - Books & circulation: [books-workflow.md](./books-workflow.md)
 - Attendance QR kiosk: [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md)
 - Membership expiry plan: `docs/lovable-source/.lovable/plan/membership-expiry-across-members-list-details-2026-08-04.md`

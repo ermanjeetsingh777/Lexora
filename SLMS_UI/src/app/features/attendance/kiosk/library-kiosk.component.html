@@ -17,6 +17,12 @@
         {{ error() }}
       </div>
     } @else {
+      @if (lastMessage() && lastMessageIsError()) {
+        <div class="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-center text-rose-200 mb-4">
+          <svg lucideXCircle class="inline h-4 w-4 mr-2 align-text-bottom"></svg>{{ lastMessage() }}
+        </div>
+      }
+
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <section class="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
           <div class="flex items-center gap-2 mb-3">
@@ -137,8 +143,15 @@
             }
 
             @if (lastMessage()) {
-              <p class="text-sm text-emerald-300 flex items-center gap-2 mt-4">
-                <svg lucideCheckCircle2 class="h-4 w-4"></svg>{{ lastMessage() }}
+              <p class="text-sm flex items-center gap-2 mt-4"
+                [class.text-emerald-300]="!lastMessageIsError()"
+                [class.text-rose-300]="lastMessageIsError()">
+                @if (lastMessageIsError()) {
+                  <svg lucideXCircle class="h-4 w-4"></svg>
+                } @else {
+                  <svg lucideCheckCircle2 class="h-4 w-4"></svg>
+                }
+                {{ lastMessage() }}
               </p>
             }
             @if (isDone()) {

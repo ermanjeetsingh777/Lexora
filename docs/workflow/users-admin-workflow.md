@@ -350,6 +350,7 @@ SLMS_API/
 
 - [administration-workflow.md](./administration-workflow.md) — permission model overview
 - [members-list-workflow.md](./members-list-workflow.md) — member accounts (separate from staff users)
+- [scoped-members-workflow.md](./scoped-members-workflow.md) — scoped member tabs on detail pages
 - [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md) — `attendance.scanner.use` permission
 
 ---

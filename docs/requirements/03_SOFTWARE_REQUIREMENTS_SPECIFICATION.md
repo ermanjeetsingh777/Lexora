@@ -1171,14 +1171,25 @@ GET    /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}/seats
 
 #### Member Endpoints
 ```
-GET    /api/v1/institutions/{instId}/branches/{branchId}/members                    - List members
-POST   /api/v1/institutions/{instId}/branches/{branchId}/members                    - Create member
-GET    /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}         - Get member
-PUT    /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}         - Update member
-DELETE /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}         - Delete member
-POST   /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}/transfer - Transfer member
-POST   /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}/change-status - Change status
-GET    /api/v1/institutions/{instId}/branches/{branchId}/members/search             - Search members
+GET    /api/v1/members                                                              - Global member list (JWT)
+GET    /api/v1/members/{memberId}                                                   - Member detail (JWT)
+GET    /api/v1/institutions/{instId}/members                                        - Institution-scoped member list (JWT)
+GET    /api/v1/institutions/{instId}/branches/{branchId}/members                    - Branch-scoped member list (JWT)
+GET    /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}/members - Library-scoped member list (JWT)
+POST   /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}/members - Create member in library (JWT)
+```
+
+> Planned (not yet implemented): branch-level CRUD under `.../branches/{branchId}/members/{memberId}`.
+
+#### Legacy / planned branch member routes
+```
+POST   /api/v1/institutions/{instId}/branches/{branchId}/members                    - Create member (planned)
+GET    /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}         - Get member (planned)
+PUT    /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}         - Update member (planned)
+DELETE /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}         - Delete member (planned)
+POST   /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}/transfer - Transfer member (planned)
+POST   /api/v1/institutions/{instId}/branches/{branchId}/members/{memberId}/change-status - Change status (planned)
+GET    /api/v1/institutions/{instId}/branches/{branchId}/members/search             - Search members (planned)
 ```
 
 #### Seat Endpoints
@@ -1204,6 +1215,17 @@ GET    /api/v1/institutions/{instId}/attendance/{memberId}         - Member atte
 POST   /api/v1/institutions/{instId}/attendance/bulk-upload        - Bulk upload
 GET    /api/v1/institutions/{instId}/attendance/report             - Attendance report
 ```
+
+#### Attendance QR Kiosk (public — `[AllowAnonymous]`, QR token)
+```
+GET    /api/v1/attendance/kiosk/library/context?token=
+GET    /api/v1/attendance/kiosk/library/members?token=
+POST   /api/v1/attendance/kiosk/library/record                     - Body: libraryToken, memberId, action, deviceId
+GET    /api/v1/attendance/kiosk/member/context?token=&deviceId=
+POST   /api/v1/attendance/kiosk/member/record                      - Body: memberToken, action, deviceId
+```
+
+**Device rule:** One browser `deviceId` may mark QR attendance for only one member per calendar day (`MemberAttendance.DeviceId`). Staff scanner uses `staff:` prefix and is exempt.
 
 #### Billing Endpoints
 ```

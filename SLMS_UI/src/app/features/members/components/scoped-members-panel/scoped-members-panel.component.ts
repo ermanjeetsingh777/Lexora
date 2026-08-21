@@ -72,6 +72,8 @@ export class ScopedMembersPanelComponent {
   readonly membersList = signal<MemberListResponse[]>([]);
   readonly query = signal('');
   readonly status = signal<'all' | (typeof STATUS_OPTS)[number]>('all');
+  readonly branchFilter = signal<'all' | string>('all');
+  readonly libraryFilter = signal<'all' | string>('all');
   readonly page = signal(1);
   readonly pageSize = signal(15);
 
@@ -92,21 +94,40 @@ export class ScopedMembersPanelComponent {
 
   readonly activeCount = computed(() => this.members().filter((m) => m.status === 'Active').length);
 
+  readonly branchOptions = computed(() =>
+    [...new Set(this.members().map((m) => m.branch).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+  );
+
+  readonly libraryOptions = computed(() => {
+    const branch = this.branchFilter();
+    const libraries = this.members()
+      .filter((m) => branch === 'all' || m.branch === branch)
+      .map((m) => m.library)
+      .filter(Boolean);
+
+    return [...new Set(libraries)].sort((a, b) => a.localeCompare(b));
+  });
+
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
     const status = this.status();
+    const branch = this.branchFilter();
+    const library = this.libraryFilter();
 
     return this.members().filter((m) => {
       if (status !== 'all' && m.status !== status) return false;
+      if (branch !== 'all' && m.branch !== branch) return false;
+      if (library !== 'all' && m.library !== library) return false;
       if (!q) return true;
 
       return (
-        m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q) ||
-        m.phone.includes(q) ||
+        (m.name ?? '').toLowerCase().includes(q) ||
+        (m.userName ?? '').toLowerCase().includes(q) ||
+        (m.email ?? '').toLowerCase().includes(q) ||
+        (m.phone ?? '').includes(q) ||
         (m.membership ?? '').toLowerCase().includes(q) ||
-        m.branch.toLowerCase().includes(q) ||
-        m.library.toLowerCase().includes(q) ||
+        (m.branch ?? '').toLowerCase().includes(q) ||
+        (m.library ?? '').toLowerCase().includes(q) ||
         (m.shift ?? '').toLowerCase().includes(q) ||
         (m.plan ?? '').toLowerCase().includes(q)
       );
@@ -123,6 +144,16 @@ export class ScopedMembersPanelComponent {
 
   readonly showBranchColumn = computed(() => this.scope() === 'institution');
   readonly showLibraryColumn = computed(() => this.scope() !== 'library');
+  readonly showBranchFilter = computed(() => this.scope() === 'institution');
+  readonly showLibraryFilter = computed(() => this.scope() !== 'library');
+
+  readonly hasActiveFilters = computed(
+    () =>
+      !!this.query().trim() ||
+      this.status() !== 'all' ||
+      this.branchFilter() !== 'all' ||
+      this.libraryFilter() !== 'all',
+  );
 
   readonly createMemberLink = computed((): string[] =>
     memberCreateLink({
@@ -167,9 +198,29 @@ export class ScopedMembersPanelComponent {
     this.page.set(1);
   }
 
+  onBranchFilterChange(value: 'all' | string): void {
+    this.branchFilter.set(value);
+    if (value !== 'all' && this.libraryFilter() !== 'all') {
+      const stillValid = this.members().some(
+        (m) => m.branch === value && m.library === this.libraryFilter(),
+      );
+      if (!stillValid) {
+        this.libraryFilter.set('all');
+      }
+    }
+    this.page.set(1);
+  }
+
+  onLibraryFilterChange(value: 'all' | string): void {
+    this.libraryFilter.set(value);
+    this.page.set(1);
+  }
+
   clearFilters(): void {
     this.query.set('');
     this.status.set('all');
+    this.branchFilter.set('all');
+    this.libraryFilter.set('all');
     this.page.set(1);
   }
 
@@ -201,6 +252,10 @@ export class ScopedMembersPanelComponent {
     request.subscribe({
       next: (response) => {
         this.membersList.set(response.data ?? []);
+        this.query.set('');
+        this.status.set('all');
+        this.branchFilter.set('all');
+        this.libraryFilter.set('all');
         this.page.set(1);
         this.loading.set(false);
       },

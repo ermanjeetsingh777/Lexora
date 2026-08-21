@@ -57,9 +57,11 @@ export class AttendanceKioskService {
       .pipe(map((r) => r.data!));
   }
 
-  getMemberContext(token: string): Observable<MemberScannerContext> {
+  getMemberContext(token: string, deviceId?: string): Observable<MemberScannerContext> {
     return this.api
-      .get<MemberScannerContext>(`${this.base}/member/context`, { params: { token } })
+      .get<MemberScannerContext>(`${this.base}/member/context`, {
+        params: { token, ...(deviceId ? { deviceId } : {}) },
+      })
       .pipe(map((r) => r.data!));
   }
 

@@ -6,6 +6,7 @@ import {
   LucideScanLine, LucideSearch, LucideXCircle,
 } from '@lucide/angular';
 import { AttendanceScannerService } from '@core/services/attendance-scanner.service';
+import { KioskDeviceService } from '@core/services/kiosk-device.service';
 import { ToastService } from '@core/services/toast.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
@@ -35,6 +36,7 @@ export class AttendanceScannerComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly scanner = inject(AttendanceScannerService);
   private readonly toast = inject(ToastService);
+  private readonly device = inject(KioskDeviceService);
 
   readonly loading = signal(true);
   readonly busy = signal(false);
@@ -151,6 +153,7 @@ export class AttendanceScannerComponent implements OnInit {
       libraryToken: ctx.token,
       memberId: member.id,
       action,
+      deviceId: this.device.getStaffDeviceId(),
       seatNumber: resolvedAction === 'check-in' ? this.selectedSeatNumber() ?? undefined : undefined,
     }).subscribe({
       next: (result) => {

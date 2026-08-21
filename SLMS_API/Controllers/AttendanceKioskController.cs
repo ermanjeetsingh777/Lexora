@@ -119,11 +119,16 @@ public class AttendanceKioskController : ControllerBase
     [HttpGet("member/context")]
     public async Task<ActionResult<ApiResponse<MemberScannerContextResponse>>> GetMemberContext(
         [FromQuery] string token,
+        [FromQuery] string? deviceId,
         CancellationToken cancellationToken)
     {
         try
         {
-            var context = await _scannerService.GetMemberContextAsync(token, GetMemberKioskUrlBase(), cancellationToken);
+            var context = await _scannerService.GetMemberContextAsync(
+                token,
+                GetMemberKioskUrlBase(),
+                deviceId,
+                cancellationToken);
             return Ok(ApiResponse<MemberScannerContextResponse>.Ok(context));
         }
         catch (InvalidOperationException ex)
@@ -155,7 +160,11 @@ public class AttendanceKioskController : ControllerBase
     {
         try
         {
-            var context = await _scannerService.GetMemberContextAsync(token, GetMemberKioskUrlBase(), cancellationToken);
+            var context = await _scannerService.GetMemberContextAsync(
+                token,
+                GetMemberKioskUrlBase(),
+                deviceId: null,
+                cancellationToken);
             var seats = await _scannerService.GetLibrarySeatsByLibraryIdAsync(context.LibraryId, cancellationToken);
             return Ok(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Ok(seats));
         }

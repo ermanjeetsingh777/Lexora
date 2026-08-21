@@ -1,16 +1,24 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { APP_INITIALIZER, ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { authInterceptor } from '@core/Interceptor/authInterceptor';
+import { AuthService } from '@core/services/auth.service';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(),
+    {
+      provide: APP_INITIALIZER,
+      multi: true,
+      deps: [AuthService],
+      useFactory: (auth: AuthService) => () => {
+        auth.restoreSession();
+      },
+    },
     provideHttpClient(withInterceptors([authInterceptor])),
     provideRouter(
       routes,

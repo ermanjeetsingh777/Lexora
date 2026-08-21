@@ -19,11 +19,13 @@ flowchart TB
   B --> E[GET institutions/id/branches-view]
   B --> F[GET institutions/id/libraries-view]
   B --> G[GET institutions/id/billing]
+  B --> M[Members tab — ScopedMembersPanel]
   C --> H[Page header + Settings tab]
   D --> I[Overview tab charts + KPIs]
   E --> J[Branches tab table]
   F --> K[Libraries tab table]
   G --> L[Billing tab + invoice sheet]
+  M --> N[GET institutions/id/members on tab open]
 ```
 
 ---
@@ -38,14 +40,19 @@ flowchart TB
 | `/institutions/:institutionId` | `InstitutionDetailComponent` | `SLMS_UI/src/app/features/institutions/institution-detail/` |
 | `/institutions/:institutionId/addbranch` | `BranchCreate` (reused) | `SLMS_UI/src/app/features/branches/branch-create/` |
 | `/institutions/:institutionId/addlibrary` | `CreateLibrary` (reused) | `SLMS_UI/src/app/features/libraries/create-library/` |
+| `/institutions/:institutionId/members/create` | `CreateMemberComponent` | Scoped create — institution locked |
+| `/institutions/:institutionId/members/:memberId` | `MemberDetailsComponent` | Scoped detail — back to `?tab=members` |
+| `/institutions/:institutionId/branches/:branchId/members/create` | `CreateMemberComponent` | Scoped create under branch |
+| `/institutions/:institutionId/branches/:branchId/members/:memberId` | `MemberDetailsComponent` | Scoped detail under branch |
+| `/institutions/:institutionId/branches/:branchId/libraries/:libraryId` | `LibraryDetailComponent` | Nested library detail |
 | `/branches/create` | `BranchCreate` | Same branch module — institution select enabled |
 | `/libraries/create` | `CreateLibrary` | Same library module — institution select enabled |
 
 Route param: `institutionId` from `ActivatedRoute.snapshot.paramMap`.
 
-Optional query param: `?tab=branches|libraries|billing|settings` (default: `overview`).
+Optional query param: `?tab=overview|branches|libraries|billing|settings|members` (default: `overview`).
 
-**Route order:** `:institutionId/addbranch` and `:institutionId/addlibrary` must be registered **before** `:institutionId` in `app.routes.ts`.
+**Route order:** `:institutionId/addbranch`, `:institutionId/addlibrary`, and all `:institutionId/.../members/*` routes must be registered **before** `:institutionId` in `app.routes.ts`.
 
 Entry from list: `routerLink="['/institutions', item.id]"`.
 
@@ -59,6 +66,7 @@ PageHeader (back, refresh, institution name + subtitle)
     ├── Overview — revenue, occupancy, member mix, attendance, heatmap
     ├── Branches — filters, table, sidebar cards, pagination
     ├── Libraries — filters, table, pagination
+    ├── Members — ScopedMembersPanel (institution scope)
     ├── Billing — subscription card, invoices table, invoice detail sheet
     └── Settings — institution profile form
 ```
@@ -70,6 +78,7 @@ PageHeader (back, refresh, institution name + subtitle)
 | `overview` | Overview | Implemented | KPIs, revenue/occupancy charts, member mix doughnut, attendance stacked bar, weekly occupancy heatmap |
 | `branches` | Branches | Implemented | Search + status/size filters, branch table, top performer / needs attention sidebar |
 | `libraries` | Libraries | Implemented | Search + status/branch/occupancy filters, library table |
+| `members` | Members | Implemented | `ScopedMembersPanelComponent` — search, status, branch/library filters, table |
 | `billing` | Billing | Implemented | Revenue summary, payment methods placeholder, invoices table, invoice detail sheet |
 | `settings` | Settings | Implemented | Editable institution profile (`PUT institutions/{id}`) |
 
@@ -240,6 +249,7 @@ Shared invoice utilities: `SLMS_UI/src/app/shared/utils/invoice-pdf.util.ts`
 | GET | `institutions/{id}/branches-view` | `load()` |
 | GET | `institutions/{id}/libraries-view` | `load()` (requires auth) |
 | GET | `institutions/{id}/billing` | `load()` |
+| GET | `institutions/{id}/members` | Members tab (`ScopedMembersPanel`) |
 | PUT | `institutions/{id}` | Settings save |
 | POST | `institutions/{id}/branches` | Add branch (`BranchCreate` from detail or `/branches/create`) |
 | POST | `institutions/{id}/branches/{branchId}/libraries` | Add library (`CreateLibrary` via `LibraryService`) |
@@ -276,6 +286,7 @@ sequenceDiagram
 | GET | `/{id}/branches-view` | `InstitutionBranchesViewResponse` | Branch cards + summary |
 | GET | `/{id}/libraries-view` | `InstitutionLibrariesViewResponse` | User-scoped libraries |
 | GET | `/{id}/billing` | `InstitutionBillingResponse` | Revenue + invoices |
+| GET | `/{id}/members` | `MemberListResponse[]` | Via `InstitutionMembersController`; requires auth |
 | GET | `/{id}/quick-view` | `InstitutionQuickViewResponse` | List drawer sparkline |
 | PUT | `/{id}` | `InstitutionResponse` | Update profile |
 
@@ -521,11 +532,12 @@ SLMS_API/
 | Area | Status |
 |------|--------|
 | Payment methods (Billing tab) | UI placeholder only |
-| Branch / library row drill-down | Branch detail at `/branches/:branchId`; library detail route not yet implemented — global list links to branch Libraries tab |
+| Branch / library row drill-down | Branch detail at `/institutions/{id}/branches/{branchId}` or `/branches/{id}`; library detail at nested or `/libraries/{id}` |
+| Members tab | Implemented — see [scoped-members-workflow.md](./scoped-members-workflow.md) |
 | Tab deselect on double-click | Fixed — `allowEmpty=false` + `setTab` null guard |
 | Billing invoice limit | API returns latest 20 paid plans |
 | Invoice PDF | Browser print dialog (no server-side PDF) |
-| `libraries-view` | Requires authenticated user (`401` if not logged in) |
+| `libraries-view` / scoped members APIs | Require authenticated user (`401` if not logged in); see auth notes in [scoped-members-workflow.md](./scoped-members-workflow.md) |
 | Global libraries list | Implemented — see [libraries-list-workflow.md](./libraries-list-workflow.md) |
 
 ---
@@ -533,6 +545,7 @@ SLMS_API/
 ## 8. Related docs
 
 - Libraries list (global): [libraries-list-workflow.md](./libraries-list-workflow.md)
+- Scoped members (detail tabs + nested URLs): [scoped-members-workflow.md](./scoped-members-workflow.md)
 - Member details: [members-detail-workflow.md](./members-detail-workflow.md)
 - Members list: [members-list-workflow.md](./members-list-workflow.md)
 - Lovable reference: `docs/lovable-source/src/components/institution/billing-tab.tsx`, `invoice-detail-sheet.tsx`

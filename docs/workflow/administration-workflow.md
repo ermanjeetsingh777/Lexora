@@ -167,6 +167,7 @@ On startup (`DbSeeder.MigrateAndSeedAsync`):
 - [Users & roles workflow](./users-admin-workflow.md) — create/edit users, assign roles, permission matrix
 - [Libraries list workflow](./libraries-list-workflow.md)
 - [Members list workflow](./members-list-workflow.md)
+- [Scoped members workflow](./scoped-members-workflow.md)
 - [Books workflow](./books-workflow.md)
 - [Attendance QR kiosk](./attendance-kiosk-workflow.md) — uses `attendance.scanner.use` (ID 109)
 

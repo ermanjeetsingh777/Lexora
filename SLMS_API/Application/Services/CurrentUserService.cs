@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using SLMS_API.Application.Contracts.Auth.Responses;
@@ -23,7 +24,19 @@ public class CurrentUserService : ICurrentUserService
         _permissionResolver = permissionResolver;
     }
 
-    public string? UserId => _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    public string? UserId => ResolveUserId(_httpContextAccessor.HttpContext?.User);
+
+    private static string? ResolveUserId(ClaimsPrincipal? user)
+    {
+        if (user is null)
+        {
+            return null;
+        }
+
+        return user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? user.FindFirstValue("sub");
+    }
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false;
 
     public string? IpAddress => _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();

@@ -302,8 +302,10 @@ SLMS_API/
 ## 7. Related docs
 
 - Institution detail (Libraries tab): [institution-detail-workflow.md](./institution-detail-workflow.md)
-- Branch detail (Libraries tab): branch detail component — `/branches/:branchId?tab=libraries`
+- Library detail (`/libraries/:id`) — Members tab: [scoped-members-workflow.md](./scoped-members-workflow.md)
+- Branch detail (Libraries tab): `/branches/:branchId?tab=libraries`
 - Books (per-library scope): [books-workflow.md](./books-workflow.md)
 - Attendance kiosk (library QR): [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md)
 - Members list: [members-list-workflow.md](./members-list-workflow.md)
+- Scoped members tab: [scoped-members-workflow.md](./scoped-members-workflow.md)
 - Lovable reference: `docs/lovable-source/src/routes/_authenticated.libraries.index.tsx`

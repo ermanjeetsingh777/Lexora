@@ -16,49 +16,77 @@
   <div class="inst-detail-inline-empty">
     <p class="inst-detail-inline-empty__desc">{{ error() }}</p>
   </div>
-} @else if (!members().length) {
-  <div class="inst-detail-inline-empty">
-    <div class="inst-detail-inline-empty__icon">
-      <svg lucideUsers class="h-4 w-4"></svg>
-    </div>
-    <h4 class="inst-detail-inline-empty__title">No members yet</h4>
-    <p class="inst-detail-inline-empty__desc">Members enrolled here will appear in this list.</p>
-  </div>
 } @else {
-  <div class="inst-filter-bar mt-3 mb-4">
-    <div class="inst-filter-search">
-      <svg lucideSearch class="inst-filter-icon"></svg>
-      <input
-        type="search"
-        class="inst-filter-control w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-3 text-sm"
-        placeholder="Search name, email, phone, plan…"
-        [ngModel]="query()"
-        (ngModelChange)="onQueryChange($event)"
-      />
-    </div>
-    <select
-      class="inst-filter-select"
-      [ngModel]="status()"
-      (ngModelChange)="onStatusChange($event)"
-    >
-      <option value="all">All statuses</option>
-      @for (s of STATUS_OPTS; track s) {
-        <option [value]="s">{{ s }}</option>
-      }
-    </select>
-    @if (query() || status() !== 'all') {
-      <app-button size="sm" variant="ghost" class="h-8 px-2 text-xs" (click)="clearFilters()">
-        <svg lucideX class="h-3 w-3 mr-1"></svg> Clear
-      </app-button>
-    }
-    <div class="inst-filter-count">
-      <span class="tabular-nums text-xs text-muted-foreground">
-        {{ filtered().length }} / {{ members().length }}
-      </span>
+  <div class="scoped-members-filter-card">
+    <div class="inst-filter-bar">
+      <div class="inst-filter-search">
+        <svg lucideSearch class="inst-filter-icon"></svg>
+        <input
+          type="search"
+          class="inst-filter-control w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-3 text-sm"
+          placeholder="Search name, email, phone, plan…"
+          [ngModel]="query()"
+          (ngModelChange)="onQueryChange($event)"
+        />
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <select
+          class="inst-filter-select"
+          [ngModel]="status()"
+          (ngModelChange)="onStatusChange($event)"
+        >
+          <option value="all">All statuses</option>
+          @for (s of STATUS_OPTS; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+        @if (showBranchFilter()) {
+          <select
+            class="inst-filter-select inst-filter-select--wide"
+            [ngModel]="branchFilter()"
+            (ngModelChange)="onBranchFilterChange($event)"
+          >
+            <option value="all">All branches</option>
+            @for (b of branchOptions(); track b) {
+              <option [value]="b">{{ b }}</option>
+            }
+          </select>
+        }
+        @if (showLibraryFilter()) {
+          <select
+            class="inst-filter-select inst-filter-select--wide"
+            [ngModel]="libraryFilter()"
+            (ngModelChange)="onLibraryFilterChange($event)"
+          >
+            <option value="all">All libraries</option>
+            @for (l of libraryOptions(); track l) {
+              <option [value]="l">{{ l }}</option>
+            }
+          </select>
+        }
+      </div>
+      <div class="inst-filter-count">
+        <span class="tabular-nums text-xs text-muted-foreground">
+          {{ filtered().length }} / {{ members().length }}
+        </span>
+        @if (hasActiveFilters()) {
+          <app-button size="sm" variant="ghost" class="h-7 px-2 text-xs" (click)="clearFilters()">
+            <svg lucideX class="h-3 w-3 mr-1"></svg> Clear
+          </app-button>
+        }
+      </div>
     </div>
   </div>
 
-  @if (!filtered().length) {
+  @if (!members().length) {
+    <div class="inst-detail-inline-empty">
+      <div class="inst-detail-inline-empty__icon">
+        <svg lucideUsers class="h-4 w-4"></svg>
+      </div>
+      <h4 class="inst-detail-inline-empty__title">No members yet</h4>
+      <p class="inst-detail-inline-empty__desc">Members enrolled here will appear in this list.</p>
+    </div>
+  } @else if (!filtered().length) {
     <div class="inst-detail-inline-empty">
       <div class="inst-detail-inline-empty__icon">
         <svg lucideSearch class="h-4 w-4"></svg>

@@ -135,6 +135,7 @@ public class AttendanceScannerService : IAttendanceScannerService
     {
         var library = await ResolveLibraryAsync(request.LibraryToken, cancellationToken);
         await EnsureMemberInLibraryAsync(request.MemberId, library.Id, cancellationToken);
+        await EnsureDeviceAllowsMemberAsync(request.DeviceId, request.MemberId, cancellationToken);
 
         var member = await _context.Members
             .AsNoTracking()
@@ -285,10 +286,12 @@ public class AttendanceScannerService : IAttendanceScannerService
     public async Task<MemberScannerContextResponse> GetMemberContextAsync(
         string memberToken,
         string? scanUrlBase,
+        string? deviceId = null,
         CancellationToken cancellationToken = default)
     {
         var (member, library) = await ResolveMemberWithLibraryAsync(memberToken, cancellationToken);
         await EnsureMemberTokenAsync(member, cancellationToken);
+        await EnsureDeviceAllowsMemberAsync(deviceId, member.Id, cancellationToken);
 
         return new MemberScannerContextResponse
         {
@@ -333,6 +336,48 @@ public class AttendanceScannerService : IAttendanceScannerService
             DeviceId = request.DeviceId ?? $"member-qr:{member.Id}",
             Remarks = request.Remarks,
         }, userId ?? "kiosk", cancellationToken);
+    }
+
+    private async Task EnsureDeviceAllowsMemberAsync(
+        string? deviceId,
+        Guid memberId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId))
+        {
+            return;
+        }
+
+        if (deviceId.StartsWith("staff:", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var otherMemberId = await _context.MemberAttendances
+            .AsNoTracking()
+            .Where(a =>
+                a.AttendanceDate == today &&
+                a.IsActive &&
+                a.Source == AttendanceSource.QRCode &&
+                a.DeviceId == deviceId &&
+                a.MemberId != memberId)
+            .Select(a => a.MemberId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (otherMemberId == Guid.Empty)
+        {
+            return;
+        }
+
+        var otherMember = await _context.Members
+            .AsNoTracking()
+            .Where(m => m.Id == otherMemberId)
+            .Select(m => new { m.FullName, m.MembershipNo })
+            .FirstAsync(cancellationToken);
+
+        throw new InvalidOperationException(
+            $"This device is already used for {otherMember.FullName}'s attendance today. One device can mark attendance for only one member.");
     }
 
     private async Task<(Domain.Entities.Member Member, Library Library)> ResolveMemberWithLibraryAsync(

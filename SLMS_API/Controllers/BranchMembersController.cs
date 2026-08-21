@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Responses;
@@ -8,14 +7,17 @@ namespace SLMS_API.Controllers;
 
 [ApiController]
 [Route("api/v1/institutions/{institutionId:guid}/branches/{branchId:guid}/members")]
-[Authorize]
 public class BranchMembersController : ControllerBase
 {
     private readonly IMemberService _memberService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public BranchMembersController(IMemberService memberService)
+    public BranchMembersController(
+        IMemberService memberService,
+        ICurrentUserService currentUserService)
     {
         _memberService = memberService;
+        _currentUserService = currentUserService;
     }
 
     [HttpGet]
@@ -24,6 +26,11 @@ public class BranchMembersController : ControllerBase
         Guid branchId,
         CancellationToken cancellationToken)
     {
+        if (!Guid.TryParse(_currentUserService.UserId, out _))
+        {
+            return Unauthorized();
+        }
+
         try
         {
             var members = await _memberService.GetBranchMemberListAsync(institutionId, branchId, cancellationToken);

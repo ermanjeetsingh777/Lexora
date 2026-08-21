@@ -47,6 +47,7 @@ flowchart TB
 | **BR-13.4** One check-in and one check-out per day | `AttendanceService` + `GetMemberStatusAsync` suggested action |
 | **BR-13.5** Public APIs secured by token, not JWT | `[AllowAnonymous]` on kiosk controller; token in query/body |
 | **BR-13.6** Attendance source = QR | `AttendanceSource.QRCode` on scanner record |
+| **BR-13.7** One device → one member per day (kiosk) | `KioskDeviceService` + `EnsureDeviceAllowsMemberAsync`; staff scanner exempt (`staff:` prefix) |
 
 ### Functional requirements
 
@@ -60,6 +61,7 @@ flowchart TB
 | FR-13.6 | Member QR on member details (print) | Done |
 | FR-13.7 | Camera QR scanning in browser | Planned |
 | FR-13.8 | Library list QR print UI | Planned |
+| FR-13.9 | One device per member (QR kiosk) | Done |
 
 ---
 
@@ -104,6 +106,7 @@ MemberKioskComponent
 | `features/attendance/kiosk/member-kiosk.component.html` | Member kiosk UI |
 | `features/attendance/kiosk/member-kiosk.component.css` | Shared kiosk button styles |
 | `core/services/attendance-kiosk.service.ts` | Public API client (`attendance/kiosk/*`) |
+| `core/services/kiosk-device.service.ts` | Persistent browser `deviceId`; local member binding |
 | `core/services/attendance-scanner.service.ts` | Staff API client (`attendance/scanner/*`) |
 | `core/models/attendanceModels.ts` | `Scanner*`, `MemberScanner*`, `MemberQrCode` types |
 
@@ -146,10 +149,10 @@ Buttons use custom `.kiosk-btn` styles (not theme `app-button`) for dark kiosk b
 | `GET` | `/library/context?token=` | Resolve library from QR token |
 | `GET` | `/library/members?token=&search=` | List members in library (max 50) |
 | `GET` | `/library/members/{id}/status?token=` | Today's attendance status |
-| `POST` | `/library/record` | Check in/out via library token + member id |
-| `GET` | `/member/context?token=` | Resolve member from personal QR token |
+| `POST` | `/library/record` | Check in/out via library token + member id; body includes `deviceId` |
+| `GET` | `/member/context?token=&deviceId=` | Resolve member from personal QR token; validates device binding |
 | `GET` | `/member/status?token=` | Member's today status |
-| `POST` | `/member/record` | Check in/out via member token only |
+| `POST` | `/member/record` | Check in/out via member token; body includes `deviceId` |
 
 ### 3.3 Staff scanner endpoints
 
@@ -169,8 +172,9 @@ Buttons use custom `.kiosk-btn` styles (not theme `app-button`) for dark kiosk b
 - `GetContextAsync` — library token → context; auto-generates `AttendanceQrToken` on library if missing
 - `SearchMembersAsync` — active members in library
 - `GetMemberStatusAsync` — today's check-in/out + `SuggestedAction` (`check-in` | `check-out` | `done`)
-- `RecordAsync` — delegates to `IAttendanceService.CheckInAsync` / `CheckOutAsync` with `Source = QRCode`
-- `GetMemberContextAsync` / `RecordByMemberTokenAsync` — member personal QR flow
+- `RecordAsync` / `RecordByMemberTokenAsync` — delegates to `IAttendanceService` with `Source = QRCode`
+- `EnsureDeviceAllowsMemberAsync` — rejects QR attendance when `deviceId` already used for another member today (skipped for `staff:` prefix)
+- `GetMemberContextAsync` — optional `deviceId` query validates binding before member kiosk loads
 - `GetQrCodeAsync` / `GetMemberQrCodeAsync` — QRCoder PNG base64 + scan URL
 
 ### 3.5 Domain & database
@@ -299,6 +303,9 @@ SLMS_UI/src/app/
 | 7 | Invalid token | Error message on kiosk page |
 | 8 | Member details → Attendance QR | QR image loads (staff logged in) |
 | 9 | Staff `/attendance/scanner` without permission | Redirect to `/unauthorized` |
+| 10 | Member A marks attendance on device → Member B on same device | Error: device already used for Member A |
+| 11 | Same member check-out on bound device | Allowed |
+| 12 | Staff scanner multiple members | Allowed (no device lock) |
 
 ---
 
@@ -308,6 +315,7 @@ SLMS_UI/src/app/
 |--------|-----|----------|
 | M-06 Members | [members-list-workflow.md](./members-list-workflow.md) | Member library assignment, QR token |
 | M-06 Members | [members-detail-workflow.md](./members-detail-workflow.md) | Attendance tab, member QR display |
+| M-06b Scoped members | [scoped-members-workflow.md](./scoped-members-workflow.md) | Members tabs on detail pages |
 | Libraries list | [libraries-list-workflow.md](./libraries-list-workflow.md) | `/libraries` — future library QR print UI |
 | M-15 Administration | [administration-workflow.md](./administration-workflow.md) | `attendance.scanner.use` permission |
 

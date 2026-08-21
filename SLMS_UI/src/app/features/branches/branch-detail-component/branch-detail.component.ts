@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { catchError, finalize, of } from 'rxjs';
@@ -60,6 +60,7 @@ import {
   formatActivityTime,
 } from './branch-detail.util';
 import { ScopedMembersPanelComponent } from '../../members/components/scoped-members-panel/scoped-members-panel.component';
+import { libraryDetailLink as buildLibraryDetailLink } from '@core/utils/entity-routes.util';
 import {
   getHeatmapValue,
   heatmapCellColor,
@@ -144,6 +145,7 @@ const ACTIVITY_PAGE_SIZE_OPTS = [15, 25, 50] as const;
 })
 export class BranchDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly branchesApi = inject(BranchService);
 
   protected readonly Math = Math;
@@ -177,6 +179,15 @@ export class BranchDetailComponent implements OnInit {
   readonly activityPageSize = signal(25);
 
   readonly branchId = computed(() => this.route.snapshot.paramMap.get('branchId') ?? '');
+
+  libraryDetailLink(libraryId: string): string[] {
+    const detail = this.detail();
+    return buildLibraryDetailLink(libraryId, {
+      institutionId: detail?.institutionId,
+      branchId: detail?.id ?? this.branchId(),
+      onInstitutionRoute: this.router.url.includes('/institutions/'),
+    });
+  }
 
   readonly institutionIdFromRoute = computed(
     () => this.route.snapshot.paramMap.get('institutionId'),

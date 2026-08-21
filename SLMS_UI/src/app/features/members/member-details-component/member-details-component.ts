@@ -59,6 +59,7 @@ import {
   attendanceTimeInputValue,
   localTimeInputToUtcTimeOnly,
 } from '@features/attendance/attendance-format.util';
+import { collectRouteParams, memberBackNav } from '@core/utils/entity-routes.util';
 
 type TabId = 'overview' | 'attendance' | 'library-calendar' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks';
 
@@ -106,7 +107,26 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly commonService = inject(CommonService);
   readonly attendanceService = inject(AttendanceService);
 
-  readonly memberId = this.route.snapshot.paramMap.get('memberId') ?? '';
+  get routeParams(): Record<string, string> {
+    return collectRouteParams(this.route.snapshot);
+  }
+
+  get memberId(): string {
+    return this.routeParams['memberId'] ?? '';
+  }
+
+  get backLink(): string | string[] {
+    return memberBackNav(this.routeParams).link;
+  }
+
+  get backQueryParams(): { tab: string } | undefined {
+    return memberBackNav(this.routeParams).queryParams;
+  }
+
+  get backLabel(): string {
+    return memberBackNav(this.routeParams).label;
+  }
+
   readonly loading: WritableSignal<boolean> = signal<boolean>(true);
   readonly memberDetails: WritableSignal<MemberDetailResponse | null> = signal<MemberDetailResponse | null>(null);
   readonly memberPhotoPreview = signal<string | null>(null);

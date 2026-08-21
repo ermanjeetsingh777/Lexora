@@ -76,6 +76,7 @@ import {
 import { LibraryCalendarComponent } from './library-calendar/library-calendar.component';
 import { ScopedMembersPanelComponent } from '../../members/components/scoped-members-panel/scoped-members-panel.component';
 import { ScannerQrCode } from '@core/models/attendanceModels';
+import { collectRouteParams, libraryBackNav } from '@core/utils/entity-routes.util';
 
 @Component({
   selector: 'app-library-detail',
@@ -280,6 +281,22 @@ export class LibraryDetailComponent implements OnInit {
   readonly sectionCapacityPercent = sectionCapacityPercent;
   readonly currentShift = currentShift;
   readonly formatActivityTime = formatActivityTime;
+
+  get routeParams(): Record<string, string> {
+    return collectRouteParams(this.route.snapshot);
+  }
+
+  get backLink(): string | string[] {
+    return libraryBackNav(this.routeParams).link;
+  }
+
+  get backQueryParams(): { tab: string } | undefined {
+    return libraryBackNav(this.routeParams).queryParams;
+  }
+
+  get backLabel(): string {
+    return libraryBackNav(this.routeParams).label;
+  }
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {

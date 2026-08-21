@@ -22,17 +22,18 @@
   <app-page-header
     eyebrow="Libraries"
     [isBack]="true"
-    backLink="/libraries"
+    [backLink]="backLink"
+    [backQueryParams]="backQueryParams"
     title="Library not found"
     [description]="error()!"
   />
   <app-glass-card class="text-center block">
     <svg lucideAlertTriangle class="h-10 w-10 mx-auto text-destructive mb-3"></svg>
     <p class="text-sm text-muted-foreground">{{ error() }}</p>
-    <a routerLink="/libraries" class="inline-block mt-4">
+    <a [routerLink]="backLink" [queryParams]="backQueryParams" class="inline-block mt-4">
       <app-button size="sm" variant="outline">
         <svg lucideArrowLeft class="h-4 w-4 mr-1"></svg>
-        Back to libraries
+        {{ backLabel }}
       </app-button>
     </a>
   </app-glass-card>
@@ -40,7 +41,8 @@
   <app-page-header
     eyebrow="Libraries"
     [isBack]="true"
-    backLink="/libraries"
+    [backLink]="backLink"
+    [backQueryParams]="backQueryParams"
     [title]="d.name"
     [description]="d.institutionName + ' · ' + d.branchName + (d.floor != null ? ' · Floor ' + d.floor : '') + ' · ' + subtitleHours()"
   >

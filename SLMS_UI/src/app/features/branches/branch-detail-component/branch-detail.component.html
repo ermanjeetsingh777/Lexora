@@ -422,7 +422,7 @@
                   @for (lib of pagedLibraries(); track lib.id) {
                     <tr class="hover:bg-muted/40">
                       <td class="py-2.5 pr-4 align-middle">
-                        <a [routerLink]="['/libraries', lib.id]" class="font-medium hover:text-primary">{{ lib.name }}</a>
+                        <a [routerLink]="libraryDetailLink(lib.id)" class="font-medium hover:text-primary">{{ lib.name }}</a>
                         <div class="label-mono flex items-center gap-1 mt-0.5 text-[var(--muted-foreground)]">
                           <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>
                           {{ lib.city ?? '—' }}

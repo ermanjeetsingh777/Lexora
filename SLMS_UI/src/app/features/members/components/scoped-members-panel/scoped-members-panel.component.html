@@ -91,7 +91,7 @@
           @for (m of paged(); track m.id; let i = $index) {
             <tr class="hover:bg-muted/40">
               <td class="py-2.5 pr-4 align-middle">
-                <a [routerLink]="['/members', m.id]" class="flex items-center gap-2 group">
+                <a [routerLink]="memberDetailLink(m.id)" class="flex items-center gap-2 group">
                   <app-member-avatar
                     [memberId]="m.id"
                     [hasPhoto]="m.hasPhoto ?? false"
@@ -131,7 +131,7 @@
                 }
               </td>
               <td class="py-2.5 align-middle text-right">
-                <a [routerLink]="['/members', m.id]" title="View member">
+                <a [routerLink]="memberDetailLink(m.id)" title="View member">
                   <app-button variant="ghost" size="icon" class="h-7 w-7">
                     <svg lucideEye class="h-4 w-4"></svg>
                   </app-button>

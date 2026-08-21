@@ -65,6 +65,7 @@ import {
   memberMixColors,
   normalizeOccupancyHeatmap,
 } from './institution-detail.util';
+import { libraryDetailLink as buildLibraryDetailLink, memberDetailLink as buildMemberDetailLink } from '@core/utils/entity-routes.util';
 import { ScopedMembersPanelComponent } from '../../members/components/scoped-members-panel/scoped-members-panel.component';
 
 type BranchStatusFilter = 'all' | 'Active' | 'Maintenance' | 'Closed';
@@ -201,6 +202,21 @@ export class InstitutionDetailComponent implements OnInit {
   });
 
   readonly institutionId = computed(() => this.route.snapshot.paramMap.get('institutionId') ?? '');
+
+  libraryDetailLink(libraryId: string, branchId: string): string[] {
+    return buildLibraryDetailLink(libraryId, {
+      institutionId: this.institutionId(),
+      libraryBranchId: branchId,
+      onInstitutionRoute: true,
+    });
+  }
+
+  memberDetailLink(memberId: string): string[] {
+    return buildMemberDetailLink(memberId, {
+      institutionId: this.institutionId(),
+      onInstitutionRoute: true,
+    });
+  }
 
   readonly subtitle = computed(() => {
     const inst = this.institution();

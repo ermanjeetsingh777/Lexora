@@ -15,6 +15,7 @@ import { switchMap, of, concat, last, Observable } from 'rxjs';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { CreateMemberRequest, MemberDetailResponse } from '@core/models/MemberRequest';
 import { CommonService } from '@core/services/common.service';
+import { collectRouteParams, memberCreateBackNav } from '@core/utils/entity-routes.util';
 
 @Component({
   selector: 'app-create-member-component',
@@ -80,15 +81,7 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
   loader = signal(false);
 
   get routeParams(): Record<string, string> {
-    const params: Record<string, string> = {};
-    let snapshot = this.route.snapshot;
-    while (snapshot) {
-      for (const [key, value] of Object.entries(snapshot.params)) {
-        if (value) params[key] = value;
-      }
-      snapshot = snapshot.parent!;
-    }
-    return params;
+    return collectRouteParams(this.route.snapshot);
   }
 
   get fromLibraryDetail(): boolean {
@@ -108,25 +101,15 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
   }
 
   get backLink(): string | string[] {
-    const params = this.routeParams;
-    if (params['libraryId']) {
-      return ['/libraries', params['libraryId']];
-    }
-    if (params['branchId'] && params['institutionId']) {
-      return ['/institutions', params['institutionId'], 'branches', params['branchId']];
-    }
-    if (params['branchId']) {
-      return ['/branches', params['branchId']];
-    }
-    if (params['institutionId']) {
-      return ['/institutions', params['institutionId']];
-    }
-    return ['/members'];
+    return memberCreateBackNav(this.routeParams).link;
   }
 
   get backQueryParams(): { tab: string } | undefined {
-    if (this.fromMembersList) return undefined;
-    return { tab: 'members' };
+    return memberCreateBackNav(this.routeParams).queryParams;
+  }
+
+  get backLabel(): string {
+    return memberCreateBackNav(this.routeParams).label;
   }
 
   ngOnInit(): void {

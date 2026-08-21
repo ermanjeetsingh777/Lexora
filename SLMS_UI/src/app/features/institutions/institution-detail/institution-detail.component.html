@@ -637,7 +637,7 @@
                   @for (lib of pagedLibraries(); track lib.id) {
                     <tr class="hover:bg-muted/40">
                       <td class="py-2.5 pr-4 align-middle">
-                        <a routerLink="/libraries" class="font-medium hover:text-primary">{{ lib.name }}</a>
+                        <a [routerLink]="libraryDetailLink(lib.id, lib.branchId)" class="font-medium hover:text-primary">{{ lib.name }}</a>
                         <div class="label-mono flex items-center gap-1 mt-0.5 text-[var(--muted-foreground)]">
                           <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>
                           {{ lib.city ?? '—' }}
@@ -810,7 +810,7 @@
                       <td class="py-2.5 pr-4 align-middle">
                         @if (inv.memberId) {
                           <a
-                            [routerLink]="['/members', inv.memberId]"
+                            [routerLink]="memberDetailLink(inv.memberId)"
                             class="font-medium hover:text-primary"
                             (click)="$event.stopPropagation()"
                           >{{ inv.memberName || '—' }}</a>

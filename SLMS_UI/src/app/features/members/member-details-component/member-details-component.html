@@ -3,9 +3,9 @@
 <app-page-header eyebrow="Members" [title]="m.name"
   [description]="(m.membershipNo ?? '') + ' · joined ' + (m.joinedOn | date:'dd MMM yyyy')">
   <div actions class="flex items-center gap-2">
-    <a routerLink="/members">
+    <a [routerLink]="backLink" [queryParams]="backQueryParams">
       <app-button variant="outline" size="sm">
-        <svg lucideArrowLeft class="h-4 w-4 mr-1"></svg> All members
+        <svg lucideArrowLeft class="h-4 w-4 mr-1"></svg> {{ backLabel }}
       </app-button>
     </a>
     <app-button variant="outline" size="sm" (click)="copyId(m.id)">

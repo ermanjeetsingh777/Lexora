@@ -20,6 +20,7 @@ import { MemberService } from '../../MemberService';
 import { MemberAvatarComponent } from '../member-avatar/member-avatar.component';
 import { CommonService } from '@core/services/common.service';
 import { computeMemberLifecycle, MemberLifecycle } from '../../member-lifecycle.util';
+import { memberCreateLink, memberDetailLink as buildMemberDetailLink } from '@core/utils/entity-routes.util';
 
 export type MemberScope = 'institution' | 'branch' | 'library';
 
@@ -123,27 +124,23 @@ export class ScopedMembersPanelComponent {
   readonly showBranchColumn = computed(() => this.scope() === 'institution');
   readonly showLibraryColumn = computed(() => this.scope() !== 'library');
 
-  readonly createMemberLink = computed((): string[] => {
-    const scope = this.scope();
-    const institutionId = this.institutionId();
-    const branchId = this.branchId();
-    const libraryId = this.libraryId();
-    const onInstitutionRoute = this.router.url.includes('/institutions/');
+  readonly createMemberLink = computed((): string[] =>
+    memberCreateLink({
+      institutionId: this.institutionId(),
+      branchId: this.branchId(),
+      libraryId: this.libraryId(),
+      onInstitutionRoute: this.router.url.includes('/institutions/'),
+    }),
+  );
 
-    if (scope === 'library' && libraryId) {
-      return ['/libraries', libraryId, 'members', 'create'];
-    }
-    if (scope === 'branch' && branchId) {
-      if (onInstitutionRoute && institutionId) {
-        return ['/institutions', institutionId, 'branches', branchId, 'members', 'create'];
-      }
-      return ['/branches', branchId, 'members', 'create'];
-    }
-    if (scope === 'institution' && institutionId) {
-      return ['/institutions', institutionId, 'members', 'create'];
-    }
-    return ['/members', 'create'];
-  });
+  memberDetailLink(memberId: string): string[] {
+    return buildMemberDetailLink(memberId, {
+      institutionId: this.institutionId(),
+      branchId: this.branchId(),
+      libraryId: this.libraryId(),
+      onInstitutionRoute: this.router.url.includes('/institutions/'),
+    });
+  }
 
   constructor() {
     effect(() => {

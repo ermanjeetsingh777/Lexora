@@ -3,6 +3,7 @@ import { map, Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
   AttendanceResponse,
+  AttendanceSeatOption,
   MemberQrCode,
   ScannerAttendanceRequest,
   ScannerAttendanceResult,
@@ -38,6 +39,12 @@ export class AttendanceScannerService {
         params: { token },
       })
       .pipe(map((r) => r.data!));
+  }
+
+  getLibrarySeats(token: string): Observable<AttendanceSeatOption[]> {
+    return this.api
+      .get<AttendanceSeatOption[]>(`${this.base}/seats`, { params: { token } })
+      .pipe(map((r) => r.data ?? []));
   }
 
   record(request: ScannerAttendanceRequest): Observable<ScannerAttendanceResult> {

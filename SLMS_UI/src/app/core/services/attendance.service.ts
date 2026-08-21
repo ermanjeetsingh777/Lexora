@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { AttendanceResponse, AttendanceStatisticsResponse, CheckInRequest } from '@core/models/attendanceModels';
+import { AttendanceResponse, AttendanceStatisticsResponse, AttendanceSeatOption, CheckInRequest, UpdateAttendanceRequest } from '@core/models/attendanceModels';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 
 @Injectable()
@@ -26,6 +26,14 @@ export class AttendanceService {
         return this.http.get<AttendanceStatisticsResponse>(
             'attendance/members/' + memberId + '/statistics'
         );
+    }
+
+    getLibrarySeats(libraryId: string): Observable<APIResponseModel<AttendanceSeatOption[]>> {
+        return this.http.get<AttendanceSeatOption[]>(`attendance/libraries/${libraryId}/seats`);
+    }
+
+    updateAttendance(attendanceId: string, request: UpdateAttendanceRequest): Observable<APIResponseModel<AttendanceResponse>> {
+        return this.http.putTo<AttendanceResponse>(`attendance/${attendanceId}`, request);
     }
 
     // checkOut(

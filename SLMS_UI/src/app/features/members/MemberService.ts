@@ -33,6 +33,14 @@ export class MemberService {
         return this.httpApi.get<MemberListResponse[]>(url);
     }
 
+    getInstitutionMembers(institutionId: string): Observable<APIResponseModel<MemberListResponse[]>> {
+        return this.httpApi.get<MemberListResponse[]>(`institutions/${institutionId}/members`);
+    }
+
+    getBranchMembers(institutionId: string, branchId: string): Observable<APIResponseModel<MemberListResponse[]>> {
+        return this.httpApi.get<MemberListResponse[]>(`institutions/${institutionId}/branches/${branchId}/members`);
+    }
+
     getAllMembers(): Observable<APIResponseModel<MemberListResponse[]>> {
         return this.httpApi.get<MemberListResponse[]>('members');
     }

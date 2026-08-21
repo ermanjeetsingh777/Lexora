@@ -1,4 +1,4 @@
-export type LibraryDetailTab = 'overview' | 'seats' | 'profile' | 'hours' | 'exceptions' | 'calendar' | 'sections';
+export type LibraryDetailTab = 'overview' | 'seats' | 'members' | 'profile' | 'hours' | 'exceptions' | 'calendar' | 'sections';
 
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 

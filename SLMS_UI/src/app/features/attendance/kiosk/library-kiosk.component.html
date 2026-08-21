@@ -32,7 +32,7 @@
               class="w-full rounded-lg border border-white/10 bg-black/20 py-2.5 pl-9 pr-3 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               placeholder="Search name or membership no…"
               [ngModel]="memberSearch()"
-              (ngModelChange)="memberSearch.set($event)"
+              (ngModelChange)="memberSearch.set($event); loadMembers($event)"
             />
           </div>
 
@@ -74,13 +74,30 @@
               <div class="grid grid-cols-2 gap-3 mb-5">
                 <div class="rounded-lg border border-white/10 p-3">
                   <p class="text-xs text-slate-400">Check-in</p>
-                  <p class="font-medium mt-1">{{ status.checkInTime ?? '—' }}</p>
+                  <p class="font-medium mt-1">{{ formatAttendanceTime(status.checkInAtUtc, status.checkInTime) }}</p>
                 </div>
                 <div class="rounded-lg border border-white/10 p-3">
                   <p class="text-xs text-slate-400">Check-out</p>
-                  <p class="font-medium mt-1">{{ status.checkOutTime ?? '—' }}</p>
+                  <p class="font-medium mt-1">{{ formatAttendanceTime(status.checkOutAtUtc, status.checkOutTime) }}</p>
                 </div>
               </div>
+
+              @if (status.seatNumber) {
+                <div class="rounded-lg border border-white/10 p-3 mb-5">
+                  <p class="text-xs text-slate-400">Seat</p>
+                  <p class="font-medium mt-1 font-mono">{{ status.seatNumber }}</p>
+                </div>
+              }
+
+              @if (canCheckIn()) {
+                <div class="rounded-lg border border-white/10 p-3 mb-5 kiosk-seat-picker">
+                  <app-attendance-seat-picker
+                    [seats]="librarySeats()"
+                    [loading]="seatsLoading()"
+                    [selectedSeatNumber]="selectedSeatNumber()"
+                    (seatSelected)="selectedSeatNumber.set($event)" />
+                </div>
+              }
             }
 
             <div class="kiosk-actions kiosk-actions--row">
@@ -88,7 +105,7 @@
                 type="button"
                 class="kiosk-btn kiosk-btn--check-in"
                 [class.kiosk-btn--highlight]="canCheckIn()"
-                [disabled]="busy() || !canCheckIn()"
+                [disabled]="busy() || !canCheckIn() || !selectedSeatNumber()"
                 (click)="record('check-in')"
               >
                 <svg lucideLogIn class="kiosk-btn__icon"></svg>

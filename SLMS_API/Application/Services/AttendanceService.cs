@@ -3,8 +3,10 @@ using AutoMapper.Execution;
 using Microsoft.EntityFrameworkCore;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations;
+using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Application.Helpers;
 using SLMS_API.Common.Enums;
 using SLMS_API.Domain.Entities;
 using SLMS_API.Infrastructure.Data;
@@ -76,6 +78,13 @@ public class AttendanceService : IAttendanceService
                 throw new InvalidOperationException("The member is not assigned to any active library.");
             }
 
+            var seatNumber = await AttendanceSeatHelper.ValidateSeatForCheckInAsync(
+                _context,
+                memberLibrary.LibraryId,
+                memberId,
+                request.SeatNumber,
+                cancellationToken);
+
             attendance = new MemberAttendance
             {
                 Id = Guid.NewGuid(),
@@ -87,7 +96,7 @@ public class AttendanceService : IAttendanceService
                 CheckInTime = TimeOnly.FromDateTime(DateTime.UtcNow),
                 Status = AttendanceStatus.CheckedIn,
                 Source = request.Source ?? AttendanceSource.MobileApp,
-                SeatNo = request.SeatNumber,
+                SeatNo = seatNumber,
                 DeviceId = request.DeviceId,
                 Remarks = request.Remarks,
                 DurationMinutes = 0,
@@ -98,16 +107,28 @@ public class AttendanceService : IAttendanceService
             };
 
             _context.MemberAttendances.Add(attendance);
+            await AttendanceSeatHelper.AssignSessionSeatAsync(
+                _context,
+                memberId,
+                memberLibrary.LibraryId,
+                seatNumber,
+                cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
 
             return new AttendanceResponse
             {
                 Id = attendance.Id,
+                MemberId = attendance.MemberId,
                 AttendanceDate = attendance.AttendanceDate,
+                CheckInTime = attendance.CheckInTime,
                 DurationMinutes = 0,
                 Status = attendance.Status,
-                IsActive = true
+                SeatNo = attendance.SeatNo,
+                IsActive = true,
+                CheckInAtUtc = attendance.CheckInTime.HasValue
+                    ? attendance.AttendanceDate.ToDateTime(attendance.CheckInTime.Value, DateTimeKind.Utc)
+                    : null,
             };
         }
         catch (InvalidOperationException)
@@ -171,6 +192,12 @@ public class AttendanceService : IAttendanceService
             attendance.Remarks = request.Remarks;
             attendance.UpdatedAtUtc = DateTime.UtcNow;
             attendance.UpdatedBy = userId;
+
+            await AttendanceSeatHelper.ReleaseSessionSeatAsync(
+                _context,
+                memberId,
+                attendance.LibraryId,
+                cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
             return new AttendanceResponse
@@ -461,14 +488,106 @@ public class AttendanceService : IAttendanceService
         throw new NotImplementedException();
     }
 
-    public Task<Contracts.Organizations.Requests.AttendanceResponse> UpdateAsync(Guid attendanceId, UpdateAttendanceRequest request, string userId, CancellationToken cancellationToken)
+    public async Task<AttendanceResponse> UpdateAsync(
+        Guid attendanceId,
+        UpdateAttendanceRequest request,
+        string userId,
+        CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var attendance = await _context.MemberAttendances
+            .FirstOrDefaultAsync(x => x.Id == attendanceId && x.IsActive && !x.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Attendance record not found.");
+
+        if (request.CheckInTime.HasValue)
+        {
+            attendance.CheckInTime = request.CheckInTime;
+        }
+
+        attendance.CheckOutTime = request.CheckOutTime;
+
+        if (attendance.CheckInTime.HasValue && attendance.CheckOutTime.HasValue)
+        {
+            if (attendance.CheckOutTime.Value <= attendance.CheckInTime.Value)
+            {
+                throw new InvalidOperationException("Check-out time must be after check-in time.");
+            }
+
+            attendance.DurationMinutes = (int)(attendance.CheckOutTime.Value.ToTimeSpan()
+                - attendance.CheckInTime.Value.ToTimeSpan()).TotalMinutes;
+            attendance.Status = AttendanceStatus.Present;
+        }
+        else if (attendance.CheckInTime.HasValue)
+        {
+            attendance.CheckOutTime = null;
+            attendance.DurationMinutes = 0;
+            attendance.Status = AttendanceStatus.CheckedIn;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SeatNumber))
+        {
+            var seatNumber = await AttendanceSeatHelper.ValidateSeatForCheckInAsync(
+                _context,
+                attendance.LibraryId,
+                attendance.MemberId,
+                request.SeatNumber,
+                cancellationToken);
+            attendance.SeatNo = seatNumber;
+
+            if (attendance.Status == AttendanceStatus.CheckedIn)
+            {
+                await AttendanceSeatHelper.AssignSessionSeatAsync(
+                    _context,
+                    attendance.MemberId,
+                    attendance.LibraryId,
+                    seatNumber,
+                    cancellationToken);
+            }
+        }
+
+        attendance.Remarks = request.Remarks;
+        attendance.IsActive = request.IsActive;
+        attendance.UpdatedAtUtc = DateTime.UtcNow;
+        attendance.UpdatedBy = userId;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new AttendanceResponse
+        {
+            Id = attendance.Id,
+            MemberId = attendance.MemberId,
+            AttendanceDate = attendance.AttendanceDate,
+            CheckInTime = attendance.CheckInTime,
+            CheckOutTime = attendance.CheckOutTime,
+            DurationMinutes = attendance.DurationMinutes,
+            Status = attendance.Status,
+            Source = attendance.Source,
+            SeatNo = attendance.SeatNo,
+            Remarks = attendance.Remarks,
+            IsActive = attendance.IsActive,
+            CheckInAtUtc = attendance.CheckInTime.HasValue
+                ? attendance.AttendanceDate.ToDateTime(attendance.CheckInTime.Value, DateTimeKind.Utc)
+                : null,
+            CheckOutAtUtc = attendance.CheckOutTime.HasValue
+                ? attendance.AttendanceDate.ToDateTime(attendance.CheckOutTime.Value, DateTimeKind.Utc)
+                : null,
+        };
     }
 
     Task<IReadOnlyCollection<Contracts.Organizations.Requests.AttendanceResponse>> IAttendanceService.GetByInstitutionAsync(Guid institutionId, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task<IReadOnlyList<AttendanceSeatOptionResponse>> GetLibrarySeatsAsync(
+        Guid libraryId,
+        CancellationToken cancellationToken = default)
+    {
+        if (libraryId == Guid.Empty)
+        {
+            throw new ArgumentException("Library is required.");
+        }
+
+        return await AttendanceSeatHelper.GetSeatOptionsAsync(_context, libraryId, cancellationToken);
     }
 
     private static Guid CreateSyntheticAttendanceId(Guid memberId, DateOnly date)

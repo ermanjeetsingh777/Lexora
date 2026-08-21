@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Queries;
 using SLMS_API.Application.Contracts.Organizations.Responses;
@@ -12,11 +13,19 @@ public class LibraryListController : ControllerBase
 {
     private readonly ILibraryService _libraryService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAttendanceScannerService _scannerService;
+    private readonly IConfiguration _configuration;
 
-    public LibraryListController(ILibraryService libraryService, ICurrentUserService currentUserService)
+    public LibraryListController(
+        ILibraryService libraryService,
+        ICurrentUserService currentUserService,
+        IAttendanceScannerService scannerService,
+        IConfiguration configuration)
     {
         _libraryService = libraryService;
         _currentUserService = currentUserService;
+        _scannerService = scannerService;
+        _configuration = configuration;
     }
 
     [HttpGet("list")]
@@ -96,5 +105,30 @@ public class LibraryListController : ControllerBase
         }
 
         return Ok(ApiResponse<LibraryCalendarViewResponse>.Ok(view));
+    }
+
+    [HttpGet("{libraryId:guid}/attendance-qr")]
+    public async Task<ActionResult<ApiResponse<ScannerQrCodeResponse>>> GetAttendanceQr(
+        Guid libraryId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out _))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var qr = await _scannerService.GetQrCodeAsync(
+                libraryId,
+                _configuration["Attendance:LibraryKioskUrlBase"]
+                ?? _configuration["Attendance:ScannerUrlBase"],
+                cancellationToken);
+            return Ok(ApiResponse<ScannerQrCodeResponse>.Ok(qr));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<ScannerQrCodeResponse>.Fail(ex.Message));
+        }
     }
 }

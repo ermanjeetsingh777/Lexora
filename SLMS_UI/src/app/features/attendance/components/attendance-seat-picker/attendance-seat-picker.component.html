@@ -1,0 +1,33 @@
+<div class="seat-picker">
+  <div class="flex items-center justify-between gap-2 mb-2">
+    <p class="text-sm font-medium">Select seat</p>
+    <div class="flex items-center gap-3 text-[11px] text-muted-foreground">
+      <span class="inline-flex items-center gap-1"><span class="seat-legend seat-legend--available"></span> Blank</span>
+      <span class="inline-flex items-center gap-1"><span class="seat-legend seat-legend--occupied"></span> Full</span>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-muted-foreground py-4 text-center">Loading seats…</p>
+  } @else if (seats().length === 0) {
+    <p class="text-sm text-muted-foreground py-4 text-center">No seats configured for this library.</p>
+  } @else {
+    <div class="seat-grid">
+      @for (seat of seats(); track seat.seatNumber) {
+        <button
+          type="button"
+          [class]="seatClass(seat)"
+          [disabled]="!isSelectable(seat)"
+          [title]="seatTitle(seat)"
+          (click)="selectSeat(seat)"
+        >
+          {{ seat.seatNumber }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (selectedSeatNumber(); as selected) {
+    <p class="text-xs text-muted-foreground mt-2">Selected: <span class="font-mono text-foreground">{{ selected }}</span></p>
+  }
+</div>

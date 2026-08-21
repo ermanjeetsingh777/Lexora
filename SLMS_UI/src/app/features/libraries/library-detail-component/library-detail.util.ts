@@ -15,6 +15,7 @@ import type {
 export const TABS: { id: LibraryDetailTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'seats', label: 'Seats' },
+  { id: 'members', label: 'Members' },
   { id: 'profile', label: 'Profile' },
   { id: 'hours', label: 'Hours' },
   { id: 'exceptions', label: 'Exceptions' },

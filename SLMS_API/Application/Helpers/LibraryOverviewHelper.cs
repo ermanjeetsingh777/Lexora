@@ -499,6 +499,11 @@ public static class LibraryOverviewHelper
             .GroupBy(x => x.SeatNumber!, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().MemberName, StringComparer.OrdinalIgnoreCase);
 
+        var sessionOccupancy = await AttendanceSeatHelper.GetActiveSessionOccupancyAsync(
+            dbContext,
+            libraryId,
+            cancellationToken);
+
         var sourceSeats = dbSeats.Count > 0
             ? dbSeats.Select(seat => new SeatSource(
                 seat.Id,
@@ -516,7 +521,8 @@ public static class LibraryOverviewHelper
             var source = sourceSeats[index];
             var section = ParseSection(source.Number);
             var isOccupied = occupiedSeatIds.Contains(source.Id)
-                             || memberBySeatNumber.ContainsKey(source.Number);
+                             || memberBySeatNumber.ContainsKey(source.Number)
+                             || sessionOccupancy.ContainsKey(source.Number);
             var status = !source.IsActive
                 ? "maintenance"
                 : isOccupied
@@ -524,6 +530,10 @@ public static class LibraryOverviewHelper
                     : "available";
 
             memberBySeatNumber.TryGetValue(source.Number, out var memberName);
+            if (string.IsNullOrWhiteSpace(memberName))
+            {
+                sessionOccupancy.TryGetValue(source.Number, out memberName);
+            }
 
             results.Add(new LibraryDetailSeatResponse
             {

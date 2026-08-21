@@ -135,6 +135,17 @@ export interface ScannerMemberStatus {
     suggestedAction: 'check-in' | 'check-out' | 'done';
     checkInTime?: string | null;
     checkOutTime?: string | null;
+    checkInAtUtc?: string | Date | null;
+    checkOutAtUtc?: string | Date | null;
+    seatNumber?: string | null;
+}
+
+export interface AttendanceSeatOption {
+    seatId?: string | null;
+    seatNumber: string;
+    isActive: boolean;
+    isOccupied: boolean;
+    occupiedBy?: string | null;
 }
 
 export interface ScannerAttendanceRequest {

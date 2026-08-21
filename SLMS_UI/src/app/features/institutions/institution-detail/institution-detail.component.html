@@ -721,6 +721,17 @@
     }
   }
 
+  @if (tab() === 'members') {
+    <app-glass-card class="inst-detail-branch-card block">
+      <app-scoped-members-panel
+        scope="institution"
+        [institutionId]="institutionId()"
+        title="All members"
+        description="Members enrolled across all branches and libraries"
+      />
+    </app-glass-card>
+  }
+
   <!-- Billing -->
   @if (tab() === 'billing') {
     @if (billing(); as bill) {

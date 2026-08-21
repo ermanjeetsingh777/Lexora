@@ -1,3 +1,4 @@
+using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations;
 using SLMS_API.Application.Contracts.Common;
@@ -30,5 +31,7 @@ public interface IAttendanceService
     Task<bool> IsCheckedInAsync(Guid memberId, CancellationToken cancellationToken);
 
     Task<int> GetCurrentSessionMinutesAsync(Guid memberId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AttendanceSeatOptionResponse>> GetLibrarySeatsAsync(Guid libraryId, CancellationToken cancellationToken = default);
 
 }

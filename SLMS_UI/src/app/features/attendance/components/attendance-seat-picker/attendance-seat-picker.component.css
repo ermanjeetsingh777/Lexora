@@ -1,0 +1,59 @@
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: 0.5rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.seat-chip {
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  padding: 0.45rem 0.35rem;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  transition: transform 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.seat-chip--available {
+  background: rgb(16 185 129 / 0.12);
+  border-color: rgb(16 185 129 / 0.35);
+  color: rgb(5 150 105);
+}
+
+.seat-chip--available:not(:disabled):hover {
+  transform: translateY(-1px);
+  background: rgb(16 185 129 / 0.2);
+}
+
+.seat-chip--occupied,
+.seat-chip--maintenance {
+  background: rgb(244 63 94 / 0.12);
+  border-color: rgb(244 63 94 / 0.25);
+  color: rgb(190 18 60);
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.seat-chip--selected {
+  background: rgb(59 130 246 / 0.18);
+  border-color: rgb(59 130 246 / 0.55);
+  color: rgb(29 78 216);
+  box-shadow: 0 0 0 1px rgb(59 130 246 / 0.25);
+}
+
+.seat-legend {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 0.15rem;
+}
+
+.seat-legend--available {
+  background: rgb(16 185 129 / 0.45);
+}
+
+.seat-legend--occupied {
+  background: rgb(244 63 94 / 0.45);
+}

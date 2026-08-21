@@ -1,0 +1,183 @@
+<app-section-header [title]="title()" [description]="description()">
+  <div actions class="flex items-center gap-2">
+    <span class="label-mono tabular-nums">{{ members().length }} total · {{ activeCount() }} active</span>
+    <a routerLink="/members/create">
+      <app-button size="sm">
+        <svg lucideUsers class="h-3.5 w-3.5 mr-1"></svg>
+        Add member
+      </app-button>
+    </a>
+  </div>
+</app-section-header>
+
+@if (loading()) {
+  <p class="py-10 text-center text-sm text-muted-foreground">Loading members…</p>
+} @else if (error()) {
+  <div class="inst-detail-inline-empty">
+    <p class="inst-detail-inline-empty__desc">{{ error() }}</p>
+  </div>
+} @else if (!members().length) {
+  <div class="inst-detail-inline-empty">
+    <div class="inst-detail-inline-empty__icon">
+      <svg lucideUsers class="h-4 w-4"></svg>
+    </div>
+    <h4 class="inst-detail-inline-empty__title">No members yet</h4>
+    <p class="inst-detail-inline-empty__desc">Members enrolled here will appear in this list.</p>
+  </div>
+} @else {
+  <div class="inst-filter-bar mt-3 mb-4">
+    <div class="inst-filter-search">
+      <svg lucideSearch class="inst-filter-icon"></svg>
+      <input
+        type="search"
+        class="inst-filter-control w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-8 pr-3 text-sm"
+        placeholder="Search name, email, phone, plan…"
+        [ngModel]="query()"
+        (ngModelChange)="onQueryChange($event)"
+      />
+    </div>
+    <select
+      class="inst-filter-select"
+      [ngModel]="status()"
+      (ngModelChange)="onStatusChange($event)"
+    >
+      <option value="all">All statuses</option>
+      @for (s of STATUS_OPTS; track s) {
+        <option [value]="s">{{ s }}</option>
+      }
+    </select>
+    @if (query() || status() !== 'all') {
+      <app-button size="sm" variant="ghost" class="h-8 px-2 text-xs" (click)="clearFilters()">
+        <svg lucideX class="h-3 w-3 mr-1"></svg> Clear
+      </app-button>
+    }
+    <div class="inst-filter-count">
+      <span class="tabular-nums text-xs text-muted-foreground">
+        {{ filtered().length }} / {{ members().length }}
+      </span>
+    </div>
+  </div>
+
+  @if (!filtered().length) {
+    <div class="inst-detail-inline-empty">
+      <div class="inst-detail-inline-empty__icon">
+        <svg lucideSearch class="h-4 w-4"></svg>
+      </div>
+      <h4 class="inst-detail-inline-empty__title">No members match your filters</h4>
+      <p class="inst-detail-inline-empty__desc">Try clearing search or filters.</p>
+      <app-button size="sm" variant="outline" class="mt-2" (click)="clearFilters()">Clear filters</app-button>
+    </div>
+  } @else {
+    <div class="overflow-x-auto">
+      <table class="inst-detail-branch-table w-full text-sm">
+        <thead>
+          <tr class="text-left border-y border-[var(--border)] label-mono">
+            <th class="py-2 pr-4 font-medium">Member</th>
+            <th class="py-2 pr-4 font-medium">Status</th>
+            <th class="py-2 pr-4 font-medium">Plan</th>
+            @if (showBranchColumn()) {
+              <th class="py-2 pr-4 font-medium">Branch</th>
+            }
+            @if (showLibraryColumn()) {
+              <th class="py-2 pr-4 font-medium">Library</th>
+            }
+            <th class="py-2 pr-4 font-medium">Shift</th>
+            <th class="py-2 pr-4 font-medium">Seat</th>
+            <th class="py-2 pr-4 font-medium">Last visit</th>
+            <th class="py-2 w-10"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          @for (m of paged(); track m.id; let i = $index) {
+            <tr class="hover:bg-muted/40">
+              <td class="py-2.5 pr-4 align-middle">
+                <a [routerLink]="['/members', m.id]" class="flex items-center gap-2 group">
+                  <app-member-avatar
+                    [memberId]="m.id"
+                    [hasPhoto]="m.hasPhoto ?? false"
+                    [name]="m.name || m.userName || m.email"
+                    [hue]="(i * 41) % 360"
+                    size="sm"
+                  />
+                  <div>
+                    <div class="font-medium group-hover:text-primary">{{ m.name || m.userName || m.email }}</div>
+                    <div class="text-xs text-muted-foreground">{{ m.email || m.phone }}</div>
+                  </div>
+                </a>
+              </td>
+              <td class="py-2.5 pr-4 align-middle">
+                <app-status-badge [status]="m.status" />
+              </td>
+              <td class="py-2.5 pr-4 align-middle">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
+                  [class]="commonService.planClasses(m.plan)">
+                  {{ m.plan || '—' }}
+                </span>
+                <div class="text-[11px] text-muted-foreground mt-0.5">{{ m.life.state }}</div>
+              </td>
+              @if (showBranchColumn()) {
+                <td class="py-2.5 pr-4 align-middle text-muted-foreground">{{ m.branch || '—' }}</td>
+              }
+              @if (showLibraryColumn()) {
+                <td class="py-2.5 pr-4 align-middle text-muted-foreground">{{ m.library || '—' }}</td>
+              }
+              <td class="py-2.5 pr-4 align-middle text-muted-foreground">{{ m.shift || '—' }}</td>
+              <td class="py-2.5 pr-4 align-middle tabular-nums">{{ m.seatNumber || m.seat || '—' }}</td>
+              <td class="py-2.5 pr-4 align-middle text-muted-foreground whitespace-nowrap">
+                @if (m.lastVisit) {
+                  {{ m.lastVisit | date:'dd MMM yyyy' }}
+                } @else {
+                  —
+                }
+              </td>
+              <td class="py-2.5 align-middle text-right">
+                <a [routerLink]="['/members', m.id]" title="View member">
+                  <app-button variant="ghost" size="icon" class="h-7 w-7">
+                    <svg lucideEye class="h-4 w-4"></svg>
+                  </app-button>
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-3 px-1 py-3 border-t border-[var(--border)]">
+      <div class="text-xs text-muted-foreground">
+        Showing
+        <span class="tabular-nums font-medium text-foreground">{{ pageStart() + 1 }}–{{ Math.min(pageStart() + pageSize(), filtered().length) }}</span>
+        of <span class="tabular-nums font-medium text-foreground">{{ filtered().length }}</span>
+      </div>
+      <div class="flex items-center gap-3 ml-auto">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span>Rows</span>
+          <select
+            class="inst-filter-select inst-filter-select--compact"
+            [ngModel]="pageSize()"
+            (ngModelChange)="setPageSize(+$event)"
+          >
+            @for (n of PAGE_SIZE_OPTS; track n) {
+              <option [value]="n">{{ n }}</option>
+            }
+          </select>
+        </div>
+        <div class="flex items-center gap-0.5">
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(1)">
+            <svg lucideChevronsLeft class="h-4 w-4"></svg>
+          </app-button>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+            <svg lucideChevronLeft class="h-4 w-4"></svg>
+          </app-button>
+          <span class="text-xs tabular-nums px-2 min-w-[80px] text-center">Page {{ currentPage() }} / {{ totalPages() }}</span>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+            <svg lucideChevronRight class="h-4 w-4"></svg>
+          </app-button>
+          <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="currentPage() === totalPages()" (click)="goToPage(totalPages())">
+            <svg lucideChevronsRight class="h-4 w-4"></svg>
+          </app-button>
+        </div>
+      </div>
+    </div>
+  }
+}

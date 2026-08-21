@@ -86,6 +86,23 @@ public class AttendanceScannerController : ControllerBase
         }
     }
 
+    [HttpGet("seats")]
+    [Permission(PermissionKey.AttendanceScannerUse)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>>> GetLibrarySeats(
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var seats = await _scannerService.GetLibrarySeatsAsync(token, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Ok(seats));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Fail(ex.Message));
+        }
+    }
+
     [HttpPost("record")]
     [Permission(PermissionKey.AttendanceScannerUse)]
     public async Task<ActionResult<ApiResponse<ScannerAttendanceResultResponse>>> Record(

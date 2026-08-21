@@ -45,7 +45,7 @@ import { KeyValueResponse, PlanDropdownResponse, PlanResponse } from '@core/mode
 import { MemberPaymentsComponent } from "../pages/member-payments-component/member-payments-component";
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { AttendanceService } from '@core/services/attendance.service';
-import { AttendanceCalendarResponse, AttendanceResponse, AttendanceStatisticsResponse, AttendanceStatus, CheckInRequest, CheckOutRequest } from '@core/models/attendanceModels';
+import { AttendanceCalendarResponse, AttendanceResponse, AttendanceStatisticsResponse, AttendanceStatus, CheckInRequest, CheckOutRequest, UpdateAttendanceRequest } from '@core/models/attendanceModels';
 import { PlanStatus } from '@core/enums/OnbardingSteps';
 import {
   computeMemberLifecycle, LIFECYCLE_TONE_CLASSES, lifecycleBannerClass, MemberLifecycle, RenewTarget,
@@ -53,6 +53,12 @@ import {
 import { RenewPlanDialogComponent } from '../components/renew-plan-dialog/renew-plan-dialog.component';
 import { MemberAttendanceCalendarComponent } from '../components/member-attendance-calendar/member-attendance-calendar.component';
 import { LibraryCalendarComponent } from '@features/libraries/library-detail-component/library-calendar/library-calendar.component';
+import { AttendanceSeatPickerComponent } from '@features/attendance/components/attendance-seat-picker/attendance-seat-picker.component';
+import { AttendanceSeatOption } from '@core/models/attendanceModels';
+import {
+  attendanceTimeInputValue,
+  localTimeInputToUtcTimeOnly,
+} from '@features/attendance/attendance-format.util';
 
 type TabId = 'overview' | 'attendance' | 'library-calendar' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks';
 
@@ -84,6 +90,7 @@ interface HeatmapCell {
     RenewPlanDialogComponent,
     MemberAttendanceCalendarComponent,
     LibraryCalendarComponent,
+    AttendanceSeatPickerComponent,
   ],
   templateUrl: './member-details-component.html',
   styleUrl: './member-details-component.css',
@@ -112,7 +119,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   readonly activeTab = signal<TabId>('overview');
   readonly actionsOpen = signal(false);
-  readonly dialog = signal<null | 'branch' | 'seat' | 'shift' | 'plan'>(null);
+  readonly dialog = signal<null | 'branch' | 'seat' | 'shift' | 'plan' | 'attendance'>(null);
   hexNumber = Math.floor(Math.random() * 360);
   readonly tabs: { value: TabId; label: string }[] = [
     { value: 'overview', label: 'Overview' },
@@ -142,6 +149,13 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly attendanceStatistics = signal<AttendanceStatisticsResponse | null>(null);
   readonly calendarMonth = signal<Date>(new Date());
   readonly calendarLoading = signal(false);
+  readonly librarySeats = signal<AttendanceSeatOption[]>([]);
+  readonly seatsLoading = signal(false);
+  readonly selectedSeatNumber = signal<string | null>(null);
+  readonly editCheckInTime = signal('');
+  readonly editCheckOutTime = signal('');
+  readonly editSeatNumber = signal('');
+  readonly editRemarks = signal('');
   readonly eventDot = EVENT_DOT;
   readonly ATTENDANCE_LOG_PAGE_SIZE_OPTS = ATTENDANCE_LOG_PAGE_SIZE_OPTS;
   readonly attendanceLogPage = signal(1);
@@ -750,6 +764,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
         if (response.data?.attendance?.length) {
           this.mergeCalendarDays(response.data.attendance);
         }
+        this.loadLibrarySeats(response.data?.libraryId);
         this.loading.set(false);
         this.getLibraryPlan();
       },
@@ -1007,6 +1022,81 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     );
   }
 
+  openAttendanceHistory(): void {
+    this.setTab('attendance');
+    this.attendanceLogPage.set(1);
+    setTimeout(() => {
+      document.getElementById('attendance-check-in-log')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }
+
+  openTodayAttendanceEdit(): void {
+    const today = this.todayAttendance();
+    if (!today?.checkInAtUtc && !today?.checkInTime) {
+      this.toast.error('No attendance record to edit for today.');
+      return;
+    }
+
+    this.editCheckInTime.set(attendanceTimeInputValue(today.checkInAtUtc, today.checkInTime));
+    this.editCheckOutTime.set(attendanceTimeInputValue(today.checkOutAtUtc, today.checkOutTime));
+    this.editSeatNumber.set(today.seatNo ?? this.memberDetails()?.seatNumber ?? '');
+    this.editRemarks.set(today.remarks ?? '');
+    this.dialog.set('attendance');
+  }
+
+  confirmUpdateTodayAttendance(): void {
+    const today = this.todayAttendance();
+    if (!today?.id) {
+      this.toast.error('Attendance record not found.');
+      return;
+    }
+
+    if (!this.editCheckInTime()) {
+      this.toast.error('Check-in time is required.');
+      return;
+    }
+
+    const checkInUtc = localTimeInputToUtcTimeOnly(this.editCheckInTime(), this.today());
+    if (!checkInUtc) {
+      this.toast.error('Invalid check-in time.');
+      return;
+    }
+
+    let checkOutUtc: string | null = null;
+    if (this.editCheckOutTime()) {
+      checkOutUtc = localTimeInputToUtcTimeOnly(this.editCheckOutTime(), this.today());
+      if (!checkOutUtc) {
+        this.toast.error('Invalid check-out time.');
+        return;
+      }
+    }
+
+    const request: UpdateAttendanceRequest = {
+      checkInTime: checkInUtc,
+      checkOutTime: checkOutUtc,
+      status: today.status,
+      seatNumber: this.editSeatNumber() || undefined,
+      remarks: this.editRemarks() || undefined,
+      isActive: true,
+    };
+
+    this.dialogBusy.set(true);
+    this.attendanceService.updateAttendance(today.id, request).subscribe({
+      next: (response) => {
+        this.dialogBusy.set(false);
+        this.closeDialog();
+        this.loadMemberDetails();
+        this.loadAttendanceCalendar();
+        this.loadAttendanceStatistics();
+        this.toast.success(response.message || 'Attendance updated successfully.');
+      },
+      error: (error) => {
+        this.dialogBusy.set(false);
+        this.toast.error(error.error?.message || 'Unable to update attendance.');
+      },
+    });
+  }
+
   openDialog(d: 'branch' | 'seat' | 'shift' | 'plan'): void {
     this.actionsOpen.set(false);
     this.dialog.set(d);
@@ -1157,10 +1247,34 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadLibrarySeats(libraryId?: string | null): void {
+    if (!libraryId) {
+      this.librarySeats.set([]);
+      return;
+    }
+
+    this.seatsLoading.set(true);
+    this.attendanceService.getLibrarySeats(libraryId).subscribe({
+      next: (response) => {
+        this.librarySeats.set(response.data ?? []);
+        this.seatsLoading.set(false);
+      },
+      error: () => {
+        this.librarySeats.set([]);
+        this.seatsLoading.set(false);
+      },
+    });
+  }
+
   checkIn(isCheckIn: boolean) {
+    if (isCheckIn && !this.selectedSeatNumber()) {
+      this.toast.error('Please select an available seat before checking in.');
+      return;
+    }
+
     const request: CheckInRequest = {
       memberId: this.memberId,
-      seatNumber: this.memberDetails()?.seatNumber ?? '0',
+      seatNumber: isCheckIn ? this.selectedSeatNumber() ?? undefined : undefined,
       deviceId: 'web',
       remarks: (isCheckIn) ? 'Checked in via web app' : 'Checked out via web app',
     };
@@ -1169,6 +1283,9 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
         this.loadMemberDetails();
         this.loadAttendanceCalendar();
         this.loadAttendanceStatistics();
+        if (isCheckIn) {
+          this.selectedSeatNumber.set(null);
+        }
         this.toast.success(response.message || 'Member checked in successfully.');
       },
       error: (error) => {

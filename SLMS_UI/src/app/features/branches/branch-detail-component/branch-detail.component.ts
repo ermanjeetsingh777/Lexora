@@ -59,6 +59,7 @@ import {
   buildShiftMixTotals,
   formatActivityTime,
 } from './branch-detail.util';
+import { ScopedMembersPanelComponent } from '../../members/components/scoped-members-panel/scoped-members-panel.component';
 import {
   getHeatmapValue,
   heatmapCellColor,
@@ -69,6 +70,7 @@ const TABS: { id: BranchDetailTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'usage', label: 'Usage' },
   { id: 'libraries', label: 'Libraries' },
+  { id: 'members', label: 'Members' },
   { id: 'staffing', label: 'Staffing' },
   { id: 'activity', label: 'Activity' },
 ];
@@ -131,6 +133,7 @@ const ACTIVITY_PAGE_SIZE_OPTS = [15, 25, 50] as const;
     LucideChevronRight,
     LucideChevronsLeft,
     LucideChevronsRight,
+    ScopedMembersPanelComponent,
   ],
   templateUrl: './branch-detail.component.html',
   styleUrls: [

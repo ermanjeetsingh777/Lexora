@@ -35,6 +35,9 @@ public class ScannerMemberStatusResponse
     public string SuggestedAction { get; set; } = "check-in";
     public TimeOnly? CheckInTime { get; set; }
     public TimeOnly? CheckOutTime { get; set; }
+    public DateTime? CheckInAtUtc { get; set; }
+    public DateTime? CheckOutAtUtc { get; set; }
+    public string? SeatNumber { get; set; }
 }
 
 public class ScannerAttendanceRequest
@@ -96,4 +99,13 @@ public class MemberQrCodeResponse
     public string Token { get; set; } = string.Empty;
     public string ScanUrl { get; set; } = string.Empty;
     public string QrCodeBase64 { get; set; } = string.Empty;
+}
+
+public class AttendanceSeatOptionResponse
+{
+    public Guid? SeatId { get; set; }
+    public string SeatNumber { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public bool IsOccupied { get; set; }
+    public string? OccupiedBy { get; set; }
 }

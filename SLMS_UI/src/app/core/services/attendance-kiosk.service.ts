@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
+  AttendanceSeatOption,
   MemberScannerContext,
   MemberScannerRecordRequest,
   ScannerAttendanceRequest,
@@ -36,6 +37,18 @@ export class AttendanceKioskService {
         params: { token },
       })
       .pipe(map((r) => r.data!));
+  }
+
+  getLibrarySeats(token: string): Observable<AttendanceSeatOption[]> {
+    return this.api
+      .get<AttendanceSeatOption[]>(`${this.base}/library/seats`, { params: { token } })
+      .pipe(map((r) => r.data ?? []));
+  }
+
+  getMemberSeats(token: string): Observable<AttendanceSeatOption[]> {
+    return this.api
+      .get<AttendanceSeatOption[]>(`${this.base}/member/seats`, { params: { token } })
+      .pipe(map((r) => r.data ?? []));
   }
 
   recordLibrary(request: ScannerAttendanceRequest): Observable<ScannerAttendanceResult> {

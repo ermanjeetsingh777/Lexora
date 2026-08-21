@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QRCoder;
 using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Organizations.Requests;
+using SLMS_API.Application.Helpers;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Enums;
 using SLMS_API.Domain.Entities;
@@ -103,9 +104,29 @@ public class AttendanceScannerService : IAttendanceScannerService
             Status = attendance?.Status,
             CheckInTime = attendance?.CheckInTime,
             CheckOutTime = attendance?.CheckOutTime,
+            CheckInAtUtc = attendance?.CheckInTime.HasValue == true
+                ? attendance!.AttendanceDate.ToDateTime(attendance.CheckInTime!.Value, DateTimeKind.Utc)
+                : null,
+            CheckOutAtUtc = attendance?.CheckOutTime.HasValue == true
+                ? attendance!.AttendanceDate.ToDateTime(attendance.CheckOutTime!.Value, DateTimeKind.Utc)
+                : null,
+            SeatNumber = attendance?.SeatNo,
             SuggestedAction = ResolveSuggestedAction(isCheckedIn, isCheckedOut),
         };
     }
+
+    public async Task<IReadOnlyList<AttendanceSeatOptionResponse>> GetLibrarySeatsAsync(
+        string libraryToken,
+        CancellationToken cancellationToken = default)
+    {
+        var library = await ResolveLibraryAsync(libraryToken, cancellationToken);
+        return await AttendanceSeatHelper.GetSeatOptionsAsync(_context, library.Id, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<AttendanceSeatOptionResponse>> GetLibrarySeatsByLibraryIdAsync(
+        Guid libraryId,
+        CancellationToken cancellationToken = default) =>
+        AttendanceSeatHelper.GetSeatOptionsAsync(_context, libraryId, cancellationToken);
 
     public async Task<ScannerAttendanceResultResponse> RecordAsync(
         ScannerAttendanceRequest request,

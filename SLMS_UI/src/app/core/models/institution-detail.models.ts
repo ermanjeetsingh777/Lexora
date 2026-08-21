@@ -1,4 +1,4 @@
-export type InstitutionDetailTab = 'overview' | 'branches' | 'libraries' | 'billing' | 'settings';
+export type InstitutionDetailTab = 'overview' | 'branches' | 'libraries' | 'members' | 'billing' | 'settings';
 
 export interface InstitutionDetail {
   id: string;

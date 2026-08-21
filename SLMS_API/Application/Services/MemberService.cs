@@ -570,6 +570,149 @@ public class MemberService : IMemberService
 
     }
 
+    public async Task<IReadOnlyCollection<MemberListResponse>> GetInstitutionMemberListAsync(Guid institutionId, CancellationToken cancellationToken = default)
+    {
+        var institutionExists = await _dbContext.Institutions
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == institutionId, cancellationToken);
+
+        if (!institutionExists)
+            throw new InvalidOperationException("Institution not found.");
+
+        return await GetScopedMemberListAsync(institutionId, branchId: null, libraryId: null, cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<MemberListResponse>> GetBranchMemberListAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default)
+    {
+        var branchExists = await _dbContext.Branches
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.Id == branchId &&
+                x.InstitutionId == institutionId,
+                cancellationToken);
+
+        if (!branchExists)
+            throw new InvalidOperationException("Branch not found.");
+
+        return await GetScopedMemberListAsync(institutionId, branchId, libraryId: null, cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<MemberListResponse>> GetScopedMemberListAsync(
+        Guid institutionId,
+        Guid? branchId,
+        Guid? libraryId,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var members = await _dbContext.Members
+            .AsNoTracking()
+            .Where(m => m.MemberLibraries.Any(ml =>
+                ml.InstitutionId == institutionId &&
+                ml.IsCurrent &&
+                (branchId == null || ml.BranchId == branchId) &&
+                (libraryId == null || ml.LibraryId == libraryId)))
+            .Select(m => new
+            {
+                m.Id,
+                m.IsActive,
+                m.MembershipNo,
+                m.Shift,
+                m.PhotoStoragePath,
+                fullName = m.User.FullName,
+                UserName = m.User.UserName,
+                Email = m.User.Email,
+                Phone = m.User.PhoneNumber,
+                LibraryMapping = m.MemberLibraries
+                    .Where(ml =>
+                        ml.InstitutionId == institutionId &&
+                        ml.IsCurrent &&
+                        (branchId == null || ml.BranchId == branchId) &&
+                        (libraryId == null || ml.LibraryId == libraryId))
+                    .Select(ml => new
+                    {
+                        InstitutionName = ml.Institution.Name,
+                        BranchName = ml.Branch.Name,
+                        LibraryName = ml.Library.Name,
+                        ml.JoinedOn,
+                        SeatNumber = ml.Seat != null ? ml.Seat.SeatNumber : null
+                    })
+                    .FirstOrDefault(),
+                CurrentPlan = m.MemberPlans
+                    .Where(mp =>
+                        mp.IsCurrent &&
+                        (libraryId == null || mp.Plan.LibraryId == libraryId))
+                    .Select(mp => new
+                    {
+                        mp.PlanId,
+                        PlanName = mp.Plan.Name,
+                        mp.Plan.Price,
+                        mp.Plan.DurationInDays,
+                        mp.StartDate,
+                        mp.EndDate
+                    })
+                    .FirstOrDefault(),
+                LastVisit = m.Attendances
+                    .Where(a => libraryId == null || a.LibraryId == libraryId)
+                    .OrderByDescending(a => a.AttendanceDate)
+                    .Select(a => (DateOnly?)a.AttendanceDate)
+                    .FirstOrDefault(),
+                Visits30d = m.Attendances.Count(a =>
+                    (libraryId == null || a.LibraryId == libraryId) &&
+                    a.AttendanceDate >= thirtyDaysAgo)
+            })
+            .ToListAsync(cancellationToken);
+
+        return members.Select(x =>
+        {
+            var name = x.fullName?.Trim() ?? x.UserName?.Trim() ?? string.Empty;
+            var joinedDate = x.LibraryMapping?.JoinedOn.Date ?? now.Date;
+            var totalMembershipDays = Math.Max(1, (now.Date - joinedDate).Days + 1);
+            var attendanceRate = Math.Min(
+                Math.Round((decimal)x.Visits30d / totalMembershipDays * 100, 1),
+                100);
+            var currentPlan = x.CurrentPlan;
+            var (daysRemaining, feesOwed, planStatus) = ComputePlanMetrics(
+                currentPlan?.EndDate,
+                currentPlan?.Price ?? 0,
+                today);
+
+            return new MemberListResponse
+            {
+                Id = x.Id,
+                Name = name,
+                UserName = x.UserName ?? string.Empty,
+                Email = x.Email,
+                Phone = x.Phone,
+                Avatar = $"https://api.dicebear.com/9.x/initials/svg?seed={Uri.EscapeDataString(name)}&backgroundType=gradientLinear",
+                AvatarHue = 0,
+                HasPhoto = !string.IsNullOrWhiteSpace(x.PhotoStoragePath),
+                Institution = x.LibraryMapping?.InstitutionName ?? string.Empty,
+                Branch = x.LibraryMapping?.BranchName ?? string.Empty,
+                Library = x.LibraryMapping?.LibraryName ?? string.Empty,
+                Membership = x.MembershipNo,
+                Plan = currentPlan?.PlanName,
+                PlanId = currentPlan?.PlanId.ToString(),
+                Shift = x.Shift,
+                Seat = x.LibraryMapping?.SeatNumber,
+                SeatNumber = x.LibraryMapping?.SeatNumber,
+                Status = x.IsActive ? "Active" : "Inactive",
+                PlanStatus = planStatus,
+                JoinDate = DateOnly.FromDateTime(x.LibraryMapping?.JoinedOn ?? now),
+                LastVisit = x.LastVisit,
+                Visits30d = x.Visits30d,
+                AttendanceRate = attendanceRate,
+                FeesOwed = feesOwed,
+                DaysRemaining = daysRemaining,
+                PlanStartDate = currentPlan?.StartDate,
+                PlanEndDate = currentPlan?.EndDate,
+                PlanDurationInDays = currentPlan?.DurationInDays ?? 0
+            };
+        }).ToList();
+    }
+
     public async Task<IReadOnlyCollection<MemberListResponse>> GetAllMemberListAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;

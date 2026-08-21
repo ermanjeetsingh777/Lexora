@@ -3,6 +3,7 @@ import { APIResponseModel } from '@core/models/APIResponseModel';
 import { BranchLibraryCapacitySummary } from '@core/models/branch-library-capacity.models';
 import { CreateLibraryRequest } from '@core/models/CreateLibraryRequest ';
 import { LibraryCalendarQuery, LibraryCalendarView } from '@core/models/library-calendar.models';
+import { ScannerQrCode } from '@core/models/attendanceModels';
 import { LibraryDetailView, LibraryDetailQuery, UpdateLibraryPayload, UpdateLibraryWeeklyHoursPayload, UpdateLibraryHoursExceptionsPayload, HoursException } from '@core/models/library-detail.models';
 import { LibraryListQuery, LibraryListRevenueSummary, LibraryListView } from '@core/models/library-list.models';
 import { ApiService } from '@core/services/api.service';
@@ -67,6 +68,12 @@ export class LibraryService {
     };
     return this.httpApi
       .get<LibraryCalendarView>(`libraries/${libraryId}/calendar`, { params })
+      .pipe(map((r) => r.data!));
+  }
+
+  getAttendanceQr(libraryId: string): Observable<ScannerQrCode> {
+    return this.httpApi
+      .get<ScannerQrCode>(`libraries/${libraryId}/attendance-qr`)
       .pipe(map((r) => r.data!));
   }
 

@@ -503,6 +503,18 @@
     }
   }
 
+  @if (tab() === 'members') {
+    <app-glass-card class="inst-detail-branch-card block">
+      <app-scoped-members-panel
+        scope="branch"
+        [institutionId]="d.institutionId"
+        [branchId]="d.id"
+        title="Branch members"
+        description="Members enrolled in libraries under this branch"
+      />
+    </app-glass-card>
+  }
+
   @if (tab() === 'staffing') {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <app-glass-card class="p-0 overflow-hidden lg:col-span-2 block">

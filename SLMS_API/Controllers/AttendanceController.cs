@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog.Core;
 using SLMS_API.Application.Contracts.Common;
+using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Organizations;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Services;
@@ -137,6 +138,56 @@ public class AttendanceController : ControllerBase
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 ApiResponse<AttendanceStatisticsResponse>.Fail("An unexpected error occurred while retrieving attendance statistics."));
+        }
+    }
+
+    /// <summary>
+    /// Update an attendance record (check-in/out times, seat, remarks).
+    /// </summary>
+    [HttpPut("{attendanceId:guid}")]
+    public async Task<ActionResult<ApiResponse<AttendanceResponse>>> Update(
+        Guid attendanceId,
+        [FromBody] UpdateAttendanceRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var attendance = await _attendanceService.UpdateAsync(
+                attendanceId,
+                request,
+                _currentUserService.UserId ?? string.Empty,
+                cancellationToken);
+            return Ok(ApiResponse<AttendanceResponse>.Ok(attendance, "Attendance updated successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<AttendanceResponse>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while updating attendance {AttendanceId}", attendanceId);
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiResponse<AttendanceResponse>.Fail("An unexpected error occurred while updating attendance."));
+        }
+    }
+
+    /// <summary>
+    /// Get seat availability for a library (blank / occupied).
+    /// </summary>
+    [HttpGet("libraries/{libraryId:guid}/seats")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>>> GetLibrarySeats(
+        Guid libraryId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var seats = await _attendanceService.GetLibrarySeatsAsync(libraryId, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Ok(seats));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Fail(ex.Message));
         }
     }
 }

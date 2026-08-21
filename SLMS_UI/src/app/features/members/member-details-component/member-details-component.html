@@ -271,7 +271,7 @@
             Seat
           </div>
           <div class="font-semibold">
-            {{ m.seatNumber }}
+            {{ todayAttendance()?.seatNo || m.seatNumber || '—' }}
           </div>
         </div>
       </div>
@@ -316,10 +316,21 @@
           </div>
         </div>
       </div>
+
+      @if (!todayAttendance()?.checkInAtUtc) {
+      <div class="mt-4 rounded-lg border bg-muted/10 p-3">
+        <app-attendance-seat-picker
+          [seats]="librarySeats()"
+          [loading]="seatsLoading()"
+          [selectedSeatNumber]="selectedSeatNumber()"
+          (seatSelected)="selectedSeatNumber.set($event)" />
+      </div>
+      }
+
       <!-- Actions -->
       <div class="flex flex-wrap justify-end gap-2 mt-5">
         @if(!todayAttendance()?.checkInAtUtc){
-        <app-button (click)="checkIn(true)">
+        <app-button (click)="checkIn(true)" [disabled]="!selectedSeatNumber()">
           <svg lucideLogIn class="h-4 w-4 mr-1"></svg>
           Check In
         </app-button>
@@ -330,12 +341,12 @@
         </app-button>
         }
 
-        <app-button variant="outline">
+        <app-button variant="outline" (click)="openAttendanceHistory()">
           <svg lucideHistory class="h-4 w-4 mr-1"></svg>
           History
         </app-button>
 
-        <app-button variant="ghost">
+        <app-button variant="ghost" (click)="openTodayAttendanceEdit()" [disabled]="!todayAttendance()?.checkInAtUtc">
           <svg lucidePencil class="h-4 w-4 mr-1"></svg>
           Edit
         </app-button>
@@ -575,7 +586,7 @@
           (viewDateChange)="onCalendarViewDateChange($event)" />
       </app-glass-card>
 
-      <app-glass-card class="block p-0 overflow-hidden">
+      <app-glass-card id="attendance-check-in-log" class="block p-0 overflow-hidden">
         <div class="">
           <app-section-header title="Check-in log" description="Last 30 days" />
         </div>
@@ -824,7 +835,6 @@
 
   </div>
 </div>
-<!-- ── DIALOGS ─────────────────────────────────────────────────────────── -->
 <!-- Change Shift -->
 @if (dialog() === 'shift' || dialog() === 'plan') {
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -976,6 +986,52 @@
   </div>
 </div>
 }
+
+@if (dialog() === 'attendance') {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-md rounded-xl border bg-background shadow-xl p-6 space-y-5">
+    <div>
+      <h2 class="text-lg font-semibold">Edit today's attendance</h2>
+      <p class="text-sm text-muted-foreground mt-0.5">
+        Update check-in/out times, seat, and remarks for {{ today() | date:'dd MMM yyyy' }}.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Check-in</label>
+        <input type="time" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+          [ngModel]="editCheckInTime()" (ngModelChange)="editCheckInTime.set($event)" />
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Check-out</label>
+        <input type="time" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+          [ngModel]="editCheckOutTime()" (ngModelChange)="editCheckOutTime.set($event)" />
+      </div>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">Seat</label>
+      <input type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono"
+        placeholder="Seat number" [ngModel]="editSeatNumber()" (ngModelChange)="editSeatNumber.set($event)" />
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">Remarks</label>
+      <textarea rows="2" class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+        placeholder="Optional notes" [ngModel]="editRemarks()" (ngModelChange)="editRemarks.set($event)"></textarea>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2 border-t">
+      <app-button variant="outline" (click)="closeDialog()">Cancel</app-button>
+      <app-button [disabled]="dialogBusy()" (click)="confirmUpdateTodayAttendance()">
+        {{ dialogBusy() ? 'Saving…' : 'Save changes' }}
+      </app-button>
+    </div>
+  </div>
+</div>
+}
+
 }
 
 <app-renew-plan-dialog

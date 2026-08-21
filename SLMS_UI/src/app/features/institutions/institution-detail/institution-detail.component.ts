@@ -65,6 +65,7 @@ import {
   memberMixColors,
   normalizeOccupancyHeatmap,
 } from './institution-detail.util';
+import { ScopedMembersPanelComponent } from '../../members/components/scoped-members-panel/scoped-members-panel.component';
 
 type BranchStatusFilter = 'all' | 'Active' | 'Maintenance' | 'Closed';
 type BranchCapFilter = 'any' | 'small' | 'mid' | 'large';
@@ -131,6 +132,7 @@ const LIST_PAGE_SIZE_OPTS = [5, 10, 15, 30] as const;
     LucideReceipt,
     LucideDownload,
     LucideIndianRupee,
+    ScopedMembersPanelComponent,
   ],
   templateUrl: './institution-detail.component.html',
   styleUrls: ['./institution-detail.component.css', '../institutions-list/institutions-list.css'],
@@ -188,13 +190,14 @@ export class InstitutionDetailComponent implements OnInit {
     { id: 'overview', label: 'Overview' },
     { id: 'branches', label: 'Branches' },
     { id: 'libraries', label: 'Libraries' },
+    { id: 'members', label: 'Members' },
     { id: 'billing', label: 'Billing' },
     { id: 'settings', label: 'Settings' },
   ];
 
   readonly showSummaryCards = computed(() => {
     const current = this.tab();
-    return current === 'overview' || current === 'branches' || current === 'libraries' || current === 'billing';
+    return current === 'overview' || current === 'branches' || current === 'libraries' || current === 'members' || current === 'billing';
   });
 
   readonly institutionId = computed(() => this.route.snapshot.paramMap.get('institutionId') ?? '');

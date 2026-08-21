@@ -4,7 +4,7 @@ import type {
   InstitutionTrendPoint,
 } from './institution-detail.models';
 
-export type BranchDetailTab = 'overview' | 'usage' | 'libraries' | 'staffing' | 'activity';
+export type BranchDetailTab = 'overview' | 'usage' | 'libraries' | 'members' | 'staffing' | 'activity';
 export type BranchActivityFilter = 'all' | 'check-in' | 'payment' | 'enrollment';
 
 export interface BranchPeakHour {

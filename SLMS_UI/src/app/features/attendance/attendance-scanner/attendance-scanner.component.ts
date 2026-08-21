@@ -14,14 +14,17 @@ import {
   ScannerContext,
   ScannerMemberOption,
   ScannerMemberStatus,
+  AttendanceSeatOption,
 } from '@core/models/attendanceModels';
+import { AttendanceSeatPickerComponent } from '../components/attendance-seat-picker/attendance-seat-picker.component';
+import { formatAttendanceDisplayTime } from '../attendance-format.util';
 
 @Component({
   selector: 'app-attendance-scanner',
   standalone: true,
   imports: [
     FormsModule,
-    PageHeaderComponent, GlassCardComponent, ButtonComponent, StatusBadgeComponent,
+    PageHeaderComponent, GlassCardComponent, ButtonComponent, StatusBadgeComponent, AttendanceSeatPickerComponent,
     LucideScanLine, LucideQrCode, LucideSearch, LucideLogIn, LucideLogOut,
     LucideCheckCircle2, LucideXCircle,
   ],
@@ -44,6 +47,9 @@ export class AttendanceScannerComponent implements OnInit {
   readonly memberStatus = signal<ScannerMemberStatus | null>(null);
   readonly qrImage = signal<string | null>(null);
   readonly lastMessage = signal<string | null>(null);
+  readonly librarySeats = signal<AttendanceSeatOption[]>([]);
+  readonly seatsLoading = signal(false);
+  readonly selectedSeatNumber = signal<string | null>(null);
 
   readonly canCheckIn = computed(() => {
     const s = this.memberStatus();
@@ -56,6 +62,7 @@ export class AttendanceScannerComponent implements OnInit {
   });
 
   readonly isDone = computed(() => this.memberStatus()?.suggestedAction === 'done');
+  readonly formatAttendanceTime = formatAttendanceDisplayTime;
 
   ngOnInit(): void {
     const token = this.route.snapshot.queryParamMap.get('token');
@@ -106,14 +113,18 @@ export class AttendanceScannerComponent implements OnInit {
 
   selectMember(member: ScannerMemberOption): void {
     this.selectedMember.set(member);
+    this.selectedSeatNumber.set(null);
     this.memberSearch.set(`${member.membershipNo} — ${member.fullName}`);
     this.memberPickerOpen.set(false);
     this.loadMemberStatus(member.id);
+    this.loadSeats();
   }
 
   clearMember(): void {
     this.selectedMember.set(null);
     this.memberStatus.set(null);
+    this.selectedSeatNumber.set(null);
+    this.librarySeats.set([]);
     this.memberSearch.set('');
     this.lastMessage.set(null);
   }
@@ -126,17 +137,29 @@ export class AttendanceScannerComponent implements OnInit {
       return;
     }
 
+    const resolvedAction = action === 'auto'
+      ? (this.canCheckIn() ? 'check-in' : this.canCheckOut() ? 'check-out' : action)
+      : action;
+
+    if (resolvedAction === 'check-in' && !this.selectedSeatNumber()) {
+      this.toast.error('Please select an available seat before checking in.');
+      return;
+    }
+
     this.busy.set(true);
     this.scanner.record({
       libraryToken: ctx.token,
       memberId: member.id,
       action,
+      seatNumber: resolvedAction === 'check-in' ? this.selectedSeatNumber() ?? undefined : undefined,
     }).subscribe({
       next: (result) => {
         this.busy.set(false);
         this.lastMessage.set(result.message);
+        this.selectedSeatNumber.set(null);
         this.toast.success(result.message);
         this.loadMemberStatus(member.id);
+        this.loadSeats();
       },
       error: (err) => {
         this.busy.set(false);
@@ -151,6 +174,23 @@ export class AttendanceScannerComponent implements OnInit {
 
     this.scanner.getMemberStatus(token, memberId).subscribe({
       next: (status) => this.memberStatus.set(status),
+    });
+  }
+
+  private loadSeats(): void {
+    const token = this.context()?.token;
+    if (!token) return;
+
+    this.seatsLoading.set(true);
+    this.scanner.getLibrarySeats(token).subscribe({
+      next: (seats) => {
+        this.librarySeats.set(seats);
+        this.seatsLoading.set(false);
+      },
+      error: () => {
+        this.librarySeats.set([]);
+        this.seatsLoading.set(false);
+      },
     });
   }
 

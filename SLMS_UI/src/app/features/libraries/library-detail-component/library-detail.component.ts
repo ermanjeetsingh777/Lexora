@@ -15,6 +15,7 @@ import {
   LucideMapPin,
   LucidePencil,
   LucidePlus,
+  LucideQrCode,
   LucideRefreshCw,
   LucideShare2,
   LucideShieldCheck,
@@ -73,6 +74,8 @@ import {
   weeklyHoursToApiPayload,
 } from './library-detail.util';
 import { LibraryCalendarComponent } from './library-calendar/library-calendar.component';
+import { ScopedMembersPanelComponent } from '../../members/components/scoped-members-panel/scoped-members-panel.component';
+import { ScannerQrCode } from '@core/models/attendanceModels';
 
 @Component({
   selector: 'app-library-detail',
@@ -104,9 +107,11 @@ import { LibraryCalendarComponent } from './library-calendar/library-calendar.co
     LucideTrendingUp,
     LucideUsers,
     LucidePlus,
+    LucideQrCode,
     LucideTrash2,
     LucideEye,
     LibraryCalendarComponent,
+    ScopedMembersPanelComponent,
   ],
   templateUrl: './library-detail.component.html',
   styleUrls: [
@@ -146,6 +151,8 @@ export class LibraryDetailComponent implements OnInit {
   readonly trendRange = signal<TrendRange>(30);
   readonly showErrors = signal(false);
   readonly seatPreviewOpen = signal(false);
+  readonly attendanceQr = signal<ScannerQrCode | null>(null);
+  readonly attendanceQrLoading = signal(false);
 
   readonly profileName = signal('');
   readonly profileFloor = signal(1);
@@ -621,7 +628,22 @@ export class LibraryDetailComponent implements OnInit {
           })),
         );
         this.showErrors.set(false);
+        this.loadAttendanceQr(view.id);
       });
+  }
+
+  private loadAttendanceQr(libraryId: string): void {
+    this.attendanceQrLoading.set(true);
+    this.libraryService.getAttendanceQr(libraryId).subscribe({
+      next: (qr) => {
+        this.attendanceQr.set(qr);
+        this.attendanceQrLoading.set(false);
+      },
+      error: () => {
+        this.attendanceQr.set(null);
+        this.attendanceQrLoading.set(false);
+      },
+    });
   }
 
   private loadTimeFormat(): TimeFormat {

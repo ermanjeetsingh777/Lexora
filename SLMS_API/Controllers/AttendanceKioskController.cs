@@ -78,6 +78,22 @@ public class AttendanceKioskController : ControllerBase
         }
     }
 
+    [HttpGet("library/seats")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>>> GetLibrarySeats(
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var seats = await _scannerService.GetLibrarySeatsAsync(token, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Ok(seats));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Fail(ex.Message));
+        }
+    }
+
     [HttpPost("library/record")]
     public async Task<ActionResult<ApiResponse<ScannerAttendanceResultResponse>>> RecordLibrary(
         [FromBody] ScannerAttendanceRequest request,
@@ -129,6 +145,23 @@ public class AttendanceKioskController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(ApiResponse<ScannerMemberStatusResponse>.Fail(ex.Message));
+        }
+    }
+
+    [HttpGet("member/seats")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>>> GetMemberSeats(
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var context = await _scannerService.GetMemberContextAsync(token, GetMemberKioskUrlBase(), cancellationToken);
+            var seats = await _scannerService.GetLibrarySeatsByLibraryIdAsync(context.LibraryId, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Ok(seats));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Fail(ex.Message));
         }
     }
 

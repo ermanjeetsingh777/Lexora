@@ -20,6 +20,7 @@ import {
   LucideMail,
   LucideMapPin,
   LucideMoreHorizontal,
+  LucidePencil,
   LucidePhone,
   LucidePlus,
   LucideSearch,
@@ -118,6 +119,7 @@ const ACTIVITY_PAGE_SIZE_OPTS = [15, 25, 50] as const;
     LucideClock,
     LucideMail,
     LucidePhone,
+    LucidePencil,
     LucideShieldCheck,
     LucideBookOpen,
     LucideLibrary,
@@ -195,6 +197,16 @@ export class BranchDetailComponent implements OnInit {
   readonly pageEyebrow = computed(() =>
     this.institutionIdFromRoute() ? 'Institutions' : 'Branches',
   );
+
+  readonly editLink = computed(() => {
+    const branchId = this.detail()?.id ?? this.route.snapshot.paramMap.get('branchId');
+    const institutionId = this.institutionIdFromRoute() ?? this.detail()?.institutionId;
+    if (!branchId) return ['/branches'];
+    if (institutionId && this.institutionIdFromRoute()) {
+      return ['/institutions', institutionId, 'branches', branchId, 'edit'];
+    }
+    return ['/branches', branchId, 'edit'];
+  });
 
   readonly subtitle = computed(() => {
     const d = this.detail();

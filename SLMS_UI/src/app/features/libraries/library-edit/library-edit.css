@@ -1,0 +1,14 @@
+.lib-capacity-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-size: 0.8125rem;
+}
+
+.lib-capacity-toggle:hover {
+  background: hsl(var(--muted) / 0.25);
+}

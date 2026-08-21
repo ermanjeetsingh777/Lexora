@@ -1,0 +1,392 @@
+:host {
+  display: block;
+}
+
+.lib-cal-view-btn {
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.lib-cal-view-btn--active {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 2px hsl(var(--foreground) / 0.08);
+}
+
+.lib-calendar ::ng-deep .cal-month-view,
+.lib-calendar ::ng-deep .cal-week-view {
+  background: transparent;
+}
+
+.lib-calendar ::ng-deep .lib-cal-month-view .cal-header.month-day-headers {
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.12);
+}
+
+.lib-calendar ::ng-deep .month-day-header {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  padding: 0.5rem 0.25rem;
+  text-align: center;
+}
+
+.lib-calendar ::ng-deep .cal-month-view .cal-day-cell {
+  min-height: 4.5rem;
+  padding: 0.25rem;
+}
+
+.lib-calendar ::ng-deep .cal-month-view .cal-day-number,
+.lib-calendar ::ng-deep .cal-month-view .cal-events {
+  display: none;
+}
+
+.lib-cal-day-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 3.5rem;
+  border-radius: 0.375rem;
+}
+
+.lib-cal-day-number {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.lib-cal-day-hours {
+  margin-top: 0.125rem;
+  font-size: 0.5625rem;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  padding: 0 0.25rem;
+}
+
+.lib-cal-day--open {
+  background: rgb(16 185 129 / 0.14);
+  color: rgb(4 120 87);
+}
+
+.lib-cal-day--closed,
+.lib-cal-day--empty {
+  background: hsl(var(--muted) / 0.35);
+  color: hsl(var(--muted-foreground));
+}
+
+.lib-cal-day--holiday {
+  background: rgb(245 158 11 / 0.16);
+  color: rgb(180 83 9);
+}
+
+.lib-cal-day--exception {
+  background: rgb(99 102 241 / 0.14);
+  color: rgb(67 56 202);
+}
+
+.lib-cal-year-card {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--background));
+  padding: 0.875rem;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lib-cal-year-card:hover {
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.08);
+}
+
+.lib-cal-year-stat {
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+}
+
+.lib-cal-year-stat--open {
+  background: rgb(16 185 129 / 0.12);
+  color: rgb(4 120 87);
+}
+
+.lib-cal-year-stat--closed {
+  background: hsl(var(--muted) / 0.35);
+  color: hsl(var(--muted-foreground));
+}
+
+.lib-cal-year-stat--holiday {
+  background: rgb(245 158 11 / 0.14);
+  color: rgb(180 83 9);
+}
+
+.lib-cal-list-wrap {
+  overflow-x: auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+}
+
+.lib-cal-list {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.lib-cal-list th,
+.lib-cal-list td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+  text-align: left;
+}
+
+.lib-cal-list th {
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 0.12);
+}
+
+.lib-cal-list__row--exception {
+  background: rgb(245 158 11 / 0.05);
+}
+
+.lib-cal-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.lib-cal-status--open {
+  background: rgb(16 185 129 / 0.12);
+  color: rgb(4 120 87);
+}
+
+.lib-cal-status--closed {
+  background: hsl(var(--muted) / 0.35);
+  color: hsl(var(--muted-foreground));
+}
+
+.lib-cal-status--holiday {
+  background: rgb(245 158 11 / 0.14);
+  color: rgb(180 83 9);
+}
+
+.lib-cal-status--exception {
+  background: rgb(99 102 241 / 0.12);
+  color: rgb(67 56 202);
+}
+
+/* Week timesheet view */
+.lib-calendar ::ng-deep .lib-cal-week-view.cal-week-view {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-time-events {
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-all-day-events {
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.12);
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-all-day-events .cal-events-row {
+  min-height: 2rem;
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-all-day-events .cal-event-container {
+  padding: 0.125rem;
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-all-day-events .cal-event-container .cal-event.lib-cal-event-wrap {
+  width: 100%;
+  min-height: 1.5rem;
+  height: 100%;
+  border: 0;
+  box-shadow: none;
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .week-day-headers .week-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .week-day-header__name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: hsl(var(--foreground));
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .week-day-header__date {
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .week-day-header.cal-today .week-day-header__name {
+  color: hsl(var(--primary));
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .week-day-header.cal-weekend .week-day-header__name {
+  color: hsl(var(--muted-foreground));
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .week-hour-label {
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  padding-right: 0.5rem;
+  text-align: right;
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-day-columns .cal-day-column.cal-weekend {
+  background: hsl(var(--muted) / 0.22);
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-hour-odd {
+  background: hsl(var(--muted) / 0.08);
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-time-events .cal-event.lib-cal-event-wrap {
+  border: 0;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.25rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.lib-calendar ::ng-deep .lib-cal-week-view .cal-all-day-events .cal-event {
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.lib-cal-event-wrap {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.125rem;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.625rem;
+  line-height: 1.2;
+  overflow: hidden;
+}
+
+.lib-cal-event-wrap--timed {
+  border-left: 3px solid rgb(255 255 255 / 0.55);
+}
+
+.lib-cal-event__status {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  width: 100%;
+  text-align: center;
+}
+
+.lib-cal-event__status,
+.lib-cal-event__time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-cal-event__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.lib-cal-event__time-start {
+  color: rgb(187 247 208);
+}
+
+.lib-cal-event__time-sep {
+  opacity: 0.75;
+}
+
+.lib-cal-event__time-end {
+  color: rgb(254 202 202);
+}
+
+.lib-cal-event--open {
+  background: rgb(16 185 129 / 0.92);
+  color: white;
+}
+
+.lib-cal-event--open.lib-cal-event-wrap--timed {
+  border-left-color: rgb(187 247 208);
+}
+
+.lib-cal-event--closed {
+  background: hsl(var(--muted) / 0.45);
+  color: hsl(var(--muted-foreground));
+  border-left-color: hsl(var(--border));
+}
+
+.lib-cal-event--holiday {
+  background: rgb(245 158 11 / 0.88);
+  color: white;
+}
+
+.lib-cal-event--holiday.lib-cal-event-wrap--timed {
+  border-left-color: rgb(254 243 199);
+}
+
+.lib-cal-event--holiday .lib-cal-event__time-start {
+  color: rgb(254 243 199);
+}
+
+.lib-cal-event--holiday .lib-cal-event__time-end {
+  color: rgb(254 226 226);
+}
+
+.lib-cal-event--exception {
+  background: rgb(99 102 241 / 0.92);
+  color: white;
+}
+
+.lib-cal-event--exception.lib-cal-event-wrap--timed {
+  border-left-color: rgb(199 210 254);
+}
+
+.lib-cal-event--exception .lib-cal-event__time-start {
+  color: rgb(199 210 254);
+}
+
+.lib-cal-event--exception .lib-cal-event__time-end {
+  color: rgb(254 202 202);
+}

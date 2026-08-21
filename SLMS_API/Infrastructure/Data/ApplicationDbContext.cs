@@ -22,6 +22,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Institution> Institutions => Set<Institution>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<Library> Libraries => Set<Library>();
+    public DbSet<LibraryWeeklyHour> LibraryWeeklyHours => Set<LibraryWeeklyHour>();
+    public DbSet<LibraryHoursException> LibraryHoursExceptions => Set<LibraryHoursException>();
     public DbSet<Member> Members => Set<Member>();
 
 
@@ -154,6 +156,28 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(x => x.AttendanceQrToken).HasMaxLength(64).IsRequired();
             entity.HasIndex(x => x.AttendanceQrToken).IsUnique();
             entity.HasIndex(x => new { x.IsDeleted, x.InstitutionId, x.BranchId });
+        });
+
+        builder.Entity<LibraryWeeklyHour>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Day).HasMaxLength(3).IsRequired();
+            entity.HasIndex(x => new { x.LibraryId, x.Day }).IsUnique();
+            entity.HasOne(x => x.Library)
+                .WithMany()
+                .HasForeignKey(x => x.LibraryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<LibraryHoursException>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.HasIndex(x => new { x.LibraryId, x.IsDeleted, x.StartDate });
+            entity.HasOne(x => x.Library)
+                .WithMany()
+                .HasForeignKey(x => x.LibraryId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<MemberLibrary>(entity =>

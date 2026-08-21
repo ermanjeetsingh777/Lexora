@@ -614,6 +614,8 @@ public class BranchService : IBranchService
 
         if (request.Name is not null) entity.Name = request.Name;
         if (request.Description is not null) entity.Description = request.Description;
+        if (request.Email is not null) entity.Email = request.Email;
+        if (request.Phone is not null) entity.Phone = request.Phone;
         if (request.Address is not null) entity.Address = request.Address;
         if (request.City is not null) entity.City = request.City;
         if (request.Latitude.HasValue) entity.Latitude = request.Latitude;

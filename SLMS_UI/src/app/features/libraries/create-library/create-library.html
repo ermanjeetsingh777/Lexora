@@ -166,6 +166,105 @@
                     </div>
                 </div>
 
+                @if (capacitySummaryLoading() || capacitySummary()) {
+                <div class="rounded-xl border bg-muted/20 overflow-hidden">
+                    <button type="button"
+                        class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30"
+                        (click)="toggleCapacitySummary()"
+                        [attr.aria-expanded]="capacitySummaryExpanded()">
+                        <div>
+                            <p class="text-sm font-medium">Branch seat capacity</p>
+                            @if (selectedBranchName()) {
+                            <p class="text-xs text-muted-foreground mt-1">
+                                Seat limits for libraries on
+                                <span class="font-medium text-foreground">{{ selectedBranchName() }}</span>.
+                            </p>
+                            }
+                        </div>
+                        <svg lucideChevronDown
+                            class="h-4 w-4 shrink-0 text-muted-foreground transition-transform"
+                            [class.rotate-180]="capacitySummaryExpanded()"></svg>
+                    </button>
+
+                    @if (capacitySummaryExpanded()) {
+                    <div class="space-y-3 border-t px-4 py-4">
+                        @if (capacitySummaryLoading()) {
+                        <p class="text-sm text-muted-foreground">Loading branch seat capacity...</p>
+                        } @else if (capacitySummary(); as summary) {
+                        @if (summary.hasBranchCapacityLimit) {
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="rounded-lg border bg-background px-3 py-2">
+                                <p class="text-xs text-muted-foreground">Branch capacity</p>
+                                <p class="text-lg font-semibold">{{ summary.branchCapacity }}</p>
+                            </div>
+                            <div class="rounded-lg border bg-background px-3 py-2">
+                                <p class="text-xs text-muted-foreground">Used by other libraries</p>
+                                <p class="text-lg font-semibold">{{ summary.allocatedCapacity }}</p>
+                            </div>
+                            <div class="rounded-lg border bg-background px-3 py-2">
+                                <p class="text-xs text-muted-foreground">Available for this library</p>
+                                <p class="text-lg font-semibold"
+                                    [class.text-destructive]="summary.remainingCapacity === 0">
+                                    {{ summary.remainingCapacity }}
+                                </p>
+                            </div>
+                        </div>
+
+                        @if (summary.libraries.length > 0) {
+                        <div>
+                            <p class="text-xs font-medium text-muted-foreground mb-2">Allocated to existing libraries</p>
+                            <ul class="space-y-2">
+                                @for (library of summary.libraries; track library.id) {
+                                <li class="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm">
+                                    <div>
+                                        <p class="font-medium">{{ library.name }}</p>
+                                        @if (library.floor !== null && library.floor !== undefined) {
+                                        <p class="text-xs text-muted-foreground">Floor {{ library.floor }}</p>
+                                        }
+                                    </div>
+                                    <span class="font-semibold">{{ library.capacity }} seats</span>
+                                </li>
+                                }
+                            </ul>
+                        </div>
+                        } @else {
+                        <p class="text-sm text-muted-foreground">No other libraries on this branch yet.</p>
+                        }
+
+                        @if (summary.remainingCapacity === 0) {
+                        <p class="text-sm text-destructive">
+                            Branch seat capacity is fully allocated. Increase branch capacity or reduce an existing library before adding a new one.
+                        </p>
+                        }
+                        } @else {
+                        <p class="text-sm text-muted-foreground">
+                            This branch has no seat capacity limit configured. You can set any library capacity.
+                        </p>
+                        }
+                        }
+                    </div>
+                    }
+                </div>
+                }
+
+                @if (capacitySummary(); as summary) {
+                @if (summary.branchHoursStart && summary.branchHoursEnd) {
+                <div class="rounded-xl border bg-muted/20 px-4 py-4">
+                    <p class="text-sm font-medium">Default shift hours</p>
+                    <p class="text-xs text-muted-foreground mt-1">
+                        Defaults come from the branch
+                        (<span class="font-medium text-foreground">{{ selectedBranchName() }}</span>).
+                        All days of the week will use
+                        <span class="font-medium text-foreground">{{ summary.branchHoursStart }}–{{ summary.branchHoursEnd }}</span>
+                        when this library is created.
+                    </p>
+                    <p class="text-xs text-muted-foreground mt-2">
+                        You can customize shift times later from the library Hours tab.
+                    </p>
+                </div>
+                }
+                }
+
                 <!-- Contact Information -->
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -216,7 +315,6 @@
                             }
 
                         </small>
-
                         }
                     </div>
 
@@ -277,9 +375,15 @@
                     <div>
                         <label class="block text-sm font-medium mb-2">
                             Capacity
+                            @if (capacitySummary()?.hasBranchCapacityLimit) {
+                            <span class="text-xs font-normal text-muted-foreground">
+                                (max {{ capacityMaxLimit() }} seats)
+                            </span>
+                            }
                         </label>
 
                         <input formControlName="capacity" name="capacity" type="number"
+                            [attr.max]="capacitySummary()?.hasBranchCapacityLimit ? capacityMaxLimit() : null"
                             class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
                         @if (librariesForm.controls.capacity.invalid &&(librariesForm.controls.capacity.dirty ||
                         librariesForm.controls.capacity.touched)) {
@@ -291,7 +395,11 @@
                             }
 
                             @if (librariesForm.controls.capacity.hasError('max')) {
+                            @if (capacitySummary()?.hasBranchCapacityLimit) {
+                            Capacity cannot exceed {{ capacityMaxLimit() }} remaining branch seats.
+                            } @else {
                             Capacity cannot exceed 100000.
+                            }
                             }
 
                         </small>
@@ -312,7 +420,7 @@
                         @if (loader()) {
                         {{ isOnboarding() ? 'Creating...' : 'Saving...' }}
                         } @else {
-                        {{ isOnboarding() ? 'Finish Setup →' : 'Save Institution' }}
+                        {{ isOnboarding() ? 'Finish Setup →' : 'Save Library' }}
                         }
                     </button>
                 </div>

@@ -8,9 +8,14 @@ public interface ILibraryService
 {
     Task<LibraryListViewResponse> GetListViewAsync(LibraryListQuery query, Guid userId, CancellationToken cancellationToken = default);
     Task<LibraryListRevenueSummaryResponse> GetListRevenueSummaryAsync(LibraryListQuery query, Guid userId, CancellationToken cancellationToken = default);
+    Task<LibraryDetailViewResponse?> GetDetailViewAsync(Guid libraryId, Guid userId, int trendDays = 30, CancellationToken cancellationToken = default);
+    Task<LibraryCalendarViewResponse?> GetCalendarViewAsync(Guid libraryId, Guid userId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
+    Task<BranchLibraryCapacitySummaryResponse> GetBranchCapacitySummaryAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<LibraryResponse>> GetByBranchAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default);
     Task<LibraryResponse?> GetByIdAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default);
     Task<LibraryResponse> CreateAsync(Guid institutionId, Guid branchId, CreateLibraryRequest request, string? userId, CancellationToken cancellationToken = default);
     Task<LibraryResponse> UpdateAsync(Guid institutionId, Guid branchId, Guid libraryId, UpdateLibraryRequest request, string? userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<LibraryDayHoursResponse>> UpdateWeeklyHoursAsync(Guid institutionId, Guid branchId, Guid libraryId, UpdateLibraryWeeklyHoursRequest request, string? userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<LibraryHoursExceptionResponse>> UpdateHoursExceptionsAsync(Guid institutionId, Guid branchId, Guid libraryId, UpdateLibraryHoursExceptionsRequest request, string? userId, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid institutionId, Guid branchId, Guid libraryId, string? userId, CancellationToken cancellationToken = default);
 }

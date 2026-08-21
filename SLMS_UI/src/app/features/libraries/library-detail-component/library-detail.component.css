@@ -1,0 +1,475 @@
+@import '../../institutions/institution-detail/institution-detail.component.css';
+
+:host {
+  display: block;
+}
+
+.lib-detail-skeleton {
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, color-mix(in oklch, var(--muted) 55%, transparent), color-mix(in oklch, var(--muted) 25%, transparent));
+  animation: lib-detail-pulse 1.4s ease-in-out infinite;
+}
+
+.lib-detail-skeleton--header {
+  height: 5rem;
+}
+
+.lib-detail-kpi__value--compact {
+  font-size: clamp(1.125rem, 2.4vw, 1.75rem);
+  line-height: 1.15;
+}
+
+.lib-detail-skeleton--tabs {
+  height: 2.5rem;
+  max-width: 36rem;
+}
+
+.lib-detail-skeleton--panel {
+  height: 18rem;
+}
+
+@keyframes lib-detail-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.lib-time-toggle,
+.lib-range-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+
+.lib-time-toggle button,
+.lib-range-toggle button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.lib-time-toggle button:hover,
+.lib-range-toggle button:hover {
+  background: var(--muted);
+}
+
+.lib-time-toggle__btn--active,
+.lib-range-toggle__btn--active {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.lib-week-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.lib-week-preview__chip {
+  border: 1px solid color-mix(in oklch, var(--primary) 20%, var(--border));
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in oklch, var(--primary) 5%, transparent);
+}
+
+.lib-week-preview__chip--compact {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.625rem;
+}
+
+.lib-week-preview__chip--closed {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.lib-week-preview__chip--changed {
+  border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
+  background: color-mix(in oklch, var(--primary) 10%, transparent);
+}
+
+.lib-stat-box {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.lib-stat-box__value {
+  margin-top: 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.lib-activity-box {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: color-mix(in oklch, var(--muted) 20%, transparent);
+}
+
+.lib-occupancy-chart {
+  height: 220px;
+}
+
+.lib-floor-table-wrap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.lib-floor-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.lib-floor-table thead {
+  background: color-mix(in oklch, var(--muted) 30%, transparent);
+  text-align: left;
+}
+
+.lib-floor-table th,
+.lib-floor-table td {
+  padding: 0.5rem 0.75rem;
+}
+
+.lib-floor-table tbody tr {
+  border-top: 1px solid var(--border);
+}
+
+.lib-floor-table tfoot {
+  background: color-mix(in oklch, var(--muted) 20%, transparent);
+  font-weight: 500;
+}
+
+.lib-floor-table__row--current {
+  background: color-mix(in oklch, var(--primary) 5%, transparent);
+}
+
+.lib-floor-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.625rem;
+}
+
+.lib-util-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lib-util-bar__fill {
+  display: block;
+  height: 0.375rem;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.lib-util-bar__label {
+  width: 2.25rem;
+  text-align: right;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lib-util-bar--section .lib-util-bar__fill {
+  width: 100%;
+}
+
+.lib-seat-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.lib-seat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: 0.375rem;
+}
+
+.lib-seat-grid--preview {
+  grid-template-columns: repeat(auto-fill, minmax(3.75rem, 1fr));
+}
+
+.lib-seat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.lib-seat--legend {
+  width: 0.875rem;
+  min-height: 0.875rem;
+  padding: 0;
+}
+
+.lib-seat--available {
+  background: color-mix(in oklch, var(--success, #16a34a) 12%, transparent);
+  border-color: color-mix(in oklch, var(--success, #16a34a) 35%, var(--border));
+}
+
+.lib-seat--occupied {
+  background: color-mix(in oklch, var(--primary) 15%, transparent);
+  border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
+}
+
+.lib-seat--reserved {
+  background: color-mix(in oklch, var(--warning, #d97706) 15%, transparent);
+  border-color: color-mix(in oklch, var(--warning, #d97706) 35%, var(--border));
+}
+
+.lib-seat--maintenance {
+  background: color-mix(in oklch, var(--destructive) 12%, transparent);
+  border-color: color-mix(in oklch, var(--destructive) 35%, var(--border));
+}
+
+.lib-seat-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.lib-seat-sheet__panel {
+  width: min(100%, 42rem);
+  height: 100%;
+  overflow-y: auto;
+  padding: 1.25rem;
+  background: var(--background);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-elegant, 0 10px 40px rgba(0, 0, 0, 0.12));
+}
+
+.lib-hours-row,
+.lib-exception-row,
+.lib-section-card {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.lib-hours-row--changed {
+  border-color: color-mix(in oklch, var(--primary) 50%, var(--border));
+  background: color-mix(in oklch, var(--primary) 5%, transparent);
+}
+
+.lib-hours-row--error,
+.lib-exception-row--error {
+  border-color: color-mix(in oklch, var(--destructive) 60%, var(--border));
+  background: color-mix(in oklch, var(--destructive) 5%, transparent);
+}
+
+.lib-exception-row--changed {
+  border-color: color-mix(in oklch, var(--primary) 50%, var(--border));
+  background: color-mix(in oklch, var(--primary) 5%, transparent);
+}
+
+.lib-exception-row--new {
+  border-color: color-mix(in oklch, rgb(16 185 129) 45%, var(--border));
+  background: color-mix(in oklch, rgb(16 185 129) 6%, transparent);
+}
+
+.lib-exception-row--locked {
+  border-color: hsl(var(--border));
+  background: hsl(var(--muted) / 0.18);
+  opacity: 0.92;
+}
+
+.lib-exception-row--locked .inst-field:disabled,
+.lib-exception-row--locked .lib-hours-toggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.lib-exception-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border));
+  border-radius: 0.5rem;
+  background: color-mix(in oklch, var(--primary) 6%, transparent);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.lib-exception-banner__action {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--primary));
+}
+
+.lib-exception-banner__action:hover {
+  text-decoration: underline;
+}
+
+.lib-exception-row__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.lib-exception-row__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.lib-exception-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.lib-exception-badge--new {
+  background: rgb(16 185 129 / 0.14);
+  color: rgb(4 120 87);
+}
+
+.lib-exception-badge--locked {
+  background: hsl(var(--muted) / 0.45);
+  color: hsl(var(--muted-foreground));
+}
+
+.lib-exception-badge--changed {
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+  color: hsl(var(--primary));
+}
+
+.lib-exception-badge--closed {
+  background: hsl(var(--muted) / 0.45);
+  color: hsl(var(--muted-foreground));
+}
+
+.lib-exception-badge--hours {
+  background: rgb(99 102 241 / 0.12);
+  color: rgb(67 56 202);
+  font-variant-numeric: tabular-nums;
+}
+
+.lib-hours-row__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .lib-hours-row__grid {
+    grid-template-columns: 8.75rem auto 1fr 1fr;
+    align-items: center;
+  }
+}
+
+.lib-exception-row__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .lib-exception-row__grid {
+    grid-template-columns: 1.2fr repeat(5, minmax(0, 1fr));
+    align-items: end;
+  }
+}
+
+.lib-hours-row__error {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--destructive);
+}
+
+.lib-hours-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lib-hours-toggle--compact {
+  min-height: 2.25rem;
+}
+
+.lib-changed-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.625rem;
+}
+
+.lib-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.375rem;
+  color: var(--muted-foreground);
+}
+
+.lib-icon-btn:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.lib-section-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.lib-section-dot--primary {
+  background: var(--primary);
+}
+
+.lib-section-dot--success {
+  background: var(--success, #16a34a);
+}
+
+.lib-section-dot--warning {
+  background: var(--warning, #d97706);
+}
+
+.lib-section-dot--info {
+  background: #0ea5e9;
+}
+
+.lib-section-dot--danger {
+  background: var(--destructive);
+}

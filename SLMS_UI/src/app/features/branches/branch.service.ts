@@ -3,6 +3,7 @@ import { APIResponseModel } from '@core/models/APIResponseModel';
 import { BranchListQuery, BranchListView } from '@core/models/branch-list.models';
 import { BranchDetailView } from '@core/models/branch-detail.models';
 import { CreateBranchRequest } from '@core/models/CreateBranchRequest';
+import { UpdateBranchRequest } from '@core/models/UpdateBranchRequest';
 import { ApiService } from '@core/services/api.service';
 import { map, Observable } from 'rxjs';
 
@@ -27,5 +28,13 @@ export class BranchService {
       'institutions/' + payload.institutionId + '/branches',
       payload,
     );
+  }
+
+  updateBranch(
+    institutionId: string,
+    branchId: string,
+    payload: UpdateBranchRequest,
+  ): Observable<APIResponseModel<unknown>> {
+    return this.httpApi.putTo<unknown>(`institutions/${institutionId}/branches/${branchId}`, payload);
   }
 }

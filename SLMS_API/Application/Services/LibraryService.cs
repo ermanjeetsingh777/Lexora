@@ -40,6 +40,209 @@ public class LibraryService : ILibraryService
         CancellationToken cancellationToken = default)
         => BuildRevenueSummaryAsync(query, userId, cancellationToken);
 
+    public async Task<LibraryDetailViewResponse?> GetDetailViewAsync(
+        Guid libraryId,
+        Guid userId,
+        int trendDays = 30,
+        CancellationToken cancellationToken = default)
+    {
+        var scopedLibrariesQuery = await BuildScopedLibrariesQueryAsync(new LibraryListQuery(), userId, cancellationToken);
+        var libraryRow = await (
+            from l in scopedLibrariesQuery.Where(x => x.Id == libraryId)
+            join i in _dbContext.Institutions.AsNoTracking() on l.InstitutionId equals i.Id
+            join b in _dbContext.Branches.AsNoTracking() on l.BranchId equals b.Id
+            select new
+            {
+                l.Id,
+                l.InstitutionId,
+                InstitutionName = i.Name,
+                l.BranchId,
+                BranchName = b.Name,
+                BranchCity = b.City,
+                l.Name,
+                l.Description,
+                l.Address,
+                l.Email,
+                l.Phone,
+                BranchEmail = b.Email,
+                BranchPhone = b.Phone,
+                l.Floor,
+                Capacity = l.Capacity ?? 0,
+                l.Status,
+                l.IsActive,
+                BranchHoursStart = b.OperatingHoursStart,
+                BranchHoursEnd = b.OperatingHoursEnd,
+            }
+        ).FirstOrDefaultAsync(cancellationToken);
+
+        if (libraryRow is null)
+        {
+            return null;
+        }
+
+        var memberCount = await _dbContext.MemberLibraries
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsCurrent && x.LibraryId == libraryId)
+            .Select(x => x.MemberId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var occupancyPercent = libraryRow.Capacity > 0
+            ? Math.Round((decimal)memberCount / libraryRow.Capacity * 100m, 1)
+            : 0m;
+
+        var nowUtc = DateTime.UtcNow;
+        var normalizedTrendDays = trendDays is 7 or 30 or 90 ? trendDays : 30;
+        var endDate = nowUtc.Date;
+        var startDate = endDate.AddDays(-(normalizedTrendDays - 1));
+
+        var occupancyTrend = await LibraryOverviewHelper.BuildOccupancyTrendAsync(
+            _dbContext,
+            libraryId,
+            libraryRow.Capacity,
+            startDate,
+            endDate,
+            cancellationToken);
+
+        var (peakHourStart, peakHourEnd) = await LibraryOverviewHelper.BuildPeakHourWindowAsync(
+            _dbContext,
+            libraryId,
+            cancellationToken);
+
+        var checkedInToday = await LibraryOverviewHelper.BuildCheckedInTodayAsync(
+            _dbContext,
+            libraryId,
+            cancellationToken);
+
+        var weeklyHours = await LibraryOverviewHelper.LoadWeeklyHoursAsync(
+            _dbContext,
+            libraryId,
+            libraryRow.BranchHoursStart,
+            libraryRow.BranchHoursEnd,
+            cancellationToken);
+
+        var hoursExceptions = await LibraryOverviewHelper.LoadHoursExceptionsAsync(
+            _dbContext,
+            libraryId,
+            cancellationToken);
+
+        var seats = await LibraryOverviewHelper.BuildSeatsAsync(
+            _dbContext,
+            libraryId,
+            libraryRow.Floor ?? 1,
+            libraryRow.Capacity,
+            cancellationToken);
+
+        var sections = LibraryOverviewHelper.BuildSectionsFromSeats(seats);
+
+        var recentActivity = await LibraryOverviewHelper.BuildRecentActivityAsync(
+            _dbContext,
+            libraryId,
+            cancellationToken);
+
+        var siblingLibraries = await _dbContext.Libraries
+            .AsNoTracking()
+            .Where(x => x.BranchId == libraryRow.BranchId && !x.IsDeleted)
+            .Select(x => new
+            {
+                x.Id,
+                x.Floor,
+                Capacity = x.Capacity ?? 0,
+            })
+            .ToListAsync(cancellationToken);
+
+        var siblingIds = siblingLibraries.Select(x => x.Id).ToList();
+        var siblingMemberCounts = siblingIds.Count == 0
+            ? new Dictionary<Guid, int>()
+            : await _dbContext.MemberLibraries
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted && x.IsCurrent && siblingIds.Contains(x.LibraryId))
+                .GroupBy(x => x.LibraryId)
+                .Select(g => new { LibraryId = g.Key, Count = g.Select(x => x.MemberId).Distinct().Count() })
+                .ToDictionaryAsync(x => x.LibraryId, x => x.Count, cancellationToken);
+
+        var floorBreakdown = siblingLibraries
+            .GroupBy(x => x.Floor ?? 0)
+            .Select(group =>
+            {
+                var capacity = group.Sum(x => x.Capacity);
+                var occupied = group.Sum(x => siblingMemberCounts.GetValueOrDefault(x.Id));
+                return new LibraryFloorBreakdownResponse
+                {
+                    Floor = group.Key,
+                    Libraries = group.Count(),
+                    Capacity = capacity,
+                    Occupied = occupied,
+                };
+            })
+            .OrderBy(x => x.Floor)
+            .ToList();
+
+        return new LibraryDetailViewResponse
+        {
+            Id = libraryRow.Id,
+            InstitutionId = libraryRow.InstitutionId,
+            InstitutionName = libraryRow.InstitutionName,
+            BranchId = libraryRow.BranchId,
+            BranchName = libraryRow.BranchName,
+            City = libraryRow.BranchCity,
+            Name = libraryRow.Name,
+            Description = libraryRow.Description,
+            Address = libraryRow.Address,
+            Email = libraryRow.Email ?? libraryRow.BranchEmail,
+            Phone = libraryRow.Phone ?? libraryRow.BranchPhone,
+            Floor = libraryRow.Floor,
+            Capacity = libraryRow.Capacity,
+            MemberCount = memberCount,
+            CheckedInToday = checkedInToday,
+            OccupancyPercent = occupancyPercent,
+            Status = InstitutionUiHelper.ToLibraryStatusLabel(libraryRow.Status, libraryRow.IsActive),
+            IsActive = libraryRow.IsActive,
+            HoursStart = libraryRow.BranchHoursStart?.ToString("HH:mm"),
+            HoursEnd = libraryRow.BranchHoursEnd?.ToString("HH:mm"),
+            BranchHoursStart = libraryRow.BranchHoursStart?.ToString("HH:mm"),
+            BranchHoursEnd = libraryRow.BranchHoursEnd?.ToString("HH:mm"),
+            PeakHourStart = peakHourStart,
+            PeakHourEnd = peakHourEnd,
+            OccupancyTrend = occupancyTrend,
+            FloorBreakdown = floorBreakdown,
+            WeeklyHours = weeklyHours,
+            HoursExceptions = hoursExceptions,
+            Seats = seats,
+            Sections = sections,
+            RecentActivity = recentActivity,
+        };
+    }
+
+    public async Task<LibraryCalendarViewResponse?> GetCalendarViewAsync(
+        Guid libraryId,
+        Guid userId,
+        DateOnly startDate,
+        DateOnly endDate,
+        CancellationToken cancellationToken = default)
+    {
+        var scopedLibrariesQuery = await BuildScopedLibrariesQueryAsync(new LibraryListQuery(), userId, cancellationToken);
+        var hasAccess = await scopedLibrariesQuery.AnyAsync(x => x.Id == libraryId, cancellationToken);
+        if (!hasAccess)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await LibraryOverviewHelper.BuildCalendarViewAsync(
+                _dbContext,
+                libraryId,
+                startDate,
+                endDate,
+                cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     private async Task<LibraryListViewResponse> BuildListViewAsync(
         LibraryListQuery query,
         Guid userId,
@@ -347,6 +550,52 @@ public class LibraryService : ILibraryService
         ).AnyAsync(cancellationToken);
     }
 
+    public async Task<BranchLibraryCapacitySummaryResponse> GetBranchCapacitySummaryAsync(
+        Guid institutionId,
+        Guid branchId,
+        CancellationToken cancellationToken = default)
+    {
+        var branch = await _dbContext.Branches
+            .AsNoTracking()
+            .Where(x => x.InstitutionId == institutionId && x.Id == branchId && !x.IsDeleted)
+            .Select(x => new { x.Id, x.Name, x.Capacity, x.OperatingHoursStart, x.OperatingHoursEnd })
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Branch not found.");
+
+        var libraries = await _dbContext.Libraries
+            .AsNoTracking()
+            .Where(x => x.BranchId == branchId && !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .Select(x => new BranchLibraryCapacityItemResponse
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Floor = x.Floor,
+                Capacity = x.Capacity ?? 0,
+            })
+            .ToListAsync(cancellationToken);
+
+        var allocatedCapacity = libraries.Sum(x => x.Capacity);
+        var branchCapacity = branch.Capacity ?? 0;
+        var hasBranchCapacityLimit = branchCapacity > 0;
+        var remainingCapacity = hasBranchCapacityLimit
+            ? Math.Max(0, branchCapacity - allocatedCapacity)
+            : 0;
+
+        return new BranchLibraryCapacitySummaryResponse
+        {
+            BranchId = branch.Id,
+            BranchName = branch.Name,
+            BranchCapacity = branchCapacity,
+            AllocatedCapacity = allocatedCapacity,
+            RemainingCapacity = remainingCapacity,
+            HasBranchCapacityLimit = hasBranchCapacityLimit,
+            BranchHoursStart = branch.OperatingHoursStart?.ToString("HH:mm"),
+            BranchHoursEnd = branch.OperatingHoursEnd?.ToString("HH:mm"),
+            Libraries = libraries,
+        };
+    }
+
     public async Task<IReadOnlyCollection<LibraryResponse>> GetByBranchAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default)
     {
         await EnsureBranchExistsAsync(institutionId, branchId, cancellationToken);
@@ -374,6 +623,26 @@ public class LibraryService : ILibraryService
     {
         var branch = await _dbContext.Branches.FirstOrDefaultAsync(x => x.InstitutionId == institutionId && x.Id == branchId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Branch not found.");
 
+        if (request.Capacity is > 0)
+        {
+            var branchCapacity = branch.Capacity ?? 0;
+            if (branchCapacity > 0)
+            {
+                var allocatedCapacity = await _dbContext.Libraries
+                    .Where(x => x.BranchId == branchId && !x.IsDeleted)
+                    .SumAsync(x => x.Capacity ?? 0, cancellationToken);
+
+                var remainingCapacity = branchCapacity - allocatedCapacity;
+                if (request.Capacity.Value > remainingCapacity)
+                {
+                    throw new InvalidOperationException(
+                        remainingCapacity <= 0
+                            ? $"Branch seat capacity is fully allocated ({allocatedCapacity} of {branchCapacity} seats used by other libraries)."
+                            : $"Library capacity cannot exceed remaining branch seats ({remainingCapacity} available of {branchCapacity}).");
+                }
+            }
+        }
+
         var library = new Library
         {
             BranchId = branchId,
@@ -381,6 +650,8 @@ public class LibraryService : ILibraryService
             Name = request.Name,
             Description = request.Description,
             Address = request.Address,
+            Email = request.Email,
+            Phone = request.Phone,
             Floor = request.Floor,
             Capacity = request.Capacity,
             IsActive = request.IsActive,
@@ -389,6 +660,14 @@ public class LibraryService : ILibraryService
         };
 
         _dbContext.Libraries.Add(library);
+
+        var defaultWeeklyHours = LibraryOverviewHelper.CreateDefaultWeeklyHours(
+            library.Id,
+            branch.OperatingHoursStart,
+            branch.OperatingHoursEnd,
+            userId);
+        _dbContext.LibraryWeeklyHours.AddRange(defaultWeeklyHours);
+
         // Create mapping with the logged-in user
         if (!string.IsNullOrWhiteSpace(userId))
         {
@@ -424,8 +703,35 @@ public class LibraryService : ILibraryService
           .FirstOrDefaultAsync(x => x.BranchId == branchId && x.Id == libraryId && !x.IsDeleted, cancellationToken)
           ?? throw new InvalidOperationException("Library not found.");
 
+        if (request.Capacity is > 0)
+        {
+            var branch = await _dbContext.Branches
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == branchId && !x.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException("Branch not found.");
+
+            var branchCapacity = branch.Capacity ?? 0;
+            if (branchCapacity > 0)
+            {
+                var allocatedCapacity = await _dbContext.Libraries
+                    .Where(x => x.BranchId == branchId && !x.IsDeleted && x.Id != libraryId)
+                    .SumAsync(x => x.Capacity ?? 0, cancellationToken);
+
+                var remainingCapacity = branchCapacity - allocatedCapacity;
+                if (request.Capacity.Value > remainingCapacity)
+                {
+                    throw new InvalidOperationException(
+                        remainingCapacity <= 0
+                            ? $"Branch seat capacity is fully allocated ({allocatedCapacity} of {branchCapacity} seats used by other libraries)."
+                            : $"Library capacity cannot exceed remaining branch seats ({remainingCapacity} available of {branchCapacity}).");
+                }
+            }
+        }
+
         if (request.Name is not null) entity.Name = request.Name;
         if (request.Description is not null) entity.Description = request.Description;
+        if (request.Address is not null) entity.Address = request.Address;
+        if (request.Phone is not null) entity.Phone = request.Phone;
         if (request.Floor.HasValue) entity.Floor = request.Floor;
         if (request.Capacity.HasValue) entity.Capacity = request.Capacity;
         if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
@@ -435,6 +741,237 @@ public class LibraryService : ILibraryService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         return ToResponse(entity);
+    }
+
+    public async Task<IReadOnlyCollection<LibraryDayHoursResponse>> UpdateWeeklyHoursAsync(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        UpdateLibraryWeeklyHoursRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureLibraryExistsAsync(institutionId, branchId, libraryId, cancellationToken);
+
+        if (request.WeeklyHours.Count != 7)
+        {
+            throw new InvalidOperationException("Weekly hours must include all seven days.");
+        }
+
+        foreach (var dayHours in request.WeeklyHours)
+        {
+            var validationError = LibraryOverviewHelper.ValidateDayHours(dayHours);
+            if (validationError is not null)
+            {
+                throw new InvalidOperationException(validationError);
+            }
+        }
+
+        var existingRows = await _dbContext.LibraryWeeklyHours
+            .Where(x => x.LibraryId == libraryId && !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var existingByDay = existingRows.ToDictionary(x => x.Day, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var dayHours in request.WeeklyHours)
+        {
+            var day = dayHours.Day.ToLowerInvariant();
+            var openTime = dayHours.Closed ? null : LibraryOverviewHelper.ParseTime(dayHours.Open);
+            var closeTime = dayHours.Closed ? null : LibraryOverviewHelper.ParseTime(dayHours.Close);
+
+            if (existingByDay.TryGetValue(day, out var row))
+            {
+                row.Closed = dayHours.Closed;
+                row.OpenTime = openTime;
+                row.CloseTime = closeTime;
+                row.UpdatedAtUtc = DateTime.UtcNow;
+                row.UpdatedBy = userId;
+                continue;
+            }
+
+            _dbContext.LibraryWeeklyHours.Add(new LibraryWeeklyHour
+            {
+                LibraryId = libraryId,
+                Day = day,
+                Closed = dayHours.Closed,
+                OpenTime = openTime,
+                CloseTime = closeTime,
+                CreatedBy = userId,
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var branchHours = await _dbContext.Libraries
+            .AsNoTracking()
+            .Where(x => x.Id == libraryId && !x.IsDeleted)
+            .Select(x => new
+            {
+                BranchOpen = x.Branch!.OperatingHoursStart,
+                BranchClose = x.Branch.OperatingHoursEnd,
+            })
+            .FirstAsync(cancellationToken);
+
+        return await LibraryOverviewHelper.LoadWeeklyHoursAsync(
+            _dbContext,
+            libraryId,
+            branchHours.BranchOpen,
+            branchHours.BranchClose,
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<LibraryHoursExceptionResponse>> UpdateHoursExceptionsAsync(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        UpdateLibraryHoursExceptionsRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureLibraryExistsAsync(institutionId, branchId, libraryId, cancellationToken);
+
+        var existingRows = await _dbContext.LibraryHoursExceptions
+            .Where(x => x.LibraryId == libraryId && !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var today = LibraryOverviewHelper.TodayDateOnly();
+
+        foreach (var exception in request.Exceptions)
+        {
+            var validationError = LibraryOverviewHelper.ValidateHoursException(exception);
+            if (validationError is not null)
+            {
+                throw new InvalidOperationException(validationError);
+            }
+
+            if (!exception.Id.HasValue)
+            {
+                continue;
+            }
+
+            var existing = existingRows.FirstOrDefault(x => x.Id == exception.Id.Value);
+            if (existing is null || !LibraryOverviewHelper.IsPastHoursException(existing.EndDate, today))
+            {
+                continue;
+            }
+
+            if (!LibraryOverviewHelper.HoursExceptionMatchesRequest(existing, exception))
+            {
+                throw new InvalidOperationException("Past exceptions cannot be modified.");
+            }
+        }
+
+        foreach (var exception in request.Exceptions)
+        {
+            if (!DateOnly.TryParse(exception.StartDate, out var startDate)
+                || !DateOnly.TryParse(exception.EndDate, out var endDate))
+            {
+                continue;
+            }
+
+            var existing = exception.Id.HasValue
+                ? existingRows.FirstOrDefault(x => x.Id == exception.Id.Value)
+                : null;
+
+            if (existing is not null && LibraryOverviewHelper.IsPastHoursException(existing.EndDate, today))
+            {
+                continue;
+            }
+
+            if (existing is null)
+            {
+                if (LibraryOverviewHelper.IsPastHoursException(startDate, today)
+                    || LibraryOverviewHelper.IsPastHoursException(endDate, today))
+                {
+                    throw new InvalidOperationException("Exception dates must be today or later.");
+                }
+
+                continue;
+            }
+
+            if (LibraryOverviewHelper.IsPastHoursException(endDate, today))
+            {
+                throw new InvalidOperationException("Exception end date must be today or later.");
+            }
+
+            if (startDate < today && startDate != existing.StartDate)
+            {
+                throw new InvalidOperationException("Start date cannot be set to a past date.");
+            }
+        }
+
+        var requestedIds = request.Exceptions
+            .Where(x => x.Id.HasValue)
+            .Select(x => x.Id!.Value)
+            .ToHashSet();
+
+        foreach (var row in existingRows)
+        {
+            if (requestedIds.Contains(row.Id))
+            {
+                continue;
+            }
+
+            if (LibraryOverviewHelper.IsPastHoursException(row.EndDate, today))
+            {
+                throw new InvalidOperationException("Past exceptions cannot be deleted.");
+            }
+
+            row.IsDeleted = true;
+            row.DeletedAtUtc = DateTime.UtcNow;
+            row.UpdatedAtUtc = DateTime.UtcNow;
+            row.UpdatedBy = userId;
+        }
+
+        foreach (var exception in request.Exceptions)
+        {
+            var startDate = DateOnly.Parse(exception.StartDate);
+            var endDate = DateOnly.Parse(exception.EndDate);
+            var openTime = exception.Closed ? null : LibraryOverviewHelper.ParseTime(exception.Open);
+            var closeTime = exception.Closed ? null : LibraryOverviewHelper.ParseTime(exception.Close);
+
+            if (exception.Id.HasValue)
+            {
+                var existing = existingRows.FirstOrDefault(x => x.Id == exception.Id.Value);
+                if (existing is not null)
+                {
+                    if (LibraryOverviewHelper.IsPastHoursException(existing.EndDate, today))
+                    {
+                        continue;
+                    }
+
+                    existing.Name = exception.Name.Trim();
+                    existing.StartDate = startDate;
+                    existing.EndDate = endDate;
+                    existing.Closed = exception.Closed;
+                    existing.OpenTime = openTime;
+                    existing.CloseTime = closeTime;
+                    existing.UpdatedAtUtc = DateTime.UtcNow;
+                    existing.UpdatedBy = userId;
+                    continue;
+                }
+            }
+
+            _dbContext.LibraryHoursExceptions.Add(new LibraryHoursException
+            {
+                Id = exception.Id ?? Guid.NewGuid(),
+                LibraryId = libraryId,
+                Name = exception.Name.Trim(),
+                StartDate = startDate,
+                EndDate = endDate,
+                Closed = exception.Closed,
+                OpenTime = openTime,
+                CloseTime = closeTime,
+                CreatedBy = userId,
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return await LibraryOverviewHelper.LoadHoursExceptionsAsync(
+            _dbContext,
+            libraryId,
+            cancellationToken);
     }
 
     public async Task DeleteAsync(Guid institutionId, Guid branchId, Guid libraryId, string? userId, CancellationToken cancellationToken = default)
@@ -452,6 +989,27 @@ public class LibraryService : ILibraryService
         entity.UpdatedBy = userId;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnsureLibraryExistsAsync(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        CancellationToken cancellationToken)
+    {
+        await EnsureBranchExistsAsync(institutionId, branchId, cancellationToken);
+
+        var exists = await _dbContext.Libraries
+            .AnyAsync(x => x.InstitutionId == institutionId
+                           && x.BranchId == branchId
+                           && x.Id == libraryId
+                           && !x.IsDeleted,
+                cancellationToken);
+
+        if (!exists)
+        {
+            throw new InvalidOperationException("Library not found.");
+        }
     }
 
     private async Task EnsureBranchExistsAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken)

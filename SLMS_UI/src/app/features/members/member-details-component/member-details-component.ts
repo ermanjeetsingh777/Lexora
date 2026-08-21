@@ -52,8 +52,9 @@ import {
 } from '../member-lifecycle.util';
 import { RenewPlanDialogComponent } from '../components/renew-plan-dialog/renew-plan-dialog.component';
 import { MemberAttendanceCalendarComponent } from '../components/member-attendance-calendar/member-attendance-calendar.component';
+import { LibraryCalendarComponent } from '@features/libraries/library-detail-component/library-calendar/library-calendar.component';
 
-type TabId = 'overview' | 'attendance' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks';
+type TabId = 'overview' | 'attendance' | 'library-calendar' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks';
 
 const ATTENDANCE_LOG_PAGE_SIZE_OPTS = [5, 10, 15, 30] as const;
 const ACTIVITY_TIMELINE_PAGE_SIZE = 5;
@@ -82,6 +83,7 @@ interface HeatmapCell {
     MemberPaymentsComponent, SelectButtonModule, LucideCrown, LucideSparkles, LucideLogIn, LucideLogOut,
     RenewPlanDialogComponent,
     MemberAttendanceCalendarComponent,
+    LibraryCalendarComponent,
   ],
   templateUrl: './member-details-component.html',
   styleUrl: './member-details-component.css',
@@ -115,6 +117,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly tabs: { value: TabId; label: string }[] = [
     { value: 'overview', label: 'Overview' },
     { value: 'attendance', label: 'Attendance' },
+    { value: 'library-calendar', label: 'Library Calendar' },
     { value: 'books', label: 'Books' },
     { value: 'ebooks', label: 'E-Books' },
     { value: 'plans', label: 'Payments & Plans' },
@@ -812,8 +815,8 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   attendanceDurationMinutes(record: AttendanceResponse): number | null {
     const dayDate = this.parseAttendanceDate(record.attendanceDate);
-    const checkIn = this.combineAttendanceDateTime(dayDate, record.checkInTime ?? record.checkInAtUtc);
-    const checkOut = this.combineAttendanceDateTime(dayDate, record.checkOutTime ?? record.checkOutAtUtc);
+    const checkIn = this.combineAttendanceDateTime(dayDate, record.checkInAtUtc ?? record.checkInTime);
+    const checkOut = this.combineAttendanceDateTime(dayDate, record.checkOutAtUtc ?? record.checkOutTime);
 
     if (checkIn && checkOut) {
       return Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / 60_000));

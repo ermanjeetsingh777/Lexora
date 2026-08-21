@@ -158,11 +158,10 @@
 
       <select
         class="branch-filter-select"
-        [disabled]="branchFilterDisabled()"
         [ngModel]="branchFilter()"
         (ngModelChange)="onBranchChange($event)"
       >
-        <option value="all">{{ branchFilterDisabled() ? 'Select institution first' : 'All branches' }}</option>
+        <option value="all">All branches</option>
         @for (branch of branchOptions(); track branch.id) {
           <option [value]="branch.id">{{ branch.name }}</option>
         }
@@ -218,8 +217,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         @for (l of paged(); track l.id) {
           <a
-            [routerLink]="['/branches', l.branchId]"
-            [queryParams]="{ tab: 'libraries' }"
+            [routerLink]="['/libraries', l.id]"
             class="block h-full group"
           >
             <app-glass-card
@@ -357,8 +355,7 @@
                 class="hover:bg-muted/40 cursor-pointer"
                 [class.branch-row--attention]="isNeedsAttention(l.id)"
                 [class.branch-row--top]="isTopPerformer(l.id)"
-                [routerLink]="['/branches', l.branchId]"
-                [queryParams]="{ tab: 'libraries' }"
+                [routerLink]="['/libraries', l.id]"
               >
                 <td class="py-2.5 px-3">
                   <div class="flex items-center gap-2 min-w-0">

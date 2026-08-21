@@ -1,0 +1,681 @@
+@if (loading()) {
+  <div class="lib-detail-loading space-y-4">
+    <div class="lib-detail-skeleton lib-detail-skeleton--header"></div>
+    <section class="inst-kpi-section" aria-hidden="true">
+      @for (i of [0, 1]; track i) {
+        <div class="inst-stat-kpi inst-stat-kpi--skeleton">
+          <div class="inst-skeleton inst-skeleton--title"></div>
+          <div class="inst-skeleton inst-skeleton--value"></div>
+          <div class="inst-skeleton inst-skeleton--meta"></div>
+          <div class="inst-stat-kpi__grid">
+            @for (j of [0, 1, 2, 3]; track j) {
+              <div class="inst-skeleton inst-skeleton--cell"></div>
+            }
+          </div>
+        </div>
+      }
+    </section>
+    <div class="lib-detail-skeleton lib-detail-skeleton--tabs"></div>
+    <div class="lib-detail-skeleton lib-detail-skeleton--panel"></div>
+  </div>
+} @else if (error()) {
+  <app-page-header
+    eyebrow="Libraries"
+    [isBack]="true"
+    backLink="/libraries"
+    title="Library not found"
+    [description]="error()!"
+  />
+  <app-glass-card class="text-center block">
+    <svg lucideAlertTriangle class="h-10 w-10 mx-auto text-destructive mb-3"></svg>
+    <p class="text-sm text-muted-foreground">{{ error() }}</p>
+    <a routerLink="/libraries" class="inline-block mt-4">
+      <app-button size="sm" variant="outline">
+        <svg lucideArrowLeft class="h-4 w-4 mr-1"></svg>
+        Back to libraries
+      </app-button>
+    </a>
+  </app-glass-card>
+} @else if (detail(); as d) {
+  <app-page-header
+    eyebrow="Libraries"
+    [isBack]="true"
+    backLink="/libraries"
+    [title]="d.name"
+    [description]="d.institutionName + ' · ' + d.branchName + (d.floor != null ? ' · Floor ' + d.floor : '') + ' · ' + subtitleHours()"
+  >
+    <div actions class="flex flex-wrap items-center gap-2">
+      <a [routerLink]="['/libraries', d.id, 'edit']">
+        <app-button size="sm" variant="outline">
+          <svg lucidePencil class="h-3.5 w-3.5 mr-1"></svg>
+          Edit library
+        </app-button>
+      </a>
+      <app-status-badge [status]="d.status" [variant]="libraryStatusVariant(d.status)" />
+      <div class="lib-time-toggle" role="group" aria-label="Time format">
+        <button type="button" [class.lib-time-toggle__btn--active]="timeFmt() === '24h'" (click)="setTimeFormat('24h')">24h</button>
+        <button type="button" [class.lib-time-toggle__btn--active]="timeFmt() === '12h'" (click)="setTimeFormat('12h')">AM/PM</button>
+      </div>
+      <button type="button" [class]="outlineButtonClass" [disabled]="saving()" (click)="resyncFromBranch()" title="Reset library weekly hours to branch defaults and save">
+        <svg lucideRefreshCw class="h-3.5 w-3.5 mr-1"></svg>
+        Copy hours from branch
+      </button>
+      <button type="button" [class]="outlineButtonClass" (click)="shareLink()">
+        <svg lucideShare2 class="h-3.5 w-3.5 mr-1"></svg>
+        Share
+      </button>
+      <button
+        type="button"
+        [class]="d.isActive ? destructiveButtonClass : defaultButtonClass"
+        [disabled]="saving()"
+        (click)="toggleActive()"
+      >
+        {{ d.isActive ? 'Deactivate' : 'Activate' }}
+      </button>
+    </div>
+  </app-page-header>
+
+  <div class="lib-week-preview mb-4">
+    @for (day of weekDays; track day.key) {
+      @let slot = weeklyHours()[day.key];
+      @let changed = !slotEqual(slot, branchDefaults()[day.key]);
+      <span
+        class="lib-week-preview__chip lib-week-preview__chip--compact"
+        [class.lib-week-preview__chip--closed]="slot.closed"
+        [class.lib-week-preview__chip--changed]="!slot.closed && changed"
+        [title]="slot.closed ? day.label + ': Closed' : day.label + ': ' + fmtTime(slot.open, timeFmt()) + ' – ' + fmtTime(slot.close, timeFmt())"
+      >
+        <span class="font-medium mr-1">{{ day.short }}</span>
+        @if (slot.closed) { Closed } @else { {{ fmtTime(slot.open, timeFmt()) }}–{{ fmtTime(slot.close, timeFmt()) }} }
+      </span>
+    }
+  </div>
+
+  <section class="inst-kpi-section mb-4" aria-label="Library overview">
+    <article class="inst-stat-kpi inst-stat-kpi--portfolio animate-fade-up">
+      <div class="inst-stat-kpi__accent" aria-hidden="true"></div>
+      <div class="inst-stat-kpi__grid-bg blueprint-grid-sm" aria-hidden="true"></div>
+      <div class="inst-stat-kpi__glow inst-stat-kpi__glow--portfolio" aria-hidden="true"></div>
+
+      <div class="inst-stat-kpi__head">
+        <div class="min-w-0 flex-1">
+          <p class="label-mono">Live occupancy</p>
+          <div class="inst-stat-kpi__hero">
+            <p class="inst-stat-kpi__value">{{ occupancyPercent() }}%</p>
+            <p class="inst-stat-kpi__unit">{{ occupied() }} of {{ capacity() }} seats filled</p>
+          </div>
+          <div class="inst-stat-kpi__meta">
+            <span class="inst-stat-kpi__delta inst-stat-kpi__delta--neutral">
+              <svg lucideShieldCheck class="h-3 w-3"></svg>
+              {{ d.status }}
+            </span>
+            <span
+              class="inst-stat-kpi__delta"
+              [class.inst-stat-kpi__delta--up]="occupancyTone() === 'high'"
+              [class.inst-stat-kpi__delta--mid]="occupancyTone() === 'mid'"
+              [class.inst-stat-kpi__delta--down]="occupancyTone() === 'low'"
+            >
+              {{ occupancyPercent() }}% occupancy
+            </span>
+            <span class="inst-stat-kpi__hint">{{ occupancyLabel() }}</span>
+          </div>
+        </div>
+        <div class="inst-stat-kpi__icon inst-stat-kpi__icon--portfolio">
+          <svg lucideBookOpen class="h-4 w-4"></svg>
+        </div>
+      </div>
+
+      <div class="inst-stat-kpi__grid">
+        @for (metric of libraryMetrics(); track metric.label) {
+          <div class="inst-stat-kpi__cell" [class.inst-stat-kpi__cell--highlight]="metric.highlight">
+            <span class="inst-stat-kpi__cell-label">{{ metric.label }}</span>
+            <span class="inst-stat-kpi__cell-value">{{ metric.value }}</span>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="inst-stat-kpi inst-stat-kpi--revenue animate-fade-up" style="animation-delay: 80ms">
+      <div class="inst-stat-kpi__accent inst-stat-kpi__accent--revenue" aria-hidden="true"></div>
+      <div class="inst-stat-kpi__grid-bg blueprint-grid-sm" aria-hidden="true"></div>
+      <div class="inst-stat-kpi__glow inst-stat-kpi__glow--revenue" aria-hidden="true"></div>
+
+      <div class="inst-stat-kpi__head">
+        <div class="min-w-0 flex-1">
+          <p class="label-mono">Peak hour</p>
+          <div class="inst-stat-kpi__hero">
+            <p class="inst-stat-kpi__value lib-detail-kpi__value--compact">{{ peakHourLabel() }}</p>
+            <p class="inst-stat-kpi__unit">busiest check-in window</p>
+          </div>
+          <div class="inst-stat-kpi__meta">
+            <span class="inst-stat-kpi__delta inst-stat-kpi__delta--neutral">
+              <svg lucideClock class="h-3 w-3"></svg>
+              Last 30 days
+            </span>
+            <span class="inst-stat-kpi__hint">{{ onFloorNow() }} members on floor now</span>
+          </div>
+        </div>
+        <div class="inst-stat-kpi__icon inst-stat-kpi__icon--revenue">
+          <svg lucideClock class="h-4 w-4"></svg>
+        </div>
+      </div>
+
+      <div class="inst-stat-kpi__grid">
+        @for (metric of librarySnapshotMetrics(); track metric.label) {
+          <div class="inst-stat-kpi__cell" [class.inst-stat-kpi__cell--highlight]="metric.highlight">
+            <span class="inst-stat-kpi__cell-label">{{ metric.label }}</span>
+            <span class="inst-stat-kpi__cell-value">{{ metric.value }}</span>
+          </div>
+        }
+      </div>
+    </article>
+  </section>
+
+  <div class="inst-detail-tab-nav mb-4">
+    <p-selectbutton
+      [options]="tabs"
+      [ngModel]="tab()"
+      (ngModelChange)="setTab($event)"
+      [allowEmpty]="false"
+      optionLabel="label"
+      optionValue="id"
+      size="small"
+      aria-label="Library sections"
+    />
+  </div>
+
+  @if (tab() === 'overview') {
+    <div class="space-y-4">
+      <app-glass-card class="block">
+          <app-section-header title="Today at a glance" />
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="lib-stat-box">
+              <p class="label-mono">Open today</p>
+              <p class="lib-stat-box__value">{{ subtitleHours() }}</p>
+            </div>
+            <div class="lib-stat-box">
+              <p class="label-mono">Current shift</p>
+              <p class="lib-stat-box__value">{{ currentShift() }}</p>
+            </div>
+            <div class="lib-stat-box">
+              <p class="label-mono">On floor now</p>
+              <p class="lib-stat-box__value">{{ onFloorNow() }} members</p>
+            </div>
+            <div class="lib-stat-box">
+              <p class="label-mono">Status</p>
+              <p class="lib-stat-box__value">{{ d.status }}</p>
+            </div>
+          </div>
+          <div class="mt-4">
+            <p class="label-mono mb-1.5 flex items-center gap-1">
+              <svg lucideClock class="h-3 w-3"></svg>
+              This week
+            </p>
+            <div class="lib-week-preview">
+              @for (day of weekDays; track day.key) {
+                @let slot = weeklyHours()[day.key];
+                @let changed = !slotEqual(slot, branchDefaults()[day.key]);
+                <span
+                  class="lib-week-preview__chip lib-week-preview__chip--compact"
+                  [class.lib-week-preview__chip--closed]="slot.closed"
+                  [class.lib-week-preview__chip--changed]="!slot.closed && changed"
+                >
+                  <span class="font-medium mr-1">{{ day.short }}</span>
+                  @if (slot.closed) { Closed } @else { {{ fmtTime(slot.open, timeFmt()) }}–{{ fmtTime(slot.close, timeFmt()) }} }
+                </span>
+              }
+            </div>
+          </div>
+          <div class="lib-activity-box mt-4">
+            <p class="label-mono mb-1">Last activity</p>
+            @if (recentActivity().length) {
+              <ul class="space-y-1.5">
+                @for (item of recentActivity(); track item.id) {
+                  <li class="text-sm text-muted-foreground">
+                    {{ item.detail }} · {{ formatActivityTime(item.occurredAtUtc) }}
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="text-sm text-muted-foreground">No recent check-ins yet.</p>
+            }
+          </div>
+        </app-glass-card>
+
+      <app-glass-card class="block">
+        <app-section-header title="Occupancy trend">
+          <div actions class="flex items-center gap-2">
+            <span class="label-mono flex items-center gap-1">
+              <svg lucideTrendingUp class="h-3 w-3"></svg>
+              Range
+            </span>
+            <div class="lib-range-toggle">
+              @for (range of trendRanges; track range) {
+                <button type="button" [class.lib-range-toggle__btn--active]="trendRange() === range" (click)="setTrendRange(range)">
+                  {{ range }}d
+                </button>
+              }
+            </div>
+          </div>
+        </app-section-header>
+        @if (trendPoints().length) {
+          <div class="lib-occupancy-chart inst-detail-prime-chart inst-detail-prime-chart--line">
+            <p-chart type="line" [data]="occupancyChartData()" [options]="occupancyChartOptions" />
+          </div>
+        } @else {
+          <p class="inst-detail-trend__empty mt-4">No occupancy data yet.</p>
+        }
+      </app-glass-card>
+
+      <app-glass-card class="block">
+        <app-section-header title="Floor-by-floor breakdown">
+          <span actions class="label-mono flex items-center gap-1">
+            <svg lucideBuilding2 class="h-3 w-3"></svg>
+            {{ d.branchName }}
+          </span>
+        </app-section-header>
+        @if (!d.floorBreakdown.length) {
+          <p class="text-sm text-muted-foreground">No sibling libraries on this branch.</p>
+        } @else {
+          <div class="lib-floor-table-wrap">
+            <table class="lib-floor-table">
+              <thead>
+                <tr>
+                  <th>Floor</th>
+                  <th class="text-right">Libraries</th>
+                  <th class="text-right">Capacity</th>
+                  <th class="text-right">Occupied</th>
+                  <th>Utilisation</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of d.floorBreakdown; track row.floor) {
+                  @let pct = floorUtilisation(row.capacity, row.occupied);
+                  <tr [class.lib-floor-table__row--current]="row.floor === (d.floor ?? 0)">
+                    <td>
+                      <span class="inline-flex items-center gap-1.5 font-medium">
+                        <svg lucideLayers class="h-3.5 w-3.5 text-muted-foreground"></svg>
+                        Floor {{ row.floor }}
+                        @if (row.floor === (d.floor ?? 0)) {
+                          <span class="lib-floor-badge">this</span>
+                        }
+                      </span>
+                    </td>
+                    <td class="text-right tabular-nums">{{ row.libraries }}</td>
+                    <td class="text-right tabular-nums">{{ row.capacity }}</td>
+                    <td class="text-right tabular-nums">{{ row.occupied }}</td>
+                    <td>
+                      <div class="lib-util-bar">
+                        <span class="lib-util-bar__fill" [style.width.%]="pct"></span>
+                        <span class="lib-util-bar__label">{{ pct }}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Totals</td>
+                  <td class="text-right tabular-nums">{{ floorTotals().libraries }}</td>
+                  <td class="text-right tabular-nums">{{ floorTotals().capacity }}</td>
+                  <td class="text-right tabular-nums">{{ floorTotals().occupied }}</td>
+                  <td class="tabular-nums text-right">
+                    {{ floorUtilisation(floorTotals().capacity, floorTotals().occupied) }}%
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        }
+      </app-glass-card>
+    </div>
+  }
+
+  @if (tab() === 'seats') {
+    <app-glass-card class="block">
+      <app-section-header title="Seat layout">
+        <button actions type="button" [class]="outlineButtonClass" (click)="openSeatPreview()">
+          <svg lucideEye class="h-3.5 w-3.5 mr-1"></svg>
+          Full preview
+        </button>
+      </app-section-header>
+      <div class="lib-seat-legend mb-3">
+        @for (item of seatLegend; track item.label) {
+          <span><span class="lib-seat lib-seat--legend" [ngClass]="item.className"></span> {{ item.label }}</span>
+        }
+      </div>
+      <div class="lib-seat-grid">
+        @for (seat of seats(); track seat.id) {
+          <button type="button" class="lib-seat" [ngClass]="seatStatusClass(seat.status)" [title]="seat.number + ' · ' + seat.type + (seat.memberName ? ' · ' + seat.memberName : '')">
+            {{ seat.number }}
+          </button>
+        }
+      </div>
+    </app-glass-card>
+
+    @if (seatPreviewOpen()) {
+      <div class="lib-seat-sheet" (click)="closeSeatPreview()">
+        <div class="lib-seat-sheet__panel" (click)="$event.stopPropagation()">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-semibold">{{ d.name }} — Seat preview</h3>
+            <button type="button" [class]="outlineButtonClass" (click)="closeSeatPreview()">Close</button>
+          </div>
+          <div class="lib-seat-legend mb-3">
+            @for (item of seatLegend; track item.label) {
+              <span><span class="lib-seat lib-seat--legend" [ngClass]="item.className"></span> {{ item.label }}</span>
+            }
+          </div>
+          <div class="lib-seat-grid lib-seat-grid--preview">
+            @for (seat of seats(); track seat.id) {
+              <button type="button" class="lib-seat" [ngClass]="seatStatusClass(seat.status)" [title]="seat.number">
+                {{ seat.number }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  }
+
+  @if (tab() === 'profile') {
+    <app-glass-card class="block">
+      <app-section-header title="Library profile" />
+      <form class="grid grid-cols-1 md:grid-cols-2 gap-3" (ngSubmit)="saveProfile()">
+        <div class="md:col-span-2 space-y-1.5">
+          <label class="label-mono">Name</label>
+          <input class="inst-field" [ngModel]="profileName()" (ngModelChange)="profileName.set($event)" name="name" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="label-mono">Floor</label>
+          <input class="inst-field" type="number" [ngModel]="profileFloor()" (ngModelChange)="profileFloor.set(+$event)" name="floor" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="label-mono">Capacity</label>
+          <input class="inst-field" type="number" [ngModel]="profileCapacity()" (ngModelChange)="profileCapacity.set(+$event)" name="capacity" />
+        </div>
+        <div class="md:col-span-2">
+          <app-button type="submit" [disabled]="saving()">Save profile</app-button>
+        </div>
+      </form>
+    </app-glass-card>
+  }
+
+  @if (tab() === 'hours') {
+    <app-glass-card class="block">
+      <app-section-header title="Weekly hours">
+        <div actions class="flex items-center gap-2">
+          <div class="lib-time-toggle" role="group" aria-label="Time format">
+            <button type="button" [class.lib-time-toggle__btn--active]="timeFmt() === '24h'" (click)="setTimeFormat('24h')">24h</button>
+            <button type="button" [class.lib-time-toggle__btn--active]="timeFmt() === '12h'" (click)="setTimeFormat('12h')">AM/PM</button>
+          </div>
+          <button type="button" [class]="outlineButtonClass" [disabled]="saving()" (click)="resyncFromBranch()">
+            <svg lucideRefreshCw class="h-3.5 w-3.5 mr-1"></svg>
+            Copy from branch
+          </button>
+        </div>
+      </app-section-header>
+
+      <div class="lib-week-preview mb-4">
+        @for (day of weekDays; track day.key) {
+          @let slot = weeklyHours()[day.key];
+          @let changed = !slotEqual(slot, branchDefaults()[day.key]);
+          <span
+            class="lib-week-preview__chip"
+            [class.lib-week-preview__chip--closed]="slot.closed"
+            [class.lib-week-preview__chip--changed]="!slot.closed && changed"
+          >
+            <span class="font-medium mr-1">{{ day.short }}</span>
+            @if (slot.closed) { Closed } @else { {{ fmtTime(slot.open, timeFmt()) }}–{{ fmtTime(slot.close, timeFmt()) }} }
+          </span>
+        }
+      </div>
+
+      <p class="label-mono mb-3">
+        Defaults come from the branch ({{ d.branchName }}). Days that differ from branch defaults are highlighted.
+      </p>
+
+      <form class="space-y-2 max-w-3xl" (ngSubmit)="saveWeeklyHours()">
+        @for (day of weekDays; track day.key) {
+          @let slot = weeklyHours()[day.key];
+          @let changed = !slotEqual(slot, branchDefaults()[day.key]);
+          @let err = dayErrors()[day.key];
+          <div
+            class="lib-hours-row"
+            [class.lib-hours-row--error]="err"
+            [class.lib-hours-row--changed]="!err && changed"
+          >
+            <div class="lib-hours-row__grid">
+              <div class="flex items-center gap-2">
+                <span class="font-medium">{{ day.label }}</span>
+                @if (changed) {
+                  <span class="lib-changed-badge">Changed</span>
+                }
+              </div>
+              <label class="lib-hours-toggle">
+                <input
+                  type="checkbox"
+                  [checked]="!slot.closed"
+                  (change)="updateDaySlot(day.key, { closed: !$any($event.target).checked })"
+                />
+                <span class="label-mono">{{ slot.closed ? 'Closed' : 'Open' }}</span>
+              </label>
+              <div class="space-y-1">
+                <label class="label-mono">Opens</label>
+                <input
+                  class="inst-field"
+                  type="time"
+                  [disabled]="slot.closed"
+                  [ngModel]="slot.open ?? ''"
+                  (ngModelChange)="updateDaySlot(day.key, { open: $event || null })"
+                  [name]="day.key + '-open'"
+                />
+              </div>
+              <div class="space-y-1">
+                <label class="label-mono">Closes</label>
+                <input
+                  class="inst-field"
+                  type="time"
+                  [disabled]="slot.closed"
+                  [ngModel]="slot.close ?? ''"
+                  (ngModelChange)="updateDaySlot(day.key, { close: $event || null })"
+                  [name]="day.key + '-close'"
+                />
+              </div>
+            </div>
+            @if (err) {
+              <div class="lib-hours-row__error">
+                <svg lucideAlertCircle class="h-3 w-3"></svg>
+                {{ err }}
+              </div>
+            }
+          </div>
+        }
+        <div class="pt-2 flex items-center gap-3">
+          <app-button type="submit" [disabled]="saving() || weeklyHasErrors()">Save weekly hours</app-button>
+          @if (weeklyHasErrors()) {
+            <span class="text-xs text-destructive flex items-center gap-1">
+              <svg lucideAlertCircle class="h-3 w-3"></svg>
+              Fix invalid time ranges above
+            </span>
+          }
+        </div>
+      </form>
+    </app-glass-card>
+  }
+
+  @if (tab() === 'exceptions') {
+    <app-glass-card class="block">
+      <app-section-header title="Holiday & date exceptions">
+        <button actions type="button" [class]="outlineButtonClass" (click)="addException()">
+          <svg lucidePlus class="h-3 w-3 mr-1"></svg>
+          Add exception
+        </button>
+      </app-section-header>
+      <p class="label-mono mb-3">
+        Override the weekly schedule for upcoming dates. Past exceptions are read-only; add or edit dates from today onward.
+      </p>
+      @if (exceptionsHaveChanges()) {
+      <div class="lib-exception-banner mb-3">
+        <span>
+          Unsaved changes:
+          @if (exceptionChangeSummary().added > 0) { {{ exceptionChangeSummary().added }} new }
+          @if (exceptionChangeSummary().updated > 0) {
+            @if (exceptionChangeSummary().added > 0) { · }
+            {{ exceptionChangeSummary().updated }} edited
+          }
+          @if (exceptionChangeSummary().removed > 0) {
+            @if (exceptionChangeSummary().added > 0 || exceptionChangeSummary().updated > 0) { · }
+            {{ exceptionChangeSummary().removed }} removed
+          }
+        </span>
+        <button type="button" class="lib-exception-banner__action" (click)="discardExceptionChanges()">Discard</button>
+      </div>
+      }
+      <form class="space-y-3" (ngSubmit)="saveExceptions()">
+        @if (!hoursExceptions().length) {
+          <p class="text-sm text-muted-foreground">No exceptions configured. Use “Add exception” to create one.</p>
+        } @else {
+          @for (ex of hoursExceptions(); track ex.id; let idx = $index) {
+            @let err = exceptionErrors()[idx];
+            @let isNew = isNewException(ex);
+            @let isChanged = isChangedException(ex);
+            @let locked = isExceptionLocked(ex);
+            @let startLocked = isExceptionStartLocked(ex);
+            <div class="lib-exception-row"
+              [class.lib-exception-row--error]="showErrors() && err"
+              [class.lib-exception-row--changed]="isChanged && !isNew && !locked"
+              [class.lib-exception-row--new]="isNew"
+              [class.lib-exception-row--locked]="locked">
+              <div class="lib-exception-row__header">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="lib-exception-row__title">Exception {{ idx + 1 }}</span>
+                  @if (locked) {
+                  <span class="lib-exception-badge lib-exception-badge--locked">Past · read-only</span>
+                  } @else if (isNew) {
+                  <span class="lib-exception-badge lib-exception-badge--new">New</span>
+                  } @else if (isChanged) {
+                  <span class="lib-exception-badge lib-exception-badge--changed">Edited</span>
+                  }
+                  @if (ex.closed) {
+                  <span class="lib-exception-badge lib-exception-badge--closed">Closed all day</span>
+                  } @else if (ex.open && ex.close) {
+                  <span class="lib-exception-badge lib-exception-badge--hours">{{ fmtTime(ex.open, timeFmt()) }}–{{ fmtTime(ex.close, timeFmt()) }}</span>
+                  }
+                </div>
+                @if (!locked) {
+                <button type="button" class="lib-icon-btn" title="Remove exception" (click)="removeException(ex.id)">
+                  <svg lucideTrash2 class="h-4 w-4"></svg>
+                </button>
+                }
+              </div>
+              <div class="lib-exception-row__grid">
+                <div class="space-y-1">
+                  <label class="label-mono">Name</label>
+                  <input class="inst-field" placeholder="e.g. Diwali, Maintenance" [disabled]="locked" [ngModel]="ex.name" (ngModelChange)="updateException(ex.id, { name: $event })" [name]="'ex-name-' + ex.id" />
+                </div>
+                <div class="space-y-1">
+                  <label class="label-mono">From</label>
+                  <input class="inst-field" type="date" [disabled]="locked || startLocked" [min]="startLocked ? null : todayDate()" [ngModel]="ex.startDate" (ngModelChange)="updateException(ex.id, { startDate: $event })" [name]="'ex-from-' + ex.id" />
+                </div>
+                <div class="space-y-1">
+                  <label class="label-mono">To</label>
+                  <input class="inst-field" type="date" [disabled]="locked" [min]="todayDate()" [ngModel]="ex.endDate" (ngModelChange)="updateException(ex.id, { endDate: $event })" [name]="'ex-to-' + ex.id" />
+                </div>
+                <div class="space-y-1">
+                  <label class="label-mono">Closed</label>
+                  <label class="lib-hours-toggle lib-hours-toggle--compact">
+                    <input type="checkbox" [disabled]="locked" [checked]="ex.closed" (change)="updateException(ex.id, { closed: $any($event.target).checked })" />
+                  </label>
+                </div>
+                <div class="space-y-1">
+                  <label class="label-mono">Opens</label>
+                  <input class="inst-field" type="time" [disabled]="locked || ex.closed" [ngModel]="ex.open ?? ''" (ngModelChange)="updateException(ex.id, { open: $event || null })" [name]="'ex-open-' + ex.id" />
+                </div>
+                <div class="space-y-1">
+                  <label class="label-mono">Closes</label>
+                  <input class="inst-field" type="time" [disabled]="locked || ex.closed" [ngModel]="ex.close ?? ''" (ngModelChange)="updateException(ex.id, { close: $event || null })" [name]="'ex-close-' + ex.id" />
+                </div>
+              </div>
+              @if (showErrors() && err) {
+                <div class="lib-hours-row__error">
+                  <svg lucideAlertCircle class="h-3 w-3"></svg>
+                  {{ err }}
+                </div>
+              }
+            </div>
+          }
+        }
+        <div class="pt-1 flex flex-wrap items-center gap-2">
+          <app-button type="submit" [disabled]="saving() || !exceptionsHaveChanges()">
+            {{ exceptionsHaveChanges() ? 'Save changes' : 'Saved' }}
+          </app-button>
+          @if (exceptionsHaveChanges()) {
+          <button type="button" [class]="outlineButtonClass" (click)="discardExceptionChanges()">Discard changes</button>
+          }
+        </div>
+      </form>
+    </app-glass-card>
+  }
+
+  @if (tab() === 'calendar') {
+    <app-glass-card class="block">
+      <app-library-calendar [libraryId]="d.id" />
+    </app-glass-card>
+  }
+
+  @if (tab() === 'sections') {
+    <app-glass-card class="block">
+      <app-section-header title="Sections">
+        <button actions type="button" [class]="outlineButtonClass" (click)="addSection()">
+          <svg lucidePlus class="h-3 w-3 mr-1"></svg>
+          Add section
+        </button>
+      </app-section-header>
+
+      <div class="mb-4 flex items-center justify-between text-sm">
+        <span class="label-mono">
+          Allocated <span class="tabular-nums text-foreground">{{ totalSectionCapacity() }}</span> / {{ capacity() }}
+        </span>
+        @if (sectionsOverflow()) {
+          <span class="flex items-center gap-1 text-destructive text-xs">
+            <svg lucideAlertTriangle class="h-3.5 w-3.5"></svg>
+            Exceeds library capacity
+          </span>
+        }
+      </div>
+
+      @if (!sections().length) {
+        <p class="text-sm text-muted-foreground">
+          No sections configured. Sections let you group seats (e.g. silent zone, group study).
+        </p>
+      } @else {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          @for (section of sections(); track $index; let idx = $index) {
+            @let pct = sectionCapacityPercent(section.capacity, capacity());
+            <div class="lib-section-card">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="lib-section-dot" [ngClass]="sectionDotClasses[idx % sectionDotClasses.length]"></span>
+                <input class="inst-field flex-1" [ngModel]="section.name" (ngModelChange)="updateSection(idx, { name: $event })" [name]="'section-name-' + idx" />
+                <input class="inst-field w-20" type="number" [ngModel]="section.capacity" (ngModelChange)="updateSection(idx, { capacity: +$event })" [name]="'section-cap-' + idx" />
+                <button type="button" class="lib-icon-btn" (click)="removeSection(idx)">
+                  <svg lucideTrash2 class="h-4 w-4"></svg>
+                </button>
+              </div>
+              <div class="lib-util-bar lib-util-bar--section">
+                <span class="lib-util-bar__fill" [style.width.%]="pct"></span>
+              </div>
+              <p class="mt-1 label-mono flex justify-between">
+                <span><svg lucideUsers class="h-3 w-3 inline mr-1"></svg>{{ section.capacity }} seats</span>
+                <span>{{ pct }}%</span>
+              </p>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="mt-4">
+        <app-button (click)="saveSections()">Save layout</app-button>
+      </div>
+    </app-glass-card>
+  }
+}

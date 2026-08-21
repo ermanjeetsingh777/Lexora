@@ -161,7 +161,7 @@ export class MemberAttendanceCalendarComponent {
         continue;
       }
 
-      const checkIn = this.combineAttendanceDateTime(dayDate, record.checkInTime ?? record.checkInAtUtc);
+      const checkIn = this.combineAttendanceDateTime(dayDate, this.checkInValue(record));
       const hasSession = !!checkIn;
 
       events.push(this.allDayStatusEvent(
@@ -363,7 +363,7 @@ export class MemberAttendanceCalendarComponent {
     record: AttendanceResponse,
     status: AttendanceDayStatus,
   ): Date {
-    const checkOut = this.combineAttendanceDateTime(dayDate, record.checkOutTime ?? record.checkOutAtUtc);
+    const checkOut = this.combineAttendanceDateTime(dayDate, this.checkOutValue(record));
     if (checkOut) return checkOut;
 
     const durationMinutes = this.sessionDurationMinutes(record, dayDate);
@@ -383,8 +383,8 @@ export class MemberAttendanceCalendarComponent {
   }
 
   private attendanceDurationMinutes(record: AttendanceResponse, dayDate: Date): number | null {
-    const checkIn = this.combineAttendanceDateTime(dayDate, record.checkInTime ?? record.checkInAtUtc);
-    const checkOut = this.combineAttendanceDateTime(dayDate, record.checkOutTime ?? record.checkOutAtUtc);
+    const checkIn = this.combineAttendanceDateTime(dayDate, this.checkInValue(record));
+    const checkOut = this.combineAttendanceDateTime(dayDate, this.checkOutValue(record));
 
     if (checkIn && checkOut) {
       return Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / 60_000));
@@ -400,9 +400,9 @@ export class MemberAttendanceCalendarComponent {
   private buildTooltip(record: AttendanceResponse, dayDate: Date): string {
     const dateLabel = format(dayDate, 'EEE, MMM d, yyyy');
     const status = this.statusLabel(record.status);
-    const checkIn = this.formatTime(record.checkInTime ?? record.checkInAtUtc);
-    const checkOut = record.checkOutTime || record.checkOutAtUtc
-      ? this.formatTime(record.checkOutTime ?? record.checkOutAtUtc)
+    const checkIn = this.formatTime(this.checkInValue(record));
+    const checkOut = this.checkOutValue(record)
+      ? this.formatTime(this.checkOutValue(record))
       : record.status === AttendanceStatus.CheckedIn ? 'In session' : '—';
     const duration = this.sessionDurationMinutes(record, dayDate);
     const durationLabel = duration != null ? this.formatDuration(duration) : '—';
@@ -448,6 +448,14 @@ export class MemberAttendanceCalendarComponent {
     if (!normalized) return new Date();
     const [year, month, day] = normalized.split('-').map(Number);
     return new Date(year, month - 1, day);
+  }
+
+  private checkInValue(record: AttendanceResponse): string | Date | null | undefined {
+    return record.checkInAtUtc ?? record.checkInTime;
+  }
+
+  private checkOutValue(record: AttendanceResponse): string | Date | null | undefined {
+    return record.checkOutAtUtc ?? record.checkOutTime;
   }
 
   private combineAttendanceDateTime(dayDate: Date, value?: string | Date | null): Date | null {

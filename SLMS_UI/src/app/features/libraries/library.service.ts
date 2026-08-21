@@ -1,6 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { APIResponseModel } from '@core/models/APIResponseModel';
+import { BranchLibraryCapacitySummary } from '@core/models/branch-library-capacity.models';
 import { CreateLibraryRequest } from '@core/models/CreateLibraryRequest ';
+import { LibraryCalendarQuery, LibraryCalendarView } from '@core/models/library-calendar.models';
+import { LibraryDetailView, LibraryDetailQuery, UpdateLibraryPayload, UpdateLibraryWeeklyHoursPayload, UpdateLibraryHoursExceptionsPayload, HoursException } from '@core/models/library-detail.models';
 import { LibraryListQuery, LibraryListRevenueSummary, LibraryListView } from '@core/models/library-list.models';
 import { ApiService } from '@core/services/api.service';
 import { map, Observable, of } from 'rxjs';
@@ -29,6 +32,17 @@ export class LibraryService {
       .pipe(map((r) => r.data!));
   }
 
+  getBranchCapacitySummary(
+    institutionId: string,
+    branchId: string,
+  ): Observable<BranchLibraryCapacitySummary> {
+    return this.httpApi
+      .get<BranchLibraryCapacitySummary>(
+        `institutions/${institutionId}/branches/${branchId}/libraries/capacity-summary`,
+      )
+      .pipe(map((r) => r.data!));
+  }
+
   createlibrary(
     institutionId: string,
     branchId: string,
@@ -37,6 +51,58 @@ export class LibraryService {
     return this.httpApi.post<any>(
       'institutions/' + institutionId + '/branches/' + branchId + '/libraries',
       request,
+    );
+  }
+
+  getDetailView(libraryId: string, query?: LibraryDetailQuery): Observable<LibraryDetailView> {
+    const params: Record<string, string> = {};
+    if (query?.trendDays) params['trendDays'] = String(query.trendDays);
+    return this.httpApi.get<LibraryDetailView>(`libraries/${libraryId}`, { params }).pipe(map((r) => r.data!));
+  }
+
+  getCalendarView(libraryId: string, query: LibraryCalendarQuery): Observable<LibraryCalendarView> {
+    const params: Record<string, string> = {
+      startDate: query.startDate,
+      endDate: query.endDate,
+    };
+    return this.httpApi
+      .get<LibraryCalendarView>(`libraries/${libraryId}/calendar`, { params })
+      .pipe(map((r) => r.data!));
+  }
+
+  updateLibrary(
+    institutionId: string,
+    branchId: string,
+    libraryId: string,
+    payload: UpdateLibraryPayload,
+  ): Observable<APIResponseModel<unknown>> {
+    return this.httpApi.putTo<unknown>(
+      `institutions/${institutionId}/branches/${branchId}/libraries/${libraryId}`,
+      payload,
+    );
+  }
+
+  updateWeeklyHours(
+    institutionId: string,
+    branchId: string,
+    libraryId: string,
+    payload: UpdateLibraryWeeklyHoursPayload,
+  ): Observable<APIResponseModel<UpdateLibraryWeeklyHoursPayload['weeklyHours']>> {
+    return this.httpApi.putTo<UpdateLibraryWeeklyHoursPayload['weeklyHours']>(
+      `institutions/${institutionId}/branches/${branchId}/libraries/${libraryId}/weekly-hours`,
+      payload,
+    );
+  }
+
+  updateHoursExceptions(
+    institutionId: string,
+    branchId: string,
+    libraryId: string,
+    payload: UpdateLibraryHoursExceptionsPayload,
+  ): Observable<APIResponseModel<HoursException[]>> {
+    return this.httpApi.putTo<HoursException[]>(
+      `institutions/${institutionId}/branches/${branchId}/libraries/${libraryId}/hours-exceptions`,
+      payload,
     );
   }
 }

@@ -26,6 +26,12 @@
     [description]="subtitle()"
   >
     <div actions class="flex flex-wrap items-center gap-2">
+      <a [routerLink]="editLink()">
+        <app-button size="sm" variant="outline">
+          <svg lucidePencil class="h-3.5 w-3.5 mr-1"></svg>
+          Edit branch
+        </app-button>
+      </a>
       <app-status-badge [status]="d.status" [variant]="branchStatusVariant(d.status)" />
       @if (d.email) {
         <a [href]="'mailto:' + d.email" [class]="emailButtonClass">
@@ -416,7 +422,7 @@
                   @for (lib of pagedLibraries(); track lib.id) {
                     <tr class="hover:bg-muted/40">
                       <td class="py-2.5 pr-4 align-middle">
-                        <a routerLink="/libraries" class="font-medium hover:text-primary">{{ lib.name }}</a>
+                        <a [routerLink]="['/libraries', lib.id]" class="font-medium hover:text-primary">{{ lib.name }}</a>
                         <div class="label-mono flex items-center gap-1 mt-0.5 text-[var(--muted-foreground)]">
                           <svg lucideMapPin class="h-3 w-3 shrink-0"></svg>
                           {{ lib.city ?? '—' }}

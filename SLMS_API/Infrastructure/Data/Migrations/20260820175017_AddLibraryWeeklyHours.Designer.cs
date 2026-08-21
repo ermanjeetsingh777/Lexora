@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SLMS_API.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using SLMS_API.Infrastructure.Data;
 namespace SLMS_API.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820175017_AddLibraryWeeklyHours")]
+    partial class AddLibraryWeeklyHours
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -806,115 +809,6 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.HasIndex("IsDeleted", "InstitutionId", "BranchId");
 
                     b.ToTable("Libraries");
-                });
-
-            modelBuilder.Entity("SLMS_API.Domain.Entities.LibraryHoursException", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<TimeOnly?>("CloseTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("Closed")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateOnly>("EndDate")
-                        .HasColumnType("date");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("LibraryId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<TimeOnly?>("OpenTime")
-                        .HasColumnType("time");
-
-                    b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LibraryId", "IsDeleted", "StartDate");
-
-                    b.ToTable("LibraryHoursExceptions");
-                });
-
-            modelBuilder.Entity("SLMS_API.Domain.Entities.LibraryWeeklyHour", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<TimeOnly?>("CloseTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("Closed")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Day")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("LibraryId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<TimeOnly?>("OpenTime")
-                        .HasColumnType("time");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LibraryId", "Day")
-                        .IsUnique();
-
-                    b.ToTable("LibraryWeeklyHours");
                 });
 
             modelBuilder.Entity("SLMS_API.Domain.Entities.Member", b =>
@@ -2932,28 +2826,6 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("Institution");
-                });
-
-            modelBuilder.Entity("SLMS_API.Domain.Entities.LibraryHoursException", b =>
-                {
-                    b.HasOne("SLMS_API.Domain.Entities.Library", "Library")
-                        .WithMany()
-                        .HasForeignKey("LibraryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Library");
-                });
-
-            modelBuilder.Entity("SLMS_API.Domain.Entities.LibraryWeeklyHour", b =>
-                {
-                    b.HasOne("SLMS_API.Domain.Entities.Library", "Library")
-                        .WithMany()
-                        .HasForeignKey("LibraryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Library");
                 });
 
             modelBuilder.Entity("SLMS_API.Domain.Entities.Member", b =>

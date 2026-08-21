@@ -598,8 +598,8 @@
                   <span class="inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium capitalize"
                     [class]="dayStatusPillClass(r.status)">{{ statusLabel(r.status) }}</span>
                 </td>
-                <td class="px-4 py-2 font-mono text-xs">{{ formatAttendanceTime(r.checkInTime ?? r.checkInAtUtc) }}</td>
-                <td class="px-4 py-2 font-mono text-xs">{{ formatAttendanceTime(r.checkOutTime ?? r.checkOutAtUtc) }}</td>
+                <td class="px-4 py-2 font-mono text-xs">{{ formatAttendanceTime(r.checkInAtUtc ?? r.checkInTime) }}</td>
+                <td class="px-4 py-2 font-mono text-xs">{{ formatAttendanceTime(r.checkOutAtUtc ?? r.checkOutTime) }}</td>
                 <td class="px-4 py-2 text-right tabular-nums">
                   @let durationMins = attendanceDurationMinutes(r);
                   {{ durationMins != null ? formatDuration(durationMins) : '—' }}
@@ -672,6 +672,13 @@
         </div>
       </app-glass-card>
     </div>
+    }
+
+    <!-- LIBRARY CALENDAR TAB -->
+    @if (activeTab() === 'library-calendar') {
+    <app-glass-card class="block">
+      <app-library-calendar [libraryId]="m.libraryId" />
+    </app-glass-card>
     }
 
     <!-- E-BOOKS TAB -->

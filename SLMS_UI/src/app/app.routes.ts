@@ -109,6 +109,7 @@ export const routes: Routes = [
                 children: [
                     { path: '', loadComponent: () => import('./features/institutions/institutions-list/institutions-list').then((m) => m.InstitutionsListComponent) },
                     { path: 'create', loadComponent: () => import('./features/institutions/institution-create/institution-create').then((m) => m.InstitutionCreate) },
+                    { path: ':institutionId/branches/:branchId/edit', loadComponent: () => import('./features/branches/branch-edit/branch-edit').then((m) => m.BranchEdit) },
                     { path: ':institutionId/branches/:branchId', loadComponent: () => import('./features/branches/branch-detail-component/branch-detail.component').then((m) => m.BranchDetailComponent) },
                     { path: ':institutionId/addbranch', loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
                     { path: ':institutionId/addlibrary', loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
@@ -122,6 +123,7 @@ export const routes: Routes = [
                 children: [
                     { path: '', loadComponent: () => import('./features/branches/branch-list-component/branch-list-component').then((m) => m.BranchListComponent) },
                     { path: 'create', loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
+                    { path: ':branchId/edit', loadComponent: () => import('./features/branches/branch-edit/branch-edit').then((m) => m.BranchEdit) },
                     { path: ':branchId/addlibrary', loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
                     { path: ':branchId', loadComponent: () => import('./features/branches/branch-detail-component/branch-detail.component').then((m) => m.BranchDetailComponent) },
                 ],
@@ -133,7 +135,8 @@ export const routes: Routes = [
                 children: [
                     { path: '', loadComponent: () => import('./features/libraries/library-list-component/library-list-component').then((m) => m.LibraryListComponent) },
                     { path: 'create', loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
-                    // { path: ':libraryId', loadComponent: () => import('./features/libraries/library-detail.component').then((m) => m.LibraryDetailComponent) },
+                    { path: ':libraryId/edit', loadComponent: () => import('./features/libraries/library-edit/library-edit').then((m) => m.LibraryEdit) },
+                    { path: ':libraryId', loadComponent: () => import('./features/libraries/library-detail-component/library-detail.component').then((m) => m.LibraryDetailComponent) },
                 ],
             },
 

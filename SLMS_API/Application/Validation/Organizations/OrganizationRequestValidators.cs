@@ -37,6 +37,8 @@ public class UpdateBranchRequestValidator : AbstractValidator<UpdateBranchReques
     public UpdateBranchRequestValidator()
     {
         RuleFor(x => x.Name).MaximumLength(255).When(x => x.Name is not null);
+        RuleFor(x => x.Email).EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email));
+        RuleFor(x => x.Phone).MaximumLength(20).When(x => x.Phone is not null);
         RuleFor(x => x.Capacity).GreaterThan(0).When(x => x.Capacity.HasValue);
     }
 }
@@ -46,6 +48,8 @@ public class CreateLibraryRequestValidator : AbstractValidator<CreateLibraryRequ
     public CreateLibraryRequestValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(255);
+        RuleFor(x => x.Email).EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email));
+        RuleFor(x => x.Phone).MaximumLength(20).When(x => x.Phone is not null);
         RuleFor(x => x.Capacity).GreaterThan(0).When(x => x.Capacity.HasValue);
         RuleFor(x => x.Floor).GreaterThanOrEqualTo(0).When(x => x.Floor.HasValue);
     }
@@ -56,6 +60,8 @@ public class UpdateLibraryRequestValidator : AbstractValidator<UpdateLibraryRequ
     public UpdateLibraryRequestValidator()
     {
         RuleFor(x => x.Name).MaximumLength(255).When(x => x.Name is not null);
+        RuleFor(x => x.Phone).MaximumLength(20).When(x => x.Phone is not null);
+        RuleFor(x => x.Address).MaximumLength(500).When(x => x.Address is not null);
         RuleFor(x => x.Capacity).GreaterThan(0).When(x => x.Capacity.HasValue);
         RuleFor(x => x.Floor).GreaterThanOrEqualTo(0).When(x => x.Floor.HasValue);
     }

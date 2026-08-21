@@ -2,7 +2,9 @@ import { Component, DestroyRef, inject, input, OnInit, signal, WritableSignal } 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { LucideChevronDown } from '@lucide/angular';
 import { CreateLibraryRequest } from '@core/models/CreateLibraryRequest ';
+import { BranchLibraryCapacitySummary } from '@core/models/branch-library-capacity.models';
 import { BranchDropdownResponse, InstitutionDropdownResponse } from '@core/models/institution-dropdown.model';
 import { CommonService } from '@core/services/common.service';
 import { StorageService } from '@core/services/storage.service';
@@ -16,7 +18,7 @@ import { InstitutionStatus, OnboardingSteps } from '@core/enums/OnbardingSteps';
 
 @Component({
   selector: 'app-create-library',
-  imports: [PageHeaderComponent, ReactiveFormsModule],
+  imports: [PageHeaderComponent, ReactiveFormsModule, LucideChevronDown],
   templateUrl: './create-library.html',
   styleUrl: './create-library.css',
   providers: [InstitutionsService, LibraryService],
@@ -46,6 +48,9 @@ export class CreateLibrary implements OnInit {
   disabledInstitutionSelect = signal(false);
   disabledBranchSelect = signal(false);
   loader = signal(false);
+  capacitySummary = signal<BranchLibraryCapacitySummary | null>(null);
+  capacitySummaryLoading = signal(false);
+  capacitySummaryExpanded = signal(false);
   readonly presetInstitutionId = this.route.snapshot.paramMap.get('institutionId');
   readonly presetBranchId = this.route.snapshot.paramMap.get('branchId');
   readonly fromInstitutionDetail = !!this.presetInstitutionId;
@@ -89,6 +94,12 @@ export class CreateLibrary implements OnInit {
         if (!this.fromInstitutionDetail && !this.fromBranchDetail) {
           this.onInstitutionChange(institutionId ?? '');
         }
+      });
+
+    this.librariesForm.controls.branchId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((branchId) => {
+        this.onBranchChange(branchId ?? '');
       });
 
     if (this.fromBranchDetail && this.presetBranchId) {
@@ -135,6 +146,7 @@ export class CreateLibrary implements OnInit {
     if (!institutionId) {
       this.branches.set([]);
       this.librariesForm.controls.branchId.setValue('');
+      this.clearCapacitySummary();
       return;
     }
 
@@ -147,6 +159,40 @@ export class CreateLibrary implements OnInit {
     }
 
     this.loadBranchesForInstitution(institutionId);
+  }
+
+  onBranchChange(branchId: string): void {
+    if (!branchId) {
+      this.clearCapacitySummary();
+      return;
+    }
+
+    const institutionId = this.librariesForm.getRawValue().institutionId ?? '';
+    if (!institutionId) {
+      this.clearCapacitySummary();
+      return;
+    }
+
+    this.loadCapacitySummary(institutionId, branchId);
+  }
+
+  capacityMaxLimit(): number {
+    const summary = this.capacitySummary();
+    if (summary?.hasBranchCapacityLimit) {
+      return summary.remainingCapacity;
+    }
+    return 100000;
+  }
+
+  selectedBranchName(): string {
+    const branchId = this.librariesForm.getRawValue().branchId ?? '';
+    return this.capacitySummary()?.branchName
+      ?? this.branches().find((branch) => branch.value === branchId)?.key
+      ?? '';
+  }
+
+  toggleCapacitySummary(): void {
+    this.capacitySummaryExpanded.update((expanded) => !expanded);
   }
 
   createlibraries(): void {
@@ -162,6 +208,8 @@ export class CreateLibrary implements OnInit {
       name: formValues.name ?? '',
       description: '',
       address: formValues.address ?? '',
+      email: formValues.email ?? '',
+      phone: formValues.phone ?? '',
       floor: formValues.floor ?? 0,
       capacity: formValues.capacity ?? 0,
       isActive: true,
@@ -230,6 +278,12 @@ export class CreateLibrary implements OnInit {
           this.librariesForm.controls.branchId.setValue(branch.id);
           this.disabledBranchSelect.set(true);
           this.librariesForm.get('branchId')?.disable();
+          this.librariesForm.patchValue({
+            email: branch.email ?? '',
+            phone: branch.phone ?? '',
+            address: branch.address ?? '',
+          });
+          this.loadCapacitySummary(branch.institutionId, branch.id);
         },
         error: () => {
           this.toast.error('Unable to load branch details.');
@@ -342,5 +396,49 @@ export class CreateLibrary implements OnInit {
     } else {
       this.librariesForm.get('branchId')?.enable();
     }
+
+    if (branchItems.length !== 1) {
+      this.clearCapacitySummary();
+    }
+  }
+
+  private loadCapacitySummary(institutionId: string, branchId: string): void {
+    this.capacitySummaryExpanded.set(false);
+    this.capacitySummaryLoading.set(true);
+    this.libraryService
+      .getBranchCapacitySummary(institutionId, branchId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (summary) => {
+          this.capacitySummary.set(summary);
+          this.updateCapacityValidators(summary);
+          this.capacitySummaryLoading.set(false);
+        },
+        error: () => {
+          this.capacitySummary.set(null);
+          this.updateCapacityValidators(null);
+          this.capacitySummaryLoading.set(false);
+        },
+      });
+  }
+
+  private clearCapacitySummary(): void {
+    this.capacitySummary.set(null);
+    this.capacitySummaryExpanded.set(false);
+    this.updateCapacityValidators(null);
+  }
+
+  private updateCapacityValidators(summary: BranchLibraryCapacitySummary | null): void {
+    const control = this.librariesForm.controls.capacity;
+    const validators = [Validators.min(1)];
+
+    if (summary?.hasBranchCapacityLimit) {
+      validators.push(Validators.max(summary.remainingCapacity));
+    } else {
+      validators.push(Validators.max(100000));
+    }
+
+    control.setValidators(validators);
+    control.updateValueAndValidity({ emitEvent: false });
   }
 }

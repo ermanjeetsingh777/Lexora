@@ -204,8 +204,6 @@ export class LibraryListComponent implements OnInit {
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  readonly branchFilterDisabled = computed(() => this.institutionFilter() === 'all');
-
   readonly floorOptions = computed(() =>
     [...new Set(this.items().map((l) => l.floor).filter((f): f is number => f != null))].sort((a, b) => a - b),
   );

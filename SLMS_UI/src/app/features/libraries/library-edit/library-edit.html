@@ -1,0 +1,161 @@
+<app-page-header
+  [isBack]="true"
+  [backLink]="backLink"
+  eyebrow="Libraries"
+  title="Edit library"
+  description="Update library profile, contact details, and seat capacity." />
+
+<div class="min-h-screen blueprint-grid">
+  <div class="mx-auto max-w-3xl px-4 py-4 lg:px-4 lg:py-4">
+    @if (loading()) {
+    <div class="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur text-sm text-muted-foreground">
+      Loading library details...
+    </div>
+    } @else if (loadError()) {
+    <div class="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur">
+      <p class="text-sm text-destructive">{{ loadError() }}</p>
+      <button type="button" class="ui-btn-outline mt-4" (click)="cancel()">Back</button>
+    </div>
+    } @else {
+    <div class="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur">
+      <form [formGroup]="libraryForm" (ngSubmit)="saveLibrary()" novalidate class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">
+              Library Name <span class="text-red-500">*</span>
+            </label>
+            <input name="name" formControlName="name" class="ui-input" placeholder="Enter library name" />
+            @if (libraryForm.controls.name.invalid && (libraryForm.controls.name.touched || libraryForm.dirty)) {
+            <small class="text-red-500">
+              @if (libraryForm.controls.name.hasError('required')) { Library name is required. }
+              @if (libraryForm.controls.name.hasError('minlength')) { Minimum 3 characters required. }
+              @if (libraryForm.controls.name.hasError('maxlength')) { Maximum 100 characters allowed. }
+            </small>
+            }
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2">Institution</label>
+            <input formControlName="institutionName" class="ui-input bg-muted/40" readonly />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Branch</label>
+            <input formControlName="branchName" class="ui-input bg-muted/40" readonly />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2">Floor</label>
+            <input formControlName="floor" type="number" class="ui-input" />
+            @if (libraryForm.controls.floor.invalid && (libraryForm.controls.floor.touched || libraryForm.dirty)) {
+            <small class="text-red-500">Floor must be between 0 and 50.</small>
+            }
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Description</label>
+          <textarea formControlName="description" rows="3" class="ui-input min-h-24" placeholder="Optional description"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Email</label>
+            <input type="email" formControlName="email" class="ui-input bg-muted/40" readonly />
+            <p class="text-xs text-muted-foreground mt-1">Library contact email is read-only.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2">Phone</label>
+            <input formControlName="phone" class="ui-input" placeholder="9876543210" />
+            @if (libraryForm.controls.phone.invalid && (libraryForm.controls.phone.touched || libraryForm.dirty)) {
+            <small class="text-red-500">Enter a valid 10-digit phone number.</small>
+            }
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Address</label>
+          <input formControlName="address" class="ui-input" placeholder="Full address" />
+          @if (libraryForm.controls.address.invalid && (libraryForm.controls.address.touched || libraryForm.dirty)) {
+          <small class="text-red-500">Address is too long.</small>
+          }
+        </div>
+
+        @if (capacitySummary(); as summary) {
+        <div class="rounded-xl border bg-muted/20">
+          <button type="button" class="lib-capacity-toggle" (click)="toggleCapacitySummary()">
+            <span>
+              Branch seat capacity · {{ summary.branchName }}
+              @if (summary.hasBranchCapacityLimit) {
+              · {{ summary.remainingCapacity + originalCapacity() }} seats available for this library
+              } @else {
+              · no branch limit
+              }
+            </span>
+            <svg lucideChevronDown class="h-4 w-4 transition-transform" [class.rotate-180]="capacitySummaryExpanded()"></svg>
+          </button>
+          @if (capacitySummaryExpanded()) {
+          <div class="border-t px-4 py-3 text-sm space-y-2">
+            <div class="flex justify-between gap-3">
+              <span class="text-muted-foreground">Branch capacity</span>
+              <span class="font-medium tabular-nums">{{ summary.branchCapacity }}</span>
+            </div>
+            <div class="flex justify-between gap-3">
+              <span class="text-muted-foreground">Allocated to libraries</span>
+              <span class="font-medium tabular-nums">{{ summary.allocatedCapacity }}</span>
+            </div>
+            <div class="flex justify-between gap-3">
+              <span class="text-muted-foreground">Max for this library</span>
+              <span class="font-medium tabular-nums">{{ capacityMaxLimit() }}</span>
+            </div>
+          </div>
+          }
+        </div>
+        } @else if (capacitySummaryLoading()) {
+        <p class="text-xs text-muted-foreground">Loading branch capacity...</p>
+        }
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">
+              Capacity <span class="text-red-500">*</span>
+            </label>
+            <input formControlName="capacity" type="number" class="ui-input" [attr.max]="capacityMaxLimit()" />
+            @if (libraryForm.controls.capacity.invalid && (libraryForm.controls.capacity.touched || libraryForm.dirty)) {
+            <small class="text-red-500">
+              @if (libraryForm.controls.capacity.hasError('required')) { Capacity is required. }
+              @if (libraryForm.controls.capacity.hasError('min')) { Capacity must be greater than 0. }
+              @if (libraryForm.controls.capacity.hasError('max')) {
+              Capacity cannot exceed {{ capacityMaxLimit() }} seats for this branch.
+              }
+            </small>
+            }
+          </div>
+        </div>
+
+        <div class="rounded-xl border bg-muted/20 px-4 py-3">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" formControlName="isActive" class="h-4 w-4 rounded border" />
+            <span class="text-sm">
+              <span class="font-medium">Active library</span>
+              <span class="block text-xs text-muted-foreground mt-0.5">
+                Inactive libraries stay in the directory but are hidden from active operational views.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button type="button" class="ui-btn-outline flex-1" (click)="cancel()">Cancel</button>
+          <button type="submit" class="ui-btn-primary flex-[2]" [disabled]="saving() || libraryForm.invalid">
+            @if (saving()) { Saving... } @else { Save changes }
+          </button>
+        </div>
+      </form>
+    </div>
+    }
+  </div>
+</div>

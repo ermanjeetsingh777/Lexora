@@ -1,0 +1,234 @@
+<div class="lib-calendar">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <app-section-header
+      [title]="viewTitle()"
+      description="Open, closed, and holiday exceptions from library hours" />
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="inline-flex rounded-md border p-0.5 bg-muted/30">
+        <button type="button" class="lib-cal-view-btn" [class.lib-cal-view-btn--active]="view() === CalendarView.Month"
+          (click)="setView(CalendarView.Month)">Month</button>
+        <button type="button" class="lib-cal-view-btn" [class.lib-cal-view-btn--active]="view() === CalendarView.Week"
+          (click)="setView(CalendarView.Week)">Week</button>
+        <button type="button" class="lib-cal-view-btn" [class.lib-cal-view-btn--active]="view() === 'year'"
+          (click)="setView('year')">Year</button>
+        <button type="button" class="lib-cal-view-btn" [class.lib-cal-view-btn--active]="view() === 'list'"
+          (click)="setView('list')">List</button>
+      </div>
+      @if (view() !== 'year') {
+      <div class="flex items-center gap-1">
+        <app-button size="icon" variant="outline" class="h-8 w-8"
+          mwlCalendarPreviousView [view]="calendarNavView()" [viewDate]="internalViewDate()"
+          (viewDateChange)="onViewDateChanged($event)">
+          <svg lucideChevronLeft class="h-4 w-4"></svg>
+        </app-button>
+        <app-button size="sm" variant="outline" class="h-8" (click)="goToday()">Today</app-button>
+        <app-button size="icon" variant="outline" class="h-8 w-8"
+          mwlCalendarNextView [view]="calendarNavView()" [viewDate]="internalViewDate()"
+          (viewDateChange)="onViewDateChanged($event)">
+          <svg lucideChevronRight class="h-4 w-4"></svg>
+        </app-button>
+      </div>
+      } @else {
+      <div class="flex items-center gap-1">
+        <app-button size="icon" variant="outline" class="h-8 w-8" (click)="prevYear()">
+          <svg lucideChevronLeft class="h-4 w-4"></svg>
+        </app-button>
+        <app-button size="sm" variant="outline" class="h-8" (click)="goToday()">Today</app-button>
+        <app-button size="icon" variant="outline" class="h-8 w-8" (click)="nextYear()">
+          <svg lucideChevronRight class="h-4 w-4"></svg>
+        </app-button>
+      </div>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+  <div class="py-10 text-center text-sm text-muted-foreground">Loading calendar…</div>
+  } @else if (loadError()) {
+  <div class="py-10 text-center text-sm text-destructive">{{ loadError() }}</div>
+  } @else {
+  @switch (view()) {
+    @case (CalendarView.Month) {
+    <mwl-calendar-month-view
+      class="lib-cal-month-view"
+      [viewDate]="internalViewDate()"
+      [events]="calendarEvents()"
+      [cellTemplate]="cellTemplateRef()!"
+      [headerTemplate]="monthHeaderTemplateRef()!"
+      [weekStartsOn]="0" />
+    }
+    @case (CalendarView.Week) {
+    <mwl-calendar-week-view
+      class="lib-cal-week-view"
+      [viewDate]="internalViewDate()"
+      [events]="weekTimesheetEvents()"
+      [weekStartsOn]="0"
+      [weekendDays]="weekWeekendDays"
+      [precision]="'minutes'"
+      [dayStartHour]="weekDayStartHour"
+      [dayEndHour]="weekDayEndHour"
+      [hourSegments]="weekHourSegments"
+      [hourDuration]="weekHourDuration"
+      [hourSegmentHeight]="weekHourSegmentHeight"
+      [headerTemplate]="weekHeaderTemplateRef()!"
+      [hourSegmentTemplate]="weekHourSegmentTemplateRef()!"
+      [eventTemplate]="weekEventTemplateRef()!"
+      [tooltipAppendToBody]="true" />
+    }
+    @case ('year') {
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      @for (month of yearMonths(); track month.index) {
+      <button type="button" class="lib-cal-year-card" (click)="selectYearMonth(month.index)">
+        <div class="font-medium">{{ month.label }}</div>
+        <div class="mt-2 flex flex-wrap gap-2 text-[11px]">
+          <span class="lib-cal-year-stat lib-cal-year-stat--open">{{ month.open }} open</span>
+          <span class="lib-cal-year-stat lib-cal-year-stat--closed">{{ month.closed }} closed</span>
+          <span class="lib-cal-year-stat lib-cal-year-stat--holiday">{{ month.holiday }} holiday</span>
+        </div>
+      </button>
+      }
+    </div>
+    }
+    @case ('list') {
+    <div class="lib-cal-list-wrap">
+      <table class="lib-cal-list">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Day</th>
+            <th>Status</th>
+            <th>Hours</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (day of sortedDays(); track day.date) {
+          <tr [class.lib-cal-list__row--exception]="day.isException">
+            <td class="tabular-nums">{{ day.date }}</td>
+            <td>{{ dayName(day.day) }}</td>
+            <td>
+              <span [class]="statusBadgeClass(day.status)">{{ statusLabel(day.status) }}</span>
+            </td>
+            <td class="tabular-nums">{{ hoursFor({ date: parseDate(day.date) }) ?? '—' }}</td>
+            <td>
+              @if (day.label) {
+              {{ day.label }}
+              } @else if (day.isException) {
+              Holiday / exception
+              } @else {
+              Weekly schedule
+              }
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (exceptions().length > 0) {
+    <div class="mt-6">
+      <p class="label-mono mb-2">Holiday & date exceptions</p>
+      <div class="space-y-2">
+        @for (ex of exceptions(); track ex.id) {
+        <div class="rounded-lg border bg-background px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p class="font-medium">{{ ex.name }}</p>
+            <p class="text-xs text-muted-foreground">{{ ex.startDate }} – {{ ex.endDate }}</p>
+          </div>
+          <span [class]="statusBadgeClass(ex.closed ? 'holiday' : 'exception')">
+            @if (ex.closed) { Closed } @else { {{ ex.open }}–{{ ex.close }} }
+          </span>
+        </div>
+        }
+      </div>
+    </div>
+    }
+    }
+  }
+
+  <div class="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+    <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-emerald-500"></span> Open</span>
+    <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-slate-400"></span> Closed</span>
+    <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-amber-500"></span> Holiday</span>
+    <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-indigo-500"></span> Special hours</span>
+    @if (view() === CalendarView.Week) {
+    <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-emerald-200"></span> Start time</span>
+    <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-red-200"></span> End time</span>
+    }
+  </div>
+  }
+</div>
+
+<ng-template #calendarCellTpl let-day="day" let-locale="locale">
+  <div class="lib-cal-day-wrap" [class]="cellClass(day)"
+    [mwlCalendarTooltip]="tooltipFor(day)"
+    tooltipPlacement="top"
+    [tooltipAppendToBody]="true">
+    <span class="lib-cal-day-number">{{ day.date | calendarDate:'monthViewDayNumber':locale }}</span>
+    @if (hoursFor(day); as hours) {
+    <span class="lib-cal-day-hours">{{ hours }}</span>
+    }
+  </div>
+</ng-template>
+
+<ng-template #monthHeaderTpl let-days="days" let-locale="locale">
+  <div class="cal-cell-row cal-header month-day-headers" role="row">
+    @for (day of days; track day.date.toISOString()) {
+    <div class="cal-cell month-day-header label-mono"
+      [class.cal-today]="day.isToday"
+      [class.cal-weekend]="day.isWeekend"
+      role="columnheader">
+      {{ day.date | calendarDate:'monthViewColumnHeader':locale }}
+    </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #weekEventTpl let-weekEvent="weekEvent">
+  <div [class]="weekEventClass(weekEvent.event)"
+    [mwlCalendarTooltip]="weekEvent.event.meta?.tooltip ?? weekEvent.event.title"
+    tooltipPlacement="top"
+    [tooltipAppendToBody]="true">
+    @if (isWeekStatusBadge(weekEvent.event)) {
+    <div class="lib-cal-event__status">{{ weekEventStatusLabel(weekEvent.event) }}</div>
+    } @else if (weekEvent.event.meta?.kind === 'session') {
+    <div class="lib-cal-event__time">
+      <span class="lib-cal-event__time-start">{{ weekEventStartTime(weekEvent.event) }}</span>
+      <span class="lib-cal-event__time-sep">–</span>
+      <span class="lib-cal-event__time-end">{{ weekEventEndTime(weekEvent.event) }}</span>
+    </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #weekHeaderTpl let-days="days" let-locale="locale">
+  <div class="cal-day-headers week-day-headers" role="row">
+    @for (day of days; track day.date.toISOString()) {
+    <div class="cal-header week-day-header"
+      [class.cal-past]="day.isPast"
+      [class.cal-today]="day.isToday"
+      [class.cal-future]="day.isFuture"
+      [class.cal-weekend]="day.isWeekend"
+      role="columnheader">
+      <div class="week-day-header__name">{{ day.date | calendarDate:'weekViewColumnHeader':locale }}</div>
+      <div class="week-day-header__date label-mono">{{ day.date | calendarDate:'weekViewColumnSubHeader':locale }}</div>
+    </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #weekHourSegmentTpl
+  let-segment="segment"
+  let-locale="locale"
+  let-segmentHeight="segmentHeight"
+  let-isTimeLabel="isTimeLabel">
+  <div class="cal-hour-segment"
+    [style.height.px]="segmentHeight"
+    [class.cal-hour-start]="segment.isStart"
+    [class.cal-after-hour-start]="!segment.isStart"
+    [ngClass]="segment.cssClass">
+    @if (isTimeLabel) {
+    <div class="cal-time week-hour-label label-mono">{{ segment.displayDate | calendarDate:'weekViewHour':locale }}</div>
+    }
+  </div>
+</ng-template>

@@ -29,6 +29,23 @@ public class LibrariesController : ControllerBase
         _logger = logger;       
     }
 
+    [HttpGet("capacity-summary")]
+    public async Task<ActionResult<ApiResponse<BranchLibraryCapacitySummaryResponse>>> GetCapacitySummary(
+        Guid institutionId,
+        Guid branchId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var summary = await _libraryService.GetBranchCapacitySummaryAsync(institutionId, branchId, cancellationToken);
+            return Ok(ApiResponse<BranchLibraryCapacitySummaryResponse>.Ok(summary));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<BranchLibraryCapacitySummaryResponse>.Fail(ex.Message));
+        }
+    }
+
     [HttpGet]
     [Permission(PermissionKey.LibrariesList)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<LibraryResponse>>>> GetAll(
@@ -74,6 +91,56 @@ public class LibrariesController : ControllerBase
         }
 
         return Ok(ApiResponse<LibraryResponse>.Ok(library));
+    }
+
+    [HttpPut("{libraryId:guid}/weekly-hours")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<LibraryDayHoursResponse>>>> UpdateWeeklyHours(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        [FromBody] UpdateLibraryWeeklyHoursRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var weeklyHours = await _libraryService.UpdateWeeklyHoursAsync(
+                institutionId,
+                branchId,
+                libraryId,
+                request,
+                _currentUserService.UserId,
+                cancellationToken);
+            return Ok(ApiResponse<IReadOnlyCollection<LibraryDayHoursResponse>>.Ok(weeklyHours, "Weekly hours saved successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<IReadOnlyCollection<LibraryDayHoursResponse>>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPut("{libraryId:guid}/hours-exceptions")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<LibraryHoursExceptionResponse>>>> UpdateHoursExceptions(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        [FromBody] UpdateLibraryHoursExceptionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var exceptions = await _libraryService.UpdateHoursExceptionsAsync(
+                institutionId,
+                branchId,
+                libraryId,
+                request,
+                _currentUserService.UserId,
+                cancellationToken);
+            return Ok(ApiResponse<IReadOnlyCollection<LibraryHoursExceptionResponse>>.Ok(exceptions, "Hours exceptions saved successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<IReadOnlyCollection<LibraryHoursExceptionResponse>>.Fail(ex.Message));
+        }
     }
 
     [HttpPut("{libraryId:guid}")]

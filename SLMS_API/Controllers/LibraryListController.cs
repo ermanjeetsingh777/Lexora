@@ -46,4 +46,55 @@ public class LibraryListController : ControllerBase
         var summary = await _libraryService.GetListRevenueSummaryAsync(query, userId, cancellationToken);
         return Ok(ApiResponse<LibraryListRevenueSummaryResponse>.Ok(summary));
     }
+
+    [HttpGet("{libraryId:guid}")]
+    public async Task<ActionResult<ApiResponse<LibraryDetailViewResponse>>> GetDetailView(
+        Guid libraryId,
+        [FromQuery] int trendDays = 30,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var view = await _libraryService.GetDetailViewAsync(libraryId, userId, trendDays, cancellationToken);
+        if (view is null)
+        {
+            return NotFound(ApiResponse<LibraryDetailViewResponse>.Fail("Library not found."));
+        }
+
+        return Ok(ApiResponse<LibraryDetailViewResponse>.Ok(view));
+    }
+
+    [HttpGet("{libraryId:guid}/calendar")]
+    public async Task<ActionResult<ApiResponse<LibraryCalendarViewResponse>>> GetCalendarView(
+        Guid libraryId,
+        [FromQuery] DateOnly startDate,
+        [FromQuery] DateOnly endDate,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        if (endDate < startDate)
+        {
+            return BadRequest(ApiResponse<LibraryCalendarViewResponse>.Fail("End date must be on or after start date."));
+        }
+
+        if (endDate.DayNumber - startDate.DayNumber > 366)
+        {
+            return BadRequest(ApiResponse<LibraryCalendarViewResponse>.Fail("Date range cannot exceed 366 days."));
+        }
+
+        var view = await _libraryService.GetCalendarViewAsync(libraryId, userId, startDate, endDate, cancellationToken);
+        if (view is null)
+        {
+            return NotFound(ApiResponse<LibraryCalendarViewResponse>.Fail("Library not found."));
+        }
+
+        return Ok(ApiResponse<LibraryCalendarViewResponse>.Ok(view));
+    }
 }

@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { LucideChevronLeft, LucideChevronRight, LucideSearch } from '@lucide/angular';
+import { LucideChevronLeft, LucideChevronRight, LucideDownload, LucideFileSpreadsheet, LucideSearch } from '@lucide/angular';
 import {
   AttendanceModuleQuery,
   AttendanceRecordListItem,
@@ -17,6 +17,14 @@ import { StatusBadgeComponent } from '@shared/components/status-badge/status-bad
 import { memberDetailLink } from '@core/utils/entity-routes.util';
 import { formatAttendanceDisplayTime } from '../attendance-format.util';
 import { AttendanceFilterService } from '../attendance-filter.service';
+import { AttendanceExportService } from '../attendance-export.service';
+import {
+  AttendanceExportMeta,
+  buildExportFilename,
+  downloadAttendanceExcel,
+  downloadAttendancePdf,
+  mapModuleRecordToExportRow,
+} from '../attendance-report-export.util';
 
 const PAGE_SIZE_OPTS = [10, 20, 50] as const;
 
@@ -38,6 +46,8 @@ function todayIsoDate(): string {
     LucideSearch,
     LucideChevronLeft,
     LucideChevronRight,
+    LucideDownload,
+    LucideFileSpreadsheet,
   ],
   templateUrl: './attendance-records.component.html',
   styleUrl: './attendance-records.component.css',
@@ -46,8 +56,10 @@ export class AttendanceRecordsComponent {
   private readonly moduleService = inject(AttendanceModuleService);
   private readonly filters = inject(AttendanceFilterService);
   private readonly toast = inject(ToastService);
+  private readonly exportService = inject(AttendanceExportService);
 
   readonly loading = signal(true);
+  readonly exporting = signal(false);
   readonly records = signal<AttendanceRecordListItem[]>([]);
   readonly dateFrom = signal(todayIsoDate());
   readonly dateTo = signal(todayIsoDate());
@@ -119,6 +131,50 @@ export class AttendanceRecordsComponent {
 
   goToPage(nextPage: number): void {
     this.page.set(Math.max(1, Math.min(nextPage, this.totalPages())));
+  }
+
+  exportReport(format: 'excel' | 'pdf'): void {
+    if (this.exporting()) return;
+
+    this.exporting.set(true);
+    const status = this.statusFilter();
+    const query: AttendanceModuleQuery = {
+      libraryId: this.filters.libraryId() || undefined,
+      dateFrom: this.dateFrom(),
+      dateTo: this.dateTo(),
+      search: this.search().trim() || undefined,
+      status: status === 'all' ? undefined : status,
+    };
+
+    this.exportService.fetchAllModuleRecords(query).subscribe({
+      next: (records) => {
+        if (records.length === 0) {
+          this.toast.error('No attendance records found for the selected date range.');
+          this.exporting.set(false);
+          return;
+        }
+
+        const rows = records.map(mapModuleRecordToExportRow);
+        const meta: AttendanceExportMeta = {
+          title: 'Attendance Report',
+          subtitle: `Period: ${query.dateFrom ?? ''} to ${query.dateTo ?? ''} · ${records.length} records`,
+          filenameBase: buildExportFilename('attendance-report', query.dateFrom ?? 'start', query.dateTo ?? 'end'),
+        };
+
+        if (format === 'excel') {
+          downloadAttendanceExcel(rows, meta, 'module');
+        } else {
+          downloadAttendancePdf(rows, meta, 'module');
+        }
+
+        this.toast.success(`${format === 'excel' ? 'Excel' : 'PDF'} report downloaded.`);
+        this.exporting.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Could not export attendance report.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   private loadRecords(): void {

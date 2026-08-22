@@ -7,20 +7,41 @@ import {
   LucideChevronRight,
   LucideChevronsLeft,
   LucideChevronsRight,
+  LucideDownload,
   LucideEye,
+  LucideFileSpreadsheet,
   LucideSearch,
   LucideUsers,
   LucideX,
 } from '@lucide/angular';
+import { AttendanceModuleQuery } from '@core/models/attendanceModels';
 import { MemberListResponse } from '@core/models/MemberRequest';
+import { ToastService } from '@core/services/toast.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { AttendanceExportService } from '@features/attendance/attendance-export.service';
+import {
+  AttendanceExportMeta,
+  buildExportFilename,
+  downloadAttendanceExcel,
+  downloadAttendancePdf,
+  mapModuleRecordToExportRow,
+} from '@features/attendance/attendance-report-export.util';
 import { MemberService } from '../../MemberService';
 import { MemberAvatarComponent } from '../member-avatar/member-avatar.component';
 import { CommonService } from '@core/services/common.service';
 import { computeMemberLifecycle, MemberLifecycle } from '../../member-lifecycle.util';
 import { memberCreateLink, memberDetailLink as buildMemberDetailLink } from '@core/utils/entity-routes.util';
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthStartIsoDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+}
 
 export type MemberScope = 'institution' | 'branch' | 'library';
 
@@ -50,6 +71,8 @@ const STATUS_OPTS = ['Active', 'Inactive', 'Suspended'] as const;
     LucideChevronRight,
     LucideChevronsLeft,
     LucideChevronsRight,
+    LucideDownload,
+    LucideFileSpreadsheet,
   ],
   providers: [MemberService],
   templateUrl: './scoped-members-panel.component.html',
@@ -58,16 +81,22 @@ const STATUS_OPTS = ['Active', 'Inactive', 'Suspended'] as const;
 export class ScopedMembersPanelComponent {
   private readonly memberService = inject(MemberService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
+  private readonly exportService = inject(AttendanceExportService);
   readonly commonService = inject(CommonService);
 
   readonly scope = input.required<MemberScope>();
   readonly institutionId = input.required<string>();
   readonly branchId = input<string>('');
   readonly libraryId = input<string>('');
+  readonly locationName = input<string>('');
   readonly title = input<string>('Members');
   readonly description = input<string>('Members enrolled in this location');
 
   readonly loading = signal(false);
+  readonly attendanceExporting = signal(false);
+  readonly attendanceDateFrom = signal(monthStartIsoDate());
+  readonly attendanceDateTo = signal(todayIsoDate());
   readonly error = signal<string | null>(null);
   readonly membersList = signal<MemberListResponse[]>([]);
   readonly query = signal('');
@@ -146,6 +175,7 @@ export class ScopedMembersPanelComponent {
   readonly showLibraryColumn = computed(() => this.scope() !== 'library');
   readonly showBranchFilter = computed(() => this.scope() === 'institution');
   readonly showLibraryFilter = computed(() => this.scope() !== 'library');
+  readonly showAttendanceExport = computed(() => this.scope() === 'library' && !!this.libraryId());
 
   readonly hasActiveFilters = computed(
     () =>
@@ -231,6 +261,61 @@ export class ScopedMembersPanelComponent {
 
   goToPage(page: number): void {
     this.page.set(Math.max(1, Math.min(page, this.totalPages())));
+  }
+
+  onAttendanceDateFromChange(value: string): void {
+    this.attendanceDateFrom.set(value);
+  }
+
+  onAttendanceDateToChange(value: string): void {
+    this.attendanceDateTo.set(value);
+  }
+
+  exportLibraryAttendance(format: 'excel' | 'pdf'): void {
+    const libraryId = this.libraryId();
+    if (!libraryId || this.attendanceExporting()) return;
+
+    this.attendanceExporting.set(true);
+    const query: AttendanceModuleQuery = {
+      libraryId,
+      dateFrom: this.attendanceDateFrom(),
+      dateTo: this.attendanceDateTo(),
+    };
+
+    this.exportService.fetchAllModuleRecords(query).subscribe({
+      next: (records) => {
+        if (records.length === 0) {
+          this.toast.error('No attendance records found for the selected date range.');
+          this.attendanceExporting.set(false);
+          return;
+        }
+
+        const rows = records.map(mapModuleRecordToExportRow);
+        const libraryLabel = this.locationName() || 'library';
+        const meta: AttendanceExportMeta = {
+          title: `${libraryLabel} — Attendance Report`,
+          subtitle: `${query.dateFrom} to ${query.dateTo} · ${records.length} records · ${this.members().length} members enrolled`,
+          filenameBase: buildExportFilename(
+            `library-attendance-${libraryLabel}`,
+            query.dateFrom ?? 'start',
+            query.dateTo ?? 'end',
+          ),
+        };
+
+        if (format === 'excel') {
+          downloadAttendanceExcel(rows, meta, 'module');
+        } else {
+          downloadAttendancePdf(rows, meta, 'module');
+        }
+
+        this.toast.success(`${format === 'excel' ? 'Excel' : 'PDF'} attendance report downloaded.`);
+        this.attendanceExporting.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Could not export attendance report.');
+        this.attendanceExporting.set(false);
+      },
+    });
   }
 
   private loadMembers(

@@ -9,7 +9,17 @@ import {
   LucideBellRing, LucideCalendarClock, LucideRotateCcw,
   LucideArrowUp, LucideArrowDown, LucideChevronsUpDown,
   LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
+  LucideFileSpreadsheet,
 } from '@lucide/angular';
+import { AttendanceModuleQuery } from '@core/models/attendanceModels';
+import { AttendanceExportService } from '@features/attendance/attendance-export.service';
+import {
+  AttendanceExportMeta,
+  buildExportFilename,
+  downloadAttendanceExcel,
+  downloadAttendancePdf,
+  mapModuleRecordToExportRow,
+} from '@features/attendance/attendance-report-export.util';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
@@ -48,6 +58,15 @@ const PAGE_SIZE_OPTS = [10, 25, 50, 100] as const;
 const DEFAULT_SORT_KEY: SortKey = 'name';
 const DEFAULT_SORT_DIR: SortDir = 'asc';
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthStartIsoDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
 interface MemberRow extends MemberListResponse {
   life: MemberLifecycle;
 }
@@ -63,6 +82,7 @@ interface MemberRow extends MemberListResponse {
     LucideBellRing, LucideCalendarClock,
     LucideArrowUp, LucideArrowDown, LucideChevronsUpDown,
     LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
+    LucideFileSpreadsheet,
     RenewPlanDialogComponent,
     MemberAvatarComponent,
   ],
@@ -76,11 +96,15 @@ interface MemberRow extends MemberListResponse {
 export class MembersListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly memberService = inject(MemberService);
+  private readonly exportService = inject(AttendanceExportService);
   readonly commonService = inject(CommonService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly membersList = signal<MemberListResponse[]>([]);
+  readonly attendanceExporting = signal(false);
+  readonly attendanceDateFrom = signal(monthStartIsoDate());
+  readonly attendanceDateTo = signal(todayIsoDate());
 
   readonly query = signal('');
   readonly statuses = signal<string[]>([]);
@@ -651,6 +675,56 @@ export class MembersListComponent implements OnInit {
         this.error.set(error?.error?.message ?? 'Failed to load members.');
         this.loading.set(false);
       }
+    });
+  }
+
+  onAttendanceDateFromChange(value: string): void {
+    this.attendanceDateFrom.set(value);
+  }
+
+  onAttendanceDateToChange(value: string): void {
+    this.attendanceDateTo.set(value);
+  }
+
+  exportAttendanceReport(format: 'excel' | 'pdf'): void {
+    if (this.attendanceExporting()) return;
+
+    this.attendanceExporting.set(true);
+    const search = this.query().trim();
+    const query: AttendanceModuleQuery = {
+      dateFrom: this.attendanceDateFrom(),
+      dateTo: this.attendanceDateTo(),
+      search: search || undefined,
+    };
+
+    this.exportService.fetchAllModuleRecords(query).subscribe({
+      next: (records) => {
+        if (records.length === 0) {
+          this.toast.error('No attendance records found for the selected date range.');
+          this.attendanceExporting.set(false);
+          return;
+        }
+
+        const rows = records.map(mapModuleRecordToExportRow);
+        const meta: AttendanceExportMeta = {
+          title: 'Members Attendance Report',
+          subtitle: `${query.dateFrom} to ${query.dateTo} · ${records.length} records${search ? ` · search: ${search}` : ''}`,
+          filenameBase: buildExportFilename('members-attendance-report', query.dateFrom ?? 'start', query.dateTo ?? 'end'),
+        };
+
+        if (format === 'excel') {
+          downloadAttendanceExcel(rows, meta, 'module');
+        } else {
+          downloadAttendancePdf(rows, meta, 'module');
+        }
+
+        this.toast.success(`${format === 'excel' ? 'Excel' : 'PDF'} attendance report downloaded.`);
+        this.attendanceExporting.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Could not export attendance report.');
+        this.attendanceExporting.set(false);
+      },
     });
   }
 

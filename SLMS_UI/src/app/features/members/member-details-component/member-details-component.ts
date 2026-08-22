@@ -25,6 +25,7 @@ import {
   LucideActivity,
   LucideBookMarked,
   LucideRotateCcw,
+  LucideFileSpreadsheet,
 } from '@lucide/angular';
 import { ToastService } from '@core/services/toast.service';
 import { WhatsAppService } from '@core/services/whatsapp.service';
@@ -59,7 +60,17 @@ import {
   attendanceTimeInputValue,
   localTimeInputToUtcTimeOnly,
 } from '@features/attendance/attendance-format.util';
+import { AttendanceExportService } from '@features/attendance/attendance-export.service';
 import { collectRouteParams, memberBackNav, memberEditLink } from '@core/utils/entity-routes.util';
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthStartIsoDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+}
 
 type TabId = 'overview' | 'attendance' | 'library-calendar' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks';
 
@@ -87,6 +98,7 @@ interface HeatmapCell {
     MemberContactComponent, MemberDigitalBooksComponent, CurrencyPipe, LucideTimer, LucideWallet, LucideBookOpen,
     LucideHistory, LucidePencil, LucideCalendarClock, LucideClock3, LucideSun,
     LucideFlame, LucideCalendarCheck, LucideActivity, LucideBookMarked, LucideRotateCcw,
+    LucideDownload, LucideFileSpreadsheet,
     MemberPaymentsComponent, SelectButtonModule, LucideCrown, LucideSparkles, LucideLogIn, LucideLogOut,
     RenewPlanDialogComponent,
     MemberAttendanceCalendarComponent,
@@ -107,6 +119,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   private readonly bookService = inject(BookService);
   readonly commonService = inject(CommonService);
   readonly attendanceService = inject(AttendanceService);
+  private readonly attendanceExportService = inject(AttendanceExportService);
 
   get routeParams(): Record<string, string> {
     return collectRouteParams(this.route.snapshot);
@@ -176,9 +189,14 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   // ---- Attendance calendar / dashboard state ----
   readonly calendarDays = signal<AttendanceResponse[]>([]);
+  readonly memberReportRecords = signal<AttendanceResponse[]>([]);
   readonly attendanceStatistics = signal<AttendanceStatisticsResponse | null>(null);
   readonly calendarMonth = signal<Date>(new Date());
   readonly calendarLoading = signal(false);
+  readonly memberReportLoading = signal(false);
+  readonly attendanceExporting = signal(false);
+  readonly attendanceDateFrom = signal(monthStartIsoDate());
+  readonly attendanceDateTo = signal(todayIsoDate());
   readonly librarySeats = signal<AttendanceSeatOption[]>([]);
   readonly seatsLoading = signal(false);
   readonly selectedSeatNumber = signal<string | null>(null);
@@ -438,44 +456,45 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   });
 
   readonly attendanceStats = computed(() => {
-    const stats = this.attendanceStatistics();
-    if (stats) {
-      return {
-        present: stats.presentDays,
-        late: stats.lateDays,
-        absent: stats.absentDays,
-        holiday: stats.leaveDays,
-        workDays: stats.totalDays - stats.leaveDays,
-        rate: Math.round(stats.attendancePercentage),
-        bestStreak: stats.longestStreak,
-      };
-    }
+    const records = this.memberReportRecords();
+    const presentStatuses = new Set<AttendanceStatus>([
+      AttendanceStatus.Present,
+      AttendanceStatus.CheckedIn,
+      AttendanceStatus.CheckedOut,
+      AttendanceStatus.AutoCheckedOut,
+      AttendanceStatus.MissedCheckout,
+      AttendanceStatus.HalfDay,
+    ]);
 
-    const todayKey = this.dateKey(new Date());
-    const records = this.calendarDays().filter(r => this.normalizeAttendanceDate(r.attendanceDate) <= todayKey);
-    const present = records.filter(r => {
-      const s = this.toDayStatus(r.status);
-      return s === 'present' || s === 'checkedIn';
-    }).length;
-    const late = records.filter(r => this.toDayStatus(r.status) === 'late').length;
-    const absent = records.filter(r => this.toDayStatus(r.status) === 'absent').length;
-    const holiday = records.filter(r => this.toDayStatus(r.status) === 'holiday').length;
+    const present = records.filter((r) => presentStatuses.has(r.status)).length;
+    const late = records.filter((r) => r.status === AttendanceStatus.Late).length;
+    const absent = records.filter((r) => r.status === AttendanceStatus.Absent).length;
+    const holiday = records.filter((r) => r.status === AttendanceStatus.Holiday || r.status === AttendanceStatus.Leave).length;
     const workDays = records.length - holiday;
-    const rate = workDays ? Math.round(((present + late) / workDays) * 100) : 0;
+    const rate = workDays > 0 ? Math.round(((present + late) / workDays) * 100) : 0;
 
     let streak = 0;
     let best = 0;
-    for (const r of [...records].sort((a, b) => this.normalizeAttendanceDate(a.attendanceDate).localeCompare(this.normalizeAttendanceDate(b.attendanceDate)))) {
-      const s = this.toDayStatus(r.status);
-      if (s === 'present' || s === 'late') {
+    for (const record of [...records].sort((a, b) =>
+      this.normalizeAttendanceDate(a.attendanceDate).localeCompare(this.normalizeAttendanceDate(b.attendanceDate)))) {
+      if (presentStatuses.has(record.status) || record.status === AttendanceStatus.Late) {
         streak += 1;
         best = Math.max(best, streak);
-      } else if (s === 'absent') {
+      } else if (record.status === AttendanceStatus.Absent) {
         streak = 0;
       }
     }
 
-    return { present, late, absent, holiday, workDays, rate, bestStreak: best };
+    const apiStats = this.attendanceStatistics();
+    return {
+      present,
+      late,
+      absent,
+      holiday,
+      workDays,
+      rate,
+      bestStreak: best || apiStats?.longestStreak || 0,
+    };
   });
 
   readonly heatmapCols = computed<HeatmapCell[][]>(() => {
@@ -513,13 +532,11 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     return cols;
   });
 
-  readonly attendanceLog = computed(() => {
-    const todayKey = this.dateKey(new Date());
-    return [...this.calendarDays()]
-      .filter(r => this.normalizeAttendanceDate(r.attendanceDate) <= todayKey)
-      .sort((a, b) => this.normalizeAttendanceDate(b.attendanceDate).localeCompare(this.normalizeAttendanceDate(a.attendanceDate)))
-      .slice(0, 30);
-  });
+  readonly attendanceLog = computed(() =>
+    [...this.memberReportRecords()].sort((a, b) =>
+      this.normalizeAttendanceDate(b.attendanceDate).localeCompare(this.normalizeAttendanceDate(a.attendanceDate)),
+    ),
+  );
 
   readonly attendanceLogTotalPages = computed(() =>
     Math.max(1, Math.ceil(this.attendanceLog().length / this.attendanceLogPageSize()))
@@ -621,10 +638,62 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     if (tab === 'attendance') {
       this.loadAttendanceCalendar();
       this.loadAttendanceStatistics();
+      this.loadMemberAttendanceReport();
     }
     if (tab === 'books') {
       this.loadBookLoans();
     }
+  }
+
+  onAttendanceDateFromChange(value: string): void {
+    this.attendanceDateFrom.set(value);
+    this.attendanceLogPage.set(1);
+    this.loadMemberAttendanceReport();
+  }
+
+  onAttendanceDateToChange(value: string): void {
+    this.attendanceDateTo.set(value);
+    this.attendanceLogPage.set(1);
+    this.loadMemberAttendanceReport();
+  }
+
+  loadMemberAttendanceReport(): void {
+    if (!this.memberId) return;
+
+    const dateFrom = this.attendanceDateFrom();
+    const dateTo = this.attendanceDateTo();
+    if (!dateFrom || !dateTo) return;
+
+    this.memberReportLoading.set(true);
+    this.attendanceExportService.loadMemberRecords(this.memberId, dateFrom, dateTo).subscribe({
+      next: (records) => {
+        this.memberReportRecords.set(records);
+        this.memberReportLoading.set(false);
+      },
+      error: () => {
+        this.memberReportRecords.set([]);
+        this.memberReportLoading.set(false);
+        this.toast.error('Could not load attendance records for the selected dates.');
+      },
+    });
+  }
+
+  exportMemberAttendanceReport(format: 'excel' | 'pdf'): void {
+    const member = this.memberDetails();
+    if (!member || this.attendanceExporting()) return;
+
+    this.attendanceExporting.set(true);
+    this.attendanceExportService.exportMemberRecords({
+      memberId: member.id,
+      memberName: member.name,
+      membershipNo: member.membershipNo ?? '',
+      libraryName: member.library,
+      branchName: member.branch,
+      shift: member.shift ?? '',
+      dateFrom: this.attendanceDateFrom(),
+      dateTo: this.attendanceDateTo(),
+      format,
+    }, () => this.attendanceExporting.set(false));
   }
 
   loadBookLoans(): void {

@@ -1,8 +1,5 @@
 <app-page-header eyebrow="People" title="Members" [description]="headerDescription()">
   <div actions class="flex items-center gap-2">
-    <app-button variant="outline" size="sm">
-      <svg lucideDownload class="h-4 w-4 mr-1"></svg> Export
-    </app-button>
     <a routerLink="/members/create">
       <app-button size="sm">
         <svg lucidePlus class="h-4 w-4 mr-1"></svg> Add member
@@ -50,6 +47,43 @@
   </app-button>
 </div>
 }
+
+<app-glass-card class="block mb-4">
+  <div class="members-attendance-export__header">
+    <h4 class="members-attendance-export__title">Attendance report</h4>
+    <p class="members-attendance-export__desc">Download check-in records for all members you can access.</p>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div>
+      <label class="text-sm font-medium">From</label>
+      <input
+        type="date"
+        class="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm"
+        [ngModel]="attendanceDateFrom()"
+        (ngModelChange)="onAttendanceDateFromChange($event)"
+      />
+    </div>
+    <div>
+      <label class="text-sm font-medium">To</label>
+      <input
+        type="date"
+        class="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm"
+        [ngModel]="attendanceDateTo()"
+          (ngModelChange)="onAttendanceDateToChange($event)"
+      />
+    </div>
+    <div class="flex flex-wrap items-end gap-2">
+      <app-button variant="outline" size="sm" [disabled]="attendanceExporting()" (click)="exportAttendanceReport('excel')">
+        <svg lucideFileSpreadsheet class="h-4 w-4 mr-1.5"></svg>
+        Excel
+      </app-button>
+      <app-button variant="outline" size="sm" [disabled]="attendanceExporting()" (click)="exportAttendanceReport('pdf')">
+        <svg lucideDownload class="h-4 w-4 mr-1.5"></svg>
+        PDF
+      </app-button>
+    </div>
+  </div>
+</app-glass-card>
 
 <app-glass-card class="block">
   <!-- Filter bar -->

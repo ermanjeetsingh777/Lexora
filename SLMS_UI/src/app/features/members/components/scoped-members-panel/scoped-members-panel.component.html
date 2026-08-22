@@ -10,6 +10,47 @@
   </div>
 </app-section-header>
 
+@if (showAttendanceExport()) {
+  <div class="scoped-members-export-card">
+    <div class="scoped-members-export-card__header">
+      <div>
+        <h4 class="scoped-members-export-card__title">Attendance report</h4>
+        <p class="scoped-members-export-card__desc">Download check-in records for all members in this library.</p>
+      </div>
+    </div>
+    <div class="scoped-members-export-card__controls">
+      <div class="scoped-members-export-card__field">
+        <label class="text-sm font-medium">From</label>
+        <input
+          type="date"
+          class="scoped-members-export-card__input"
+          [ngModel]="attendanceDateFrom()"
+          (ngModelChange)="onAttendanceDateFromChange($event)"
+        />
+      </div>
+      <div class="scoped-members-export-card__field">
+        <label class="text-sm font-medium">To</label>
+        <input
+          type="date"
+          class="scoped-members-export-card__input"
+          [ngModel]="attendanceDateTo()"
+          (ngModelChange)="onAttendanceDateToChange($event)"
+        />
+      </div>
+      <div class="scoped-members-export-card__actions">
+        <app-button variant="outline" size="sm" [disabled]="attendanceExporting()" (click)="exportLibraryAttendance('excel')">
+          <svg lucideFileSpreadsheet class="h-4 w-4 mr-1.5"></svg>
+          Excel
+        </app-button>
+        <app-button variant="outline" size="sm" [disabled]="attendanceExporting()" (click)="exportLibraryAttendance('pdf')">
+          <svg lucideDownload class="h-4 w-4 mr-1.5"></svg>
+          PDF
+        </app-button>
+      </div>
+    </div>
+  </div>
+}
+
 @if (loading()) {
   <p class="py-10 text-center text-sm text-muted-foreground">Loading members…</p>
 } @else if (error()) {

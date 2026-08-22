@@ -1152,6 +1152,69 @@ public class AttendanceService : IAttendanceService
         return new Guid(bytes);
     }
 
+    public async Task<IReadOnlyList<AttendanceResponse>> GetMemberRecordsAsync(
+        Guid memberId,
+        DateOnly dateFrom,
+        DateOnly dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        if (memberId == Guid.Empty)
+        {
+            throw new ArgumentException("Member is required.");
+        }
+
+        if (dateTo < dateFrom)
+        {
+            throw new InvalidOperationException("End date must be on or after start date.");
+        }
+
+        if (dateTo.DayNumber - dateFrom.DayNumber > 366)
+        {
+            throw new InvalidOperationException("Date range cannot exceed 366 days.");
+        }
+
+        var memberExists = await _context.Members
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken);
+
+        if (!memberExists)
+        {
+            throw new InvalidOperationException("Member not found.");
+        }
+
+        return await _context.MemberAttendances
+            .AsNoTracking()
+            .Where(x =>
+                x.MemberId == memberId &&
+                !x.IsDeleted &&
+                x.IsActive &&
+                x.AttendanceDate >= dateFrom &&
+                x.AttendanceDate <= dateTo)
+            .OrderByDescending(x => x.AttendanceDate)
+            .ThenByDescending(x => x.CheckInTime)
+            .Select(a => new AttendanceResponse
+            {
+                Id = a.Id,
+                MemberId = a.MemberId,
+                AttendanceDate = a.AttendanceDate,
+                CheckInTime = a.CheckInTime,
+                CheckOutTime = a.CheckOutTime,
+                DurationMinutes = a.DurationMinutes,
+                Status = a.Status,
+                Source = a.Source,
+                SeatNo = a.SeatNo,
+                Remarks = a.Remarks,
+                IsActive = a.IsActive,
+                CheckInAtUtc = a.CheckInTime.HasValue
+                    ? a.AttendanceDate.ToDateTime(a.CheckInTime.Value, DateTimeKind.Utc)
+                    : null,
+                CheckOutAtUtc = a.CheckOutTime.HasValue
+                    ? a.AttendanceDate.ToDateTime(a.CheckOutTime.Value, DateTimeKind.Utc)
+                    : null,
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     private async Task<IReadOnlyList<AttendanceResponse>> GetAttendanceCalendarRangeAsync(
         Guid memberId,
         DateOnly startDate,

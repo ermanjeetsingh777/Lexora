@@ -550,6 +550,39 @@
     <!-- ATTENDANCE TAB -->
     @if (activeTab() === 'attendance') {
     <div class="space-y-4">
+      <app-glass-card class="block">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="text-sm font-medium">From</label>
+            <input
+              type="date"
+              class="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              [ngModel]="attendanceDateFrom()"
+              (ngModelChange)="onAttendanceDateFromChange($event)"
+            />
+          </div>
+          <div>
+            <label class="text-sm font-medium">To</label>
+            <input
+              type="date"
+              class="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              [ngModel]="attendanceDateTo()"
+              (ngModelChange)="onAttendanceDateToChange($event)"
+            />
+          </div>
+          <div class="flex flex-wrap items-end gap-2">
+            <app-button variant="outline" size="sm" [disabled]="attendanceExporting() || memberReportLoading()" (click)="exportMemberAttendanceReport('excel')">
+              <svg lucideFileSpreadsheet class="h-4 w-4 mr-1.5"></svg>
+              Excel
+            </app-button>
+            <app-button variant="outline" size="sm" [disabled]="attendanceExporting() || memberReportLoading()" (click)="exportMemberAttendanceReport('pdf')">
+              <svg lucideDownload class="h-4 w-4 mr-1.5"></svg>
+              PDF
+            </app-button>
+          </div>
+        </div>
+      </app-glass-card>
+
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <div class="border rounded-lg p-3 bg-muted/20">
           <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -593,8 +626,13 @@
 
       <app-glass-card id="attendance-check-in-log" class="block p-0 overflow-hidden">
         <div class="">
-          <app-section-header title="Check-in log" description="Last 30 days" />
+          <app-section-header
+            title="Check-in log"
+            [description]="'Records from ' + attendanceDateFrom() + ' to ' + attendanceDateTo()" />
         </div>
+        @if (memberReportLoading()) {
+          <p class="py-8 text-center text-sm text-muted-foreground">Loading attendance records…</p>
+        } @else {
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
@@ -661,6 +699,7 @@
             </div>
           </div>
         </div>
+        }
         }
       </app-glass-card>
 

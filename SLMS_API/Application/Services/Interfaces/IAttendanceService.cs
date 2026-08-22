@@ -63,4 +63,10 @@ public interface IAttendanceService
         AttendanceCalendarSummaryQuery query,
         Guid userId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AttendanceResponse>> GetMemberRecordsAsync(
+        Guid memberId,
+        DateOnly dateFrom,
+        DateOnly dateTo,
+        CancellationToken cancellationToken = default);
 }

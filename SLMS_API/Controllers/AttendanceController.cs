@@ -115,6 +115,34 @@ public class AttendanceController : ControllerBase
     }
 
     /// <summary>
+    /// Get member attendance records for a date range (report/export).
+    /// </summary>
+    [HttpGet("members/{memberId:guid}/records")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceResponse>>>> GetMemberRecords(
+        Guid memberId,
+        [FromQuery] DateOnly dateFrom,
+        [FromQuery] DateOnly dateTo,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var records = await _attendanceService.GetMemberRecordsAsync(memberId, dateFrom, dateTo, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyList<AttendanceResponse>>.Ok(records, "Member attendance records retrieved successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<IReadOnlyList<AttendanceResponse>>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while getting attendance records for Member {MemberId}", memberId);
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiResponse<IReadOnlyList<AttendanceResponse>>.Fail("An unexpected error occurred while retrieving attendance records."));
+        }
+    }
+
+    /// <summary>
     /// Get member attendance statistics for the last 90 days.
     /// </summary>
     [HttpGet("members/{memberId:guid}/statistics")]

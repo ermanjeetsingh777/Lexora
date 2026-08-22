@@ -28,6 +28,13 @@ export class AttendanceService {
         );
     }
 
+    getMemberRecords(memberId: string, dateFrom: string, dateTo: string): Observable<APIResponseModel<AttendanceResponse[]>> {
+        return this.http.get<AttendanceResponse[]>(
+            'attendance/members/' + memberId + '/records',
+            { params: { dateFrom, dateTo } },
+        );
+    }
+
     getLibrarySeats(libraryId: string): Observable<APIResponseModel<AttendanceSeatOption[]>> {
         return this.http.get<AttendanceSeatOption[]>(`attendance/libraries/${libraryId}/seats`);
     }

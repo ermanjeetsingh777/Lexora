@@ -51,10 +51,6 @@ import { PermissionKey } from '@core/constants/permissions';
             <svg lucideLayoutDashboard class="h-4 w-4 shrink-0"></svg>
             @if (sidebar.showLabels()) { <span>Dashboard</span> }
           </a>
-          <a routerLink="/dashboard/analytics" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideBarChart3 class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Analytics</span> }
-          </a>
         </div>
 
         <div class="px-3 py-2">
@@ -62,18 +58,6 @@ import { PermissionKey } from '@core/constants/permissions';
           <a routerLink="/members" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
             <svg lucideUsers class="h-4 w-4 shrink-0"></svg>
             @if (sidebar.showLabels()) { <span>Members</span> }
-          </a>
-          <a routerLink="/students" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideGraduationCap class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Students</span> }
-          </a>
-          <a routerLink="/teachers" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideBookUser class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Teachers</span> }
-          </a>
-          <a routerLink="/seats" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideArmchair class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Seats</span> }
           </a>
           <a routerLink="/attendance" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
             <svg lucideCalendarCheck class="h-4 w-4 shrink-0"></svg>

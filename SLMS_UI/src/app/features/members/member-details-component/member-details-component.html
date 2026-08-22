@@ -27,14 +27,14 @@
       <div class="absolute right-0 z-40 mt-1 w-52 rounded-md border bg-popover shadow-md py-1 text-sm">
         <div class="px-3 py-1.5 text-xs font-semibold text-muted-foreground label-mono">Manage</div>
         <div class="border-t my-1"></div>
-        <button type="button" (click)="openDialog('branch')"
+        <!-- <button type="button" (click)="openDialog('branch')"
           class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
           <svg lucideArrowRightLeft class="h-4 w-4"></svg> Transfer branch
         </button>
         <button type="button" (click)="openDialog('seat')"
           class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
           <svg lucideArmchair class="h-4 w-4"></svg> Reassign seat
-        </button>
+        </button> -->
         <button type="button" (click)="openDialog('shift')"
           class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
           <svg lucideClock class="h-4 w-4"></svg> Change shift
@@ -874,7 +874,17 @@
             </div> -->
 
     <!-- Payments table -->
-    <app-member-payments-component [plans]="m.plans" [view]="activeTab()" />
+    <app-member-payments-component
+      [plans]="m.plans"
+      [view]="activeTab()"
+      [memberName]="m.name"
+      [memberEmail]="m.email"
+      [memberPhone]="m.phone"
+      [membershipNo]="m.membershipNo"
+      [institution]="m.institution"
+      [branch]="m.branch"
+      [library]="m.library"
+      [shift]="m.shift" />
     }
 
   </div>

@@ -34,48 +34,7 @@ import { StorageService } from '@core/services/storage.service';
       </nav> -->
 
       <div class="ml-auto flex items-center gap-2">
-        <div class="relative hidden md:block">
-          <svg lucideSearch class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"></svg>
-          <input appInput placeholder="Search members, seats, branches…" class="pl-8 h-9 w-72 bg-muted/40" />
-        </div>
-
-        <!-- <div class="relative">
-          <button type="button" (click)="notifOpen.set(!notifOpen())" class="relative rounded-md p-2 hover:bg-accent" aria-label="Notifications">
-            <svg lucideBell class="h-4 w-4"></svg>
-            @if (unread() > 0) {
-              <span class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-background"></span>
-            }
-          </button>
-          @if (notifOpen()) {
-            <div class="fixed inset-0 z-40" (click)="notifOpen.set(false)"></div>
-            <div class="absolute right-0 z-50 mt-2 w-80 rounded-md border bg-popover shadow-elegant">
-              <div class="flex items-center justify-between border-b px-3 py-2">
-                <div class="text-sm font-semibold">Notifications</div>
-                <a routerLink="/notifications" class="text-xs text-primary hover:underline" (click)="notifOpen.set(false)">View all</a>
-              </div>
-              <div class="max-h-80 overflow-y-auto divide-y">
-                @for (n of notifications; track n.id) {
-                  <div class="p-3 hover:bg-muted/50">
-                    <div class="flex items-center justify-between">
-                      <div class="text-sm font-medium">{{ n.title }}</div>
-                      <span class="label-mono">{{ n.timestamp }}</span>
-                    </div>
-                    <p class="text-xs text-muted-foreground mt-0.5">{{ n.message }}</p>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        </div> -->
-
-        <button type="button" (click)="theme.toggle()" class="rounded-md p-2 hover:bg-accent" aria-label="Toggle theme">
-          @if (theme.mode() === 'dark') {
-            <svg lucideSun class="h-4 w-4"></svg>
-          } @else {
-            <svg lucideMoon class="h-4 w-4"></svg>
-          }
-        </button>
-
+        
         <div class="relative">
           <button type="button" (click)="userOpen.set(!userOpen())" class="flex items-center gap-2 rounded-md border px-1 py-1 hover:bg-muted/50">
             <span class="grid h-7 w-7 place-items-center rounded-full bg-muted text-xs font-semibold">{{ initials() }}</span>

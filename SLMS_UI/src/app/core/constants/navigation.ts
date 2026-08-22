@@ -20,9 +20,9 @@ export const SIDEBAR_NAV: NavGroup[] = [
     label: 'Operations',
     items: [
       { title: 'Members', route: '/members', icon: 'users' },
-      { title: 'Students', route: '/students', icon: 'graduation-cap' },
-      { title: 'Teachers', route: '/teachers', icon: 'book-user' },
-      { title: 'Seats', route: '/seats', icon: 'armchair' },
+      // { title: 'Students', route: '/students', icon: 'graduation-cap' },
+      // { title: 'Teachers', route: '/teachers', icon: 'book-user' },
+      // { title: 'Seats', route: '/seats', icon: 'armchair' },
       { title: 'Attendance', route: '/attendance', icon: 'calendar-check' },
       { title: 'Scanner', route: '/attendance/scanner', icon: 'qr-code' },
     ],

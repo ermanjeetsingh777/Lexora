@@ -40,13 +40,15 @@ flowchart LR
 |-------|-----------|------|
 | `/libraries` | `LibraryListComponent` | `SLMS_UI/src/app/features/libraries/library-list-component/` |
 | `/libraries/create` | `CreateLibrary` | `SLMS_UI/src/app/features/libraries/create-library/` |
+| `/libraries/:libraryId` | `LibraryDetailComponent` | `SLMS_UI/src/app/features/libraries/library-detail-component/` |
+| `/libraries/:libraryId/edit` | `LibraryEdit` | `SLMS_UI/src/app/features/libraries/library-edit/` |
 | `/institutions/:institutionId/addlibrary` | `CreateLibrary` (institution locked) | Same create module |
 | `/branches/:branchId/addlibrary` | `CreateLibrary` (institution + branch locked) | Same create module |
 
 Route config: `SLMS_UI/src/app/app.routes.ts`  
 Navigation: sidebar **Libraries** → `/libraries` (`SLMS_UI/src/app/core/constants/navigation.ts`).
 
-> **Note:** `/libraries/:libraryId` detail route is commented out in `app.routes.ts`. List cards link to `/branches/{branchId}?tab=libraries` until library detail exists.
+> **Detail:** See [library-detail-workflow.md](./library-detail-workflow.md) for tabs, hours, plans, and seat layout.
 
 ### 2.2 Page layout
 
@@ -289,7 +291,7 @@ SLMS_API/
 
 | Area | Status |
 |------|--------|
-| Library detail route (`/libraries/:libraryId`) | Not implemented — route commented out |
+| Library detail | Implemented — [library-detail-workflow.md](./library-detail-workflow.md) |
 | Server-side pagination | Full scoped list returned; pagination is client-side |
 | Revenue KPI query | Aggregated in SQL (`AggregateSummaryForLibrariesAsync`) — not row-by-row in memory |
 | Multi-select filters (Lovable) | Single-select dropdowns; same data coverage |

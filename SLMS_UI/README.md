@@ -1,59 +1,67 @@
-# SLMSUI
+# SLMS UI
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.11.
+Angular 21 web application for Lexora (Smart Library Management System).
 
 ## Development server
 
-To start a local development server, run:
-
 ```bash
+npm install
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open `http://localhost:4200/`. The app reloads on file changes.
 
-## Code scaffolding
+## Stack
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+| Layer | Technology |
+|-------|------------|
+| Framework | Angular 21 (standalone components, signals) |
+| Styling | Tailwind CSS |
+| Components | PrimeNG, Lucide icons |
+| Tests | Vitest (`ng test`) |
 
-```bash
-ng generate component component-name
+## Project layout
+
+```
+SLMS_UI/src/app/
+├── core/           # Services, guards, models, constants
+├── features/       # Feature modules (members, libraries, attendance, …)
+├── layouts/        # App shell, auth layout, sidebar
+└── shared/         # Reusable UI components
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Feature modules
+
+| Folder | Route | Workflow doc |
+|--------|-------|--------------|
+| `auth/` | `/login`, `/register`, … | [auth-workflow.md](../docs/workflow/auth-workflow.md) |
+| `onboarding/` | `/onboarding/*` | [onboarding-workflow.md](../docs/workflow/onboarding-workflow.md) |
+| `dashboard/` | `/dashboard` | [dashboard-workflow.md](../docs/workflow/dashboard-workflow.md) |
+| `institutions/` | `/institutions` | [institutions-list-workflow.md](../docs/workflow/institutions-list-workflow.md) |
+| `branches/` | `/branches` | [branches-workflow.md](../docs/workflow/branches-workflow.md) |
+| `libraries/` | `/libraries` | [libraries-list-workflow.md](../docs/workflow/libraries-list-workflow.md) |
+| `members/` | `/members` | [members-list-workflow.md](../docs/workflow/members-list-workflow.md) |
+| `attendance/` | `/attendance`, `/kiosk/attendance/*` | [attendance-module-workflow.md](../docs/workflow/attendance-module-workflow.md) |
+| `books/` | `/books` | [books-workflow.md](../docs/workflow/books-workflow.md) |
+| `admin/` | `/users`, `/roles` | [users-admin-workflow.md](../docs/workflow/users-admin-workflow.md) |
+| `support/` | `/support` | [support-workflow.md](../docs/workflow/support-workflow.md) |
+
+Full module index: [docs/modules/README.md](../docs/modules/README.md)
+
+## Code conventions
+
+See [AGENTS.md](./AGENTS.md) for Angular/TypeScript standards (signals, standalone components, accessibility).
+
+## Build & test
 
 ```bash
-ng generate --help
+ng build          # Production build → dist/
+ng test           # Unit tests (Vitest)
+ng e2e            # E2E (framework not bundled — configure as needed)
 ```
 
-## Building
+## Documentation
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Monorepo README: [../README.md](../README.md)
+- API README: [../SLMS_API/README.md](../SLMS_API/README.md)
+- All workflows: [../docs/workflow/README.md](../docs/workflow/README.md)

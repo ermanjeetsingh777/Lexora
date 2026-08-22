@@ -313,10 +313,12 @@ SLMS_UI/src/app/
 
 | Module | Doc | Relation |
 |--------|-----|----------|
+| M-13 Attendance (staff) | [attendance-module-workflow.md](./attendance-module-workflow.md) | Overview, calendar, live, records, export |
 | M-06 Members | [members-list-workflow.md](./members-list-workflow.md) | Member library assignment, QR token |
 | M-06 Members | [members-detail-workflow.md](./members-detail-workflow.md) | Attendance tab, member QR display |
 | M-06b Scoped members | [scoped-members-workflow.md](./scoped-members-workflow.md) | Members tabs on detail pages |
-| Libraries list | [libraries-list-workflow.md](./libraries-list-workflow.md) | `/libraries` — future library QR print UI |
+| Libraries list | [libraries-list-workflow.md](./libraries-list-workflow.md) | Global library portfolio |
+| Library detail | [library-detail-workflow.md](./library-detail-workflow.md) | Library QR display / print |
 | M-15 Administration | [administration-workflow.md](./administration-workflow.md) | `attendance.scanner.use` permission |
 
 ---

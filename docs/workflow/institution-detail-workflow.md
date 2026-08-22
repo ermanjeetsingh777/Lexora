@@ -544,7 +544,10 @@ SLMS_API/
 
 ## 8. Related docs
 
+- Institutions list: [institutions-list-workflow.md](./institutions-list-workflow.md)
+- Branches: [branches-workflow.md](./branches-workflow.md)
 - Libraries list (global): [libraries-list-workflow.md](./libraries-list-workflow.md)
+- Library detail: [library-detail-workflow.md](./library-detail-workflow.md)
 - Scoped members (detail tabs + nested URLs): [scoped-members-workflow.md](./scoped-members-workflow.md)
 - Member details: [members-detail-workflow.md](./members-detail-workflow.md)
 - Members list: [members-list-workflow.md](./members-list-workflow.md)

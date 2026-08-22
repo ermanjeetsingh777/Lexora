@@ -102,6 +102,9 @@ namespace SLMS_API.Application.Services
                 throw new InvalidOperationException("Library not found.");
 
             // Duplicate Plan Name validation
+            if (string.IsNullOrWhiteSpace(request.Name))
+                throw new InvalidOperationException("Plan name is required.");
+
             var duplicatePlan = await _context.Plans.AnyAsync(x =>
                 x.LibraryId == libraryId &&
                 x.Name.ToLower() == request.Name.Trim().ToLower(),
@@ -167,6 +170,12 @@ namespace SLMS_API.Application.Services
             if (plan == null)
                 throw new InvalidOperationException("Plan not found.");
 
+            if (PlanDefaults.IsDefaultPlanName(plan.Name) &&
+                !string.Equals(plan.Name, request.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Default plan name cannot be changed.");
+            }
+
             // Duplicate plan name validation
             var duplicatePlan = await _context.Plans.AnyAsync(x =>
                 x.LibraryId == libraryId &&
@@ -190,7 +199,15 @@ namespace SLMS_API.Application.Services
             if (request.MaxSeats.HasValue && request.MaxSeats <= 0)
                 throw new InvalidOperationException("Max seats must be greater than zero.");
 
-            plan.Name = request.Name.Trim();
+            if (PlanDefaults.IsDefaultPlanName(plan.Name))
+            {
+                plan.Name = plan.Name.Trim();
+            }
+            else
+            {
+                plan.Name = request.Name.Trim();
+            }
+
             plan.Description = request.Description?.Trim();
             plan.Price = request.Price;
             plan.DurationInDays = request.DurationInDays;

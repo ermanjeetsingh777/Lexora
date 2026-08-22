@@ -1,0 +1,116 @@
+@if (open()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="onClose()">
+    <div class="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl border bg-background shadow-xl p-6 space-y-5" (click)="$event.stopPropagation()">
+      <div>
+        <h2 class="text-lg font-semibold">{{ isEdit() ? 'Edit plan' : 'Create plan' }}</h2>
+        <p class="text-sm text-muted-foreground mt-0.5">
+          @if (isEdit()) {
+            Update this library membership plan.
+          } @else {
+            Add a new membership plan for this library.
+          }
+        </p>
+      </div>
+
+      @if (formError()) {
+        <p class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {{ formError() }}
+        </p>
+      }
+
+      <div class="space-y-4">
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Plan name</label>
+          <input
+            type="text"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60"
+            [disabled]="nameLocked()"
+            [ngModel]="name()"
+            (ngModelChange)="name.set($event)"
+            name="name"
+            placeholder="e.g. Weekend Special"
+          />
+          @if (nameLocked()) {
+            <p class="text-xs text-muted-foreground">Default plan name cannot be changed.</p>
+          } @else if (isEdit()) {
+            <p class="text-xs text-muted-foreground">Current: {{ plan()?.name }}</p>
+          }
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Description</label>
+          <textarea
+            rows="2"
+            class="flex min-h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+            [ngModel]="description()"
+            (ngModelChange)="description.set($event)"
+            name="description"
+            placeholder="Optional description"
+          ></textarea>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Price</label>
+          <input
+            type="number"
+            min="1"
+            step="0.01"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="price()"
+            (ngModelChange)="price.set(+$event)"
+            name="price"
+          />
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Duration (days)</label>
+          <input
+            type="number"
+            min="1"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="durationInDays()"
+            (ngModelChange)="durationInDays.set(+$event)"
+            name="durationInDays"
+          />
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Max seats</label>
+          <input
+            type="number"
+            min="1"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="maxSeats()"
+            (ngModelChange)="maxSeats.set($event === '' || $event == null ? null : +$event)"
+            name="maxSeats"
+            placeholder="Optional"
+          />
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Status</label>
+          <select
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="isActive() ? 'Active' : 'Inactive'"
+            (ngModelChange)="isActive.set($event === 'Active')"
+            name="status"
+          >
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <app-button variant="outline" [disabled]="busy()" (click)="onClose()">Cancel</app-button>
+        <app-button [disabled]="busy()" (click)="onSubmit()">
+          @if (busy()) {
+            {{ isEdit() ? 'Saving…' : 'Creating…' }}
+          } @else {
+            {{ isEdit() ? 'Save changes' : 'Create plan' }}
+          }
+        </app-button>
+      </div>
+    </div>
+  </div>
+}

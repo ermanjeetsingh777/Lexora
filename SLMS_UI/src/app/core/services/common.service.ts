@@ -1,7 +1,7 @@
 import { inject, Injectable } from "@angular/core";
 import { OnboardingSteps } from "@core/enums/OnbardingSteps";
 import { Location } from '@angular/common';
-import { MemberPlanType, PAY_STATUS_CLASSES, PLAN_CLASSES, Shift } from "@core/constType";
+import { PAY_STATUS_CLASSES, PLAN_CLASSES, Shift } from "@core/constType";
 
 @Injectable({
     providedIn: 'root',
@@ -46,8 +46,12 @@ export class CommonService {
         libraryCreated: 'Library created successfully! Your organization setup is complete.',
     };
 
-    planClasses(plan: MemberPlanType): string {
-        return PLAN_CLASSES[plan] ?? PLAN_CLASSES['Monthly'];
+    planClasses(plan: string | null | undefined): string {
+        const name = plan?.trim();
+        if (!name) {
+            return PLAN_CLASSES['No plan'];
+        }
+        return PLAN_CLASSES[name] ?? 'bg-primary/15 text-primary border-primary/30';
     }
 
     attendanceBarClass(rate: number): string {

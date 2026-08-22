@@ -1,0 +1,8 @@
+:host {
+  display: block;
+}
+
+.library-plans-panel table th,
+.library-plans-panel table td {
+  vertical-align: top;
+}

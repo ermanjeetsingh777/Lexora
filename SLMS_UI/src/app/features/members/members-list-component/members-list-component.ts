@@ -18,7 +18,7 @@ import { ToastService } from '@core/services/toast.service';
 import { MemberService } from '../MemberService';
 import { MemberListResponse } from '@core/models/MemberRequest';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
-import { ViewMode, MemberPlanType } from '@core/constType';
+import { ViewMode } from '@core/constType';
 import { CommonService } from '@core/services/common.service';
 import { PlanStatus } from '@core/enums/OnbardingSteps';
 import {
@@ -44,7 +44,6 @@ type SortKey = 'name' | 'status' | 'plan' | 'shift' | 'branch' | 'attendanceRate
 type SortDir = 'asc' | 'desc';
 
 const STATUS_OPTS = ['Active', 'Inactive', 'Suspended'] as const;
-const PLAN_OPTS: MemberPlanType[] = ['Monthly', 'Quarterly', 'Half Yearly', 'Yearly'];
 const PAGE_SIZE_OPTS = [10, 25, 50, 100] as const;
 const DEFAULT_SORT_KEY: SortKey = 'name';
 const DEFAULT_SORT_DIR: SortDir = 'asc';
@@ -103,7 +102,6 @@ export class MembersListComponent implements OnInit {
   readonly renewBusy = signal(false);
 
   readonly STATUS_OPTS = STATUS_OPTS;
-  readonly PLAN_OPTS = PLAN_OPTS;
   readonly LIFECYCLE_OPTS = LIFECYCLE_OPTS;
   readonly PAGE_SIZE_OPTS = PAGE_SIZE_OPTS;
   readonly LIFECYCLE_TONE_CLASSES = LIFECYCLE_TONE_CLASSES;
@@ -131,6 +129,15 @@ export class MembersListComponent implements OnInit {
     [...new Set(this.members().map(m => m.branch).filter(b => b && b !== '—'))].sort()
   );
 
+  readonly planOptions = computed(() =>
+    [...new Set(
+      this.members().map(m => {
+        const plan = m.plan?.trim();
+        return plan && plan !== '—' ? plan : 'No plan';
+      }),
+    )].sort((a, b) => a.localeCompare(b))
+  );
+
   readonly statusCounts = computed(() => {
     const counts: Record<string, number> = {};
     for (const m of this.members()) counts[m.status] = (counts[m.status] ?? 0) + 1;
@@ -139,7 +146,11 @@ export class MembersListComponent implements OnInit {
 
   readonly planCounts = computed(() => {
     const counts: Record<string, number> = {};
-    for (const m of this.members()) counts[m.plan] = (counts[m.plan] ?? 0) + 1;
+    for (const m of this.members()) {
+      const plan = m.plan?.trim();
+      const key = plan && plan !== '—' ? plan : 'No plan';
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
     return counts;
   });
 
@@ -151,7 +162,10 @@ export class MembersListComponent implements OnInit {
   readonly actionCount = computed(() => this.members().filter(m => m.life.needsAction).length);
   readonly feesDue = computed(() => this.members().reduce((s, m) => s + m.feesOwed, 0));
   readonly premiumCount = computed(() =>
-    this.members().filter(m => m.plan === 'Yearly' || m.plan === 'Half Yearly').length
+    this.members().filter(m => {
+      const plan = m.plan?.trim();
+      return plan === 'Yearly' || plan === 'Half Yearly';
+    }).length
   );
 
   readonly lifecycleCounts = computed(() => {
@@ -209,9 +223,12 @@ export class MembersListComponent implements OnInit {
     const lifecycles = this.lifecycles();
     const needsAction = this.needsAction();
 
-    return this.members().filter(m =>
-      (statuses.length === 0 || statuses.includes(m.status)) &&
-      (plans.length === 0 || plans.includes(m.plan)) &&
+    return this.members().filter(m => {
+      const memberPlan = m.plan?.trim();
+      const normalizedPlan = memberPlan && memberPlan !== '—' ? memberPlan : 'No plan';
+
+      return (statuses.length === 0 || statuses.includes(m.status)) &&
+      (plans.length === 0 || plans.includes(normalizedPlan)) &&
       (branches.length === 0 || branches.includes(m.branch)) &&
       (shifts.length === 0 || shifts.includes(m.shift ?? '')) &&
       (lifecycles.length === 0 || lifecycles.includes(m.life.state)) &&
@@ -225,8 +242,8 @@ export class MembersListComponent implements OnInit {
         m.branch.toLowerCase().includes(q) ||
         m.library.toLowerCase().includes(q) ||
         (m.shift ?? '').toLowerCase().includes(q) ||
-        (m.plan ?? '').toLowerCase().includes(q))
-    );
+        normalizedPlan.toLowerCase().includes(q));
+    });
   });
 
   readonly sorted = computed(() => {
@@ -429,6 +446,11 @@ export class MembersListComponent implements OnInit {
   onFilterPillClick(key: FilterKey, value: string, event?: Event): void {
     event?.stopPropagation();
     event?.preventDefault();
+    if (key === 'plans') {
+      const plan = value?.trim();
+      this.toggleIn(key, plan && plan !== '—' ? plan : 'No plan');
+      return;
+    }
     if (!value || value === '—') return;
     this.toggleIn(key, value);
   }

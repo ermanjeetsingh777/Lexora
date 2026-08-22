@@ -1,0 +1,92 @@
+<div class="library-plans-panel">
+  <div class="flex items-start justify-between gap-3 flex-wrap mb-4">
+    <app-section-header [title]="title()" [description]="description()" />
+    <div class="flex items-center gap-2">
+      <app-button size="sm" variant="outline" (click)="loadPlans()" [disabled]="loading()">
+        <svg lucideRefreshCw class="h-4 w-4 mr-1"></svg> Refresh
+      </app-button>
+      <app-button size="sm" (click)="openCreate()">
+        <svg lucidePlus class="h-4 w-4 mr-1"></svg> New plan
+      </app-button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="py-12 text-center text-sm text-muted-foreground">Loading plans…</p>
+  } @else if (plans().length === 0) {
+    <p class="py-12 text-center text-sm text-muted-foreground">No plans found for this library.</p>
+  } @else {
+    <div class="overflow-x-auto rounded-lg border">
+      <table class="w-full text-sm">
+        <thead class="bg-muted/40 text-left">
+          <tr>
+            <th class="px-4 py-3 font-medium">Plan</th>
+            <th class="px-4 py-3 font-medium">Price</th>
+            <th class="px-4 py-3 font-medium">Duration</th>
+            <th class="px-4 py-3 font-medium">Max seats</th>
+            <th class="px-4 py-3 font-medium">Status</th>
+            <th class="px-4 py-3 font-medium text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          @for (plan of plans(); track plan.id) {
+            <tr class="hover:bg-muted/20">
+              <td class="px-4 py-3">
+                <div class="font-medium">{{ plan.name }}</div>
+                <div class="text-xs text-muted-foreground mt-0.5">{{ plan.description || '—' }}</div>
+                <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                  @if (isDefaultPlan(plan)) {
+                    <app-status-badge status="Default" variant="info" />
+                  }
+                </div>
+              </td>
+              <td class="px-4 py-3">{{ plan.price | currency:'INR':'symbol-narrow':'1.0-0' }}</td>
+              <td class="px-4 py-3">{{ plan.durationInDays }} days</td>
+              <td class="px-4 py-3">{{ plan.maxSeats ?? '—' }}</td>
+              <td class="px-4 py-3">
+                <app-status-badge [status]="plan.isActive ? 'Active' : 'Inactive'" />
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-end gap-2 flex-wrap">
+                  <app-button size="sm" variant="outline" (click)="openEdit(plan)">
+                    <svg lucidePencil class="h-3.5 w-3.5 mr-1"></svg> Edit
+                  </app-button>
+                  @if (plan.isActive) {
+                    <app-button
+                      size="sm"
+                      variant="outline"
+                      [disabled]="togglingPlanId() === plan.id"
+                      (click)="exitPlan(plan)"
+                    >
+                      <svg lucideLogOut class="h-3.5 w-3.5 mr-1"></svg> Exit plan
+                    </app-button>
+                  } @else {
+                    <app-button
+                      size="sm"
+                      variant="outline"
+                      [disabled]="togglingPlanId() === plan.id"
+                      (click)="reactivatePlan(plan)"
+                    >
+                      <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg> Reactivate
+                    </app-button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="rounded-lg border bg-muted/20 px-4 py-3">
+        <div class="text-xs text-muted-foreground uppercase tracking-wide">Active plans</div>
+        <div class="text-2xl font-semibold mt-1">{{ activePlans().length }}</div>
+      </div>
+      <div class="rounded-lg border bg-muted/20 px-4 py-3">
+        <div class="text-xs text-muted-foreground uppercase tracking-wide">Inactive plans</div>
+        <div class="text-2xl font-semibold mt-1">{{ inactivePlans().length }}</div>
+      </div>
+    </div>
+  }
+</div>

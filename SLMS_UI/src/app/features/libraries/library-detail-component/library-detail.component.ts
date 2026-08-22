@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DecimalPipe, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -79,6 +79,8 @@ import {
 } from './library-detail.util';
 import { LibraryCalendarComponent } from './library-calendar/library-calendar.component';
 import { ScopedMembersPanelComponent } from '../../members/components/scoped-members-panel/scoped-members-panel.component';
+import { LibraryPlansPanelComponent } from '../components/library-plans-panel/library-plans-panel.component';
+import { LibraryPlanFormDialogComponent } from '../components/library-plans-panel/library-plan-form-dialog.component';
 import { ScannerQrCode } from '@core/models/attendanceModels';
 import { collectRouteParams, libraryBackNav } from '@core/utils/entity-routes.util';
 
@@ -118,6 +120,8 @@ import { collectRouteParams, libraryBackNav } from '@core/utils/entity-routes.ut
     LucideEye,
     LibraryCalendarComponent,
     ScopedMembersPanelComponent,
+    LibraryPlansPanelComponent,
+    LibraryPlanFormDialogComponent,
   ],
   templateUrl: './library-detail.component.html',
   styleUrls: [
@@ -130,6 +134,8 @@ export class LibraryDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly libraryService = inject(LibraryService);
   private readonly toast = inject(ToastService);
+
+  readonly plansPanel = viewChild(LibraryPlansPanelComponent);
 
   readonly tabs = TABS;
   readonly weekDays = WEEK_DAYS;

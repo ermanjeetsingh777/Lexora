@@ -149,7 +149,10 @@
           <button type="button" class="text-xs text-muted-foreground hover:text-foreground" (click)="clearFilter('plans')">Clear</button>
           }
         </div>
-        @for (opt of PLAN_OPTS; track opt) {
+        @if (planOptions().length === 0) {
+        <div class="px-2 py-1.5 text-xs text-muted-foreground">No options</div>
+        }
+        @for (opt of planOptions(); track opt) {
         <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
           <input type="checkbox" [checked]="isFilterSelected('plans', opt)" (change)="toggleIn('plans', opt)" />
           <span class="truncate flex-1">{{ opt }}</span>

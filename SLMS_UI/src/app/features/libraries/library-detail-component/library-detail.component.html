@@ -448,6 +448,18 @@
     </app-glass-card>
   }
 
+  @if (tab() === 'plans') {
+    <div class="rounded-xl border border-[var(--border)] bg-background shadow-elegant p-5">
+      <app-library-plans-panel
+        [institutionId]="d.institutionId"
+        [branchId]="d.branchId"
+        [libraryId]="d.id"
+        title="Membership plans"
+        description="Create, edit, or exit plans for this library"
+      />
+    </div>
+  }
+
   @if (tab() === 'profile') {
     <app-glass-card class="block">
       <app-section-header title="Library profile" />
@@ -748,6 +760,17 @@
         <app-button (click)="saveSections()">Save layout</app-button>
       </div>
     </app-glass-card>
+  }
+
+  @if (plansPanel()?.dialogOpen()) {
+    <app-library-plan-form-dialog
+      [open]="true"
+      [plan]="plansPanel()?.editingPlan() ?? null"
+      [plans]="plansPanel()?.plans() ?? []"
+      [busy]="plansPanel()?.saving() ?? false"
+      (submitted)="plansPanel()?.onFormSubmit($event)"
+      (closed)="plansPanel()?.closeDialog()"
+    />
   }
 }
 

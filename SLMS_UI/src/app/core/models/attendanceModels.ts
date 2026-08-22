@@ -200,3 +200,54 @@ export interface MemberQrCode {
     scanUrl: string;
     qrCodeBase64: string;
 }
+
+export interface AttendanceModuleQuery {
+    libraryId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+    status?: AttendanceStatus;
+    page?: number;
+    pageSize?: number;
+}
+
+export interface AttendanceModuleSummary {
+    totalRecords: number;
+    uniqueMembers: number;
+    currentlyCheckedIn: number;
+    checkedOut: number;
+    accessibleLibraries: number;
+    dateFrom: string;
+    dateTo: string;
+}
+
+export interface AttendanceRecordListItem {
+    id: string;
+    memberId: string;
+    memberName: string;
+    membershipNo: string;
+    shift?: string | null;
+    libraryId: string;
+    libraryName: string;
+    branchName: string;
+    institutionName: string;
+    attendanceDate: string;
+    checkInTime?: string | null;
+    checkOutTime?: string | null;
+    checkInAtUtc?: string | Date | null;
+    checkOutAtUtc?: string | Date | null;
+    durationMinutes: number;
+    status: AttendanceStatus;
+    source: AttendanceSource;
+    seatNo?: string | null;
+}
+
+export interface PagedAttendanceRecords {
+    items: AttendanceRecordListItem[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}

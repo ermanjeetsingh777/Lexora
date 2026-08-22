@@ -162,7 +162,13 @@ export const routes: Routes = [
             //     loadComponent: () => import('./features/payments/payments.component').then((m) => m.PaymentsComponent),
             // },
 
-            // --- Attendance scanner ---
+            // --- Attendance ---
+            {
+                path: 'attendance',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.AttendanceList },
+                loadComponent: () => import('./features/attendance/attendance-list/attendance-list.component').then((m) => m.AttendanceListComponent),
+            },
             {
                 path: 'attendance/scanner',
                 canActivate: [permissionGuard],

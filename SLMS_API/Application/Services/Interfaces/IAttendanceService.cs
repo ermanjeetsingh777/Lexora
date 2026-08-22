@@ -1,6 +1,5 @@
 using SLMS_API.Application.Contracts.Attendance;
-using SLMS_API.Application.Contracts.Organizations.Requests;
-using SLMS_API.Application.Contracts.Organizations;
+using SLMS_API.Application.Contracts.Organizations.Requests;using SLMS_API.Application.Contracts.Organizations;
 using SLMS_API.Application.Contracts.Common;
 
 namespace SLMS_API.Application.Services.Interfaces;
@@ -34,4 +33,13 @@ public interface IAttendanceService
 
     Task<IReadOnlyList<AttendanceSeatOptionResponse>> GetLibrarySeatsAsync(Guid libraryId, CancellationToken cancellationToken = default);
 
+    Task<AttendanceModuleSummaryResponse> GetModuleSummaryAsync(
+        AttendanceModuleQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResult<AttendanceRecordListItemResponse>> GetModuleRecordsAsync(
+        AttendanceModuleQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

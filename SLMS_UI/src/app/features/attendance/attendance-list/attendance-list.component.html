@@ -1,0 +1,196 @@
+<app-page-header
+  eyebrow="Operations"
+  title="Attendance"
+  description="Library-wise check-in and check-out records for your assigned locations."
+>
+  <div actions class="flex items-center gap-2">
+    <a routerLink="/attendance/scanner">
+      <app-button size="sm" variant="outline">
+        <svg lucideQrCode class="h-3.5 w-3.5 mr-1"></svg>
+        Open scanner
+      </app-button>
+    </a>
+  </div>
+</app-page-header>
+
+@if (loading()) {
+  <p class="py-16 text-center text-sm text-muted-foreground">Loading attendance…</p>
+} @else {
+  <section class="attendance-kpi-grid mb-4">
+    <div class="attendance-kpi">
+      <p class="attendance-kpi__label">Total sessions</p>
+      <p class="attendance-kpi__value">{{ summary()?.totalRecords ?? 0 }}</p>
+    </div>
+    <div class="attendance-kpi">
+      <p class="attendance-kpi__label">Unique members</p>
+      <p class="attendance-kpi__value">{{ summary()?.uniqueMembers ?? 0 }}</p>
+    </div>
+    <div class="attendance-kpi">
+      <p class="attendance-kpi__label">Checked in now</p>
+      <p class="attendance-kpi__value text-emerald-600">{{ summary()?.currentlyCheckedIn ?? 0 }}</p>
+    </div>
+    <div class="attendance-kpi">
+      <p class="attendance-kpi__label">Checked out</p>
+      <p class="attendance-kpi__value">{{ summary()?.checkedOut ?? 0 }}</p>
+    </div>
+  </section>
+
+  <app-glass-card class="block p-4 mb-4">
+    <div class="attendance-filter-card">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div>
+          <label class="text-sm font-medium">Library</label>
+          <select
+            class="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            [ngModel]="libraryId()"
+            (ngModelChange)="onLibraryChange($event)">
+            <option value="">
+              @if (isSuperAdmin()) {
+                All libraries
+              } @else {
+                All my libraries
+              }
+            </option>
+            @for (library of libraries(); track library.id) {
+              <option [value]="library.id">{{ libraryLabel(library) }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">From</label>
+          <input
+            type="date"
+            class="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            [ngModel]="dateFrom()"
+            (ngModelChange)="onDateFromChange($event)"
+          />
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">To</label>
+          <input
+            type="date"
+            class="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            [ngModel]="dateTo()"
+            (ngModelChange)="onDateToChange($event)"
+          />
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Status</label>
+          <select
+            class="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="onStatusChange($event)">
+            <option [ngValue]="'all'">All statuses</option>
+            <option [ngValue]="AttendanceStatus.CheckedIn">CheckedIn</option>
+            <option [ngValue]="AttendanceStatus.CheckedOut">CheckedOut</option>
+            <option [ngValue]="AttendanceStatus.Present">Present</option>
+            <option [ngValue]="AttendanceStatus.Late">Late</option>
+            <option [ngValue]="AttendanceStatus.Absent">Absent</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-3 relative">
+        <svg lucideSearch class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
+        <input
+          type="search"
+          class="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+          placeholder="Search member, membership no, or seat…"
+          [ngModel]="search()"
+          (ngModelChange)="onSearchChange($event)"
+        />
+      </div>
+    </div>
+
+    @if (recordsLoading()) {
+      <p class="py-10 text-center text-sm text-muted-foreground">Loading records…</p>
+    } @else {
+      <div class="attendance-table-wrap">
+        <table class="attendance-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Member</th>
+              @if (showLibraryColumn()) {
+                <th>Library</th>
+              }
+              <th>Check-in</th>
+              <th>Check-out</th>
+              <th>Duration</th>
+              <th>Seat</th>
+              <th>Status</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (record of records(); track record.id) {
+              <tr>
+                <td class="tabular-nums whitespace-nowrap">{{ record.attendanceDate | date:'mediumDate' }}</td>
+                <td>
+                  <a [routerLink]="memberLink(record)" class="font-medium hover:text-primary">
+                    {{ record.memberName }}
+                  </a>
+                  <p class="text-xs text-muted-foreground font-mono">{{ record.membershipNo }}</p>
+                </td>
+                @if (showLibraryColumn()) {
+                  <td>
+                    <p class="font-medium">{{ record.libraryName }}</p>
+                    <p class="text-xs text-muted-foreground">{{ record.branchName }}</p>
+                  </td>
+                }
+                <td class="tabular-nums">{{ formatAttendanceTime(record.checkInAtUtc, record.checkInTime) }}</td>
+                <td class="tabular-nums">{{ formatAttendanceTime(record.checkOutAtUtc, record.checkOutTime) }}</td>
+                <td class="tabular-nums">
+                  @if (record.durationMinutes > 0) {
+                    {{ record.durationMinutes }} min
+                  } @else {
+                    —
+                  }
+                </td>
+                <td class="font-mono">{{ record.seatNo || '—' }}</td>
+                <td>
+                  <app-status-badge [status]="statusLabel(record.status)" />
+                </td>
+                <td>{{ sourceLabel(record.source) }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td [attr.colspan]="showLibraryColumn() ? 9 : 8" class="py-10 text-center text-muted-foreground">
+                  No attendance records for the selected filters.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (totalCount() > 0) {
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <p class="text-muted-foreground tabular-nums">
+            Showing {{ ((page() - 1) * pageSize()) + 1 }}–{{ Math.min(page() * pageSize(), totalCount()) }} of {{ totalCount() }}
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <select
+              class="h-8 rounded border bg-background px-2 text-xs"
+              [ngModel]="pageSize()"
+              (ngModelChange)="onPageSizeChange(+$event)">
+              @for (size of PAGE_SIZE_OPTS; track size) {
+                <option [value]="size">{{ size }} / page</option>
+              }
+            </select>
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="page() <= 1" (click)="goToPage(1)">
+              <svg lucideChevronLeft class="h-4 w-4"></svg>
+            </app-button>
+            <span class="text-xs tabular-nums px-1">Page {{ page() }} / {{ totalPages() }}</span>
+            <app-button variant="outline" size="icon" class="h-8 w-8" [disabled]="page() >= totalPages()" (click)="goToPage(page() + 1)">
+              <svg lucideChevronRight class="h-4 w-4"></svg>
+            </app-button>
+          </div>
+        </div>
+      }
+    }
+  </app-glass-card>
+}

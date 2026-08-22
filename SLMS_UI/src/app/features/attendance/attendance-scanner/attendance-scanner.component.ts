@@ -6,6 +6,7 @@ import {
   LucideScanLine, LucideSearch, LucideXCircle,
 } from '@lucide/angular';
 import { AttendanceScannerService } from '@core/services/attendance-scanner.service';
+import { AuthService } from '@core/services/auth.service';
 import { KioskDeviceService } from '@core/services/kiosk-device.service';
 import { ToastService } from '@core/services/toast.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
@@ -17,6 +18,8 @@ import {
   ScannerMemberStatus,
   AttendanceSeatOption,
 } from '@core/models/attendanceModels';
+import { LibraryListItem } from '@core/models/library-list.models';
+import { LibraryService } from '../../libraries/library.service';
 import { AttendanceSeatPickerComponent } from '../components/attendance-seat-picker/attendance-seat-picker.component';
 import { formatAttendanceDisplayTime } from '../attendance-format.util';
 
@@ -35,6 +38,8 @@ import { formatAttendanceDisplayTime } from '../attendance-format.util';
 export class AttendanceScannerComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly scanner = inject(AttendanceScannerService);
+  private readonly libraryService = inject(LibraryService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly device = inject(KioskDeviceService);
 
@@ -42,6 +47,8 @@ export class AttendanceScannerComponent implements OnInit {
   readonly busy = signal(false);
   readonly context = signal<ScannerContext | null>(null);
   readonly tokenInput = signal('');
+  readonly libraries = signal<LibraryListItem[]>([]);
+  readonly selectedLibraryId = signal('');
   readonly memberSearch = signal('');
   readonly members = signal<ScannerMemberOption[]>([]);
   readonly memberPickerOpen = signal(false);
@@ -53,33 +60,67 @@ export class AttendanceScannerComponent implements OnInit {
   readonly seatsLoading = signal(false);
   readonly selectedSeatNumber = signal<string | null>(null);
 
-  readonly canCheckIn = computed(() => {
-    const s = this.memberStatus();
-    return s?.suggestedAction === 'check-in';
-  });
-
-  readonly canCheckOut = computed(() => {
-    const s = this.memberStatus();
-    return s?.suggestedAction === 'check-out';
-  });
-
+  readonly isSuperAdmin = computed(() => this.auth.hasRole('SuperAdmin'));
+  readonly canCheckIn = computed(() => this.memberStatus()?.suggestedAction === 'check-in');
+  readonly canCheckOut = computed(() => this.memberStatus()?.suggestedAction === 'check-out');
   readonly isDone = computed(() => this.memberStatus()?.suggestedAction === 'done');
   readonly formatAttendanceTime = formatAttendanceDisplayTime;
 
   ngOnInit(): void {
-    const token = this.route.snapshot.queryParamMap.get('token');
-    if (token) {
-      this.tokenInput.set(token);
-      this.loadContext(token);
-    } else {
-      this.loading.set(false);
+    this.libraryService.getListView({ status: 'active' }).subscribe({
+      next: (view) => {
+        const items = view.items ?? [];
+        this.libraries.set(items);
+        this.loading.set(false);
+
+        const queryToken = this.route.snapshot.queryParamMap.get('token');
+        if (queryToken) {
+          this.tokenInput.set(queryToken);
+          this.loadContext(queryToken);
+          return;
+        }
+
+        if (items.length === 1) {
+          this.selectLibrary(items[0].id);
+        }
+      },
+      error: () => {
+        this.loading.set(false);
+        this.toast.error('Could not load your libraries');
+      },
+    });
+  }
+
+  libraryLabel(library: LibraryListItem): string {
+    return `${library.name} · ${library.branchName}`;
+  }
+
+  selectLibrary(libraryId: string): void {
+    if (!libraryId) {
+      this.resetLibraryContext();
+      return;
     }
+
+    this.selectedLibraryId.set(libraryId);
+    this.clearMember();
+    this.loading.set(true);
+
+    this.scanner.getLibraryQr(libraryId).subscribe({
+      next: (qr) => {
+        this.qrImage.set(qr.qrCodeBase64);
+        this.loadContext(qr.token);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.toast.error(err?.error?.message ?? 'You do not have access to this library');
+      },
+    });
   }
 
   loadContext(token?: string): void {
     const value = (token ?? this.tokenInput()).trim();
     if (!value) {
-      this.toast.error('Enter or scan a library QR token');
+      this.toast.error('Select a library or enter a valid attendance token');
       return;
     }
 
@@ -88,13 +129,18 @@ export class AttendanceScannerComponent implements OnInit {
       next: (ctx) => {
         this.context.set(ctx);
         this.tokenInput.set(ctx.token);
+        this.selectedLibraryId.set(ctx.libraryId);
         this.loading.set(false);
-        this.loadQr(ctx.libraryId);
+        if (!this.qrImage()) {
+          this.loadQr(ctx.libraryId);
+        }
         this.searchMembers();
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
-        this.toast.error('Invalid attendance QR code');
+        this.context.set(null);
+        this.qrImage.set(null);
+        this.toast.error(err?.error?.message ?? 'Invalid attendance QR code');
       },
     });
   }
@@ -105,6 +151,7 @@ export class AttendanceScannerComponent implements OnInit {
 
     this.scanner.searchMembers(token, this.memberSearch()).subscribe({
       next: (list) => this.members.set(list),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Could not search members'),
     });
   }
 
@@ -171,12 +218,20 @@ export class AttendanceScannerComponent implements OnInit {
     });
   }
 
+  private resetLibraryContext(): void {
+    this.context.set(null);
+    this.qrImage.set(null);
+    this.tokenInput.set('');
+    this.clearMember();
+  }
+
   private loadMemberStatus(memberId: string): void {
     const token = this.context()?.token;
     if (!token) return;
 
     this.scanner.getMemberStatus(token, memberId).subscribe({
       next: (status) => this.memberStatus.set(status),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Could not load member status'),
     });
   }
 

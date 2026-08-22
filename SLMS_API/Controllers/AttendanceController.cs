@@ -190,4 +190,62 @@ public class AttendanceController : ControllerBase
             return BadRequest(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Fail(ex.Message));
         }
     }
+
+    /// <summary>
+    /// Library-scoped attendance summary for the logged-in user.
+    /// </summary>
+    [HttpGet("summary")]
+    [Permission(PermissionKey.AttendanceView)]
+    public async Task<ActionResult<ApiResponse<AttendanceModuleSummaryResponse>>> GetModuleSummary(
+        [FromQuery] AttendanceModuleQuery query,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var summary = await _attendanceService.GetModuleSummaryAsync(query, userId, cancellationToken);
+            return Ok(ApiResponse<AttendanceModuleSummaryResponse>.Ok(summary));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<AttendanceModuleSummaryResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<AttendanceModuleSummaryResponse>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Library-scoped attendance records for the logged-in user.
+    /// </summary>
+    [HttpGet("records")]
+    [Permission(PermissionKey.AttendanceList)]
+    public async Task<ActionResult<ApiResponse<PagedResult<AttendanceRecordListItemResponse>>>> GetModuleRecords(
+        [FromQuery] AttendanceModuleQuery query,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var records = await _attendanceService.GetModuleRecordsAsync(query, userId, cancellationToken);
+            return Ok(ApiResponse<PagedResult<AttendanceRecordListItemResponse>>.Ok(records));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<PagedResult<AttendanceRecordListItemResponse>>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<PagedResult<AttendanceRecordListItemResponse>>.Fail(ex.Message));
+        }
+    }
 }

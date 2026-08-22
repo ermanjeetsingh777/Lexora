@@ -26,6 +26,14 @@ public class AttendanceScannerService : IAttendanceScannerService
         _logger = logger;
     }
 
+    public async Task<Guid> ResolveLibraryIdByTokenAsync(
+        string libraryToken,
+        CancellationToken cancellationToken = default)
+    {
+        var library = await ResolveLibraryAsync(libraryToken, cancellationToken);
+        return library.Id;
+    }
+
     public async Task<ScannerContextResponse> GetContextAsync(
         string libraryToken,
         string? scanUrlBase,

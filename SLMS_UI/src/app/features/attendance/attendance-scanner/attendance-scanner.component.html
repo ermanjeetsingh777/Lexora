@@ -1,7 +1,7 @@
 <app-page-header
   eyebrow="Attendance"
   title="QR scanner"
-  description="Scan the library QR code, select a member, then check in or check out."
+  description="Select your library, then choose a member to check in or check out."
 />
 
 @if (loading()) {
@@ -11,27 +11,46 @@
     <app-glass-card class="block p-5 lg:col-span-1">
       <div class="flex items-center gap-2 mb-3">
         <svg lucideQrCode class="h-5 w-5 text-primary"></svg>
-        <h2 class="font-semibold text-sm">Library QR</h2>
+        <h2 class="font-semibold text-sm">Library</h2>
       </div>
 
-      @if (!context()) {
-        <p class="text-sm text-muted-foreground mb-3">Paste the token from a scanned QR or open a scan link.</p>
-        <input
-          class="w-full rounded-md border bg-background px-3 py-2 text-sm mb-3"
-          placeholder="Library attendance token…"
-          [ngModel]="tokenInput()"
-          (ngModelChange)="tokenInput.set($event)"
-        />
-        <app-button class="w-full" (click)="loadContext()">Connect</app-button>
-      } @else {
+      <label class="text-sm font-medium">Your libraries</label>
+      <select
+        class="mt-1.5 mb-4 w-full rounded-md border bg-background px-3 py-2 text-sm"
+        [ngModel]="selectedLibraryId()"
+        (ngModelChange)="selectLibrary($event)">
+        <option value="">Select a library…</option>
+        @for (library of libraries(); track library.id) {
+          <option [value]="library.id">{{ libraryLabel(library) }}</option>
+        }
+      </select>
+
+      @if (isSuperAdmin()) {
+        <div class="mb-4 rounded-md border border-dashed p-3">
+          <p class="text-xs text-muted-foreground mb-2">SuperAdmin: connect with any library token.</p>
+          <input
+            class="w-full rounded-md border bg-background px-3 py-2 text-sm mb-2"
+            placeholder="Library attendance token…"
+            [ngModel]="tokenInput()"
+            (ngModelChange)="tokenInput.set($event)"
+          />
+          <app-button class="w-full" variant="outline" size="sm" (click)="loadContext()">Connect token</app-button>
+        </div>
+      }
+
+      @if (context(); as ctx) {
         <div class="space-y-2 text-sm">
-          <p class="font-medium">{{ context()!.libraryName }}</p>
-          <p class="text-muted-foreground">{{ context()!.institutionName }} · {{ context()!.branchName }}</p>
+          <p class="font-medium">{{ ctx.libraryName }}</p>
+          <p class="text-muted-foreground">{{ ctx.institutionName }} · {{ ctx.branchName }}</p>
         </div>
         @if (qrImage()) {
           <img [src]="qrImage()!" alt="Attendance QR code" class="mt-4 mx-auto w-40 h-40 rounded-lg border bg-white p-2" />
-          <p class="text-[11px] text-muted-foreground text-center mt-2 break-all">{{ context()!.scanUrl }}</p>
+          <p class="text-[11px] text-muted-foreground text-center mt-2 break-all">{{ ctx.scanUrl }}</p>
         }
+      } @else if (!libraries().length) {
+        <p class="text-sm text-muted-foreground">No active libraries are assigned to your account.</p>
+      } @else {
+        <p class="text-sm text-muted-foreground">Choose a library from the list to start scanning.</p>
       }
     </app-glass-card>
 
@@ -42,7 +61,7 @@
       </div>
 
       @if (!context()) {
-        <p class="text-sm text-muted-foreground">Connect a library QR code to begin.</p>
+        <p class="text-sm text-muted-foreground">Select a library to begin.</p>
       } @else {
         <div class="space-y-4">
           <div class="relative">

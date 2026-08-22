@@ -504,6 +504,11 @@ public static class LibraryOverviewHelper
             libraryId,
             cancellationToken);
 
+        var sessionsBySeat = await AttendanceSeatHelper.GetTodaySeatSessionsByNumberAsync(
+            dbContext,
+            libraryId,
+            cancellationToken);
+
         var sourceSeats = dbSeats.Count > 0
             ? dbSeats.Select(seat => new SeatSource(
                 seat.Id,
@@ -520,7 +525,12 @@ public static class LibraryOverviewHelper
         {
             var source = sourceSeats[index];
             var section = ParseSection(source.Number);
-            var isOccupied = occupiedSeatIds.Contains(source.Id)
+            sessionsBySeat.TryGetValue(source.Number, out var todaySessions);
+            todaySessions ??= [];
+
+            var activeSession = todaySessions.FirstOrDefault(x => x.IsActive);
+            var isOccupied = activeSession != null
+                             || occupiedSeatIds.Contains(source.Id)
                              || memberBySeatNumber.ContainsKey(source.Number)
                              || sessionOccupancy.ContainsKey(source.Number);
             var status = !source.IsActive
@@ -529,7 +539,8 @@ public static class LibraryOverviewHelper
                     ? "occupied"
                     : "available";
 
-            memberBySeatNumber.TryGetValue(source.Number, out var memberName);
+            memberBySeatNumber.TryGetValue(source.Number, out var assignedMemberName);
+            var memberName = activeSession?.MemberName ?? assignedMemberName;
             if (string.IsNullOrWhiteSpace(memberName))
             {
                 sessionOccupancy.TryGetValue(source.Number, out memberName);
@@ -546,6 +557,15 @@ public static class LibraryOverviewHelper
                 Status = status,
                 Type = source.Type,
                 MemberName = memberName,
+                TodaySessionCount = todaySessions.Count,
+                TodaySessions = todaySessions.Select(session => new LibrarySeatSessionResponse
+                {
+                    MemberName = session.MemberName,
+                    MembershipNo = session.MembershipNo,
+                    CheckInTime = session.CheckInTime?.ToString("HH:mm"),
+                    CheckOutTime = session.CheckOutTime?.ToString("HH:mm"),
+                    IsActive = session.IsActive,
+                }).ToList(),
             });
         }
 

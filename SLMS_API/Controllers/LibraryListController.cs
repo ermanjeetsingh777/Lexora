@@ -112,13 +112,20 @@ public class LibraryListController : ControllerBase
         Guid libraryId,
         CancellationToken cancellationToken = default)
     {
-        if (!Guid.TryParse(_currentUserService.UserId, out _))
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
         {
             return Unauthorized();
         }
 
         try
         {
+            if (!await _libraryService.UserCanAccessLibraryAsync(libraryId, userId, cancellationToken))
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<ScannerQrCodeResponse>.Fail("You do not have access to this library."));
+            }
+
             var qr = await _scannerService.GetQrCodeAsync(
                 libraryId,
                 _configuration["Attendance:LibraryKioskUrlBase"]

@@ -10,6 +10,7 @@ import type {
   LibraryDetailTab,
   SeatStatus,
   TimeFormat,
+  LibrarySeatSession,
 } from '@core/models/library-detail.models';
 
 export const TABS: { id: LibraryDetailTab; label: string }[] = [
@@ -287,11 +288,78 @@ export function exceptionsToApiPayload(items: HoursException[]) {
 
 export function layoutSeats(seats: LibrarySeat[]): LibrarySeat[] {
   const cols = 10;
-  return seats.map((seat, index) => ({
+  const sorted = [...seats].sort((a, b) => compareSeatNumbers(a.number, b.number));
+  return sorted.map((seat, index) => ({
     ...seat,
     row: seat.row || Math.floor(index / cols) + 1,
     col: seat.col || (index % cols) + 1,
   }));
+}
+
+export function compareSeatNumbers(a: string, b: string): number {
+  const left = parseSeatNumber(a);
+  const right = parseSeatNumber(b);
+  const prefixCmp = left.prefix.localeCompare(right.prefix, undefined, { sensitivity: 'base' });
+  if (prefixCmp !== 0) {
+    return prefixCmp;
+  }
+  return left.num - right.num;
+}
+
+function parseSeatNumber(value: string): { prefix: string; num: number } {
+  const match = value.trim().match(/^([^\d]*)(\d+)$/);
+  if (!match) {
+    return { prefix: value, num: 0 };
+  }
+  return { prefix: match[1], num: Number(match[2]) };
+}
+
+export function seatInitials(name?: string | null): string {
+  if (!name?.trim()) {
+    return '';
+  }
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+export function seatFirstName(name?: string | null): string {
+  if (!name?.trim()) {
+    return '';
+  }
+  return name.trim().split(/\s+/)[0];
+}
+
+export function seatActiveMember(seat: LibrarySeat): { name: string; initials: string; firstName: string } | null {
+  const activeSession = seat.todaySessions?.find((session) => session.isActive);
+  const name = activeSession?.memberName ?? seat.memberName;
+  if (!name?.trim()) {
+    return null;
+  }
+  return {
+    name: name.trim(),
+    initials: seatInitials(name),
+    firstName: seatFirstName(name),
+  };
+}
+
+export function seatMemberHue(name: string): number {
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % 360;
+}
+
+export function seatTileStyle(seat: LibrarySeat): Record<string, string> {
+  const member = seatActiveMember(seat);
+  if (!member || seat.status !== 'occupied') {
+    return {};
+  }
+  return { '--seat-member-hue': `${seatMemberHue(member.name)}` };
 }
 
 export function formatActivityTime(value: string): string {
@@ -305,6 +373,45 @@ export function formatActivityTime(value: string): string {
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
   return date.toLocaleDateString();
+}
+
+export function buildSeatTooltip(seat: LibrarySeat): string {
+  const lines: string[] = [`Seat ${seat.number} · ${seat.type}`];
+  const sessions = seat.todaySessions ?? [];
+
+  if (sessions.length > 0) {
+    lines.push(`Today: ${seat.todaySessionCount ?? sessions.length} member(s)`);
+    for (const session of sessions) {
+      const memberLabel = session.membershipNo
+        ? `${session.memberName} (${session.membershipNo})`
+        : session.memberName;
+      const timeLabel = formatSeatSessionTime(session);
+      if (session.isActive) {
+        lines.push(`● Now: ${memberLabel}${timeLabel ? ` · ${timeLabel}` : ''}`);
+      } else {
+        lines.push(`○ Done: ${memberLabel}${timeLabel ? ` · ${timeLabel}` : ''}`);
+      }
+    }
+    return lines.join('\n');
+  }
+
+  if (seat.memberName) {
+    lines.push(`● Now: ${seat.memberName}`);
+  } else if (seat.status === 'available') {
+    lines.push('Available');
+  }
+
+  return lines.join('\n');
+}
+
+function formatSeatSessionTime(session: LibrarySeatSession): string {
+  if (session.checkInTime && session.checkOutTime) {
+    return `${session.checkInTime} – ${session.checkOutTime}`;
+  }
+  if (session.checkInTime) {
+    return `from ${session.checkInTime}`;
+  }
+  return '';
 }
 
 export function seatStatusClass(status: SeatStatus): string {

@@ -214,6 +214,23 @@ public class LibraryService : ILibraryService
         };
     }
 
+    public async Task<bool> UserCanAccessLibraryAsync(
+        Guid libraryId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var scopedLibrariesQuery = await BuildScopedLibrariesQueryAsync(new LibraryListQuery(), userId, cancellationToken);
+        return await scopedLibrariesQuery.AnyAsync(x => x.Id == libraryId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<Guid>> GetAccessibleLibraryIdsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var scopedLibrariesQuery = await BuildScopedLibrariesQueryAsync(new LibraryListQuery(), userId, cancellationToken);
+        return await scopedLibrariesQuery.Select(x => x.Id).ToListAsync(cancellationToken);
+    }
+
     public async Task<LibraryCalendarViewResponse?> GetCalendarViewAsync(
         Guid libraryId,
         Guid userId,
@@ -221,9 +238,7 @@ public class LibraryService : ILibraryService
         DateOnly endDate,
         CancellationToken cancellationToken = default)
     {
-        var scopedLibrariesQuery = await BuildScopedLibrariesQueryAsync(new LibraryListQuery(), userId, cancellationToken);
-        var hasAccess = await scopedLibrariesQuery.AnyAsync(x => x.Id == libraryId, cancellationToken);
-        if (!hasAccess)
+        if (!await UserCanAccessLibraryAsync(libraryId, userId, cancellationToken))
         {
             return null;
         }

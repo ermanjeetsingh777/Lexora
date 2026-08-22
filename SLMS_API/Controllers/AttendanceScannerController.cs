@@ -17,17 +17,20 @@ namespace SLMS_API.Controllers;
 public class AttendanceScannerController : ControllerBase
 {
     private readonly IAttendanceScannerService _scannerService;
+    private readonly ILibraryService _libraryService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AttendanceScannerController> _logger;
 
     public AttendanceScannerController(
         IAttendanceScannerService scannerService,
+        ILibraryService libraryService,
         ICurrentUserService currentUserService,
         IConfiguration configuration,
         ILogger<AttendanceScannerController> logger)
     {
         _scannerService = scannerService;
+        _libraryService = libraryService;
         _currentUserService = currentUserService;
         _configuration = configuration;
         _logger = logger;
@@ -41,8 +44,13 @@ public class AttendanceScannerController : ControllerBase
     {
         try
         {
+            await EnsureLibraryAccessForTokenAsync(token, cancellationToken);
             var context = await _scannerService.GetContextAsync(token, GetLibraryKioskUrlBase(), cancellationToken);
             return Ok(ApiResponse<ScannerContextResponse>.Ok(context));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ScannerContextResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -59,8 +67,13 @@ public class AttendanceScannerController : ControllerBase
     {
         try
         {
+            await EnsureLibraryAccessForTokenAsync(token, cancellationToken);
             var members = await _scannerService.SearchMembersAsync(token, search, cancellationToken);
             return Ok(ApiResponse<IReadOnlyList<ScannerMemberOption>>.Ok(members));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<IReadOnlyList<ScannerMemberOption>>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -77,8 +90,13 @@ public class AttendanceScannerController : ControllerBase
     {
         try
         {
+            await EnsureLibraryAccessForTokenAsync(token, cancellationToken);
             var status = await _scannerService.GetMemberStatusAsync(token, memberId, cancellationToken);
             return Ok(ApiResponse<ScannerMemberStatusResponse>.Ok(status));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ScannerMemberStatusResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -94,8 +112,13 @@ public class AttendanceScannerController : ControllerBase
     {
         try
         {
+            await EnsureLibraryAccessForTokenAsync(token, cancellationToken);
             var seats = await _scannerService.GetLibrarySeatsAsync(token, cancellationToken);
             return Ok(ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Ok(seats));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -116,8 +139,13 @@ public class AttendanceScannerController : ControllerBase
                 return BadRequest(ApiResponse<ScannerAttendanceResultResponse>.Fail("Member has already completed attendance for today."));
             }
 
+            await EnsureLibraryAccessForTokenAsync(request.LibraryToken, cancellationToken);
             var result = await _scannerService.RecordAsync(request, _currentUserService.UserId, cancellationToken);
             return Ok(ApiResponse<ScannerAttendanceResultResponse>.Ok(result, result.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ScannerAttendanceResultResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -134,8 +162,13 @@ public class AttendanceScannerController : ControllerBase
     {
         try
         {
+            await EnsureLibraryAccessAsync(libraryId, cancellationToken);
             var qr = await _scannerService.GetQrCodeAsync(libraryId, GetLibraryKioskUrlBase(), cancellationToken);
             return Ok(ApiResponse<ScannerQrCodeResponse>.Ok(qr));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ScannerQrCodeResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -157,6 +190,25 @@ public class AttendanceScannerController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(ApiResponse<MemberQrCodeResponse>.Fail(ex.Message));
+        }
+    }
+
+    private async Task EnsureLibraryAccessForTokenAsync(string libraryToken, CancellationToken cancellationToken)
+    {
+        var libraryId = await _scannerService.ResolveLibraryIdByTokenAsync(libraryToken, cancellationToken);
+        await EnsureLibraryAccessAsync(libraryId, cancellationToken);
+    }
+
+    private async Task EnsureLibraryAccessAsync(Guid libraryId, CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        if (!await _libraryService.UserCanAccessLibraryAsync(libraryId, userId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("You do not have access to this library.");
         }
     }
 

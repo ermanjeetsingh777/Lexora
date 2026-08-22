@@ -366,8 +366,27 @@
       </div>
       <div class="lib-seat-grid">
         @for (seat of seats(); track seat.id) {
-          <button type="button" class="lib-seat" [ngClass]="seatStatusClass(seat.status)" [title]="seat.number + ' · ' + seat.type + (seat.memberName ? ' · ' + seat.memberName : '')">
-            {{ seat.number }}
+          <button
+            type="button"
+            class="lib-seat"
+            [class.lib-seat--identified]="!!seatActiveMember(seat)"
+            [ngClass]="seatStatusClass(seat.status)"
+            [ngStyle]="seatTileStyle(seat)"
+            [attr.aria-label]="buildSeatTooltip(seat)"
+            (mouseenter)="showSeatTooltip($event, seat)"
+            (mouseleave)="hideSeatTooltip()"
+            (focus)="showSeatTooltip($event, seat)"
+            (blur)="hideSeatTooltip()">
+            <span class="lib-seat__number">{{ seat.number }}</span>
+            @if (seatActiveMember(seat); as occupant) {
+              <span class="lib-seat__identity">
+                <span class="lib-seat__initials">{{ occupant.initials }}</span>
+                <span class="lib-seat__name">{{ occupant.firstName }}</span>
+              </span>
+            }
+            @if ((seat.todaySessionCount ?? 0) > 1) {
+              <span class="lib-seat__count" [title]="(seat.todaySessionCount ?? 0) + ' members today'">{{ seat.todaySessionCount }}</span>
+            }
           </button>
         }
       </div>
@@ -387,8 +406,27 @@
           </div>
           <div class="lib-seat-grid lib-seat-grid--preview">
             @for (seat of seats(); track seat.id) {
-              <button type="button" class="lib-seat" [ngClass]="seatStatusClass(seat.status)" [title]="seat.number">
-                {{ seat.number }}
+              <button
+                type="button"
+                class="lib-seat"
+                [class.lib-seat--identified]="!!seatActiveMember(seat)"
+                [ngClass]="seatStatusClass(seat.status)"
+                [ngStyle]="seatTileStyle(seat)"
+                [attr.aria-label]="buildSeatTooltip(seat)"
+                (mouseenter)="showSeatTooltip($event, seat)"
+                (mouseleave)="hideSeatTooltip()"
+                (focus)="showSeatTooltip($event, seat)"
+                (blur)="hideSeatTooltip()">
+                <span class="lib-seat__number">{{ seat.number }}</span>
+                @if (seatActiveMember(seat); as occupant) {
+                  <span class="lib-seat__identity">
+                    <span class="lib-seat__initials">{{ occupant.initials }}</span>
+                    <span class="lib-seat__name">{{ occupant.firstName }}</span>
+                  </span>
+                }
+                @if ((seat.todaySessionCount ?? 0) > 1) {
+                  <span class="lib-seat__count">{{ seat.todaySessionCount }}</span>
+                }
               </button>
             }
           </div>
@@ -711,4 +749,15 @@
       </div>
     </app-glass-card>
   }
+}
+
+@if (seatFloatingTooltip(); as tip) {
+  <div
+    class="lib-seat-floating-tooltip"
+    [class.lib-seat-floating-tooltip--above]="tip.placement === 'above'"
+    [style.left.px]="tip.x"
+    [style.top.px]="tip.y"
+    role="tooltip">
+    {{ tip.text }}
+  </div>
 }

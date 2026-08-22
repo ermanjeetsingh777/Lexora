@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { DecimalPipe, NgClass } from '@angular/common';
+import { DecimalPipe, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { catchError, finalize, of } from 'rxjs';
 import {
@@ -29,6 +29,7 @@ import {
   HoursException,
   LibraryDetailTab,
   LibraryDetailView,
+  LibrarySeat,
   LibrarySection,
   TimeFormat,
   TrendRange,
@@ -60,6 +61,9 @@ import {
   isExceptionNew,
   isExceptionPastLocked,
   layoutSeats,
+  buildSeatTooltip,
+  seatActiveMember,
+  seatTileStyle,
   summarizeExceptionChanges,
   todayLocalDateString,
   TABS,
@@ -86,6 +90,7 @@ import { collectRouteParams, libraryBackNav } from '@core/utils/entity-routes.ut
     FormsModule,
     DecimalPipe,
     NgClass,
+    NgStyle,
     PageHeaderComponent,
     GlassCardComponent,
     SectionHeaderComponent,
@@ -152,6 +157,12 @@ export class LibraryDetailComponent implements OnInit {
   readonly trendRange = signal<TrendRange>(30);
   readonly showErrors = signal(false);
   readonly seatPreviewOpen = signal(false);
+  readonly seatFloatingTooltip = signal<{
+    text: string;
+    x: number;
+    y: number;
+    placement: 'above' | 'below';
+  } | null>(null);
   readonly attendanceQr = signal<ScannerQrCode | null>(null);
   readonly attendanceQrLoading = signal(false);
 
@@ -277,6 +288,9 @@ export class LibraryDetailComponent implements OnInit {
   readonly fmtTime = fmtTime;
   readonly slotEqual = slotEqual;
   readonly seatStatusClass = seatStatusClass;
+  readonly buildSeatTooltip = buildSeatTooltip;
+  readonly seatActiveMember = seatActiveMember;
+  readonly seatTileStyle = seatTileStyle;
   readonly floorUtilisation = floorUtilisation;
   readonly sectionCapacityPercent = sectionCapacityPercent;
   readonly currentShift = currentShift;
@@ -612,6 +626,38 @@ export class LibraryDetailComponent implements OnInit {
 
   closeSeatPreview(): void {
     this.seatPreviewOpen.set(false);
+    this.hideSeatTooltip();
+  }
+
+  showSeatTooltip(event: Event, seat: LibrarySeat): void {
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+    const text = buildSeatTooltip(seat);
+    const edgePadding = 12;
+    const estimatedWidth = 224;
+    let x = rect.left + rect.width / 2;
+    x = Math.max(
+      edgePadding + estimatedWidth / 2,
+      Math.min(x, window.innerWidth - edgePadding - estimatedWidth / 2),
+    );
+
+    const belowY = rect.bottom + 8;
+    const placement = belowY + 96 > window.innerHeight ? 'above' : 'below';
+
+    this.seatFloatingTooltip.set({
+      text,
+      x,
+      y: placement === 'below' ? belowY : rect.top - 8,
+      placement,
+    });
+  }
+
+  hideSeatTooltip(): void {
+    this.seatFloatingTooltip.set(null);
   }
 
   private loadDetail(id: string, showLoader = true): void {

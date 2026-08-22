@@ -4,6 +4,7 @@ namespace SLMS_API.Application.Services.Interfaces;
 
 public interface IAttendanceScannerService
 {
+    Task<Guid> ResolveLibraryIdByTokenAsync(string libraryToken, CancellationToken cancellationToken = default);
     Task<ScannerContextResponse> GetContextAsync(string libraryToken, string? scanUrlBase, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ScannerMemberOption>> SearchMembersAsync(string libraryToken, string? search, CancellationToken cancellationToken = default);
     Task<ScannerMemberStatusResponse> GetMemberStatusAsync(string libraryToken, Guid memberId, CancellationToken cancellationToken = default);

@@ -73,6 +73,17 @@ public class LibraryDetailSeatResponse
     public string Status { get; set; } = "available";
     public string Type { get; set; } = "Standard";
     public string? MemberName { get; set; }
+    public int TodaySessionCount { get; set; }
+    public IReadOnlyCollection<LibrarySeatSessionResponse> TodaySessions { get; set; } = [];
+}
+
+public class LibrarySeatSessionResponse
+{
+    public string MemberName { get; set; } = string.Empty;
+    public string? MembershipNo { get; set; }
+    public string? CheckInTime { get; set; }
+    public string? CheckOutTime { get; set; }
+    public bool IsActive { get; set; }
 }
 
 public class LibrarySectionSummaryResponse

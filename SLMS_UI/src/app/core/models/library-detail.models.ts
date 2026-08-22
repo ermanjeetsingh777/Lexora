@@ -113,6 +113,14 @@ export interface HoursExceptionPayload {
 
 export type SeatStatus = 'available' | 'occupied' | 'reserved' | 'maintenance';
 
+export interface LibrarySeatSession {
+  memberName: string;
+  membershipNo?: string | null;
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
+  isActive: boolean;
+}
+
 export interface LibrarySeat {
   id: string;
   number: string;
@@ -123,6 +131,8 @@ export interface LibrarySeat {
   status: SeatStatus;
   type: string;
   memberName?: string | null;
+  todaySessionCount?: number;
+  todaySessions?: LibrarySeatSession[];
 }
 
 export type TimeFormat = '24h' | '12h';

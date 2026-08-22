@@ -153,14 +153,21 @@ public static class AttendanceSeatHelper
         memberLibrary.UpdatedAtUtc = DateTime.UtcNow;
     }
 
-    public static async Task<Dictionary<string, string>> GetActiveSessionOccupancyAsync(
+    public sealed record SeatSessionInfo(
+        string MemberName,
+        string? MembershipNo,
+        TimeOnly? CheckInTime,
+        TimeOnly? CheckOutTime,
+        bool IsActive);
+
+    public static async Task<Dictionary<string, List<SeatSessionInfo>>> GetTodaySeatSessionsByNumberAsync(
         ApplicationDbContext dbContext,
         Guid libraryId,
         CancellationToken cancellationToken)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var sessions = await (
+        var rows = await (
             from attendance in dbContext.MemberAttendances.AsNoTracking()
             join member in dbContext.Members.AsNoTracking() on attendance.MemberId equals member.Id
             where attendance.LibraryId == libraryId
@@ -168,19 +175,45 @@ public static class AttendanceSeatHelper
                   && attendance.IsActive
                   && !attendance.IsDeleted
                   && attendance.CheckInTime.HasValue
-                  && attendance.CheckOutTime == null
                   && attendance.SeatNo != null
                   && attendance.SeatNo != string.Empty
+            orderby attendance.CheckInTime
             select new
             {
                 attendance.SeatNo,
                 MemberName = member.FullName ?? "Member",
+                member.MembershipNo,
+                attendance.CheckInTime,
+                attendance.CheckOutTime,
             }
         ).ToListAsync(cancellationToken);
 
-        return sessions
+        return rows
             .GroupBy(x => x.SeatNo!, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First().MemberName, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => new SeatSessionInfo(
+                    x.MemberName,
+                    x.MembershipNo,
+                    x.CheckInTime,
+                    x.CheckOutTime,
+                    x.CheckInTime.HasValue && !x.CheckOutTime.HasValue)).ToList(),
+                StringComparer.OrdinalIgnoreCase);
+    }
+
+    public static async Task<Dictionary<string, string>> GetActiveSessionOccupancyAsync(
+        ApplicationDbContext dbContext,
+        Guid libraryId,
+        CancellationToken cancellationToken)
+    {
+        var sessionsBySeat = await GetTodaySeatSessionsByNumberAsync(dbContext, libraryId, cancellationToken);
+
+        return sessionsBySeat
+            .Where(x => x.Value.Any(session => session.IsActive))
+            .ToDictionary(
+                x => x.Key,
+                x => x.Value.First(session => session.IsActive).MemberName,
+                StringComparer.OrdinalIgnoreCase);
     }
 
     private static List<SeatSource> BuildVirtualSeats(Guid libraryId, int capacity)

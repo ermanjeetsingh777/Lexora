@@ -17,11 +17,16 @@ public class AttendanceService : IAttendanceService
 {
 
     private readonly ApplicationDbContext _context;
+    private readonly ILibraryService _libraryService;
     private readonly ILogger<AttendanceService> _logger;
 
-    public AttendanceService(ApplicationDbContext context, ILogger<AttendanceService> logger)
+    public AttendanceService(
+        ApplicationDbContext context,
+        ILibraryService libraryService,
+        ILogger<AttendanceService> logger)
     {
         _context = context;
+        _libraryService = libraryService;
         _logger = logger;
     }
 
@@ -588,6 +593,159 @@ public class AttendanceService : IAttendanceService
         }
 
         return await AttendanceSeatHelper.GetSeatOptionsAsync(_context, libraryId, cancellationToken);
+    }
+
+    public async Task<AttendanceModuleSummaryResponse> GetModuleSummaryAsync(
+        AttendanceModuleQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var (dateFrom, dateTo) = NormalizeModuleDateRange(query);
+        var scopedQuery = await BuildScopedAttendanceQueryAsync(userId, query.LibraryId, cancellationToken);
+        var filtered = ApplyModuleFilters(scopedQuery, query, dateFrom, dateTo);
+
+        var accessibleLibraries = query.LibraryId.HasValue
+            ? 1
+            : (await _libraryService.GetAccessibleLibraryIdsAsync(userId, cancellationToken)).Count;
+
+        return new AttendanceModuleSummaryResponse
+        {
+            TotalRecords = await filtered.CountAsync(cancellationToken),
+            UniqueMembers = await filtered.Select(x => x.MemberId).Distinct().CountAsync(cancellationToken),
+            CurrentlyCheckedIn = await filtered.CountAsync(
+                x => x.CheckInTime.HasValue && !x.CheckOutTime.HasValue,
+                cancellationToken),
+            CheckedOut = await filtered.CountAsync(x => x.CheckOutTime.HasValue, cancellationToken),
+            AccessibleLibraries = accessibleLibraries,
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+        };
+    }
+
+    public async Task<PagedResult<AttendanceRecordListItemResponse>> GetModuleRecordsAsync(
+        AttendanceModuleQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var (dateFrom, dateTo) = NormalizeModuleDateRange(query);
+        var page = query.Page < 1 ? 1 : query.Page;
+        var pageSize = query.PageSize is < 1 or > 100 ? 20 : query.PageSize;
+
+        var scopedQuery = await BuildScopedAttendanceQueryAsync(userId, query.LibraryId, cancellationToken);
+        var filtered = ApplyModuleFilters(scopedQuery, query, dateFrom, dateTo);
+
+        var totalCount = await filtered.CountAsync(cancellationToken);
+
+        var items = await (
+            from attendance in filtered
+            join member in _context.Members.AsNoTracking() on attendance.MemberId equals member.Id
+            join library in _context.Libraries.AsNoTracking() on attendance.LibraryId equals library.Id
+            join branch in _context.Branches.AsNoTracking() on library.BranchId equals branch.Id
+            join institution in _context.Institutions.AsNoTracking() on library.InstitutionId equals institution.Id
+            orderby attendance.AttendanceDate descending, attendance.CheckInTime descending, member.FullName
+            select new AttendanceRecordListItemResponse
+            {
+                Id = attendance.Id,
+                MemberId = attendance.MemberId,
+                MemberName = member.FullName,
+                MembershipNo = member.MembershipNo,
+                Shift = member.Shift,
+                LibraryId = attendance.LibraryId,
+                LibraryName = library.Name,
+                BranchName = branch.Name,
+                InstitutionName = institution.Name,
+                AttendanceDate = attendance.AttendanceDate,
+                CheckInTime = attendance.CheckInTime,
+                CheckOutTime = attendance.CheckOutTime,
+                CheckInAtUtc = attendance.CheckInTime.HasValue
+                    ? attendance.AttendanceDate.ToDateTime(attendance.CheckInTime.Value, DateTimeKind.Utc)
+                    : null,
+                CheckOutAtUtc = attendance.CheckOutTime.HasValue
+                    ? attendance.AttendanceDate.ToDateTime(attendance.CheckOutTime.Value, DateTimeKind.Utc)
+                    : null,
+                DurationMinutes = attendance.DurationMinutes,
+                Status = attendance.Status,
+                Source = attendance.Source,
+                SeatNo = attendance.SeatNo,
+            })
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<AttendanceRecordListItemResponse>(items, totalCount, page, pageSize);
+    }
+
+    private async Task<IQueryable<MemberAttendance>> BuildScopedAttendanceQueryAsync(
+        Guid userId,
+        Guid? libraryId,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.MemberAttendances
+            .AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDeleted);
+
+        if (libraryId.HasValue)
+        {
+            if (!await _libraryService.UserCanAccessLibraryAsync(libraryId.Value, userId, cancellationToken))
+            {
+                throw new UnauthorizedAccessException("You do not have access to this library.");
+            }
+
+            return query.Where(x => x.LibraryId == libraryId.Value);
+        }
+
+        var accessibleLibraryIds = await _libraryService.GetAccessibleLibraryIdsAsync(userId, cancellationToken);
+        if (accessibleLibraryIds.Count == 0)
+        {
+            return query.Where(_ => false);
+        }
+
+        return query.Where(x => accessibleLibraryIds.Contains(x.LibraryId));
+    }
+
+    private IQueryable<MemberAttendance> ApplyModuleFilters(
+        IQueryable<MemberAttendance> query,
+        AttendanceModuleQuery moduleQuery,
+        DateOnly dateFrom,
+        DateOnly dateTo)
+    {
+        query = query.Where(x => x.AttendanceDate >= dateFrom && x.AttendanceDate <= dateTo);
+
+        if (moduleQuery.Status.HasValue)
+        {
+            query = query.Where(x => x.Status == moduleQuery.Status.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(moduleQuery.Search))
+        {
+            var term = moduleQuery.Search.Trim();
+            query = query.Where(x =>
+                _context.Members.Any(m =>
+                    m.Id == x.MemberId &&
+                    (m.FullName.Contains(term) || m.MembershipNo.Contains(term))) ||
+                (x.SeatNo != null && x.SeatNo.Contains(term)));
+        }
+
+        return query;
+    }
+
+    private static (DateOnly DateFrom, DateOnly DateTo) NormalizeModuleDateRange(AttendanceModuleQuery query)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var dateFrom = query.DateFrom ?? today;
+        var dateTo = query.DateTo ?? today;
+
+        if (dateTo < dateFrom)
+        {
+            throw new InvalidOperationException("End date must be on or after start date.");
+        }
+
+        if (dateTo.DayNumber - dateFrom.DayNumber > 366)
+        {
+            throw new InvalidOperationException("Date range cannot exceed 366 days.");
+        }
+
+        return (dateFrom, dateTo);
     }
 
     private static Guid CreateSyntheticAttendanceId(Guid memberId, DateOnly date)

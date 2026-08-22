@@ -10,6 +10,8 @@ public interface ILibraryService
     Task<LibraryListRevenueSummaryResponse> GetListRevenueSummaryAsync(LibraryListQuery query, Guid userId, CancellationToken cancellationToken = default);
     Task<LibraryDetailViewResponse?> GetDetailViewAsync(Guid libraryId, Guid userId, int trendDays = 30, CancellationToken cancellationToken = default);
     Task<LibraryCalendarViewResponse?> GetCalendarViewAsync(Guid libraryId, Guid userId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
+    Task<bool> UserCanAccessLibraryAsync(Guid libraryId, Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<Guid>> GetAccessibleLibraryIdsAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<BranchLibraryCapacitySummaryResponse> GetBranchCapacitySummaryAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<LibraryResponse>> GetByBranchAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default);
     Task<LibraryResponse?> GetByIdAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default);

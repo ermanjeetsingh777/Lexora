@@ -123,7 +123,7 @@
   @if (tab() === 'overview') {
     @if (overview(); as ov) {
       @if (ov.activeBranchCount === 0) {
-        <app-glass-card class="p-10 text-center block">
+        <app-glass-card class="text-center block">
           <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
             <svg lucideBuilding2 class="h-5 w-5 text-muted-foreground"></svg>
           </div>
@@ -299,7 +299,7 @@
   <!-- Branches -->
   @if (tab() === 'branches' && branchesView(); as view) {
     @if (view.branches.length === 0) {
-      <app-glass-card class="p-10 text-center block">
+      <app-glass-card class="text-center block">
         <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
           <svg lucideBuilding2 class="h-5 w-5 text-muted-foreground"></svg>
         </div>
@@ -530,7 +530,7 @@
   <!-- Libraries -->
   @if (tab() === 'libraries') {
     @if (!allLibraries().length) {
-      <app-glass-card class="p-10 text-center block">
+      <app-glass-card class="text-center block">
         <div class="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
           <svg lucideLibrary class="h-5 w-5 text-muted-foreground"></svg>
         </div>
@@ -889,7 +889,7 @@
         </app-glass-card>
       </div>
     } @else {
-      <app-glass-card class="p-10 text-center block">
+      <app-glass-card class="text-center block">
         <svg lucideReceipt class="h-5 w-5 mx-auto text-muted-foreground mb-2"></svg>
         <p class="text-sm text-muted-foreground">Billing data is unavailable.</p>
       </app-glass-card>

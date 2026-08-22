@@ -39,5 +39,9 @@ public class InstitutionMembersController : ControllerBase
         {
             return BadRequest(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Fail(ex.Message));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Fail(ex.Message));
+        }
     }
 }

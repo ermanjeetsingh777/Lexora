@@ -33,11 +33,20 @@ namespace SLMS_API.Controllers
         //[Permission(PermissionKey.MembersManage)]
         public async Task<ActionResult<ApiResponse<IReadOnlyCollection<MemberListResponse>>>> GetAll(CancellationToken cancellationToken)
         {
+            if (!Guid.TryParse(_currentUserService.UserId, out _))
+            {
+                return Unauthorized();
+            }
+
             try
             {
                 var members = await _memberService.GetAllMemberListAsync(cancellationToken);
 
                 return Ok(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Ok(members));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Fail(ex.Message));
             }
             catch (InvalidOperationException ex)
             {
@@ -48,10 +57,19 @@ namespace SLMS_API.Controllers
         [HttpGet("summary")]
         public async Task<ActionResult<ApiResponse<MembershipSummaryResponse>>> GetSummary(CancellationToken cancellationToken)
         {
+            if (!Guid.TryParse(_currentUserService.UserId, out _))
+            {
+                return Unauthorized();
+            }
+
             try
             {
                 var summary = await _memberService.GetMembershipSummaryAsync(cancellationToken);
                 return Ok(ApiResponse<MembershipSummaryResponse>.Ok(summary));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<MembershipSummaryResponse>.Fail(ex.Message));
             }
             catch (InvalidOperationException ex)
             {

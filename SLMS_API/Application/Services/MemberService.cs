@@ -438,6 +438,9 @@ public class MemberService : IMemberService
 
     public async Task<IReadOnlyCollection<MemberListResponse>> GetLibraryMemberListAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default)
     {
+        var userId = await RequireCurrentUserIdAsync(cancellationToken);
+        var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
+
         var libraryExists = await _dbContext.Libraries
             .AsNoTracking()
             .AnyAsync(x =>
@@ -448,6 +451,9 @@ public class MemberService : IMemberService
 
         if (!libraryExists)
             throw new InvalidOperationException("Library not found.");
+
+        if (!CanAccessLibrary(institutionId, branchId, libraryId, scope))
+            throw new UnauthorizedAccessException("You do not have access to this library.");
 
         var today = DateTime.UtcNow;
         var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
@@ -572,6 +578,9 @@ public class MemberService : IMemberService
 
     public async Task<IReadOnlyCollection<MemberListResponse>> GetInstitutionMemberListAsync(Guid institutionId, CancellationToken cancellationToken = default)
     {
+        var userId = await RequireCurrentUserIdAsync(cancellationToken);
+        var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
+
         var institutionExists = await _dbContext.Institutions
             .AsNoTracking()
             .AnyAsync(x => x.Id == institutionId, cancellationToken);
@@ -579,11 +588,17 @@ public class MemberService : IMemberService
         if (!institutionExists)
             throw new InvalidOperationException("Institution not found.");
 
-        return await GetScopedMemberListAsync(institutionId, branchId: null, libraryId: null, cancellationToken);
+        if (!await CanAccessInstitutionAsync(institutionId, scope, cancellationToken))
+            throw new UnauthorizedAccessException("You do not have access to this institution.");
+
+        return await GetScopedMemberListAsync(institutionId, branchId: null, libraryId: null, scope, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<MemberListResponse>> GetBranchMemberListAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default)
     {
+        var userId = await RequireCurrentUserIdAsync(cancellationToken);
+        var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
+
         var branchExists = await _dbContext.Branches
             .AsNoTracking()
             .AnyAsync(x =>
@@ -594,21 +609,26 @@ public class MemberService : IMemberService
         if (!branchExists)
             throw new InvalidOperationException("Branch not found.");
 
-        return await GetScopedMemberListAsync(institutionId, branchId, libraryId: null, cancellationToken);
+        if (!CanAccessBranch(institutionId, branchId, scope))
+            throw new UnauthorizedAccessException("You do not have access to this branch.");
+
+        return await GetScopedMemberListAsync(institutionId, branchId, libraryId: null, scope, cancellationToken);
     }
 
     private async Task<IReadOnlyCollection<MemberListResponse>> GetScopedMemberListAsync(
         Guid institutionId,
         Guid? branchId,
         Guid? libraryId,
+        MemberAccessScope scope,
         CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
         var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var members = await _dbContext.Members
-            .AsNoTracking()
+        var membersQuery = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope);
+
+        var members = await membersQuery
             .Where(m => m.MemberLibraries.Any(ml =>
                 ml.InstitutionId == institutionId &&
                 ml.IsCurrent &&
@@ -715,12 +735,16 @@ public class MemberService : IMemberService
 
     public async Task<IReadOnlyCollection<MemberListResponse>> GetAllMemberListAsync(CancellationToken cancellationToken = default)
     {
+        var userId = await RequireCurrentUserIdAsync(cancellationToken);
+        var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
+
         var now = DateTime.UtcNow;
         var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var members = await _dbContext.Members
-            .AsNoTracking()
+        var membersQuery = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope);
+
+        var members = await membersQuery
             .Select(m => new
             {
                 m.Id,
@@ -888,6 +912,18 @@ public class MemberService : IMemberService
             .FirstOrDefault()
             })
         .FirstOrDefaultAsync(cancellationToken);
+
+        if (member is null)
+        {
+            return null;
+        }
+
+        var userId = await RequireCurrentUserIdAsync(cancellationToken);
+        var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
+        if (!CanAccessMemberLibrary(member.Library?.InstitutionId, member.Library?.BranchId, member.Library?.LibraryId, scope))
+        {
+            return null;
+        }
 
         var contacts = await _dbContext.MemberGuardianContacts
             .AsNoTracking()
@@ -1088,6 +1124,146 @@ public class MemberService : IMemberService
             },
             Attendance = recentAttendance,
         };
+    }
+
+    private sealed record MemberAccessScope(
+        bool IsSuperAdmin,
+        IReadOnlyCollection<Guid> InstitutionIds,
+        IReadOnlyCollection<Guid> BranchIds,
+        IReadOnlyCollection<Guid> LibraryIds);
+
+    private async Task<Guid> RequireCurrentUserIdAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_currentUserService.UserId) ||
+            !Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        return userId;
+    }
+
+    private async Task<bool> IsSuperAdminAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var userIdString = userId.ToString();
+
+        return await (
+            from ur in _dbContext.UserRoles.AsNoTracking()
+            join role in _dbContext.Roles.AsNoTracking() on ur.RoleId equals role.Id
+            where ur.UserId == userIdString && role.Name == RoleDefinitions.SuperAdmin
+            select ur.UserId
+        ).AnyAsync(cancellationToken);
+    }
+
+    private async Task<MemberAccessScope> ResolveMemberAccessScopeAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        if (await IsSuperAdminAsync(userId, cancellationToken))
+        {
+            return new MemberAccessScope(true, [], [], []);
+        }
+
+        var userIdString = userId.ToString();
+        var institutionIds = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .Where(x => x.UserId == userIdString && x.IsActive)
+            .Select(x => x.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        var branchIds = await _dbContext.UserBranches
+            .AsNoTracking()
+            .Where(x => x.UserId == userIdString && x.IsActive)
+            .Select(x => x.BranchId)
+            .ToListAsync(cancellationToken);
+
+        var libraryIds = await _dbContext.UserLibraries
+            .AsNoTracking()
+            .Where(x => x.UserId == userIdString && x.IsActive)
+            .Select(x => x.LibraryId)
+            .ToListAsync(cancellationToken);
+
+        return new MemberAccessScope(false, institutionIds, branchIds, libraryIds);
+    }
+
+    private static IQueryable<Domain.Entities.Member> ApplyMemberAccessScope(
+        IQueryable<Domain.Entities.Member> query,
+        MemberAccessScope scope)
+    {
+        if (scope.IsSuperAdmin)
+        {
+            return query;
+        }
+
+        if (scope.InstitutionIds.Count == 0 &&
+            scope.BranchIds.Count == 0 &&
+            scope.LibraryIds.Count == 0)
+        {
+            return query.Where(_ => false);
+        }
+
+        return query.Where(m => m.MemberLibraries.Any(ml =>
+            ml.IsCurrent &&
+            (scope.InstitutionIds.Contains(ml.InstitutionId) ||
+             scope.BranchIds.Contains(ml.BranchId) ||
+             scope.LibraryIds.Contains(ml.LibraryId))));
+    }
+
+    private static bool CanAccessBranch(Guid institutionId, Guid branchId, MemberAccessScope scope) =>
+        scope.IsSuperAdmin ||
+        scope.InstitutionIds.Contains(institutionId) ||
+        scope.BranchIds.Contains(branchId);
+
+    private static bool CanAccessLibrary(Guid institutionId, Guid branchId, Guid libraryId, MemberAccessScope scope) =>
+        scope.IsSuperAdmin ||
+        scope.InstitutionIds.Contains(institutionId) ||
+        scope.BranchIds.Contains(branchId) ||
+        scope.LibraryIds.Contains(libraryId);
+
+    private async Task<bool> CanAccessInstitutionAsync(
+        Guid institutionId,
+        MemberAccessScope scope,
+        CancellationToken cancellationToken)
+    {
+        if (scope.IsSuperAdmin || scope.InstitutionIds.Contains(institutionId))
+        {
+            return true;
+        }
+
+        if (scope.BranchIds.Count > 0 &&
+            await _dbContext.Branches.AsNoTracking().AnyAsync(
+                b => b.InstitutionId == institutionId && scope.BranchIds.Contains(b.Id),
+                cancellationToken))
+        {
+            return true;
+        }
+
+        if (scope.LibraryIds.Count > 0 &&
+            await _dbContext.Libraries.AsNoTracking().AnyAsync(
+                l => l.InstitutionId == institutionId && scope.LibraryIds.Contains(l.Id),
+                cancellationToken))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool CanAccessMemberLibrary(
+        Guid? institutionId,
+        Guid? branchId,
+        Guid? libraryId,
+        MemberAccessScope scope)
+    {
+        if (scope.IsSuperAdmin)
+        {
+            return true;
+        }
+
+        if (!institutionId.HasValue || !branchId.HasValue || !libraryId.HasValue)
+        {
+            return false;
+        }
+
+        return CanAccessLibrary(institutionId.Value, branchId.Value, libraryId.Value, scope);
     }
 
     private async Task<string> GenerateMembershipNumber(CancellationToken cancellationToken = default)

@@ -37,6 +37,12 @@
             [disabled]="loader() || (loginForm.invalid ?? true)">
              {{ loader() ? 'Signing in…' : 'Sign in' }}
         </button>
+        @if (showDemoLogin) {
+        <button type="button" (click)="loginAsDemo()" class="ui-btn-outline w-full cursorPointer"
+            [disabled]="loader()">
+            {{ loader() ? 'Signing in…' : 'Continue with demo account' }}
+        </button>
+        }
         <button type="button" (click)="submit()" class="ui-btn-outline w-full cursorPointer" >Sign in with one-time
             code</button>
         <div class="relative py-1">

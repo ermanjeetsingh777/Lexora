@@ -5,7 +5,7 @@ export const environment = {
   mockApi: false,
   appName: 'Smart Library Management System',
   email: 'institution@slms.com',
-  password: 'demo123',
+  password: 'Demo@12345',
   TOKEN_KEY: 'access_token',
   REFRESH_TOKEN_KEY: 'refresh_token',
   ACCESS_TOKEN_EXPIRES_KEY: 'access_token_expires',

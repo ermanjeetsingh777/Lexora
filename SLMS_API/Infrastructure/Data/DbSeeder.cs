@@ -73,6 +73,7 @@ public static class DbSeeder
         await dbContext.Database.MigrateAsync();
         await SeedRolesAsync(serviceProvider);
         await SeedRolePermissionsAsync(serviceProvider);
+        await DemoSeedData.SeedAsync(serviceProvider);
         await SeedSupportArticlesAsync(serviceProvider);
         await SeedBooksAsync(serviceProvider);
     }

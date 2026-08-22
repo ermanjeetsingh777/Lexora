@@ -13,6 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoginRequest } from '@core/models/AuthResponse.model';
 import { OnboardingSteps } from '@core/enums/OnbardingSteps';
 import { CommonService } from '@core/services/common.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -37,18 +38,31 @@ export class LoginComponent {
   readonly email = signal('');
   readonly password = signal('');
   readonly loader = signal(false);
+  readonly showDemoLogin = !environment.production;
 
   submit() {
+    this.performLogin({
+      email: this.email(),
+      password: this.password(),
+    });
+  }
+
+  loginAsDemo(): void {
+    this.performLogin({
+      email: environment.email,
+      password: environment.password,
+    });
+  }
+
+  private performLogin(request: LoginRequest): void {
+    if (this.loader()) {
+      return;
+    }
 
     this.loader.set(true);
 
-    const request: LoginRequest = {
-      email: this.email(),
-      password: this.password(),
-    }
     this.auth.login(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
-        console.log('Login response:', response);
         if (response.success && response.data) {
           this.getRedirect(response.data.user.onboardingStep);
         } else {
@@ -57,9 +71,9 @@ export class LoginComponent {
         this.loader.set(false);
       },
       error: (error) => {
-        this.toast.error(error.error.message || 'Unable to sign in. Please try again.');
+        this.toast.error(error.error?.message || 'Unable to sign in. Please try again.');
         this.loader.set(false);
-      }
+      },
     });
   }
 

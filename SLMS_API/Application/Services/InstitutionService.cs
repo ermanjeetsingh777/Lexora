@@ -573,18 +573,16 @@ public class InstitutionService : IInstitutionService
         var userIdString = userId.ToString();
         var isSuperAdmin = await IsSuperAdminAsync(userId, cancellationToken);
 
-        var institutionQuery = _dbContext.Institutions
+        var entity = await _dbContext.Institutions
             .AsNoTracking()
-            .Where(x => x.Id == id && !x.IsDeleted);
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
 
-        if (!isSuperAdmin)
+        if (entity is null)
         {
-            institutionQuery = institutionQuery.Where(x =>
-                x.UserInstitutions.Any(ui => ui.UserId == userIdString && ui.IsActive));
+            return null;
         }
 
-        var entity = await institutionQuery.FirstOrDefaultAsync(cancellationToken);
-        if (entity is null)
+        if (!isSuperAdmin && !await CanAccessInstitutionPageAsync(id, userIdString, cancellationToken))
         {
             return null;
         }
@@ -594,11 +592,12 @@ public class InstitutionService : IInstitutionService
             .Include(x => x.Branch)
             .Where(x => x.InstitutionId == id && !x.IsDeleted);
 
-        if (!isSuperAdmin)
-        {
-            librariesQuery = librariesQuery.Where(x =>
-                x.UserLibraries.Any(ul => ul.UserId == userIdString && ul.IsActive));
-        }
+        librariesQuery = await ApplyInstitutionLibrariesAccessScopeAsync(
+            librariesQuery,
+            id,
+            userId,
+            isSuperAdmin,
+            cancellationToken);
 
         var libraries = await librariesQuery
             .OrderBy(x => x.Branch!.Name)
@@ -862,6 +861,112 @@ public class InstitutionService : IInstitutionService
                     .ToList()
             })
             .ToList();
+    }
+
+    private async Task<IQueryable<Library>> ApplyInstitutionLibrariesAccessScopeAsync(
+        IQueryable<Library> librariesQuery,
+        Guid institutionId,
+        Guid userId,
+        bool isSuperAdmin,
+        CancellationToken cancellationToken)
+    {
+        if (isSuperAdmin)
+        {
+            return librariesQuery;
+        }
+
+        var userIdString = userId.ToString();
+        var hasInstitutionAccess = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .AnyAsync(
+                ui => ui.UserId == userIdString && ui.IsActive && ui.InstitutionId == institutionId,
+                cancellationToken);
+
+        if (hasInstitutionAccess)
+        {
+            return librariesQuery;
+        }
+
+        var accessibleBranchIds = await _dbContext.UserBranches
+            .AsNoTracking()
+            .Where(ub => ub.UserId == userIdString && ub.IsActive && ub.InstitutionId == institutionId)
+            .Select(ub => ub.BranchId)
+            .ToListAsync(cancellationToken);
+
+        var accessibleLibraryIds = await _dbContext.UserLibraries
+            .AsNoTracking()
+            .Where(ul => ul.UserId == userIdString && ul.IsActive && ul.InstitutionId == institutionId)
+            .Select(ul => ul.LibraryId)
+            .ToListAsync(cancellationToken);
+
+        if (accessibleBranchIds.Count == 0 && accessibleLibraryIds.Count == 0)
+        {
+            return librariesQuery.Where(_ => false);
+        }
+
+        return librariesQuery.Where(x =>
+            accessibleBranchIds.Contains(x.BranchId) ||
+            accessibleLibraryIds.Contains(x.Id));
+    }
+
+    private async Task<bool> CanAccessInstitutionPageAsync(
+        Guid institutionId,
+        string userIdString,
+        CancellationToken cancellationToken)
+    {
+        if (await _dbContext.UserInstitutions.AsNoTracking().AnyAsync(
+                ui => ui.UserId == userIdString && ui.IsActive && ui.InstitutionId == institutionId,
+                cancellationToken))
+        {
+            return true;
+        }
+
+        if (await _dbContext.UserBranches.AsNoTracking().AnyAsync(
+                ub => ub.UserId == userIdString && ub.IsActive && ub.InstitutionId == institutionId,
+                cancellationToken))
+        {
+            return true;
+        }
+
+        return await _dbContext.UserLibraries.AsNoTracking().AnyAsync(
+            ul => ul.UserId == userIdString && ul.IsActive && ul.InstitutionId == institutionId,
+            cancellationToken);
+    }
+
+    private async Task<IQueryable<Library>> ApplyLibraryAccessScopeAsync(
+        IQueryable<Library> librariesQuery,
+        Guid userId,
+        bool isSuperAdmin,
+        CancellationToken cancellationToken)
+    {
+        if (isSuperAdmin)
+        {
+            return librariesQuery;
+        }
+
+        var userIdString = userId.ToString();
+        var accessibleInstitutionIds = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .Where(ui => ui.UserId == userIdString && ui.IsActive)
+            .Select(ui => ui.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        var accessibleBranchIds = await _dbContext.UserBranches
+            .AsNoTracking()
+            .Where(ub => ub.UserId == userIdString && ub.IsActive)
+            .Select(ub => ub.BranchId)
+            .ToListAsync(cancellationToken);
+
+        var accessibleLibraryIds = await _dbContext.UserLibraries
+            .AsNoTracking()
+            .Where(ul => ul.UserId == userIdString && ul.IsActive)
+            .Select(ul => ul.LibraryId)
+            .ToListAsync(cancellationToken);
+
+        return librariesQuery.Where(x =>
+            accessibleInstitutionIds.Contains(x.InstitutionId) ||
+            accessibleBranchIds.Contains(x.BranchId) ||
+            accessibleLibraryIds.Contains(x.Id));
     }
 
     private async Task<bool> IsSuperAdminAsync(Guid userId, CancellationToken cancellationToken)

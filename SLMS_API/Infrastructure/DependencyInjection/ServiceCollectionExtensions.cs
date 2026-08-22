@@ -24,6 +24,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<DemoOptions>(configuration.GetSection(DemoOptions.SectionName));
 
         services.AddDbContext<ApplicationDbContext>(options =>
         {

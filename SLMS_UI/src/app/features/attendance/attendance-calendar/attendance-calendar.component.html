@@ -1,0 +1,239 @@
+<app-page-header
+  eyebrow="Attendance"
+  title="Monthly calendar"
+  description="Switch to range mode to aggregate KPIs across multiple days, by shift and late/absent status."
+>
+  <div actions class="hidden md:flex items-center gap-3 text-xs text-muted-foreground">
+    <span class="inline-flex items-center gap-1"><span class="attendance-calendar-legend attendance-calendar-legend--present"></span> Present</span>
+    <span class="inline-flex items-center gap-1"><span class="attendance-calendar-legend attendance-calendar-legend--late"></span> Late</span>
+    <span class="inline-flex items-center gap-1"><span class="attendance-calendar-legend attendance-calendar-legend--absent"></span> Absent</span>
+  </div>
+</app-page-header>
+
+<div class="flex flex-wrap items-center gap-3 mb-4">
+  <div class="attendance-calendar-toolbar">
+    <span class="attendance-calendar-toolbar__label">Mode</span>
+    <div class="attendance-range-toggle">
+      <button type="button" [class.is-active]="mode() === 'single'" (click)="setMode('single')">
+        <svg lucideCalendarDays class="h-3 w-3 inline-block mr-1"></svg> Single
+      </button>
+      <button type="button" [class.is-active]="mode() === 'range'" (click)="setMode('range')">
+        <svg lucideCalendarRange class="h-3 w-3 inline-block mr-1"></svg> Range
+      </button>
+    </div>
+  </div>
+
+  <div class="attendance-calendar-toolbar">
+    <svg lucideFilter class="h-3.5 w-3.5 text-muted-foreground"></svg>
+    <span class="attendance-calendar-toolbar__label">Shifts</span>
+    <div class="attendance-range-toggle">
+      @for (shift of shiftOptions; track shift) {
+        <button type="button" [class.is-active]="isShiftSelected(shift)" (click)="toggleShift(shift)">
+          {{ shift }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="attendance-calendar-toolbar">
+    <span class="attendance-calendar-toolbar__label">Status</span>
+    <div class="attendance-range-toggle">
+      <button type="button" [class.is-active]="statusFilter() === 'all'" (click)="setStatusFilter('all')">All</button>
+      <button type="button" [class.is-active]="statusFilter() === 'late'" (click)="setStatusFilter('late')">Late</button>
+      <button type="button" [class.is-active]="statusFilter() === 'absent'" (click)="setStatusFilter('absent')">Absent</button>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
+  <app-glass-card class="block">
+    <div class="attendance-calendar-selection" role="status" aria-live="polite" aria-atomic="true">
+      <span class="attendance-calendar-selection__eyebrow">{{ mode() === 'range' ? 'Range' : 'Day' }}</span>
+      @if (mode() === 'range') {
+        <span class="attendance-calendar-selection__chip">
+          <span class="attendance-calendar-selection__chip-tag">START</span>
+          {{ rangeStart() ? formatShortDate(rangeStart()!) : '—' }}
+        </span>
+        <span aria-hidden="true" class="text-muted-foreground">→</span>
+        <span class="attendance-calendar-selection__chip">
+          <span class="attendance-calendar-selection__chip-tag">END</span>
+          {{ rangeEnd() ? formatShortDate(rangeEnd()!) : '—' }}
+        </span>
+        <span class="text-muted-foreground">· {{ selectedDays().length }} day{{ selectedDays().length === 1 ? '' : 's' }}</span>
+      } @else {
+        <span class="font-mono text-foreground">{{ formatWeekdayDate(selected()) }}</span>
+      }
+      @if (selectedShifts().length < 4) {
+        <span class="text-muted-foreground">· {{ selectedShifts().join(', ') }}</span>
+      }
+      @if (statusFilter() !== 'all') {
+        <span class="text-muted-foreground">· {{ statusFilter() }}</span>
+      }
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold">{{ monthTitle() }}</h3>
+      <div class="flex items-center gap-1">
+        <button type="button" class="attendance-calendar-nav-btn" (click)="prevMonth()" aria-label="Previous month">
+          <svg lucideChevronLeft class="h-4 w-4"></svg>
+        </button>
+        <button type="button" class="attendance-calendar-today-btn" (click)="goToToday()">Today</button>
+        <button type="button" class="attendance-calendar-nav-btn" (click)="nextMonth()" aria-label="Next month">
+          <svg lucideChevronRight class="h-4 w-4"></svg>
+        </button>
+      </div>
+    </div>
+
+    @if (loadingMonth()) {
+      <p class="py-16 text-center text-sm text-muted-foreground">Loading calendar…</p>
+    } @else {
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs text-muted-foreground label-mono">Heatmap intensity</span>
+        <div class="flex items-center gap-1 label-mono text-[10px] text-muted-foreground">
+          <span>Low</span>
+          @for (value of intensityLegend; track value) {
+            <span class="attendance-calendar-intensity-swatch" [ngStyle]="intensityStyle(value)"></span>
+          }
+          <span>High</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-7 gap-1 label-mono mb-1 text-[10px] text-muted-foreground" aria-hidden="true">
+        @for (label of weekdayLabels; track label) {
+          <div class="text-center">{{ label }}</div>
+        }
+      </div>
+
+      <div
+        class="grid grid-cols-7 gap-1"
+        role="grid"
+        [attr.aria-label]="monthTitle() + ' attendance calendar' + (mode() === 'range' ? ', range selection' : '')"
+      >
+        @for (cell of gridCells(); track $index) {
+          <button
+            type="button"
+            role="gridcell"
+            class="attendance-calendar-cell"
+            [class.attendance-calendar-cell--empty]="!cell.date"
+            [class.attendance-calendar-cell--today]="isToday(cell.date)"
+            [class.attendance-calendar-cell--selected]="isSelected(cell.date)"
+            [class.attendance-calendar-cell--in-range]="isInRange(cell.date) && !isRangeEdge(cell.date)"
+            [class.attendance-calendar-cell--edge]="isRangeEdge(cell.date)"
+            [disabled]="!cell.date"
+            [ngStyle]="cell.date ? intensityStyle(cell.intensityPercent) : null"
+            [attr.aria-label]="cell.date ? (cell.date.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + ', ' + cell.intensityPercent + '% attendance') : null"
+            [attr.aria-selected]="mode() === 'range' ? isInRange(cell.date) || isRangeEdge(cell.date) : isSelected(cell.date)"
+            [attr.aria-current]="isToday(cell.date) ? 'date' : null"
+            [title]="cell.date ? (cell.date.toDateString() + ' — ' + cell.intensityPercent + '% attendance') : ''"
+            (click)="onSelectDate(cell.date)"
+          >
+            <div class="attendance-calendar-cell__tags">
+              @if (isRangeStart(cell.date)) {
+                <span class="attendance-calendar-cell__tag">{{ isRangeEnd(cell.date) ? 'S/E' : 'START' }}</span>
+              } @else if (isRangeEnd(cell.date)) {
+                <span class="attendance-calendar-cell__tag">END</span>
+              }
+            </div>
+            <span class="attendance-calendar-cell__day">{{ cell.date?.getDate() }}</span>
+          </button>
+        }
+      </div>
+
+      @if (mode() === 'range') {
+        <div class="mt-3 flex items-center justify-between gap-3 flex-wrap">
+          <p class="label-mono text-xs text-muted-foreground">
+            @if (rangeStart() && !rangeEnd()) {
+              {{ formatShortDate(rangeStart()!) }} selected — pick the end date
+            } @else if (rangeStart() && rangeEnd()) {
+              {{ formatShortDate(rangeStart()!) }} → {{ formatShortDate(rangeEnd()!) }} · click any day to start over
+            } @else {
+              Click a day to set the start of the range
+            }
+          </p>
+          @if (rangeStart() || rangeEnd()) {
+            <button type="button" class="attendance-calendar-clear-btn" (click)="clearRange()" aria-label="Clear range selection">
+              <svg lucideX class="h-3 w-3"></svg> Clear selection
+            </button>
+          }
+        </div>
+      }
+    }
+  </app-glass-card>
+
+  <div class="space-y-4">
+    <app-glass-card class="block">
+      @if (loadingSummary()) {
+        <p class="py-8 text-center text-sm text-muted-foreground">Loading summary…</p>
+      } @else {
+        <app-section-header
+          [title]="headerLabel()"
+          [description]="
+            filteredTotals().checkIns + ' of ' + filteredTotals().assigned + ' checked in' +
+            (avgPerDay() ? (' · avg ' + avgPerDay()!.checkIns + '/' + avgPerDay()!.assigned + ' per day') : '') +
+            (selectedShifts().length < 4 ? (' · ' + selectedShifts().join(', ')) : '')
+          "
+        />
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <app-kpi-card [label]="primaryKpi().label" [value]="primaryKpi().value">
+            @if (statusFilter() === 'all') {
+              <svg lucideLogIn icon class="h-4 w-4"></svg>
+            } @else if (statusFilter() === 'late') {
+              <svg lucideCalendarCheck icon class="h-4 w-4"></svg>
+            } @else {
+              <svg lucideLogOut icon class="h-4 w-4"></svg>
+            }
+          </app-kpi-card>
+          <app-kpi-card label="Check-outs" [value]="filteredTotals().checkOuts">
+            <svg lucideLogOut icon class="h-4 w-4"></svg>
+          </app-kpi-card>
+          <app-kpi-card label="Absent" [value]="filteredTotals().absent" />
+          <app-kpi-card label="Late" [value]="filteredTotals().late">
+            <svg lucideCalendarCheck icon class="h-4 w-4"></svg>
+          </app-kpi-card>
+        </div>
+      }
+    </app-glass-card>
+
+    <app-glass-card class="block">
+      <app-section-header
+        title="Per-shift breakdown"
+        [description]="
+          (visibleShiftRows().length < 4 ? 'Showing ' + selectedShifts().join(', ') : 'All shifts') +
+          (selectedDays().length > 1 ? (' · aggregated over ' + selectedDays().length + ' days') : '')
+        "
+      />
+      @if (loadingSummary()) {
+        <p class="py-8 text-center text-sm text-muted-foreground">Loading shift breakdown…</p>
+      } @else if (visibleShiftRows().length === 0) {
+        <p class="py-8 text-center text-sm text-muted-foreground">Select at least one shift to see data.</p>
+      } @else {
+        <ul class="mt-3 divide-y">
+          @for (row of visibleShiftRows(); track row.shift) {
+            <li class="py-3 flex items-center gap-3">
+              <div class="w-20">
+                <div class="text-sm font-medium">{{ row.shift }}</div>
+                <div class="label-mono text-xs text-muted-foreground">{{ row.assigned }} assigned</div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="h-2 rounded-full bg-muted overflow-hidden">
+                  <div class="h-full bg-primary" [style.width.%]="shiftAttendancePercent(row)"></div>
+                </div>
+                <div class="mt-1 flex items-center gap-3 label-mono text-xs text-muted-foreground flex-wrap">
+                  <span class="inline-flex items-center gap-1"><svg lucideLogIn class="h-3 w-3"></svg>{{ row.checkIns }}</span>
+                  <span class="inline-flex items-center gap-1"><svg lucideLogOut class="h-3 w-3"></svg>{{ row.checkOuts }}</span>
+                  @if (row.late > 0) {
+                    <app-status-badge [status]="row.late + ' late'" variant="warning" />
+                  }
+                  @if (row.absent > 0) {
+                    <app-status-badge [status]="row.absent + ' absent'" variant="destructive" />
+                  }
+                </div>
+              </div>
+              <div class="text-sm font-semibold w-10 text-right">{{ shiftAttendancePercent(row) }}%</div>
+            </li>
+          }
+        </ul>
+      }
+    </app-glass-card>
+  </div>
+</div>

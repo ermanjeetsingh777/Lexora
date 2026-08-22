@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import {
@@ -18,10 +18,9 @@ import {
   ScannerMemberStatus,
   AttendanceSeatOption,
 } from '@core/models/attendanceModels';
-import { LibraryListItem } from '@core/models/library-list.models';
-import { LibraryService } from '../../libraries/library.service';
 import { AttendanceSeatPickerComponent } from '../components/attendance-seat-picker/attendance-seat-picker.component';
 import { formatAttendanceDisplayTime } from '../attendance-format.util';
+import { AttendanceFilterService } from '../attendance-filter.service';
 
 @Component({
   selector: 'app-attendance-scanner',
@@ -38,7 +37,7 @@ import { formatAttendanceDisplayTime } from '../attendance-format.util';
 export class AttendanceScannerComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly scanner = inject(AttendanceScannerService);
-  private readonly libraryService = inject(LibraryService);
+  readonly filters = inject(AttendanceFilterService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly device = inject(KioskDeviceService);
@@ -47,8 +46,6 @@ export class AttendanceScannerComponent implements OnInit {
   readonly busy = signal(false);
   readonly context = signal<ScannerContext | null>(null);
   readonly tokenInput = signal('');
-  readonly libraries = signal<LibraryListItem[]>([]);
-  readonly selectedLibraryId = signal('');
   readonly memberSearch = signal('');
   readonly members = signal<ScannerMemberOption[]>([]);
   readonly memberPickerOpen = signal(false);
@@ -66,33 +63,29 @@ export class AttendanceScannerComponent implements OnInit {
   readonly isDone = computed(() => this.memberStatus()?.suggestedAction === 'done');
   readonly formatAttendanceTime = formatAttendanceDisplayTime;
 
-  ngOnInit(): void {
-    this.libraryService.getListView({ status: 'active' }).subscribe({
-      next: (view) => {
-        const items = view.items ?? [];
-        this.libraries.set(items);
+  constructor() {
+    effect(() => {
+      const libraryId = this.filters.libraryId();
+      if (!this.filters.librariesLoaded()) {
+        return;
+      }
+      if (libraryId) {
+        this.selectLibrary(libraryId);
+      } else if (this.filters.libraries().length === 1) {
+        this.selectLibrary(this.filters.libraries()[0].id);
+      } else {
+        this.resetLibraryContext();
         this.loading.set(false);
-
-        const queryToken = this.route.snapshot.queryParamMap.get('token');
-        if (queryToken) {
-          this.tokenInput.set(queryToken);
-          this.loadContext(queryToken);
-          return;
-        }
-
-        if (items.length === 1) {
-          this.selectLibrary(items[0].id);
-        }
-      },
-      error: () => {
-        this.loading.set(false);
-        this.toast.error('Could not load your libraries');
-      },
+      }
     });
   }
 
-  libraryLabel(library: LibraryListItem): string {
-    return `${library.name} · ${library.branchName}`;
+  ngOnInit(): void {
+    const queryToken = this.route.snapshot.queryParamMap.get('token');
+    if (queryToken) {
+      this.tokenInput.set(queryToken);
+      this.loadContext(queryToken);
+    }
   }
 
   selectLibrary(libraryId: string): void {
@@ -101,7 +94,6 @@ export class AttendanceScannerComponent implements OnInit {
       return;
     }
 
-    this.selectedLibraryId.set(libraryId);
     this.clearMember();
     this.loading.set(true);
 
@@ -129,7 +121,6 @@ export class AttendanceScannerComponent implements OnInit {
       next: (ctx) => {
         this.context.set(ctx);
         this.tokenInput.set(ctx.token);
-        this.selectedLibraryId.set(ctx.libraryId);
         this.loading.set(false);
         if (!this.qrImage()) {
           this.loadQr(ctx.libraryId);

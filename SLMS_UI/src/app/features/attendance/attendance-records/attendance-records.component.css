@@ -35,34 +35,3 @@
 .attendance-table tbody tr:hover {
   background: color-mix(in oklch, var(--muted) 20%, transparent);
 }
-
-.attendance-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-@media (min-width: 768px) {
-  .attendance-kpi-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.attendance-kpi {
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  padding: 0.875rem 1rem;
-  background: var(--background);
-}
-
-.attendance-kpi__label {
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-}
-
-.attendance-kpi__value {
-  margin-top: 0.25rem;
-  font-size: 1.375rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}

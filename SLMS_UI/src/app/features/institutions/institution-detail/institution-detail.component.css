@@ -128,7 +128,7 @@
 .inst-detail-tab-nav {
   display: flex;
   gap: 0.25rem;
-  margin-bottom: 1.25rem;
+ /* margin-bottom: 1.25rem;*/
   overflow-x: auto;
 }
 

@@ -1,0 +1,92 @@
+<app-page-header
+  eyebrow="Attendance"
+  title="Live check-ins"
+  description="Real-time stream of check-ins and check-outs for your libraries."
+>
+  <div actions class="flex items-center gap-2">
+    <span class="flex items-center gap-1.5 label-mono text-xs">
+      <span class="attendance-live-dot" [class.attendance-live-dot--paused]="paused()"></span>
+      {{ paused() ? 'Paused' : 'Streaming' }}
+    </span>
+    <app-button size="sm" variant="outline" (click)="togglePaused()">
+      @if (paused()) {
+        <svg lucidePlay class="h-4 w-4 mr-1"></svg> Resume
+      } @else {
+        <svg lucidePause class="h-4 w-4 mr-1"></svg> Pause
+      }
+    </app-button>
+    <app-button size="sm" variant="outline" (click)="refresh()">
+      <svg lucideRefreshCw class="h-4 w-4 mr-1"></svg> Refresh
+    </app-button>
+  </div>
+</app-page-header>
+
+@if (loading()) {
+  <p class="py-16 text-center text-sm text-muted-foreground">Loading live feed…</p>
+} @else {
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <app-kpi-card label="Events (today)" [value]="events().length" />
+    <app-kpi-card label="Check-ins" [value]="checkIns()">
+      <svg lucideLogIn icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Check-outs" [value]="checkOuts()">
+      <svg lucideLogOut icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Refresh" [value]="paused() ? 'Paused' : '10s'" hint="Auto polling" />
+  </section>
+
+  <app-glass-card class="block">
+    <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+      <app-section-header
+        title="Activity stream"
+        [description]="filteredEvents().length + ' of ' + events().length + ' shown'"
+      />
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="relative">
+          <svg lucideSearch class="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
+          <input
+            type="search"
+            class="h-8 pl-8 pr-3 w-48 rounded-md border bg-background text-xs"
+            placeholder="Search member"
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event)"
+          />
+        </div>
+        <div class="attendance-range-toggle">
+          @for (option of ['all', 'in', 'out']; track option) {
+            <button
+              type="button"
+              [class.is-active]="filter() === option"
+              (click)="filter.set($any(option))">
+              {{ option === 'in' ? 'Check-ins' : option === 'out' ? 'Check-outs' : 'All' }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (!filteredEvents().length) {
+      <div class="py-12 text-center text-sm text-muted-foreground">No matching activity.</div>
+    } @else {
+      <ul class="attendance-live-list divide-y">
+        @for (event of filteredEvents(); track event.id) {
+          <li class="flex items-center gap-3 py-3">
+            <div class="h-9 w-9 rounded-full border bg-muted/40 inline-flex items-center justify-center text-xs font-semibold">
+              {{ initials(event.memberName) }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium text-sm truncate">{{ event.memberName }}</div>
+              <div class="text-xs text-muted-foreground truncate">
+                Seat {{ event.seatNo || '—' }} · {{ event.shift || '—' }} · {{ event.libraryName }}
+              </div>
+            </div>
+            <app-status-badge
+              [status]="event.direction === 'in' ? 'Check-in' : 'Check-out'"
+            />
+            <span class="label-mono w-16 text-right text-xs">{{ relativeTime(event.occurredAtUtc) }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </app-glass-card>
+}

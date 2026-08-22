@@ -1,0 +1,35 @@
+<div class="attendance-shell-toolbar">
+  <nav class="inst-detail-tab-nav inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+    @for (tab of tabs; track tab.link) {
+      <a
+        [routerLink]="tab.link"
+        routerLinkActive="bg-background shadow-sm text-foreground"
+        [routerLinkActiveOptions]="{ exact: tab.link === '/attendance' }"
+        class="px-3 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-foreground"
+      >
+        {{ tab.label }}
+      </a>
+    }
+  </nav>
+
+  <div class="attendance-shell-library">
+    <select
+      class="w-full rounded-md border bg-background px-3 py-2 text-sm"
+      [ngModel]="filters.libraryId()"
+      (ngModelChange)="onLibraryChange($event)"
+    >
+      <option value="">
+        @if (filters.isSuperAdmin()) {
+          All libraries
+        } @else {
+          All my libraries
+        }
+      </option>
+      @for (library of libraryOptions(); track library.id) {
+        <option [value]="library.id">{{ filters.libraryLabel(library) }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+<router-outlet />

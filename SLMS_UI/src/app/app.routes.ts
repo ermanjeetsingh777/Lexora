@@ -166,14 +166,34 @@ export const routes: Routes = [
             {
                 path: 'attendance',
                 canActivate: [permissionGuard],
-                data: { permission: PermissionKey.AttendanceList },
-                loadComponent: () => import('./features/attendance/attendance-list/attendance-list.component').then((m) => m.AttendanceListComponent),
-            },
-            {
-                path: 'attendance/scanner',
-                canActivate: [permissionGuard],
-                data: { permission: PermissionKey.AttendanceScannerUse },
-                loadComponent: () => import('./features/attendance/attendance-scanner/attendance-scanner.component').then((m) => m.AttendanceScannerComponent),
+                data: { permission: PermissionKey.AttendanceView },
+                loadComponent: () => import('./features/attendance/attendance-shell/attendance-shell.component').then((m) => m.AttendanceShellComponent),
+                children: [
+                    {
+                        path: '',
+                        loadComponent: () => import('./features/attendance/attendance-overview/attendance-overview.component').then((m) => m.AttendanceOverviewComponent),
+                    },
+                    {
+                        path: 'calendar',
+                        loadComponent: () => import('./features/attendance/attendance-calendar/attendance-calendar.component').then((m) => m.AttendanceCalendarComponent),
+                    },
+                    {
+                        path: 'live',
+                        loadComponent: () => import('./features/attendance/attendance-live/attendance-live.component').then((m) => m.AttendanceLiveComponent),
+                    },
+                    {
+                        path: 'records',
+                        canActivate: [permissionGuard],
+                        data: { permission: PermissionKey.AttendanceList },
+                        loadComponent: () => import('./features/attendance/attendance-records/attendance-records.component').then((m) => m.AttendanceRecordsComponent),
+                    },
+                    {
+                        path: 'scanner',
+                        canActivate: [permissionGuard],
+                        data: { permission: PermissionKey.AttendanceScannerUse },
+                        loadComponent: () => import('./features/attendance/attendance-scanner/attendance-scanner.component').then((m) => m.AttendanceScannerComponent),
+                    },
+                ],
             },
 
             // // --- Reports ---

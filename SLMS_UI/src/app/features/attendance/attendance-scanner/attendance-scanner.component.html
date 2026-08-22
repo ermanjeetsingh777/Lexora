@@ -8,22 +8,11 @@
   <p class="py-16 text-center text-sm text-muted-foreground">Loading scanner…</p>
 } @else {
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-    <app-glass-card class="block p-5 lg:col-span-1">
+    <app-glass-card class="block lg:col-span-1">
       <div class="flex items-center gap-2 mb-3">
         <svg lucideQrCode class="h-5 w-5 text-primary"></svg>
-        <h2 class="font-semibold text-sm">Library</h2>
+        <h2 class="font-semibold text-sm">Library QR</h2>
       </div>
-
-      <label class="text-sm font-medium">Your libraries</label>
-      <select
-        class="mt-1.5 mb-4 w-full rounded-md border bg-background px-3 py-2 text-sm"
-        [ngModel]="selectedLibraryId()"
-        (ngModelChange)="selectLibrary($event)">
-        <option value="">Select a library…</option>
-        @for (library of libraries(); track library.id) {
-          <option [value]="library.id">{{ libraryLabel(library) }}</option>
-        }
-      </select>
 
       @if (isSuperAdmin()) {
         <div class="mb-4 rounded-md border border-dashed p-3">
@@ -47,14 +36,16 @@
           <img [src]="qrImage()!" alt="Attendance QR code" class="mt-4 mx-auto w-40 h-40 rounded-lg border bg-white p-2" />
           <p class="text-[11px] text-muted-foreground text-center mt-2 break-all">{{ ctx.scanUrl }}</p>
         }
-      } @else if (!libraries().length) {
+      } @else if (!filters.libraryId() && filters.libraries().length > 1) {
+        <p class="text-sm text-muted-foreground">Select a library from the toolbar above.</p>
+      } @else if (!filters.libraries().length) {
         <p class="text-sm text-muted-foreground">No active libraries are assigned to your account.</p>
       } @else {
         <p class="text-sm text-muted-foreground">Choose a library from the list to start scanning.</p>
       }
     </app-glass-card>
 
-    <app-glass-card class="block p-5 lg:col-span-2">
+    <app-glass-card class="block lg:col-span-2">
       <div class="flex items-center gap-2 mb-4">
         <svg lucideScanLine class="h-5 w-5 text-primary"></svg>
         <h2 class="font-semibold text-sm">Record attendance</h2>

@@ -248,4 +248,117 @@ public class AttendanceController : ControllerBase
             return BadRequest(ApiResponse<PagedResult<AttendanceRecordListItemResponse>>.Fail(ex.Message));
         }
     }
+
+    /// <summary>
+    /// Attendance analytics dashboard (trend, shift mix, hourly check-ins).
+    /// </summary>
+    [HttpGet("analytics")]
+    [Permission(PermissionKey.AttendanceView)]
+    public async Task<ActionResult<ApiResponse<AttendanceAnalyticsResponse>>> GetModuleAnalytics(
+        [FromQuery] AttendanceAnalyticsQuery query,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var analytics = await _attendanceService.GetModuleAnalyticsAsync(query, userId, cancellationToken);
+            return Ok(ApiResponse<AttendanceAnalyticsResponse>.Ok(analytics));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<AttendanceAnalyticsResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<AttendanceAnalyticsResponse>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Live check-in / check-out feed for today.
+    /// </summary>
+    [HttpGet("live")]
+    [Permission(PermissionKey.AttendanceView)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceLiveEventResponse>>>> GetLiveFeed(
+        [FromQuery] Guid? libraryId,
+        [FromQuery] int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var feed = await _attendanceService.GetLiveFeedAsync(libraryId, limit, userId, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyList<AttendanceLiveEventResponse>>.Ok(feed));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<IReadOnlyList<AttendanceLiveEventResponse>>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Monthly attendance heatmap for library-scoped calendar view.
+    /// </summary>
+    [HttpGet("calendar/month")]
+    [Permission(PermissionKey.AttendanceView)]
+    public async Task<ActionResult<ApiResponse<AttendanceCalendarMonthResponse>>> GetModuleCalendarMonth(
+        [FromQuery] AttendanceCalendarMonthQuery query,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var month = await _attendanceService.GetModuleCalendarMonthAsync(query, userId, cancellationToken);
+            return Ok(ApiResponse<AttendanceCalendarMonthResponse>.Ok(month));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<AttendanceCalendarMonthResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<AttendanceCalendarMonthResponse>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Aggregated attendance summary for a selected day or date range.
+    /// </summary>
+    [HttpGet("calendar/summary")]
+    [Permission(PermissionKey.AttendanceView)]
+    public async Task<ActionResult<ApiResponse<AttendanceCalendarSummaryResponse>>> GetModuleCalendarSummary(
+        [FromQuery] AttendanceCalendarSummaryQuery query,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var summary = await _attendanceService.GetModuleCalendarSummaryAsync(query, userId, cancellationToken);
+            return Ok(ApiResponse<AttendanceCalendarSummaryResponse>.Ok(summary));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<AttendanceCalendarSummaryResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<AttendanceCalendarSummaryResponse>.Fail(ex.Message));
+        }
+    }
 }

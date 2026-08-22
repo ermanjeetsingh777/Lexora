@@ -675,6 +675,383 @@ public class AttendanceService : IAttendanceService
         return new PagedResult<AttendanceRecordListItemResponse>(items, totalCount, page, pageSize);
     }
 
+    public async Task<AttendanceAnalyticsResponse> GetModuleAnalyticsAsync(
+        AttendanceAnalyticsQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var days = NormalizeAnalyticsDays(query.Days);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var dateFrom = today.AddDays(-(days - 1));
+        var dateTo = today;
+
+        var scopedQuery = await BuildScopedAttendanceQueryAsync(userId, query.LibraryId, cancellationToken);
+        var rangeQuery = scopedQuery.Where(x => x.AttendanceDate >= dateFrom && x.AttendanceDate <= dateTo);
+
+        var accessibleLibraryIds = query.LibraryId.HasValue
+            ? new List<Guid> { query.LibraryId.Value }
+            : (await _libraryService.GetAccessibleLibraryIdsAsync(userId, cancellationToken)).ToList();
+
+        var totalCapacity = accessibleLibraryIds.Count == 0
+            ? 0
+            : await _context.Libraries
+                .AsNoTracking()
+                .Where(l => accessibleLibraryIds.Contains(l.Id) && !l.IsDeleted && l.IsActive)
+                .SumAsync(l => l.Capacity ?? 0, cancellationToken);
+
+        var trend = new List<AttendanceTrendDayResponse>();
+        for (var date = dateFrom; date <= dateTo; date = date.AddDays(1))
+        {
+            var dayQuery = rangeQuery.Where(x => x.AttendanceDate == date);
+            var present = await dayQuery
+                .Where(x => x.CheckInTime.HasValue)
+                .Select(x => x.MemberId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+            var late = await dayQuery.CountAsync(x => x.Status == AttendanceStatus.Late, cancellationToken);
+            var absent = Math.Max(0, totalCapacity - present);
+
+            trend.Add(new AttendanceTrendDayResponse
+            {
+                Date = date,
+                Label = date.ToString("MM-dd"),
+                Present = present,
+                Late = late,
+                Absent = absent,
+            });
+        }
+
+        var presentTotal = trend.Sum(x => x.Present);
+        var lateTotal = trend.Sum(x => x.Late);
+        var absentTotal = trend.Sum(x => x.Absent);
+        var attendanceRate = presentTotal + absentTotal > 0
+            ? Math.Round(presentTotal / (double)(presentTotal + absentTotal) * 100d, 1)
+            : 0d;
+        var avgDailyPresent = trend.Count > 0
+            ? (int)Math.Round(presentTotal / (double)trend.Count)
+            : 0;
+
+        var shiftMix = await (
+            from attendance in rangeQuery.Where(x => x.CheckInTime.HasValue)
+            join member in _context.Members.AsNoTracking() on attendance.MemberId equals member.Id
+            group attendance by (member.Shift ?? "Unassigned") into grouped
+            select new AttendanceShiftMixItemResponse
+            {
+                Shift = grouped.Key,
+                Count = grouped.Select(x => x.MemberId).Distinct().Count(),
+            })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync(cancellationToken);
+
+        var hourlyRaw = await rangeQuery
+            .Where(x => x.AttendanceDate == today && x.CheckInTime.HasValue)
+            .GroupBy(x => x.CheckInTime!.Value.Hour)
+            .Select(group => new { Hour = group.Key, Count = group.Count() })
+            .ToListAsync(cancellationToken);
+
+        var hourlyToday = Enumerable.Range(6, 16)
+            .Select(hour =>
+            {
+                var count = hourlyRaw.FirstOrDefault(x => x.Hour == hour)?.Count ?? 0;
+                return new AttendanceHourlyCheckInResponse
+                {
+                    Hour = hour,
+                    Label = FormatHourLabel(hour),
+                    CheckIns = count,
+                };
+            })
+            .ToList();
+
+        var peak = hourlyToday
+            .OrderByDescending(x => x.CheckIns)
+            .FirstOrDefault(x => x.CheckIns > 0);
+
+        var todayQuery = scopedQuery.Where(x => x.AttendanceDate == today);
+        var currentlyCheckedIn = await todayQuery.CountAsync(
+            x => x.CheckInTime.HasValue && !x.CheckOutTime.HasValue,
+            cancellationToken);
+
+        return new AttendanceAnalyticsResponse
+        {
+            Days = days,
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+            PresentTotal = presentTotal,
+            LateTotal = lateTotal,
+            AbsentTotal = absentTotal,
+            AttendanceRate = attendanceRate,
+            AvgDailyPresent = avgDailyPresent,
+            PeakHourLabel = peak?.Label ?? "—",
+            PeakHourCheckIns = peak?.CheckIns ?? 0,
+            CurrentlyCheckedIn = currentlyCheckedIn,
+            AccessibleLibraries = accessibleLibraryIds.Count,
+            Trend = trend,
+            ShiftMix = shiftMix,
+            HourlyToday = hourlyToday,
+        };
+    }
+
+    public async Task<IReadOnlyList<AttendanceLiveEventResponse>> GetLiveFeedAsync(
+        Guid? libraryId,
+        int limit,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedLimit = limit is < 1 or > 100 ? 20 : limit;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var scopedQuery = await BuildScopedAttendanceQueryAsync(userId, libraryId, cancellationToken);
+
+        var rows = await (
+            from attendance in scopedQuery.Where(x => x.AttendanceDate == today)
+            join member in _context.Members.AsNoTracking() on attendance.MemberId equals member.Id
+            join library in _context.Libraries.AsNoTracking() on attendance.LibraryId equals library.Id
+            select new
+            {
+                attendance.Id,
+                attendance.MemberId,
+                member.FullName,
+                member.Shift,
+                attendance.SeatNo,
+                library.Name,
+                attendance.CheckInTime,
+                attendance.CheckOutTime,
+                attendance.AttendanceDate,
+            })
+            .ToListAsync(cancellationToken);
+
+        var events = new List<AttendanceLiveEventResponse>();
+        foreach (var row in rows)
+        {
+            if (row.CheckInTime.HasValue)
+            {
+                events.Add(new AttendanceLiveEventResponse
+                {
+                    Id = $"{row.Id:N}-in",
+                    MemberId = row.MemberId,
+                    MemberName = row.FullName,
+                    SeatNo = row.SeatNo,
+                    Shift = row.Shift,
+                    LibraryName = row.Name,
+                    Direction = "in",
+                    OccurredAtUtc = row.AttendanceDate.ToDateTime(row.CheckInTime.Value, DateTimeKind.Utc),
+                });
+            }
+
+            if (row.CheckOutTime.HasValue)
+            {
+                events.Add(new AttendanceLiveEventResponse
+                {
+                    Id = $"{row.Id:N}-out",
+                    MemberId = row.MemberId,
+                    MemberName = row.FullName,
+                    SeatNo = row.SeatNo,
+                    Shift = row.Shift,
+                    LibraryName = row.Name,
+                    Direction = "out",
+                    OccurredAtUtc = row.AttendanceDate.ToDateTime(row.CheckOutTime.Value, DateTimeKind.Utc),
+                });
+            }
+        }
+
+        return events
+            .OrderByDescending(x => x.OccurredAtUtc)
+            .Take(normalizedLimit)
+            .ToList();
+    }
+
+    public async Task<AttendanceCalendarMonthResponse> GetModuleCalendarMonthAsync(
+        AttendanceCalendarMonthQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (query.Year is < 2000 or > 2100 || query.Month is < 1 or > 12)
+        {
+            throw new InvalidOperationException("Invalid year or month.");
+        }
+
+        var firstDay = new DateOnly(query.Year, query.Month, 1);
+        var lastDay = firstDay.AddMonths(1).AddDays(-1);
+
+        var scopedQuery = await BuildScopedAttendanceQueryAsync(userId, query.LibraryId, cancellationToken);
+        var libraryIds = await GetScopedLibraryIdsAsync(userId, query.LibraryId, cancellationToken);
+        var enrolled = await GetEnrolledMemberCountAsync(libraryIds, cancellationToken);
+
+        var dayStats = await scopedQuery
+            .Where(x => x.AttendanceDate >= firstDay && x.AttendanceDate <= lastDay && x.CheckInTime.HasValue)
+            .GroupBy(x => x.AttendanceDate)
+            .Select(g => new
+            {
+                Date = g.Key,
+                Present = g.Select(x => x.MemberId).Distinct().Count(),
+                Late = g.Count(x => x.Status == AttendanceStatus.Late),
+            })
+            .ToListAsync(cancellationToken);
+
+        var statsByDate = dayStats.ToDictionary(x => x.Date);
+        var days = new List<AttendanceCalendarDayCellResponse>();
+
+        for (var date = firstDay; date <= lastDay; date = date.AddDays(1))
+        {
+            statsByDate.TryGetValue(date, out var stat);
+            var present = stat?.Present ?? 0;
+            var late = stat?.Late ?? 0;
+            var absent = Math.Max(0, enrolled - present);
+
+            days.Add(new AttendanceCalendarDayCellResponse
+            {
+                Date = date,
+                Present = present,
+                Late = late,
+                Absent = absent,
+                Assigned = enrolled,
+                IntensityPercent = enrolled > 0 ? (int)Math.Round(present * 100.0 / enrolled) : 0,
+            });
+        }
+
+        return new AttendanceCalendarMonthResponse
+        {
+            Year = query.Year,
+            Month = query.Month,
+            EnrolledMembers = enrolled,
+            Days = days,
+        };
+    }
+
+    public async Task<AttendanceCalendarSummaryResponse> GetModuleCalendarSummaryAsync(
+        AttendanceCalendarSummaryQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var dateFrom = query.DateFrom ?? today;
+        var dateTo = query.DateTo ?? today;
+
+        if (dateTo < dateFrom)
+        {
+            throw new InvalidOperationException("End date must be on or after start date.");
+        }
+
+        if (dateTo.DayNumber - dateFrom.DayNumber > 366)
+        {
+            throw new InvalidOperationException("Date range cannot exceed 366 days.");
+        }
+
+        var libraryIds = await GetScopedLibraryIdsAsync(userId, query.LibraryId, cancellationToken);
+        var scopedQuery = await BuildScopedAttendanceQueryAsync(userId, query.LibraryId, cancellationToken);
+
+        var members = await (
+            from ml in _context.MemberLibraries.AsNoTracking()
+            join member in _context.Members.AsNoTracking() on ml.MemberId equals member.Id
+            where !ml.IsDeleted && ml.IsCurrent && libraryIds.Contains(ml.LibraryId)
+            select new { member.Id, Shift = member.Shift ?? "Unassigned" })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var memberIds = members.Select(x => x.Id).ToHashSet();
+        var attendanceRows = await scopedQuery
+            .Where(x => x.AttendanceDate >= dateFrom && x.AttendanceDate <= dateTo && memberIds.Contains(x.MemberId))
+            .Select(x => new { x.MemberId, x.AttendanceDate, x.CheckInTime, x.CheckOutTime, x.Status })
+            .ToListAsync(cancellationToken);
+
+        var presentLookup = attendanceRows
+            .Where(x => x.CheckInTime.HasValue)
+            .GroupBy(x => (x.AttendanceDate, x.MemberId))
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var shiftBuckets = members
+            .Select(x => x.Shift)
+            .Distinct()
+            .ToDictionary(
+                shift => shift,
+                shift => new AttendanceCalendarShiftSummaryResponse { Shift = shift });
+
+        var totalAssigned = 0;
+        var totalCheckIns = 0;
+        var totalCheckOuts = 0;
+        var totalLate = 0;
+        var totalAbsent = 0;
+
+        for (var date = dateFrom; date <= dateTo; date = date.AddDays(1))
+        {
+            foreach (var member in members)
+            {
+                var bucket = shiftBuckets[member.Shift];
+                bucket.Assigned++;
+                totalAssigned++;
+
+                if (presentLookup.TryGetValue((date, member.Id), out var row))
+                {
+                    bucket.CheckIns++;
+                    totalCheckIns++;
+
+                    if (row.CheckOutTime.HasValue)
+                    {
+                        bucket.CheckOuts++;
+                        totalCheckOuts++;
+                    }
+
+                    if (row.Status == AttendanceStatus.Late)
+                    {
+                        bucket.Late++;
+                        totalLate++;
+                    }
+                }
+                else
+                {
+                    bucket.Absent++;
+                    totalAbsent++;
+                }
+            }
+        }
+
+        return new AttendanceCalendarSummaryResponse
+        {
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+            Assigned = totalAssigned,
+            CheckIns = totalCheckIns,
+            CheckOuts = totalCheckOuts,
+            Late = totalLate,
+            Absent = totalAbsent,
+            ByShift = shiftBuckets.Values.OrderBy(x => x.Shift).ToList(),
+        };
+    }
+
+    private async Task<IReadOnlyCollection<Guid>> GetScopedLibraryIdsAsync(
+        Guid userId,
+        Guid? libraryId,
+        CancellationToken cancellationToken)
+    {
+        if (libraryId.HasValue)
+        {
+            if (!await _libraryService.UserCanAccessLibraryAsync(libraryId.Value, userId, cancellationToken))
+            {
+                throw new UnauthorizedAccessException("You do not have access to this library.");
+            }
+
+            return [libraryId.Value];
+        }
+
+        return await _libraryService.GetAccessibleLibraryIdsAsync(userId, cancellationToken);
+    }
+
+    private async Task<int> GetEnrolledMemberCountAsync(
+        IReadOnlyCollection<Guid> libraryIds,
+        CancellationToken cancellationToken)
+    {
+        if (libraryIds.Count == 0)
+        {
+            return 0;
+        }
+
+        return await _context.MemberLibraries
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsCurrent && libraryIds.Contains(x.LibraryId))
+            .Select(x => x.MemberId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+    }
+
     private async Task<IQueryable<MemberAttendance>> BuildScopedAttendanceQueryAsync(
         Guid userId,
         Guid? libraryId,
@@ -746,6 +1123,25 @@ public class AttendanceService : IAttendanceService
         }
 
         return (dateFrom, dateTo);
+    }
+
+    private static int NormalizeAnalyticsDays(int days) =>
+        days switch
+        {
+            7 => 7,
+            30 => 30,
+            _ => 14,
+        };
+
+    private static string FormatHourLabel(int hour)
+    {
+        var display = hour % 12;
+        if (display == 0)
+        {
+            display = 12;
+        }
+
+        return hour < 12 ? $"{display}a" : $"{display}p";
     }
 
     private static Guid CreateSyntheticAttendanceId(Guid memberId, DateOnly date)

@@ -42,4 +42,25 @@ public interface IAttendanceService
         AttendanceModuleQuery query,
         Guid userId,
         CancellationToken cancellationToken = default);
+
+    Task<AttendanceAnalyticsResponse> GetModuleAnalyticsAsync(
+        AttendanceAnalyticsQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AttendanceLiveEventResponse>> GetLiveFeedAsync(
+        Guid? libraryId,
+        int limit,
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<AttendanceCalendarMonthResponse> GetModuleCalendarMonthAsync(
+        AttendanceCalendarMonthQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<AttendanceCalendarSummaryResponse> GetModuleCalendarSummaryAsync(
+        AttendanceCalendarSummaryQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

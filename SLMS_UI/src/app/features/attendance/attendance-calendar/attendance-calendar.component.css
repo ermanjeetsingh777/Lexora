@@ -1,0 +1,181 @@
+@import '../attendance-shell/attendance-shell.component.css';
+
+:host {
+  display: block;
+}
+
+.attendance-calendar-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: color-mix(in oklch, var(--muted) 40%, transparent);
+  padding: 0.5rem 0.75rem;
+  flex-wrap: wrap;
+}
+
+.attendance-calendar-toolbar__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.attendance-calendar-legend {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 0.125rem;
+}
+
+.attendance-calendar-legend--present {
+  background: color-mix(in oklch, var(--primary) 80%, transparent);
+}
+
+.attendance-calendar-legend--late {
+  background: color-mix(in oklch, var(--warning) 70%, transparent);
+}
+
+.attendance-calendar-legend--absent {
+  background: color-mix(in oklch, var(--destructive) 70%, transparent);
+}
+
+.attendance-calendar-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: color-mix(in oklch, var(--muted) 30%, transparent);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.attendance-calendar-selection__eyebrow {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.attendance-calendar-selection__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+  background: color-mix(in oklch, var(--primary) 10%, transparent);
+  padding: 0.125rem 0.5rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.attendance-calendar-selection__chip-tag {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.attendance-calendar-nav-btn,
+.attendance-calendar-today-btn,
+.attendance-calendar-clear-btn {
+  border-radius: 0.375rem;
+  transition: background-color 0.15s ease;
+}
+
+.attendance-calendar-nav-btn {
+  padding: 0.25rem;
+}
+
+.attendance-calendar-nav-btn:hover,
+.attendance-calendar-today-btn:hover,
+.attendance-calendar-clear-btn:hover {
+  background: var(--muted);
+}
+
+.attendance-calendar-today-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.attendance-calendar-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.attendance-calendar-intensity-swatch {
+  display: inline-block;
+  width: 1rem;
+  height: 0.75rem;
+  border-radius: 0.125rem;
+}
+
+.attendance-calendar-cell {
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.attendance-calendar-cell:not(:disabled):hover {
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--primary) 40%, transparent);
+}
+
+.attendance-calendar-cell--empty {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.attendance-calendar-cell--today {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary) 50%, transparent);
+}
+
+.attendance-calendar-cell--selected,
+.attendance-calendar-cell--edge {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.attendance-calendar-cell--in-range {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary) 40%, transparent);
+}
+
+.attendance-calendar-cell__tags {
+  width: 100%;
+  min-height: 0.875rem;
+  display: flex;
+  justify-content: center;
+}
+
+.attendance-calendar-cell__tag {
+  font-size: 0.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-radius: 0.25rem;
+  padding: 0 0.25rem;
+}
+
+.attendance-calendar-cell__day {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: color-mix(in oklch, var(--foreground) 70%, transparent);
+}
+
+.attendance-calendar-cell--edge .attendance-calendar-cell__day,
+.attendance-calendar-cell--selected .attendance-calendar-cell__day {
+  font-weight: 700;
+  color: var(--foreground);
+}

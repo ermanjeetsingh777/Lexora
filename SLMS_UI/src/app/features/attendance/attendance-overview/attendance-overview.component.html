@@ -1,0 +1,106 @@
+<app-page-header
+  eyebrow="Operations"
+  title="Attendance"
+  description="Daily attendance, late arrivals and shift breakdown."
+>
+  <div actions class="flex items-center gap-2">
+    <div class="attendance-range-toggle">
+      @for (days of rangeOptions; track days) {
+        <button type="button" [class.is-active]="range() === days" (click)="setRange(days)">{{ days }}d</button>
+      }
+    </div>
+  </div>
+</app-page-header>
+
+@if (loading()) {
+  <p class="py-16 text-center text-sm text-muted-foreground">Loading attendance…</p>
+} @else if (analytics(); as data) {
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+    <app-kpi-card
+      [label]="'Present (' + range() + 'd)'"
+      [value]="data.presentTotal.toLocaleString()"
+      [hint]="'avg ' + data.avgDailyPresent + '/day'">
+      <svg lucideCalendarCheck icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card
+      label="Attendance rate"
+      [value]="data.attendanceRate + '%'"
+      [hint]="data.currentlyCheckedIn + ' checked in now'">
+      <svg lucideTrendingUp icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Late arrivals" [value]="data.lateTotal">
+      <svg lucideClock icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card
+      label="Peak hour"
+      [value]="data.peakHourLabel"
+      [hint]="data.peakHourCheckIns + ' check-ins today'">
+      <svg lucideUsers icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+  </section>
+
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+    <app-glass-card class="block lg:col-span-2">
+      <app-section-header title="Present vs Absent" [description]="'Last ' + range() + ' days'" />
+      <div class="attendance-chart-wrap inst-detail-prime-chart inst-detail-prime-chart--bar">
+        @if (trendPoints().length) {
+          <p-chart type="bar" [data]="trendBarData()" [options]="trendBarOptions()" />
+        } @else {
+          <p class="py-16 text-center text-sm text-muted-foreground">No trend data yet.</p>
+        }
+      </div>
+    </app-glass-card>
+
+    <app-glass-card class="block">
+      <app-section-header title="Shift mix" description="Members with attendance in range" />
+      @if (shiftMixItems().length) {
+        <div class="attendance-chart-wrap--compact inst-detail-prime-chart inst-detail-prime-chart--donut">
+          <p-chart type="doughnut" [data]="shiftMixData()" [options]="shiftMixOptions" />
+        </div>
+        <div class="attendance-shift-legend">
+          @for (item of shiftMixLegendItems(); track item.label) {
+            <div class="attendance-shift-legend__item">
+              <span>
+                <span class="attendance-shift-legend__swatch" [style.background]="item.color"></span>
+                {{ item.label }}
+              </span>
+              <span class="tabular-nums font-medium">{{ item.value }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="py-16 text-center text-sm text-muted-foreground">No shift data yet.</p>
+      }
+    </app-glass-card>
+  </section>
+
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <app-glass-card class="block">
+      <app-section-header title="Late arrivals trend" [description]="'Rolling ' + range() + ' days'" />
+      <div class="attendance-chart-wrap--compact inst-detail-prime-chart">
+        @if (trendPoints().length) {
+          <p-chart type="line" [data]="lateAreaData()" [options]="lateAreaOptions()" />
+        } @else {
+          <p class="py-16 text-center text-sm text-muted-foreground">No late arrival data yet.</p>
+        }
+      </div>
+    </app-glass-card>
+
+    <app-glass-card class="block">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <app-section-header title="Today by hour" description="Check-ins across the day" />
+        <a routerLink="/attendance/live" class="text-xs font-medium text-primary inline-flex items-center gap-1">
+          Live feed
+          <svg lucideArrowRight class="h-3 w-3"></svg>
+        </a>
+      </div>
+      <div class="attendance-chart-wrap--compact inst-detail-prime-chart inst-detail-prime-chart--bar">
+        @if (hourlyPoints().length) {
+          <p-chart type="bar" [data]="hourlyBarData()" [options]="hourlyBarOptions()" />
+        } @else {
+          <p class="py-16 text-center text-sm text-muted-foreground">No check-ins today yet.</p>
+        }
+      </div>
+    </app-glass-card>
+  </section>
+}

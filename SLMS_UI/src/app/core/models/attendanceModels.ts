@@ -211,6 +211,11 @@ export interface AttendanceModuleQuery {
     pageSize?: number;
 }
 
+export interface AttendanceAnalyticsQuery {
+    libraryId?: string;
+    days?: number;
+}
+
 export interface AttendanceModuleSummary {
     totalRecords: number;
     uniqueMembers: number;
@@ -250,4 +255,88 @@ export interface PagedAttendanceRecords {
     totalPages: number;
     hasPreviousPage: boolean;
     hasNextPage: boolean;
+}
+
+export interface AttendanceTrendDay {
+    date: string;
+    label: string;
+    present: number;
+    late: number;
+    absent: number;
+}
+
+export interface AttendanceShiftMixItem {
+    shift: string;
+    count: number;
+}
+
+export interface AttendanceHourlyCheckIn {
+    hour: number;
+    label: string;
+    checkIns: number;
+}
+
+export interface AttendanceAnalytics {
+    days: number;
+    dateFrom: string;
+    dateTo: string;
+    presentTotal: number;
+    lateTotal: number;
+    absentTotal: number;
+    attendanceRate: number;
+    avgDailyPresent: number;
+    peakHourLabel: string;
+    peakHourCheckIns: number;
+    currentlyCheckedIn: number;
+    accessibleLibraries: number;
+    trend: AttendanceTrendDay[];
+    shiftMix: AttendanceShiftMixItem[];
+    hourlyToday: AttendanceHourlyCheckIn[];
+}
+
+export interface AttendanceLiveEvent {
+    id: string;
+    memberId: string;
+    memberName: string;
+    seatNo?: string | null;
+    shift?: string | null;
+    libraryName: string;
+    direction: 'in' | 'out';
+    occurredAtUtc: string;
+}
+
+export interface AttendanceCalendarDayCell {
+    date: string;
+    present: number;
+    late: number;
+    absent: number;
+    assigned: number;
+    intensityPercent: number;
+}
+
+export interface AttendanceCalendarMonth {
+    year: number;
+    month: number;
+    enrolledMembers: number;
+    days: AttendanceCalendarDayCell[];
+}
+
+export interface AttendanceCalendarShiftSummary {
+    shift: string;
+    assigned: number;
+    checkIns: number;
+    checkOuts: number;
+    late: number;
+    absent: number;
+}
+
+export interface AttendanceCalendarSummary {
+    dateFrom: string;
+    dateTo: string;
+    assigned: number;
+    checkIns: number;
+    checkOuts: number;
+    late: number;
+    absent: number;
+    byShift: AttendanceCalendarShiftSummary[];
 }

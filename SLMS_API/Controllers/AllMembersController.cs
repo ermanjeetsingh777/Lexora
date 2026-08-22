@@ -98,6 +98,27 @@ namespace SLMS_API.Controllers
             }
         }
 
+        [HttpPut("{memberId:guid}")]
+        public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> Update(
+            Guid memberId,
+            [FromBody] UpdateMemberRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var member = await _memberService.UpdateAsync(memberId, request, _currentUserService.UserId, cancellationToken);
+                return Ok(ApiResponse<MemberDetailResponse>.Ok(member, "Member updated successfully."));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<MemberDetailResponse>.Fail(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<MemberDetailResponse>.Fail(ex.Message));
+            }
+        }
+
         [HttpPost("{memberId:guid}/contacts")]
         //[Permission(PermissionKey.MembersManage)]
         public async Task<ActionResult<ApiResponse<MemberContactResponse>>> AddContact( Guid memberId, [FromBody] CreateMemberContactRequest request, CancellationToken cancellationToken)

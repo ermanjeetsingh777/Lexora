@@ -52,6 +52,22 @@ export function memberDetailLink(memberId: string, ctx: ScopedNavContext): strin
   return ['/members', memberId];
 }
 
+export function memberEditLink(memberId: string, ctx: ScopedNavContext): string[] {
+  if (ctx.libraryId) {
+    return ['/libraries', ctx.libraryId, 'members', memberId, 'edit'];
+  }
+  if (ctx.branchId && ctx.onInstitutionRoute && ctx.institutionId) {
+    return ['/institutions', ctx.institutionId, 'branches', ctx.branchId, 'members', memberId, 'edit'];
+  }
+  if (ctx.branchId) {
+    return ['/branches', ctx.branchId, 'members', memberId, 'edit'];
+  }
+  if (ctx.institutionId) {
+    return ['/institutions', ctx.institutionId, 'members', memberId, 'edit'];
+  }
+  return ['/members', memberId, 'edit'];
+}
+
 export function libraryDetailLink(libraryId: string, ctx: ScopedNavContext): string[] {
   const branchId = ctx.libraryBranchId ?? ctx.branchId;
   if (ctx.onInstitutionRoute && ctx.institutionId && branchId) {

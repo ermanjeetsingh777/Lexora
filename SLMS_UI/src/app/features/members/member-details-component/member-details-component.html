@@ -11,6 +11,11 @@
     <app-button variant="outline" size="sm" (click)="copyId(m.id)">
       <svg lucideCopy class="h-4 w-4 mr-1"></svg> Copy ID
     </app-button>
+    <a [routerLink]="editLink">
+      <app-button variant="outline" size="sm">
+        <svg lucidePencil class="h-4 w-4 mr-1"></svg> Edit profile
+      </app-button>
+    </a>
 
     <!-- Actions dropdown -->
     <div class="relative">

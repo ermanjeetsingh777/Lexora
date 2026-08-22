@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, MemberContactResponse, MemberDetailResponse, MemberListResponse } from '@core/models/MemberRequest';
+import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, MemberContactResponse, MemberDetailResponse, MemberListResponse, UpdateMemberRequest } from '@core/models/MemberRequest';
 import { ApiService } from '@core/services/api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
@@ -47,6 +47,10 @@ export class MemberService {
 
     getMemberById(memberId: string): Observable<APIResponseModel<MemberDetailResponse>> {
         return this.httpApi.get<MemberDetailResponse>('members/' + memberId);
+    }
+
+    updateMember(memberId: string, request: UpdateMemberRequest): Observable<APIResponseModel<MemberDetailResponse>> {
+        return this.httpApi.putTo<MemberDetailResponse>('members/' + memberId, request);
     }
 
     changePlanOrShift(memberId: string, request: ChangeMemberPlanShiftRequest): Observable<APIResponseModel<MemberDetailResponse>> {

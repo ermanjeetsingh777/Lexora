@@ -1291,6 +1291,155 @@ public class MemberService : IMemberService
         return $"MEM-{currentYear}-{nextNumber:D6}";
     }
 
+    public async Task<MemberDetailResponse> UpdateAsync(
+        Guid memberId,
+        UpdateMemberRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var member = await _dbContext.Members
+            .Include(x => x.User)
+            .Include(x => x.MemberLibraries)
+            .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Member not found.");
+
+        var currentLibrary = member.MemberLibraries.FirstOrDefault(x => x.IsCurrent);
+        var currentUserId = await RequireCurrentUserIdAsync(cancellationToken);
+        var scope = await ResolveMemberAccessScopeAsync(currentUserId, cancellationToken);
+
+        if (!CanAccessMemberLibrary(currentLibrary?.InstitutionId, currentLibrary?.BranchId, currentLibrary?.LibraryId, scope))
+        {
+            throw new UnauthorizedAccessException("You do not have access to update this member.");
+        }
+
+        var hasChanges = false;
+
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            var fullName = request.FullName.Trim();
+            if (fullName.Length < 2 || fullName.Length > 100)
+            {
+                throw new InvalidOperationException("Full name must be between 2 and 100 characters.");
+            }
+
+            if (!string.Equals(member.FullName, fullName, StringComparison.Ordinal))
+            {
+                member.FullName = fullName;
+                member.User.FullName = fullName;
+                hasChanges = true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var email = request.Email.Trim();
+            if (!string.Equals(member.User.Email, email, StringComparison.OrdinalIgnoreCase))
+            {
+                var existingUser = await _userManager.FindByEmailAsync(email);
+                if (existingUser is not null && existingUser.Id != member.UserId)
+                {
+                    throw new InvalidOperationException($"A user with email '{email}' already exists.");
+                }
+
+                var setEmailResult = await _userManager.SetEmailAsync(member.User, email);
+                if (!setEmailResult.Succeeded)
+                {
+                    throw new InvalidOperationException(string.Join(Environment.NewLine, setEmailResult.Errors.Select(x => x.Description)));
+                }
+
+                var setUserNameResult = await _userManager.SetUserNameAsync(member.User, email);
+                if (!setUserNameResult.Succeeded)
+                {
+                    throw new InvalidOperationException(string.Join(Environment.NewLine, setUserNameResult.Errors.Select(x => x.Description)));
+                }
+
+                hasChanges = true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+        {
+            var phoneNumber = request.PhoneNumber.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(phoneNumber, @"^[6-9]\d{9}$"))
+            {
+                throw new InvalidOperationException("Enter a valid 10-digit mobile number.");
+            }
+
+            if (!string.Equals(member.PhoneNumber, phoneNumber, StringComparison.Ordinal))
+            {
+                member.PhoneNumber = phoneNumber;
+                member.User.PhoneNumber = phoneNumber;
+                hasChanges = true;
+            }
+        }
+
+        if (request.DateOfBirth.HasValue)
+        {
+            var dateOfBirth = DateOnly.FromDateTime(request.DateOfBirth.Value);
+            if (member.DateOfBirth != dateOfBirth)
+            {
+                member.DateOfBirth = dateOfBirth;
+                hasChanges = true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Gender))
+        {
+            var allowedGenders = new[] { "Male", "Female", "Other" };
+            var gender = allowedGenders.FirstOrDefault(x =>
+                x.Equals(request.Gender.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (gender is null)
+            {
+                throw new InvalidOperationException("Invalid gender.");
+            }
+
+            if (!string.Equals(member.Gender, gender, StringComparison.Ordinal))
+            {
+                member.Gender = gender;
+                hasChanges = true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var isActive = request.Status.Trim().Equals("Active", StringComparison.OrdinalIgnoreCase);
+            var isInactive = request.Status.Trim().Equals("Inactive", StringComparison.OrdinalIgnoreCase);
+
+            if (!isActive && !isInactive)
+            {
+                throw new InvalidOperationException("Status must be Active or Inactive.");
+            }
+
+            if (member.IsActive != isActive)
+            {
+                member.IsActive = isActive;
+                member.User.IsActive = isActive;
+                hasChanges = true;
+            }
+        }
+
+        if (!hasChanges)
+        {
+            throw new InvalidOperationException("No changes to save.");
+        }
+
+        member.UpdatedAtUtc = DateTime.UtcNow;
+        member.UpdatedBy = userId;
+
+        var identityResult = await _userManager.UpdateAsync(member.User);
+        if (!identityResult.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, identityResult.Errors.Select(x => x.Description)));
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (await GetMemberDetailsByIdAsync(memberId, cancellationToken))!;
+    }
+
     public async Task<MemberDetailResponse> UploadPhotoAsync(
         Guid memberId,
         IFormFile file,

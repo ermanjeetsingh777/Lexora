@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   LucideArrowLeft, LucideMail, LucidePhone, LucideIdCard, LucideBuilding2,
   LucideMapPin, LucideArmchair, LucideClock, LucideDownload, LucideCreditCard,
@@ -59,7 +59,7 @@ import {
   attendanceTimeInputValue,
   localTimeInputToUtcTimeOnly,
 } from '@features/attendance/attendance-format.util';
-import { collectRouteParams, memberBackNav } from '@core/utils/entity-routes.util';
+import { collectRouteParams, memberBackNav, memberEditLink } from '@core/utils/entity-routes.util';
 
 type TabId = 'overview' | 'attendance' | 'library-calendar' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks';
 
@@ -99,6 +99,7 @@ interface HeatmapCell {
 })
 export class MemberDetailsComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly whatsapp = inject(WhatsAppService);
   private readonly memberService = inject(MemberService);
@@ -125,6 +126,15 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   get backLabel(): string {
     return memberBackNav(this.routeParams).label;
+  }
+
+  get editLink(): string[] {
+    return memberEditLink(this.memberId, {
+      institutionId: this.routeParams['institutionId'],
+      branchId: this.routeParams['branchId'],
+      libraryId: this.routeParams['libraryId'],
+      onInstitutionRoute: this.router.url.startsWith('/institutions'),
+    });
   }
 
   readonly loading: WritableSignal<boolean> = signal<boolean>(true);

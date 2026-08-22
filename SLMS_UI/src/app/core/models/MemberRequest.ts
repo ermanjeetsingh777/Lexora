@@ -19,6 +19,15 @@ export interface CreateMemberResponse {
   membershipNo: string;
 }
 
+export interface UpdateMemberRequest {
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+  dateOfBirth?: Date | string | null;
+  gender?: string;
+  status?: string;
+}
+
 export interface MemberListResponse {
   id: string;
   name: string;

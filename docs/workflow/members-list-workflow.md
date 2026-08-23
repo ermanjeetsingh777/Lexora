@@ -35,6 +35,7 @@ flowchart LR
 |-------|-----------|------|
 | `/members` | `MembersListComponent` | `SLMS_UI/src/app/features/members/members-list-component/` |
 | `/members/create` | `CreateMemberComponent` | `SLMS_UI/src/app/features/members/create-member-component/` |
+| `/members/bulk-upload` | `BulkUploadMembersComponent` | `SLMS_UI/src/app/features/members/bulk-upload-members-component/` |
 | `/members/:memberId` | `MemberDetailsComponent` | `SLMS_UI/src/app/features/members/member-details-component/` |
 | `/institutions/:institutionId/members/create` | `CreateMemberComponent` | Institution scope locked |
 | `/branches/:branchId/members/create` | `CreateMemberComponent` | Branch scope locked |
@@ -50,7 +51,7 @@ Entry from navigation: sidebar **Members** → `/members`.
 ### 2.2 Page layout
 
 ```
-PageHeader (Export placeholder, Add member → /members/create)
+PageHeader (Bulk upload → /members/bulk-upload, Add member → /members/create)
 ├── KPI row (5 cards — Active, Expiring ≤7d, Expired, Fees due, Premium)
 ├── Needs-action banner (when actionCount > 0 and needsAction filter off)
 ├── Glass card
@@ -216,6 +217,9 @@ Drives row styling, filters, KPI clicks, and “needs action” banner.
 | `changePlanOrShift(id, body)` | POST | `members/{id}/plan-or-shift` |
 | `getMemberById(id)` | GET | `members/{id}` |
 | `getLibraryPlan(inst, branch, lib)` | GET | `institutions/.../libraries/.../plans` |
+| `downloadBulkTemplate(inst, branch, lib)` | GET | `institutions/.../libraries/.../members/bulk/template` |
+| `bulkUploadMembers(inst, branch, lib, file)` | POST | `institutions/.../libraries/.../members/bulk` (optional; UI uses row-by-row `createMember` for live progress) |
+| `createMember(inst, branch, lib, body)` | POST | `institutions/.../libraries/.../members` |
 
 > `GET members/summary` exists on API but is **not used** by the list page.
 
@@ -266,8 +270,12 @@ sequenceDiagram
 |------|-------|--------|
 | GET | `/` | `GetLibraryMemberListAsync` |
 | POST | `/` | `Create` |
+| GET | `bulk/template` | `DownloadBulkTemplate` — Excel `.xlsx` template |
+| POST | `bulk` | `BulkUpload` — server-side bulk parse + create |
 
-Used for library-scoped list/create; global list page uses `AllMembersController`.
+Used for library-scoped list/create/bulk; global list page uses `AllMembersController`.
+
+> Bulk upload UI workflow: [members-bulk-upload-workflow.md](./members-bulk-upload-workflow.md)
 
 #### `InstitutionMembersController`
 
@@ -383,6 +391,18 @@ Page header → Add member
   → (see create-member-component)
 ```
 
+### 4.5 Bulk upload members
+
+```
+Page header → Bulk upload
+  → /members/bulk-upload
+  → Select institution / branch / library
+  → Download Excel template (API) or PDF reference (client)
+  → Fill Excel → Upload
+  → Client parses rows → POST create member per row with live progress
+  → (see members-bulk-upload-workflow.md)
+```
+
 ---
 
 ## 5. File index
@@ -407,6 +427,9 @@ SLMS_UI/src/app/
     │   ├── members-list-component.html
     │   └── members-list-component.css
     ├── create-member-component/
+    ├── bulk-upload-members-component/
+    ├── member-bulk-upload.util.ts
+    ├── member-bulk-template-export.util.ts
     └── components/
         ├── renew-plan-dialog/
         └── member-avatar/
@@ -422,6 +445,8 @@ SLMS_API/
 ├── Controllers/BranchMembersController.cs
 ├── Application/Services/MemberService.cs
 ├── Application/Services/Interfaces/IMemberService.cs
+├── Application/Helpers/MemberBulkExcelHelper.cs
+├── Application/Contracts/Organizations/Responses/BulkMemberUploadResponse.cs
 ├── Application/Contracts/Organizations/Responses/MemberListResponse.cs
 ├── Application/Contracts/Common/ApiResponse.cs
 ├── Common/Enums/MemberPlanStatus.cs
@@ -441,6 +466,7 @@ SLMS_API/
 | `Visits30d` | Global list counts all attendances; library list uses 30-day window |
 | Filter restore | `hydrateFilters()` disabled in `ngOnInit` |
 | Export | Button present, no handler |
+| Bulk upload | Implemented at `/members/bulk-upload` — see [members-bulk-upload-workflow.md](./members-bulk-upload-workflow.md) |
 | `UserName` | Not mapped in `GetAllMemberListAsync` |
 
 ---
@@ -448,6 +474,7 @@ SLMS_API/
 ## 7. Related docs
 
 - Member details: [members-detail-workflow.md](./members-detail-workflow.md)
+- Bulk upload: [members-bulk-upload-workflow.md](./members-bulk-upload-workflow.md)
 - Scoped members (detail tabs): [scoped-members-workflow.md](./scoped-members-workflow.md)
 - Institution details: [institution-detail-workflow.md](./institution-detail-workflow.md)
 - Libraries list: [libraries-list-workflow.md](./libraries-list-workflow.md)

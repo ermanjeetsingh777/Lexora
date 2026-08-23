@@ -13,7 +13,7 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 | M-03 | Onboarding | `/onboarding/*` | [onboarding-workflow.md](../workflow/onboarding-workflow.md) | Implemented |
 | M-04 | Institutions | `/institutions`, `/institutions/:id` | [institutions-list-workflow.md](../workflow/institutions-list-workflow.md), [institution-detail-workflow.md](../workflow/institution-detail-workflow.md) | Implemented |
 | M-05 | Branches | `/branches`, `/branches/:id` | [branches-workflow.md](../workflow/branches-workflow.md) | Implemented |
-| M-06 | Members | `/members`, `/members/:id` | [members-list-workflow.md](../workflow/members-list-workflow.md), [members-detail-workflow.md](../workflow/members-detail-workflow.md) | Implemented |
+| M-06 | Members | `/members`, `/members/:id`, `/members/bulk-upload` | [members-list-workflow.md](../workflow/members-list-workflow.md), [members-detail-workflow.md](../workflow/members-detail-workflow.md), [members-bulk-upload-workflow.md](../workflow/members-bulk-upload-workflow.md) | Implemented |
 | M-06b | Scoped members | Nested under institution / branch / library detail | [scoped-members-workflow.md](../workflow/scoped-members-workflow.md) | Implemented |
 | M-07 | Dashboard | `/dashboard` | [dashboard-workflow.md](../workflow/dashboard-workflow.md) | Implemented (Overview + Activity; other sub-routes exist) |
 | M-08 | Libraries | `/libraries`, `/libraries/:id` | [libraries-list-workflow.md](../workflow/libraries-list-workflow.md), [library-detail-workflow.md](../workflow/library-detail-workflow.md) | Implemented |
@@ -28,7 +28,7 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 
 | Area | Notes |
 |------|-------|
-| Subscriptions (SaaS packages) | `/subscriptions` — package subscription management |
+| Subscriptions (SaaS packages) | `/subscriptions` — see UI feature folder |
 | Payments | Route commented out |
 | Seats | Route commented out |
 | Reports, Notifications, Settings | Sidebar entries exist; routes not wired |

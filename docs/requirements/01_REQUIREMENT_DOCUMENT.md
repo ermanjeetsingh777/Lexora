@@ -267,6 +267,7 @@ SaaS (Software-as-a-Service) B2B Platform
 - **FR-3.1.8**: System shall support member emergency contacts
 - **FR-3.1.9**: System shall support member custom fields
 - **FR-3.1.10**: System shall track member registration status
+- **FR-3.1.11**: System shall support bulk member import via Excel template *(Implemented — [members-bulk-upload-workflow.md](../workflow/members-bulk-upload-workflow.md))*
 
 #### 3.2 Member Status Management
 - **FR-3.2.1**: System shall support member status (Active, Inactive, Suspended, Deleted)

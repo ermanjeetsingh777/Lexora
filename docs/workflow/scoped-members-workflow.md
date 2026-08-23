@@ -75,6 +75,7 @@ flowchart TB
 - Library filter (institution + branch scopes)
 - Paginated table with lifecycle badge
 - **Add member** → contextual create URL
+- **Bulk upload** — global only via `/members/bulk-upload` (not nested under detail URLs); see [members-bulk-upload-workflow.md](./members-bulk-upload-workflow.md)
 - **View** → contextual detail URL
 
 **Styles:** Filter bar CSS lives in `scoped-members-panel.component.css` (not inherited from parent detail pages).

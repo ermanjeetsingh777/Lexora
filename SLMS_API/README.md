@@ -10,6 +10,7 @@
 | ORM | Entity Framework Core |
 | Database | SQL Server |
 | Auth | JWT + refresh tokens |
+| Excel (bulk members) | ClosedXML |
 
 ## Quick start
 
@@ -50,7 +51,7 @@ SLMS_API/
 | `LibrariesController` | `api/v1/institutions/.../libraries` | [library-detail-workflow.md](../docs/workflow/library-detail-workflow.md) |
 | `LibraryListController` | `api/v1/libraries` | [libraries-list-workflow.md](../docs/workflow/libraries-list-workflow.md) |
 | `AllMembersController` | `api/v1/members` | [members-list-workflow.md](../docs/workflow/members-list-workflow.md) |
-| `MembersController` | `api/v1/institutions/.../members` | [scoped-members-workflow.md](../docs/workflow/scoped-members-workflow.md) |
+| `MembersController` | `api/v1/institutions/.../members` | [scoped-members-workflow.md](../docs/workflow/scoped-members-workflow.md), [members-bulk-upload-workflow.md](../docs/workflow/members-bulk-upload-workflow.md) |
 | `BooksController` | `api/v1/institutions/.../books` | [books-workflow.md](../docs/workflow/books-workflow.md) |
 | `AttendanceController` | `api/v1/attendance` | [attendance-module-workflow.md](../docs/workflow/attendance-module-workflow.md) |
 | `AttendanceKioskController` | `api/v1/attendance/kiosk` | [attendance-kiosk-workflow.md](../docs/workflow/attendance-kiosk-workflow.md) |

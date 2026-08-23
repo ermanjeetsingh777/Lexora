@@ -53,6 +53,7 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | M-04 | Institutions (detail) | [institution-detail-workflow.md](docs/workflow/institution-detail-workflow.md) |
 | M-05 | Branches | [branches-workflow.md](docs/workflow/branches-workflow.md) |
 | M-06 | Members (list) | [members-list-workflow.md](docs/workflow/members-list-workflow.md) |
+| M-06 | Members (bulk upload) | [members-bulk-upload-workflow.md](docs/workflow/members-bulk-upload-workflow.md) |
 | M-06 | Members (detail) | [members-detail-workflow.md](docs/workflow/members-detail-workflow.md) |
 | M-06b | Scoped members | [scoped-members-workflow.md](docs/workflow/scoped-members-workflow.md) |
 | M-07 | Dashboard | [dashboard-workflow.md](docs/workflow/dashboard-workflow.md) |

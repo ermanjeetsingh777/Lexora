@@ -27,6 +27,7 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 | Doc | Module | Summary |
 |-----|--------|---------|
 | [members-list-workflow.md](./members-list-workflow.md) | M-06 Members | Global `/members` list |
+| [members-bulk-upload-workflow.md](./members-bulk-upload-workflow.md) | M-06 Members | Excel/PDF template + bulk upload with live progress |
 | [members-detail-workflow.md](./members-detail-workflow.md) | M-06 Members | Profile, attendance, books, QR |
 | [scoped-members-workflow.md](./scoped-members-workflow.md) | M-06b Scoped members | Members tabs on detail pages, nested create/detail URLs |
 

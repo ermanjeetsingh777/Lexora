@@ -40,7 +40,7 @@ SLMS_UI/src/app/
 | `institutions/` | `/institutions` | [institutions-list-workflow.md](../docs/workflow/institutions-list-workflow.md) |
 | `branches/` | `/branches` | [branches-workflow.md](../docs/workflow/branches-workflow.md) |
 | `libraries/` | `/libraries` | [libraries-list-workflow.md](../docs/workflow/libraries-list-workflow.md) |
-| `members/` | `/members` | [members-list-workflow.md](../docs/workflow/members-list-workflow.md) |
+| `members/` | `/members`, `/members/bulk-upload` | [members-list-workflow.md](../docs/workflow/members-list-workflow.md), [members-bulk-upload-workflow.md](../docs/workflow/members-bulk-upload-workflow.md) |
 | `attendance/` | `/attendance`, `/kiosk/attendance/*` | [attendance-module-workflow.md](../docs/workflow/attendance-module-workflow.md) |
 | `books/` | `/books` | [books-workflow.md](../docs/workflow/books-workflow.md) |
 | `subscriptions/` | `/subscriptions` | SaaS package subscriptions (SuperAdmin cross-tenant view) |

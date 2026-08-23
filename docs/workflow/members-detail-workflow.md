@@ -595,6 +595,7 @@ SLMS_API/
 | `AttendanceService` (API) | Several methods still `NotImplementedException` |
 | Detail `AttendanceRate` vs calendar stats | Different calculation windows |
 | Payment receipt download | Demo `WhatsAppService` data |
+| Bulk-created members | Photo/Aadhaar uploaded here after [bulk upload](./members-bulk-upload-workflow.md) |
 | Filter persistence (list) | See list workflow doc |
 
 ---
@@ -602,6 +603,7 @@ SLMS_API/
 ## 8. Related docs
 
 - Members list workflow: [members-list-workflow.md](./members-list-workflow.md)
+- Bulk upload: [members-bulk-upload-workflow.md](./members-bulk-upload-workflow.md)
 - Scoped members (detail tabs + nested URLs): [scoped-members-workflow.md](./scoped-members-workflow.md)
 - Books & circulation: [books-workflow.md](./books-workflow.md)
 - Attendance module (staff): [attendance-module-workflow.md](./attendance-module-workflow.md)

@@ -1177,6 +1177,8 @@ GET    /api/v1/institutions/{instId}/members                                    
 GET    /api/v1/institutions/{instId}/branches/{branchId}/members                    - Branch-scoped member list (JWT)
 GET    /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}/members - Library-scoped member list (JWT)
 POST   /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}/members - Create member in library (JWT)
+GET    /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}/members/bulk/template - Download Excel bulk template (JWT)
+POST   /api/v1/institutions/{instId}/branches/{branchId}/libraries/{libId}/members/bulk - Bulk upload .xlsx (JWT; UI uses row-by-row create for live progress)
 ```
 
 > Planned (not yet implemented): branch-level CRUD under `.../branches/{branchId}/members/{memberId}`.

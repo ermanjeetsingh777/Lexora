@@ -60,17 +60,19 @@ export const routes: Routes = [
             // --- Dashboard ---
             {
                 path: 'dashboard',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.DashboardView },
                 loadComponent: () => import('./features/dashboard/dashboard-layout.component').then((m) => m.DashboardLayoutComponent),
-                // children: [
-                //     { path: '', loadComponent: () => import('./features/dashboard/dashboard-overview.component').then((m) => m.DashboardOverviewComponent) },
-                    // { path: 'analytics', loadComponent: () => import('./features/dashboard/dashboard-analytics.component').then((m) => m.DashboardAnalyticsComponent) },
-                    // { path: 'occupancy', loadComponent: () => import('./features/dashboard/dashboard-occupancy.component').then((m) => m.DashboardOccupancyComponent) },
-                    // { path: 'revenue', loadComponent: () => import('./features/dashboard/dashboard-revenue.component').then((m) => m.DashboardRevenueComponent) },
-                    // { path: 'attendance', loadComponent: () => import('./features/dashboard/dashboard-attendance.component').then((m) => m.DashboardAttendanceComponent) },
-                    // { path: 'subscriptions', loadComponent: () => import('./features/dashboard/dashboard-subscriptions.component').then((m) => m.DashboardSubscriptionsComponent) },
-                    // { path: 'notifications', loadComponent: () => import('./features/dashboard/dashboard-notifications.component').then((m) => m.DashboardNotificationsComponent) },
-                    // { path: 'activity', loadComponent: () => import('./features/dashboard/dashboard-activity.component').then((m) => m.DashboardActivityComponent) },
-                // ],
+                children: [
+                    { path: '', loadComponent: () => import('./features/dashboard/dashboard-overview.component').then((m) => m.DashboardOverviewComponent) },
+                    { path: 'analytics', loadComponent: () => import('./features/dashboard/dashboard-analytics.component').then((m) => m.DashboardAnalyticsComponent) },
+                    { path: 'occupancy', loadComponent: () => import('./features/dashboard/dashboard-occupancy.component').then((m) => m.DashboardOccupancyComponent) },
+                    { path: 'revenue', loadComponent: () => import('./features/dashboard/dashboard-revenue.component').then((m) => m.DashboardRevenueComponent) },
+                    { path: 'attendance', loadComponent: () => import('./features/dashboard/dashboard-attendance.component').then((m) => m.DashboardAttendanceComponent) },
+                    { path: 'subscriptions', loadComponent: () => import('./features/dashboard/dashboard-subscriptions.component').then((m) => m.DashboardSubscriptionsComponent) },
+                    { path: 'notifications', loadComponent: () => import('./features/dashboard/dashboard-notifications.component').then((m) => m.DashboardNotificationsComponent) },
+                    { path: 'activity', loadComponent: () => import('./features/dashboard/dashboard-activity.component').then((m) => m.DashboardActivityComponent) },
+                ],
             },
 
             // // --- Students ---
@@ -155,11 +157,13 @@ export const routes: Routes = [
                 ],
             },
 
-            // // --- Subscriptions ---
-            // {
-            //     path: 'subscriptions',
-            //     loadComponent: () => import('./features/subscriptions/subscriptions.component').then((m) => m.SubscriptionsComponent),
-            // },
+            // --- Subscriptions ---
+            {
+                path: 'subscriptions',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.SubscriptionsView },
+                loadComponent: () => import('./features/subscriptions/subscriptions.component').then((m) => m.SubscriptionsComponent),
+            },
 
             // // --- Payments ---
             // {

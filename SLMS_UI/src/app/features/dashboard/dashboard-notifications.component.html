@@ -1,0 +1,25 @@
+@if (loading()) {
+  <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading notifications…</div>
+} @else if (data(); as d) {
+  <app-page-header eyebrow="Inbox" title="Notifications" [description]="d.scopeLabel" />
+  <app-glass-card class="p-5 block">
+    <app-section-header title="Recent notifications" description="From your user inbox">
+      <svg lucideBell actions class="h-4 w-4 text-muted-foreground"></svg>
+    </app-section-header>
+    @if (d.notifications.length === 0) {
+      <p class="text-sm text-muted-foreground">No notifications in your inbox.</p>
+    } @else {
+      <ul class="space-y-4">
+        @for (n of d.notifications; track n.id) {
+          <li class="border rounded-lg p-4" [class.opacity-70]="n.isRead">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <div class="font-medium">{{ n.title }}</div>
+              <app-status-badge [status]="n.notificationType" variant="muted" />
+            </div>
+            <p class="text-sm text-muted-foreground">{{ n.message }}</p>
+          </li>
+        }
+      </ul>
+    }
+  </app-glass-card>
+}

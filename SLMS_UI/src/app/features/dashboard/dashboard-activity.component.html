@@ -1,0 +1,29 @@
+@if (loading()) {
+  <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading activity…</div>
+} @else if (data(); as d) {
+  <app-page-header eyebrow="Activity" title="Live activity feed" [description]="d.scopeLabel" />
+  <app-glass-card class="p-5 block">
+    <app-section-header title="Recent events" description="Check-ins and check-outs in your scope" />
+    <div class="relative mb-4 max-w-sm">
+      <svg lucideSearch class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"></svg>
+      <input type="search" class="ui-input pl-9 w-full" placeholder="Search activity…" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    </div>
+    @if (filteredActivity(d).length === 0) {
+      <p class="text-sm text-muted-foreground">No activity found.</p>
+    } @else {
+      <ol class="space-y-3">
+        @for (a of filteredActivity(d); track a.id) {
+          <li class="flex items-start gap-3 text-sm border-b pb-3 last:border-0">
+            <span class="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold shrink-0">{{ initials(a.actor) }}</span>
+            <div>
+              <span class="font-medium">{{ a.actor }}</span>
+              <span class="text-muted-foreground"> {{ a.action }} </span>
+              <span class="font-mono text-xs">{{ a.target }}</span>
+              <div class="label-mono mt-0.5">{{ a.timeLabel }}</div>
+            </div>
+          </li>
+        }
+      </ol>
+    }
+  </app-glass-card>
+}

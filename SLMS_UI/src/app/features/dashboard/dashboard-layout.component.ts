@@ -1,12 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-// import { DashboardFiltersBarComponent } from './dashboard-filters-bar.component';
+import { DashboardFiltersBarComponent } from './dashboard-filters-bar.component';
 
-/** Tab strip + filters bar wrapping every dashboard tab. Ported from `_authenticated.dashboard.tsx`. */
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, DashboardFiltersBarComponent],
   template: `
     <div class="space-y-6">
       <div class="overflow-x-auto -mx-1 px-1">
@@ -24,7 +23,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         </nav>
       </div>
 
-      <!-- <app-dashboard-filters-bar /> -->
+      <app-dashboard-filters-bar />
 
       <router-outlet />
     </div>

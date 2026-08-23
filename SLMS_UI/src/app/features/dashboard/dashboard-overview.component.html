@@ -1,0 +1,160 @@
+@if (loading()) {
+  <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading dashboard…</div>
+} @else if (data(); as d) {
+  <app-page-header
+    eyebrow="Workspace · Live"
+    title="Operational overview"
+    [description]="d.scopeLabel">
+    <div actions class="text-xs text-muted-foreground">
+      @if (d.isSuperAdmin) {
+        <span class="inline-flex items-center rounded-md border px-2 py-1 font-medium">SuperAdmin · all data</span>
+      } @else {
+        <span class="inline-flex items-center rounded-md border px-2 py-1 font-medium">Scoped to your access</span>
+      }
+    </div>
+  </app-page-header>
+
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <app-kpi-card label="Active members" [value]="d.kpis.activeMembers.toLocaleString()" [delta]="d.kpis.activeMembersDelta" hint="in your scope">
+      <svg lucideUsers icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Occupancy" [value]="d.kpis.occupancyPercent + '%'" [delta]="d.kpis.occupancyDelta" [hint]="d.kpis.accessibleLibraries + ' libraries'">
+      <svg lucideArmchair icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Revenue MTD" [value]="formatCurrency(d.kpis.revenueMtd)" [delta]="d.kpis.revenueMtdDelta" hint="member plans">
+      <svg lucideIndianRupee icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Branches live" [value]="d.kpis.branchesLive" [hint]="d.kpis.branchesMaintenance + ' in maintenance'">
+      <svg lucideBuilding2 icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+  </section>
+
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <app-glass-card class="lg:col-span-2 p-5 block">
+      <app-section-header
+        title="Revenue & renewals"
+        description="Daily revenue across your scoped libraries.">
+        <a actions routerLink="/dashboard/revenue" class="text-xs font-medium text-primary inline-flex items-center hover:underline">
+          Open <svg lucideArrowRight class="ml-1 h-3.5 w-3.5"></svg>
+        </a>
+      </app-section-header>
+      <div class="h-[260px]">
+        <p-chart type="line" [data]="revenueChartData()" [options]="lineChartOptions" />
+      </div>
+    </app-glass-card>
+
+    <app-glass-card class="p-5 block">
+      <app-section-header title="Member status" description="Distribution by status" />
+      <div class="h-[220px]">
+        <p-chart type="doughnut" [data]="memberMixChartData()" [options]="doughnutChartOptions" />
+      </div>
+      <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+        <div><div class="label-mono">Total</div><div class="text-lg font-semibold tabular-nums">{{ d.memberMix.total }}</div></div>
+        <div><div class="label-mono">Active</div><div class="text-lg font-semibold text-success tabular-nums">{{ d.memberMix.active }}</div></div>
+        <div><div class="label-mono">Dues</div><div class="text-lg font-semibold text-destructive tabular-nums">{{ formatCurrency(d.memberMix.totalFeesOwed) }}</div></div>
+      </div>
+    </app-glass-card>
+  </section>
+
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <app-glass-card class="lg:col-span-2 p-5 block">
+      <app-section-header title="Attendance trend" description="Present vs late · last 14 days" />
+      <div class="h-[260px]">
+        <p-chart type="bar" [data]="attendanceChartData()" [options]="barChartOptions" />
+      </div>
+    </app-glass-card>
+
+    <app-glass-card class="p-5 block">
+      <app-section-header title="Live activity" description="Recent check-ins">
+        <span actions class="flex items-center gap-1.5 label-mono">
+          <span class="h-1.5 w-1.5 rounded-full bg-success animate-pulse"></span> Live
+        </span>
+      </app-section-header>
+      @if (d.recentActivity.length === 0) {
+        <p class="text-sm text-muted-foreground">No recent activity in your scope.</p>
+      } @else {
+        <ol class="space-y-3">
+          @for (a of d.recentActivity; track a.id) {
+            <li class="flex items-start gap-3 text-sm">
+              <span class="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold shrink-0">
+                {{ initials(a.actor) }}
+              </span>
+              <div class="flex-1 min-w-0">
+                <span class="font-medium">{{ a.actor }}</span>
+                <span class="text-muted-foreground"> {{ a.action }} </span>
+                <span class="font-mono text-xs">{{ a.target }}</span>
+                <div class="label-mono mt-0.5">{{ a.timeLabel }}</div>
+              </div>
+            </li>
+          }
+        </ol>
+      }
+    </app-glass-card>
+  </section>
+
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <app-glass-card class="lg:col-span-2 p-0 overflow-hidden block">
+      <div class="p-5 pb-0">
+        <app-section-header
+          title="Branch performance"
+          description="Top branches by occupancy">
+          <a actions routerLink="/branches" class="text-xs font-medium text-primary inline-flex items-center hover:underline">
+            All branches <svg lucideArrowRight class="ml-1 h-3.5 w-3.5"></svg>
+          </a>
+        </app-section-header>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left border-y label-mono bg-muted/30">
+              <th class="px-5 py-2 font-medium">Branch</th>
+              <th class="px-2 py-2 font-medium">City</th>
+              <th class="px-2 py-2 font-medium text-right">Members</th>
+              <th class="px-2 py-2 font-medium text-right">Occupancy</th>
+              <th class="px-5 py-2 font-medium text-right">Revenue MTD</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            @for (b of d.branchPerformance; track b.branchId) {
+              <tr class="hover:bg-muted/40">
+                <td class="px-5 py-2.5 font-medium">{{ b.branchName }}</td>
+                <td class="px-2 py-2.5 text-muted-foreground">{{ b.city || '—' }}</td>
+                <td class="px-2 py-2.5 text-right tabular-nums">{{ b.members.toLocaleString() }}</td>
+                <td class="px-2 py-2.5 text-right">
+                  <div class="inline-flex items-center gap-2 justify-end">
+                    <div class="h-1.5 w-20 rounded-full bg-muted">
+                      <div class="h-full rounded-full bg-primary" [style.width.%]="b.occupancyPercent"></div>
+                    </div>
+                    <span class="tabular-nums font-mono text-xs">{{ b.occupancyPercent }}%</span>
+                  </div>
+                </td>
+                <td class="px-5 py-2.5 text-right tabular-nums">{{ formatCurrency(b.revenueMtd) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </app-glass-card>
+
+    <app-glass-card class="p-5 block">
+      <app-section-header title="Notifications" description="Recent inbox">
+        <svg lucideBell actions class="h-4 w-4 text-muted-foreground"></svg>
+      </app-section-header>
+      @if (d.notifications.length === 0) {
+        <p class="text-sm text-muted-foreground">No notifications.</p>
+      } @else {
+        <ul class="space-y-3">
+          @for (n of d.notifications; track n.id) {
+            <li class="border-l-2 pl-3 border-primary">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-sm font-medium truncate">{{ n.title }}</div>
+                <app-status-badge [status]="n.notificationType" variant="muted" />
+              </div>
+              <p class="text-xs text-muted-foreground line-clamp-2">{{ n.message }}</p>
+            </li>
+          }
+        </ul>
+      }
+    </app-glass-card>
+  </section>
+}

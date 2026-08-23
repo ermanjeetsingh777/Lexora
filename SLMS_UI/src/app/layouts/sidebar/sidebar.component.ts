@@ -50,7 +50,7 @@ import { PermissionKey } from '@core/constants/permissions';
           <a routerLink="/dashboard" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
             <svg lucideLayoutDashboard class="h-4 w-4 shrink-0"></svg>
             @if (sidebar.showLabels()) { <span>Dashboard</span> }
-          </a>
+          </a> 
         </div>
 
         <div class="px-3 py-2">
@@ -89,23 +89,7 @@ import { PermissionKey } from '@core/constants/permissions';
             <svg lucideCreditCard class="h-4 w-4 shrink-0"></svg>
             @if (sidebar.showLabels()) { <span>Subscriptions</span> }
           </a>
-          <a routerLink="/payments" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideCreditCard class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Payments</span> }
-          </a>
-        </div>
-
-        <div class="px-3 py-2">
-          @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Insights</p> }
-          <a routerLink="/reports" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideBarChart3 class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Reports</span> }
-          </a>
-          <a routerLink="/notifications" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideBell class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Notifications</span> }
-          </a>
-        </div>
+        </div> 
 
         <div class="px-3 py-2">
           @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Library</p> }

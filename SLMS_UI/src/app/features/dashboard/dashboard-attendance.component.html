@@ -1,0 +1,30 @@
+@if (loading()) {
+  <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading attendance…</div>
+} @else if (data(); as d) {
+  <app-page-header
+    eyebrow="Attendance"
+    title="Attendance overview"
+    [description]="d.scopeLabel" />
+
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <app-kpi-card label="Avg present / day" [value]="avgPresent()" [delta]="0">
+      <svg lucideUsers icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Attendance rate" [value]="attendanceRate() + '%'" [delta]="0">
+      <svg lucideCheckCircle2 icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Late arrivals" [value]="totalLate()" [delta]="0">
+      <svg lucideClock icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Absent (total)" [value]="totalAbsent()" [delta]="0">
+      <svg lucideXCircle icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+  </section>
+
+  <app-glass-card class="p-5 block">
+    <app-section-header title="Attendance trend" description="Present, late and absent · last 14 days" />
+    <div class="h-[320px]">
+      <p-chart type="bar" [data]="chartData()" [options]="chartOptions" />
+    </div>
+  </app-glass-card>
+}

@@ -1,0 +1,36 @@
+@if (loading()) {
+  <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading occupancy…</div>
+} @else if (data(); as d) {
+  <app-page-header eyebrow="Occupancy" title="Seat utilization" [description]="d.scopeLabel" />
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <app-kpi-card label="Avg occupancy" [value]="d.kpis.occupancyPercent + '%'" [delta]="0">
+      <svg lucideArmchair icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Libraries tracked" [value]="d.kpis.accessibleLibraries" [delta]="0">
+      <svg lucideBuilding2 icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Branches live" [value]="d.kpis.branchesLive" [delta]="0">
+      <svg lucideTrendingUp icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="In maintenance" [value]="d.kpis.branchesMaintenance" [delta]="0">
+      <svg lucideClock icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+  </section>
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <app-glass-card class="p-5 block">
+      <app-section-header title="Branch occupancy comparison" />
+      <div class="h-[280px]"><p-chart type="line" [data]="chartData()" [options]="chartOptions" /></div>
+    </app-glass-card>
+    <app-glass-card class="p-5 block">
+      <app-section-header title="Top branches" />
+      <ul class="space-y-2.5">
+        @for (b of d.branchPerformance; track b.branchId) {
+          <li class="flex items-center gap-3 text-sm">
+            <a [routerLink]="['/branches', b.branchId]" class="flex-1 truncate hover:text-primary">{{ b.branchName }}</a>
+            <span class="tabular-nums font-mono text-xs">{{ b.occupancyPercent }}%</span>
+          </li>
+        }
+      </ul>
+    </app-glass-card>
+  </section>
+}

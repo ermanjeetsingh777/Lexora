@@ -1,0 +1,29 @@
+@if (loading()) {
+  <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading analytics…</div>
+} @else if (data(); as d) {
+  <app-page-header eyebrow="Insights" title="Cross-tenant analytics" [description]="d.scopeLabel" />
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <app-kpi-card [label]="'Revenue · ' + d.days + 'd'" [value]="formatCurrency(totalRevenue())" [delta]="0">
+      <svg lucideIndianRupee icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Renewals" [value]="formatCurrency(totalRenewals())" [delta]="0">
+      <svg lucideTrendingUp icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Active members" [value]="d.kpis.activeMembers" [delta]="0">
+      <svg lucideUsers icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+    <app-kpi-card label="Occupancy" [value]="d.kpis.occupancyPercent + '%'" [delta]="0">
+      <svg lucideActivity icon class="h-4 w-4"></svg>
+    </app-kpi-card>
+  </section>
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <app-glass-card class="p-5 block">
+      <app-section-header title="Revenue" [description]="'Daily revenue · last ' + d.days + ' days'" />
+      <div class="h-[280px]"><p-chart type="line" [data]="revenueChart()" [options]="lineOptions" /></div>
+    </app-glass-card>
+    <app-glass-card class="p-5 block">
+      <app-section-header title="Attendance" description="Present vs late vs absent" />
+      <div class="h-[280px]"><p-chart type="bar" [data]="attendanceChart()" [options]="barOptions" /></div>
+    </app-glass-card>
+  </section>
+}

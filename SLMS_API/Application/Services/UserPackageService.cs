@@ -66,7 +66,17 @@ namespace SLMS_API.Application.Services
             var package = await _context.Packages
                 .FirstOrDefaultAsync(x => x.Id == request.PackageId && x.IsActive, cancellationToken)
                 ?? throw new InvalidOperationException("Package not found.");
-           
+
+            var existingCurrentPackages = await _context.UserPackages
+                .Where(x => x.UserId == userId && x.IsCurrentPackage)
+                .ToListAsync(cancellationToken);
+
+            foreach (var existing in existingCurrentPackages)
+            {
+                existing.IsCurrentPackage = false;
+                existing.UpdatedAtUtc = DateTime.UtcNow;
+            }
+
             var userPackage = new UserPackage
             {
                 UserId = userId,

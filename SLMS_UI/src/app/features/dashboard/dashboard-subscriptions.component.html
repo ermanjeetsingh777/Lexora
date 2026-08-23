@@ -1,0 +1,16 @@
+@if (loading()) {
+  <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading subscriptions…</div>
+} @else if (data(); as d) {
+  <app-page-header eyebrow="Subscriptions" title="Membership revenue trajectory" [description]="d.scopeLabel" />
+  <app-glass-card class="p-5 block">
+    <app-section-header title="Recurring revenue proxy" description="Derived from member plan payments in your scope">
+      <svg lucideLayers actions class="h-4 w-4 text-muted-foreground"></svg>
+    </app-section-header>
+    <div class="mb-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+      <div class="rounded-lg border p-3"><div class="label-mono">Active members</div><div class="text-xl font-semibold">{{ d.kpis.activeMembers }}</div></div>
+      <div class="rounded-lg border p-3"><div class="label-mono">Revenue MTD</div><div class="text-xl font-semibold">{{ formatCurrency(d.kpis.revenueMtd) }}</div></div>
+      <div class="rounded-lg border p-3"><div class="label-mono">Fees due</div><div class="text-xl font-semibold text-destructive">{{ formatCurrency(d.memberMix.totalFeesOwed) }}</div></div>
+    </div>
+    <div class="h-[280px]"><p-chart type="line" [data]="mrrChart()" [options]="chartOptions" /></div>
+  </app-glass-card>
+}

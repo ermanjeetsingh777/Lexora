@@ -88,6 +88,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPermissionResolver, PermissionResolver>();
         services.AddScoped<IPackageService, PackageService>();
         services.AddScoped<IUserPackageService, UserPackageService>();
+        services.AddScoped<IPackageSubscriptionService, PackageSubscriptionService>();
         services.AddScoped<IInstitutionService, InstitutionService>();
         services.AddScoped<IBranchService, BranchService>();
         services.AddScoped<ILibraryService, LibraryService>();
@@ -102,6 +103,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SupportStatusSimulator>();
         services.AddScoped<ISupportService, SupportService>();
         services.AddScoped<IBookService, BookService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         services.AddHttpContextAccessor();
 

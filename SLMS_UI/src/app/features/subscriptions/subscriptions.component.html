@@ -1,0 +1,371 @@
+<div class="space-y-6">
+  <app-page-header
+    eyebrow="Organization"
+    title="Institution subscriptions"
+    [description]="isSuperAdmin()
+      ? 'All institution SaaS packages — renewals, upgrades and billing history.'
+      : 'Your institution package — plan details, renewal and history.'"
+  >
+    <div actions>
+      <app-button variant="outline" size="sm" (click)="loadOverview()" [disabled]="loading()">
+        <svg lucideRefreshCw class="h-4 w-4 mr-1" [class.animate-spin]="loading()"></svg>
+        Refresh
+      </app-button>
+    </div>
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20 text-muted-foreground gap-2">
+      <svg lucideLoader2 class="h-5 w-5 animate-spin"></svg>
+      Loading subscriptions…
+    </div>
+  } @else {
+    @if (expiringSoon().length) {
+      <app-glass-card class="block border-amber-500/30 bg-amber-500/5">
+        <div class="flex flex-wrap items-start gap-3">
+          <svg lucideAlertTriangle class="h-5 w-5 text-amber-500 shrink-0 mt-0.5"></svg>
+          <div class="min-w-0 flex-1 space-y-2">
+            <div class="font-medium">
+              {{ expiringSoon().length }} package{{ expiringSoon().length > 1 ? 's' : '' }} expiring within 7 days
+            </div>
+            @for (item of expiringSoon(); track item.id) {
+              <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span>
+                  {{ isSuperAdmin() ? item.institutionName + ' · ' + item.userName : item.packageName }}
+                  — ends {{ item.endDateUtc | date:'mediumDate' }} ({{ item.daysRemaining }} days left)
+                </span>
+                @if (item.canRenew) {
+                  <app-button size="sm" (click)="openRenew(item)">Renew now</app-button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </app-glass-card>
+    }
+
+    @if (expired().length) {
+      <app-glass-card class="block border-destructive/30 bg-destructive/5">
+        <div class="flex flex-wrap items-start gap-3">
+          <svg lucideAlertTriangle class="h-5 w-5 text-destructive shrink-0 mt-0.5"></svg>
+          <div class="min-w-0 flex-1 space-y-2">
+            <div class="font-medium">
+              {{ expired().length }} expired package{{ expired().length > 1 ? 's' : '' }}
+            </div>
+            @for (item of expired(); track item.id) {
+              <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span>
+                  {{ isSuperAdmin() ? item.institutionName + ' · ' + item.userName : item.packageName }}
+                  — expired {{ item.endDateUtc | date:'mediumDate' }}
+                </span>
+                @if (item.canRenew) {
+                  <app-button size="sm" (click)="openRenew(item)">Renew plan</app-button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </app-glass-card>
+    }
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <app-kpi-card label="Active" [value]="overview()?.summary?.totalActive ?? 0" hint="Current packages" />
+      <app-kpi-card label="Expiring soon" [value]="overview()?.summary?.expiringSoonCount ?? 0" hint="Within 7 days" />
+      <app-kpi-card label="Expired" [value]="overview()?.summary?.expiredCount ?? 0" hint="Needs renewal" />
+      <app-kpi-card label="Total revenue" [value]="formatCurrency(overview()?.summary?.totalRevenue ?? 0)" hint="All-time paid" />
+    </div>
+
+    @if (current(); as sub) {
+      <app-glass-card class="block">
+        <app-section-header title="Current plan" description="Your active institution package" />
+        <div class="grid gap-4 md:grid-cols-[1fr_auto]">
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-xl font-semibold">{{ sub.packageName }}</h3>
+              <app-status-badge [status]="statusLabel(sub.status)" />
+              @if (sub.autoRenew) {
+                <span class="label-mono text-emerald-600">Auto-renew on</span>
+              }
+            </div>
+            @if (sub.institutionName) {
+              <p class="text-sm text-muted-foreground">{{ sub.institutionName }}</p>
+            }
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div>
+                <div class="label-mono">Plan price</div>
+                <div class="font-medium">{{ formatCurrency(sub.packagePrice) }}</div>
+              </div>
+              <div>
+                <div class="label-mono">Paid</div>
+                <div class="font-medium">{{ formatCurrency(sub.amountPaid) }}</div>
+              </div>
+              <div>
+                <div class="label-mono">Start date</div>
+                <div class="font-medium">{{ sub.startDateUtc | date:'mediumDate' }}</div>
+              </div>
+              <div>
+                <div class="label-mono">End date</div>
+                <div class="font-medium">{{ sub.endDateUtc | date:'mediumDate' }}</div>
+              </div>
+            </div>
+            @if (sub.features.length) {
+              <div class="pt-2 border-t">
+                <div class="label-mono mb-2">Package features</div>
+                <app-package-features-list [features]="sub.features" />
+              </div>
+            }
+          </div>
+          <div class="flex flex-col gap-2 md:items-end">
+            @if (sub.canRenew) {
+              <app-button (click)="openRenew(sub)">
+                <svg lucideRefreshCw class="h-4 w-4 mr-1"></svg> Renew
+              </app-button>
+            }
+            @if (sub.canUpgrade) {
+              <app-button variant="outline" (click)="openUpgrade(sub)">
+                <svg lucideSparkles class="h-4 w-4 mr-1"></svg> Upgrade
+              </app-button>
+            }
+            @if (isSuperAdmin()) {
+              <app-button variant="outline" (click)="openUpdate(sub)">Update</app-button>
+            }
+          </div>
+        </div>
+      </app-glass-card>
+    }
+
+    @if (isSuperAdmin()) {
+      <app-glass-card class="block p-0 overflow-hidden">
+        <div class="p-4 border-b">
+          <app-section-header title="All subscriptions" description="Every institution admin package in the system" />
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="border-b bg-muted/30">
+              <tr class="text-left">
+                <th class="px-4 py-2 font-medium">Institution</th>
+                <th class="px-4 py-2 font-medium">User</th>
+                <th class="px-4 py-2 font-medium">Plan</th>
+                <th class="px-4 py-2 font-medium">Status</th>
+                <th class="px-4 py-2 font-medium">End date</th>
+                <th class="px-4 py-2 font-medium">Paid</th>
+                <th class="px-4 py-2 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of adminRows(); track row.id) {
+                <tr class="border-b last:border-0 hover:bg-muted/20">
+                  <td class="px-4 py-3">{{ row.institutionName || '—' }}</td>
+                  <td class="px-4 py-3">
+                    <div>{{ row.userName }}</div>
+                    <div class="text-xs text-muted-foreground">{{ row.userEmail }}</div>
+                  </td>
+                  <td class="px-4 py-3">{{ row.packageName }}</td>
+                  <td class="px-4 py-3"><app-status-badge [status]="statusLabel(row.status)" /></td>
+                  <td class="px-4 py-3">{{ row.endDateUtc | date:'mediumDate' }}</td>
+                  <td class="px-4 py-3">{{ formatCurrency(row.amountPaid) }}</td>
+                  <td class="px-4 py-3">
+                    <div class="flex gap-1 flex-wrap">
+                      @if (row.canRenew) {
+                        <app-button size="sm" variant="outline" (click)="openRenew(row)">Renew</app-button>
+                      }
+                      @if (row.canUpgrade) {
+                        <app-button size="sm" variant="outline" (click)="openUpgrade(row)">Upgrade</app-button>
+                      }
+                      <app-button size="sm" variant="outline" (click)="openUpdate(row)">Update</app-button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="px-4 py-8 text-center text-muted-foreground">No subscriptions found.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </app-glass-card>
+    }
+
+    <div>
+      <app-section-header title="Available plans" description="Upgrade while active, or renew when expiring or expired" />
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        @for (plan of plans(); track plan.id) {
+          <app-glass-card class="block flex flex-col">
+            <div class="font-semibold text-lg">{{ plan.name }}</div>
+            <div class="text-2xl font-bold mt-1">{{ formatCurrency(plan.price) }}</div>
+            <div class="label-mono mt-1">{{ plan.durationInDays }} days</div>
+            @if (plan.description) {
+              <p class="text-sm text-muted-foreground mt-2">{{ plan.description }}</p>
+            }
+            <div class="mt-3 flex-1 border-t pt-3">
+              <div class="label-mono mb-2">Features</div>
+              <app-package-features-list [features]="plan.features" [compact]="true" />
+            </div>
+            <app-button
+              class="mt-4 w-full"
+              size="sm"
+              (click)="selectPlan(plan)"
+              [disabled]="saving() || !canSelectPlan(plan)"
+            >
+              {{ planActionLabel(plan) }}
+            </app-button>
+          </app-glass-card>
+        }
+      </div>
+    </div>
+
+    <app-glass-card class="block p-0 overflow-hidden">
+      <div class="p-4 border-b flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <svg lucideHistory class="h-4 w-4"></svg>
+          <app-section-header title="Subscription history" description="Past renewals, upgrades and plan changes" />
+        </div>
+        @if (history().length) {
+          <app-button variant="outline" size="sm" (click)="downloadAllHistory()">
+            <svg lucideDownload class="h-4 w-4 mr-1"></svg>
+            Download all
+          </app-button>
+        }
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-b bg-muted/30">
+            <tr class="text-left">
+              @if (isSuperAdmin()) { <th class="px-4 py-2 font-medium">User</th> }
+              <th class="px-4 py-2 font-medium">Plan</th>
+              <th class="px-4 py-2 font-medium">Action</th>
+              <th class="px-4 py-2 font-medium">Period</th>
+              <th class="px-4 py-2 font-medium">Status</th>
+              <th class="px-4 py-2 font-medium">Paid</th>
+              <th class="px-4 py-2 font-medium">Adjustment</th>
+              <th class="px-4 py-2 font-medium">Invoice</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of history(); track item.id) {
+              <tr class="border-b last:border-0">
+                @if (isSuperAdmin()) {
+                  <td class="px-4 py-3">
+                    <div>{{ item.userName }}</div>
+                    <div class="text-xs text-muted-foreground">{{ item.institutionName }}</div>
+                  </td>
+                }
+                <td class="px-4 py-3">
+                  <div>{{ item.packageName }}</div>
+                  @if (item.features.length) {
+                    <details class="mt-1 text-xs text-muted-foreground">
+                      <summary class="cursor-pointer hover:text-foreground">View features</summary>
+                      <div class="mt-2 pr-2">
+                        <app-package-features-list [features]="item.features" [compact]="true" />
+                      </div>
+                    </details>
+                  }
+                </td>
+                <td class="px-4 py-3">{{ item.action }}</td>
+                <td class="px-4 py-3">
+                  {{ item.startDateUtc | date:'mediumDate' }} – {{ item.endDateUtc | date:'mediumDate' }}
+                </td>
+                <td class="px-4 py-3"><app-status-badge [status]="statusLabel(item.status)" /></td>
+                <td class="px-4 py-3">{{ formatCurrency(item.amountPaid) }}</td>
+                <td class="px-4 py-3">{{ formatCurrency(item.adjustmentAmount) }}</td>
+                <td class="px-4 py-3">
+                  <app-button size="sm" variant="outline" (click)="downloadInvoice(item)">
+                    <svg lucideDownload class="h-3.5 w-3.5"></svg>
+                  </app-button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td [attr.colspan]="isSuperAdmin() ? 8 : 7" class="px-4 py-8 text-center text-muted-foreground">
+                  No history yet.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </app-glass-card>
+  }
+
+  @if (dialogMode()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="closeDialog()">
+      <div class="w-full max-w-md rounded-lg border bg-background p-5 shadow-lg" (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold">{{ dialogTitle() }}</h3>
+        <p class="text-sm text-muted-foreground mt-1">
+          {{ selectedSubscription()?.packageName }} · {{ selectedSubscription()?.userName }}
+        </p>
+
+        <div class="mt-4 space-y-3">
+          <label class="block text-sm">
+            <span class="label-mono">Plan</span>
+            <select class="mt-1 w-full h-9 rounded-md border bg-background px-2 text-sm"
+              [ngModel]="selectedPackageId()" (ngModelChange)="onPackageChange($event)">
+              @for (plan of dialogPlans(); track plan.id) {
+                <option [ngValue]="plan.id">{{ plan.name }} — {{ formatCurrency(plan.price) }}</option>
+              }
+            </select>
+          </label>
+
+          @if (selectedPlan(); as plan) {
+            <div class="rounded-md border bg-muted/20 p-3">
+              <div class="label-mono mb-2">Plan features</div>
+              <app-package-features-list [features]="plan.features" [compact]="true" />
+            </div>
+          }
+
+          @if (dialogMode() === 'update') {
+            <label class="block text-sm">
+              <span class="label-mono">End date</span>
+              <input type="date" class="mt-1 w-full h-9 rounded-md border bg-background px-2 text-sm"
+                [ngModel]="endDateInput()" (ngModelChange)="endDateInput.set($event)" />
+            </label>
+          }
+
+          @if (dialogMode() === 'renew' || dialogMode() === 'upgrade' || (dialogMode() === 'update' && selectedPackageId() !== selectedSubscription()?.packageId)) {
+            <div class="rounded-md border bg-muted/30 p-3 text-sm space-y-2">
+              @if (quoteLoading()) {
+                <div class="flex items-center gap-2 text-muted-foreground">
+                  <svg lucideLoader2 class="h-4 w-4 animate-spin"></svg>
+                  Calculating price…
+                </div>
+              } @else if (quote(); as q) {
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">Package amount</span>
+                  <span class="font-medium">{{ formatCurrency(q.packagePrice) }}</span>
+                </div>
+                @if (!q.isExpired && q.remainingDays > 0) {
+                  <div class="flex justify-between">
+                    <span class="text-muted-foreground">
+                      Adjustment ({{ q.remainingDays }} days left on {{ q.currentPackageName }})
+                    </span>
+                    <span class="font-medium text-emerald-600">− {{ formatCurrency(q.adjustmentAmount) }}</span>
+                  </div>
+                }
+                <div class="flex justify-between border-t pt-2 font-semibold">
+                  <span>Final amount</span>
+                  <span>{{ formatCurrency(q.amountPaid) }}</span>
+                </div>
+              }
+            </div>
+          }
+
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" [ngModel]="autoRenew()" (ngModelChange)="autoRenew.set($event)" />
+            Auto-renew
+          </label>
+        </div>
+
+        <div class="mt-5 flex justify-end gap-2">
+          <app-button variant="outline" (click)="closeDialog()" [disabled]="saving()">Cancel</app-button>
+          <app-button (click)="confirmDialog()" [disabled]="saving() || quoteLoading()">
+            @if (saving()) {
+              <svg lucideLoader2 class="h-4 w-4 mr-1 animate-spin"></svg>
+            }
+            Confirm
+          </app-button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

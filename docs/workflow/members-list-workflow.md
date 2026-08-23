@@ -235,7 +235,7 @@ sequenceDiagram
   C->>S: GetAllMemberListAsync()
   S->>DB: Query Members + joins
   DB-->>S: Projected rows
-  S->>S: ComputePlanMetrics per member
+  S->>S: MemberPlanMetricsHelper.ComputePlanMetrics per member
   S-->>C: List MemberListResponse
   C-->>C: ApiResponse.Ok(data)
 ```
@@ -299,9 +299,21 @@ See [scoped-members-workflow.md](./scoped-members-workflow.md) for UI integratio
    - `LastVisit` = latest `AttendanceDate`
    - `Visits30d` = total attendance count (global list; not limited to 30 days)
 5. `AttendanceRate` = visits / membership days × 100 (capped at 100).
-6. `ComputePlanMetrics(endDate, price, today)` → `DaysRemaining`, `FeesOwed`, `MemberPlanStatus`.
+6. `MemberPlanMetricsHelper.ComputePlanMetrics(endDate, price, today)` → `DaysRemaining`, `FeesOwed`, `MemberPlanStatus` (shared with dashboard; see **BR-06.1** below).
 7. `Status` = `IsActive ? "Active" : "Inactive"`.
 8. Avatar URL (DiceBear).
+
+#### BR-06.1 — Plan metrics (`MemberPlanMetricsHelper`)
+
+**File:** `SLMS_API/Application/Helpers/MemberPlanMetricsHelper.cs`
+
+| Output | Rule |
+|--------|------|
+| `DaysRemaining` | Signed days until/since plan end |
+| `PlanStatus` | Active (>7d left) · ExpiringSoon (≤7d or expiry day) · Expired (past end) · NoPlan |
+| `FeesOwed` (list row) | Full plan price only if expired **> 7 days**; otherwise `0` |
+
+**Dashboard pending payments** uses `ComputeMemberFeesOwed` on the same helper: expired dues **or** partial unpaid balance (`amount − paidAmount`), never both. See [dashboard-workflow.md](./dashboard-workflow.md).
 
 ### 3.4 DTOs
 
@@ -424,7 +436,8 @@ SLMS_API/
 |-------|------|
 | Server-side paging | Not implemented; full list downloaded |
 | `GET members/summary` | Available but unused by list UI |
-| Lifecycle rules | UI `computeMemberLifecycle()` differs from API `ComputePlanMetrics()` |
+| Lifecycle rules | UI `computeMemberLifecycle()` differs slightly from API `MemberPlanMetricsHelper` |
+| Dashboard dues total | Dashboard uses `ComputeMemberFeesOwed` (includes partial payment); list KPI “Fees due” uses row `feesOwed` from `ComputePlanMetrics` only |
 | `Visits30d` | Global list counts all attendances; library list uses 30-day window |
 | Filter restore | `hydrateFilters()` disabled in `ngOnInit` |
 | Export | Button present, no handler |

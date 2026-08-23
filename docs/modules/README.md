@@ -15,9 +15,10 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 | M-05 | Branches | `/branches`, `/branches/:id` | [branches-workflow.md](../workflow/branches-workflow.md) | Implemented |
 | M-06 | Members | `/members`, `/members/:id` | [members-list-workflow.md](../workflow/members-list-workflow.md), [members-detail-workflow.md](../workflow/members-detail-workflow.md) | Implemented |
 | M-06b | Scoped members | Nested under institution / branch / library detail | [scoped-members-workflow.md](../workflow/scoped-members-workflow.md) | Implemented |
-| M-07 | Dashboard | `/dashboard` | [dashboard-workflow.md](../workflow/dashboard-workflow.md) | Partial (overview shell only) |
+| M-07 | Dashboard | `/dashboard` | [dashboard-workflow.md](../workflow/dashboard-workflow.md) | Implemented (Overview + Activity; other sub-routes exist) |
 | M-08 | Libraries | `/libraries`, `/libraries/:id` | [libraries-list-workflow.md](../workflow/libraries-list-workflow.md), [library-detail-workflow.md](../workflow/library-detail-workflow.md) | Implemented |
 | M-09 | Support | `/support`, `/support/status` | [support-workflow.md](../workflow/support-workflow.md) | Implemented |
+| M-10 | SaaS subscriptions | `/subscriptions` | — | Implemented (UI + `PackageSubscriptionsController`) |
 | M-12 | Books & circulation | `/books` | [books-workflow.md](../workflow/books-workflow.md) | Implemented |
 | M-13 | Attendance (staff) | `/attendance/*` | [attendance-module-workflow.md](../workflow/attendance-module-workflow.md) | Implemented |
 | M-13b | Attendance QR kiosk | `/kiosk/attendance/*`, `/attendance/scanner` | [attendance-kiosk-workflow.md](../workflow/attendance-kiosk-workflow.md) | Implemented |
@@ -27,11 +28,11 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 
 | Area | Notes |
 |------|-------|
-| Subscriptions | Route commented out in `app.routes.ts` |
+| Subscriptions (SaaS packages) | `/subscriptions` — package subscription management |
 | Payments | Route commented out |
 | Seats | Route commented out |
 | Reports, Notifications, Settings | Sidebar entries exist; routes not wired |
-| Dashboard sub-tabs | Analytics, occupancy, revenue, etc. commented out |
+| Dashboard sub-tabs | Analytics, occupancy, revenue, etc. routed but hidden from shell nav |
 
 ## Requirements (source)
 

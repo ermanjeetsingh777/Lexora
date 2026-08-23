@@ -145,6 +145,29 @@ On startup (`DbSeeder.MigrateAndSeedAsync`):
 1. `MigrateAsync()` — includes `ReseedCrudPermissions` migration
 2. `SeedRolesAsync()` — ensures all 12 Identity roles exist
 3. `SeedRolePermissionsAsync()` — **syncs** role permissions to `RolePermissionDefinitions` (adds missing, removes stale)
+4. `SuperAdminSeedData.SeedAsync()` — ensures platform SuperAdmin user (see below)
+5. `DemoSeedData.SeedAsync()` — optional demo institute (when `Demo:Enabled`)
+
+### 5.2.1 SuperAdmin seed user
+
+**File:** `SLMS_API/Infrastructure/Data/SuperAdminSeedData.cs`  
+**Config:** `Identity:SuperAdminEmail`, `Identity:SuperAdminPassword` in `appsettings*.json`
+
+| Field | Default (Development) |
+|-------|------------------------|
+| Email | `superadmin@slms.com` |
+| Password | `SuperAdmin@123` |
+| Role | `SuperAdmin` |
+
+Idempotent: creates user if missing; adds `SuperAdmin` role if user exists without it.
+
+**Manual seed (without full app startup):**
+
+```bash
+dotnet run --project SLMS_API -- --seed-superadmin
+```
+
+Or run built executable: `SLMS_API.exe --seed-superadmin`
 
 ### 5.3 JWT claims
 

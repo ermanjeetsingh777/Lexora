@@ -10,7 +10,7 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 |-----|--------|---------|
 | [auth-workflow.md](./auth-workflow.md) | M-01 Authentication | Login, register, OTP, password reset, JWT |
 | [onboarding-workflow.md](./onboarding-workflow.md) | M-03 Onboarding | Institution → branch → library wizard |
-| [dashboard-workflow.md](./dashboard-workflow.md) | M-07 Dashboard | Dashboard shell (sub-tabs planned) |
+| [dashboard-workflow.md](./dashboard-workflow.md) | M-07 Dashboard | Overview + Activity tabs, period filter, revenue/dues logic |
 
 ## Organization hierarchy
 

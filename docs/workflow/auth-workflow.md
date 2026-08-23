@@ -55,6 +55,17 @@ Layout: `SLMS_UI/src/app/layouts/auth-layout/`
 4. Redirect: onboarding step if incomplete, else `returnUrl` or `/dashboard`.
 5. Demo login available in non-production (`environment.production === false`).
 
+### 2.3.1 Development seed accounts
+
+Seeded on API startup (see [administration-workflow.md](./administration-workflow.md)):
+
+| Account | Email | Password | Role |
+|---------|-------|----------|------|
+| SuperAdmin | `superadmin@slms.com` | `SuperAdmin@123` | SuperAdmin |
+| Demo org admin | `institution@slms.com` | `Demo@12345` | OrganisationAdmin (when `Demo:Enabled`) |
+
+Override credentials via `Identity:SuperAdmin*` and `Demo:Admin*` in `appsettings.Development.json`.
+
 ---
 
 ## 3. .NET Workflow (SLMS_API)

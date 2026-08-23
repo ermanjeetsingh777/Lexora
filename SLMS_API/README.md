@@ -57,6 +57,8 @@ SLMS_API/
 | `AttendanceScannerController` | `api/v1/attendance/scanner` | [attendance-kiosk-workflow.md](../docs/workflow/attendance-kiosk-workflow.md) |
 | `AdminController` | `api/v1/admin` | [administration-workflow.md](../docs/workflow/administration-workflow.md) |
 | `SupportController` | `api/v1/support` | [support-workflow.md](../docs/workflow/support-workflow.md) |
+| `DashboardController` | `api/v1/dashboard` | [dashboard-workflow.md](../docs/workflow/dashboard-workflow.md) |
+| `PackageSubscriptionsController` | `api/v1/package-subscriptions` | SaaS package billing (SuperAdmin sees all tenants) |
 | `PlanController` | `api/v1/institutions/.../plans` | [library-detail-workflow.md](../docs/workflow/library-detail-workflow.md) |
 | `SubscriptionsController` | `api/v1/institutions/{id}/subscriptions` | Planned |
 | `SeatsController` | `api/v1/institutions/.../seats` | Planned |
@@ -70,10 +72,26 @@ SLMS_API/
 
 ## Configuration
 
-- `appsettings.json` — connection strings, JWT, demo options
+- `appsettings.json` — connection strings, JWT, demo options, Identity (SuperAdmin seed credentials)
 - `appsettings.Development.json` — local overrides
 
+### Seed data (startup)
+
+| Seed | When | Purpose |
+|------|------|---------|
+| Roles + permissions | Always | `DbSeeder.SeedRolesAsync` / `SeedRolePermissionsAsync` |
+| SuperAdmin user | Always | `SuperAdminSeedData` — `superadmin@slms.com` by default |
+| Demo institute | `Demo:Enabled` | Org admin, branches, libraries, sample members |
+
+**Seed SuperAdmin only:**
+
+```bash
+dotnet run --project SLMS_API -- --seed-superadmin
+```
+
 Migrations: `SLMS_API/Infrastructure/Data/Migrations/`
+
+Build output folder `SLMS_API/_build_check/` is gitignored (alternate build path when default output is locked).
 
 ```bash
 dotnet ef migrations add <Name> --project SLMS_API

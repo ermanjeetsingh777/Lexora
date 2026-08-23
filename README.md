@@ -26,6 +26,15 @@ ng serve
 - API: `http://localhost:5050`
 - UI: `http://localhost:4200`
 
+### Development login (seeded)
+
+| Role | Email | Password |
+|------|-------|----------|
+| SuperAdmin | `superadmin@slms.com` | `SuperAdmin@123` |
+| Demo org admin | `institution@slms.com` | `Demo@12345` (requires `Demo:Enabled` in API) |
+
+See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workflow.md](docs/workflow/administration-workflow.md).
+
 ## Documentation
 
 | Doc | Purpose |

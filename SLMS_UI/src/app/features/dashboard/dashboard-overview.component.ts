@@ -2,24 +2,25 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
 import {
-  LucideArmchair, LucideArrowRight, LucideBell, LucideBuilding2, LucideIndianRupee, LucideUsers,
+  LucideArmchair, LucideArrowRight, LucideBuilding2, LucideIndianRupee, LucideUsers,
 } from '@lucide/angular';
 import { DashboardOverview } from '@core/models/dashboard.models';
 import { DashboardService } from '@core/services/dashboard.service';
 import { ToastService } from '@core/services/toast.service';
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
-import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
-import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { GlassCardComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
 import {
   buildAttendanceBarChartData,
   buildBarChartOptions,
-  buildDoughnutChartOptions,
   buildLineChartOptions,
-  buildMemberMixChartData,
   buildRevenueAreaChartData,
   formatDashboardCurrency,
 } from './dashboard-chart.util';
 import { DashboardFilterService } from './dashboard-filter.service';
+import { DashboardHeaderService } from './dashboard-header.service';
+import { DashboardFiltersBarComponent } from './dashboard-filters-bar.component';
+import { DashboardActivityFeedComponent } from './dashboard-activity-feed.component';
+import { DashboardRevenueChartsComponent } from './dashboard-revenue-charts.component';
 
 @Component({
   selector: 'app-dashboard-overview',
@@ -27,17 +28,17 @@ import { DashboardFilterService } from './dashboard-filter.service';
   imports: [
     RouterLink,
     ChartModule,
-    PageHeaderComponent,
     SectionHeaderComponent,
     GlassCardComponent,
     KpiCardComponent,
-    StatusBadgeComponent,
     LucideUsers,
     LucideArmchair,
     LucideIndianRupee,
     LucideBuilding2,
     LucideArrowRight,
-    LucideBell,
+    DashboardActivityFeedComponent,
+    DashboardRevenueChartsComponent,
+    DashboardFiltersBarComponent,
   ],
   templateUrl: './dashboard-overview.component.html',
   styleUrl: './dashboard-overview.component.css',
@@ -45,35 +46,41 @@ import { DashboardFilterService } from './dashboard-filter.service';
 export class DashboardOverviewComponent {
   private readonly dashboard = inject(DashboardService);
   private readonly filters = inject(DashboardFilterService);
+  private readonly header = inject(DashboardHeaderService);
   private readonly toast = inject(ToastService);
 
   readonly loading = signal(true);
   readonly data = signal<DashboardOverview | null>(null);
   readonly formatCurrency = formatDashboardCurrency;
 
+  readonly revenueCharts = computed(() => this.data()?.revenueCharts ?? {
+    monthlyTrend: [],
+    quarterlyTrend: [],
+    yearlyTrend: [],
+  });
+
   readonly revenueChartData = computed(() =>
     buildRevenueAreaChartData(this.data()?.revenueTrend ?? []),
+  );
+  readonly periodRevenueTotal = computed(() =>
+    (this.data()?.revenueTrend ?? []).reduce((sum, point) => sum + point.revenue, 0),
+  );
+  readonly periodRenewalsTotal = computed(() =>
+    (this.data()?.revenueTrend ?? []).reduce((sum, point) => sum + point.renewals, 0),
   );
   readonly attendanceChartData = computed(() =>
     buildAttendanceBarChartData(this.data()?.attendanceTrend ?? []),
   );
-  readonly memberMixChartData = computed(() => {
-    const mix = this.data()?.memberMix;
-    return buildMemberMixChartData(mix?.active ?? 0, mix?.inactive ?? 0, mix?.suspended ?? 0);
-  });
-
-  readonly lineChartOptions = buildLineChartOptions();
+  readonly lineChartOptions = computed(() => buildLineChartOptions(formatDashboardCurrency));
   readonly barChartOptions = buildBarChartOptions();
-  readonly doughnutChartOptions = buildDoughnutChartOptions();
 
-  initials(name: string): string {
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .map((part) => part[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+  memberMixRows(mix: DashboardOverview['memberMix']) {
+    const total = Math.max(mix.total, 1);
+    return [
+      { key: 'active', label: 'Active', count: mix.active, percent: Math.round((mix.active / total) * 100), tone: 'active' },
+      { key: 'inactive', label: 'Inactive', count: mix.inactive, percent: Math.round((mix.inactive / total) * 100), tone: 'inactive' },
+      { key: 'suspended', label: 'Suspended', count: mix.suspended, percent: Math.round((mix.suspended / total) * 100), tone: 'suspended' },
+    ];
   }
 
   constructor() {
@@ -88,6 +95,12 @@ export class DashboardOverviewComponent {
     this.dashboard.getOverview(this.filters.query()).subscribe({
       next: (overview) => {
         this.data.set(overview);
+        this.header.update({
+          description: overview.scopeLabel,
+          isSuperAdmin: overview.isSuperAdmin,
+          totalMembers: overview.kpis.totalMembers,
+          totalLibraries: overview.kpis.totalLibraries,
+        });
         this.loading.set(false);
       },
       error: (err) => {

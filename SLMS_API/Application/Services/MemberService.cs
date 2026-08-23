@@ -15,6 +15,7 @@ using SLMS_API.Infrastructure.Data;
 using System.Net;
 using System.Numerics;
 using SLMS_API.Application.Contracts.Organizations.Responses;
+using SLMS_API.Application.Helpers;
 namespace SLMS_API.Application.Services;
 
 public class MemberService : IMemberService
@@ -694,7 +695,7 @@ public class MemberService : IMemberService
                 Math.Round((decimal)x.Visits30d / totalMembershipDays * 100, 1),
                 100);
             var currentPlan = x.CurrentPlan;
-            var (daysRemaining, feesOwed, planStatus) = ComputePlanMetrics(
+            var (daysRemaining, feesOwed, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
                 currentPlan?.EndDate,
                 currentPlan?.Price ?? 0,
                 today);
@@ -807,7 +808,7 @@ public class MemberService : IMemberService
                 attendanceRate = Math.Min(attendanceRate, 100);
                 var currentPlan = x.CurrentPlan;
 
-                var (daysRemaining, feesOwed, planStatus) = ComputePlanMetrics(
+                var (daysRemaining, feesOwed, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
                     currentPlan?.EndDate,
                     currentPlan?.Price ?? 0,
                     today);
@@ -1023,7 +1024,7 @@ public class MemberService : IMemberService
 
         var currentPlan = plans.FirstOrDefault(x => x.IsCurrent);
 
-        var (_, feesOwed, planStatus) = ComputePlanMetrics(
+        var (_, feesOwed, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
             currentPlan?.EndDate,
             currentPlan?.Price ?? 0,
             today);
@@ -1626,35 +1627,6 @@ public class MemberService : IMemberService
             FullName = entity.FullName,
             PhoneNumber = entity.PhoneNumber,
         };
-
-    /// <summary>
-    /// BR-06.1: signed days remaining; grace = expired ≤7 days with no dues.
-    /// </summary>
-    private static (int DaysRemaining, decimal FeesOwed, MemberPlanStatus PlanStatus) ComputePlanMetrics(
-        DateOnly? planEndDate,
-        decimal planPrice,
-        DateOnly today)
-    {
-        if (planEndDate is null)
-            return (0, 0, MemberPlanStatus.NoPlan);
-
-        var daysRemaining = planEndDate.Value.DayNumber - today.DayNumber;
-
-        if (daysRemaining > 7)
-            return (daysRemaining, 0, MemberPlanStatus.Active);
-
-        if (daysRemaining > 0)
-            return (daysRemaining, 0, MemberPlanStatus.ExpiringSoon);
-
-        if (daysRemaining == 0)
-            return (0, 0, MemberPlanStatus.ExpiringSoon);
-
-        var daysPast = Math.Abs(daysRemaining);
-        if (daysPast <= 7)
-            return (daysRemaining, 0, MemberPlanStatus.Expired);
-
-        return (daysRemaining, planPrice, MemberPlanStatus.Expired);
-    }
 
     private static decimal CalculateAdjustmentAmount(decimal currentPlanPrice, int currentPlanDurationInDays, DateOnly currentPlanEndDate)
     {

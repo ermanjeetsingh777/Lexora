@@ -103,6 +103,26 @@ public static class InstitutionRevenueHelper
                 });
     }
 
+    public static Dictionary<Guid, decimal> AggregateByBranchFrom(
+        IEnumerable<(Guid BranchId, decimal PaidAmount, DateTime CreatedAtUtc)> rows,
+        DateTime rangeStartUtc)
+    {
+        return rows
+            .Where(x => x.CreatedAtUtc >= rangeStartUtc)
+            .GroupBy(x => x.BranchId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.PaidAmount));
+    }
+
+    public static Dictionary<Guid, decimal> AggregateByLibraryFrom(
+        IEnumerable<(Guid LibraryId, decimal PaidAmount, DateTime CreatedAtUtc)> rows,
+        DateTime rangeStartUtc)
+    {
+        return rows
+            .Where(x => x.CreatedAtUtc >= rangeStartUtc)
+            .GroupBy(x => x.LibraryId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.PaidAmount));
+    }
+
     public static async Task<InstitutionRevenueMetrics> AggregateSummaryForLibrariesAsync(
         ApplicationDbContext dbContext,
         IReadOnlyCollection<Guid> libraryIds,

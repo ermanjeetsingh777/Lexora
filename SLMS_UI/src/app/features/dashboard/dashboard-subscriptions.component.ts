@@ -4,19 +4,21 @@ import { LucideLayers } from '@lucide/angular';
 import { DashboardOverview } from '@core/models/dashboard.models';
 import { DashboardService } from '@core/services/dashboard.service';
 import { ToastService } from '@core/services/toast.service';
-import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { GlassCardComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { buildLineChartOptions, formatDashboardCurrency } from './dashboard-chart.util';
 import { DashboardFilterService } from './dashboard-filter.service';
+import { DashboardHeaderService } from './dashboard-header.service';
 
 @Component({
   selector: 'app-dashboard-subscriptions',
   standalone: true,
-  imports: [ChartModule, PageHeaderComponent, SectionHeaderComponent, GlassCardComponent, LucideLayers],
+  imports: [ChartModule, SectionHeaderComponent, GlassCardComponent, LucideLayers],
   templateUrl: './dashboard-subscriptions.component.html',
 })
 export class DashboardSubscriptionsComponent {
   private readonly dashboard = inject(DashboardService);
   private readonly filters = inject(DashboardFilterService);
+  private readonly header = inject(DashboardHeaderService);
   private readonly toast = inject(ToastService);
 
   readonly loading = signal(true);
@@ -59,7 +61,11 @@ export class DashboardSubscriptionsComponent {
   private load(): void {
     this.loading.set(true);
     this.dashboard.getOverview(this.filters.query()).subscribe({
-      next: (overview) => { this.data.set(overview); this.loading.set(false); },
+      next: (overview) => {
+        this.data.set(overview);
+        this.header.update({ description: overview.scopeLabel });
+        this.loading.set(false);
+      },
       error: (err) => { this.loading.set(false); this.toast.error(err?.error?.message ?? 'Could not load subscriptions view'); },
     });
   }

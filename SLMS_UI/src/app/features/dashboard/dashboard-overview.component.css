@@ -1,3 +1,321 @@
 :host {
   display: block;
 }
+
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.overview-hero {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .overview-hero {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.overview-revenue-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 35%, var(--background));
+}
+
+@media (min-width: 768px) {
+  .overview-revenue-strip {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+}
+
+.overview-revenue-strip__label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.overview-revenue-strip__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.overview-revenue-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+
+.overview-revenue-pill--accent {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  background: color-mix(in srgb, var(--primary) 6%, var(--background));
+}
+
+.overview-revenue-pill__label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+.overview-revenue-pill__value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-insights {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+@media (min-width: 1024px) {
+  .overview-insights {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+}
+
+.overview-insights__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.overview-insights__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 7rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 25%, var(--background));
+}
+
+.overview-insights__metric-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-chart-shell {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.overview-chart-shell--line {
+  height: 240px;
+}
+
+.overview-chart-shell :where(canvas) {
+  display: block;
+  max-width: 100%;
+}
+
+.member-mix {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.member-mix__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 5%, var(--background));
+}
+
+.member-mix__hero-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.member-mix__hero-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.member-mix__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.member-mix__row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+}
+
+.member-mix__row-label {
+  font-weight: 500;
+}
+
+.member-mix__row-meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+.member-mix__track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.member-mix__fill {
+  height: 100%;
+  border-radius: 9999px;
+  min-width: 0;
+  transition: width 0.3s ease;
+}
+
+.member-mix__fill--active {
+  background: #2563eb;
+}
+
+.member-mix__fill--inactive {
+  background: #f59e0b;
+}
+
+.member-mix__fill--suspended {
+  background: #ef4444;
+}
+
+.member-mix__dues {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--destructive) 25%, var(--border));
+  background: color-mix(in srgb, var(--destructive) 6%, var(--background));
+}
+
+.member-mix__dues-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--destructive);
+}
+
+.overview-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 1280px) {
+  .overview-main {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+  }
+}
+
+.overview-primary,
+.overview-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.overview-sidebar {
+  position: sticky;
+  top: 1rem;
+}
+
+.overview-card {
+  min-width: 0;
+}
+
+.overview-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.overview-link:hover {
+  text-decoration: underline;
+}
+
+.overview-chart {
+  height: 220px;
+}
+
+.overview-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+.overview-live-badge__dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: var(--success);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.overview-occupancy-bar {
+  width: 5rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.overview-occupancy-bar__fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--primary);
+}
+
+@media (max-width: 1279px) {
+  .overview-sidebar {
+    position: static;
+  }
+}

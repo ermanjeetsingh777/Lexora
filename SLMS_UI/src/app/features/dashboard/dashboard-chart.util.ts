@@ -13,9 +13,35 @@ export function formatDashboardCurrency(value: number): string {
 }
 
 export function formatTrendLabel(date: string): string {
+  if (/^\d{4}-\d{2}$/.test(date)) {
+    const [year, month] = date.split('-').map(Number);
+    const parsed = new Date(year, month - 1, 1);
+    return parsed.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+  }
   const parsed = new Date(`${date}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return date;
   return parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+}
+
+export function formatTrendBucketLabel(date: string): string {
+  if (/^\d{4}-Q\d$/.test(date)) {
+    const [year, quarter] = date.split('-');
+    return `${quarter} ${year}`;
+  }
+  if (/^\d{4}$/.test(date)) {
+    return date;
+  }
+  return formatTrendLabel(date);
+}
+
+export function buildRevenueBarChartData(points: DashboardTrendPoint[]): ChartData<'bar'> {
+  return {
+    labels: points.map((p) => formatTrendBucketLabel(p.date)),
+    datasets: [
+      { label: 'Revenue', data: points.map((p) => p.revenue), backgroundColor: CHART_1 },
+      { label: 'Renewals', data: points.map((p) => p.renewals), backgroundColor: CHART_2 },
+    ],
+  };
 }
 
 export function buildRevenueAreaChartData(points: DashboardTrendPoint[]): ChartData<'line'> {
@@ -68,14 +94,34 @@ export function buildMemberMixChartData(active: number, inactive: number, suspen
   };
 }
 
-export function buildLineChartOptions(): ChartOptions<'line'> {
+export function buildLineChartOptions(currencyFormatter?: (value: number) => string): ChartOptions<'line'> {
   return {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, padding: 14 } },
+      tooltip: {
+        callbacks: currencyFormatter
+          ? {
+              label: (ctx) => `${ctx.dataset.label}: ${currencyFormatter(Number(ctx.raw ?? 0))}`,
+            }
+          : undefined,
+      },
+    },
     scales: {
-      x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 10 } } },
-      y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.15)' }, ticks: { font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 7, font: { size: 10 } } },
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(148, 163, 184, 0.15)' },
+        ticks: {
+          font: { size: 10 },
+          maxTicksLimit: 6,
+          callback: currencyFormatter
+            ? (value) => currencyFormatter(Number(value))
+            : undefined,
+        },
+      },
     },
   };
 }

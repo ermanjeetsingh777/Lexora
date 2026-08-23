@@ -1,29 +1,69 @@
 @if (loading()) {
   <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading activity…</div>
 } @else if (data(); as d) {
-  <app-page-header eyebrow="Activity" title="Live activity feed" [description]="d.scopeLabel" />
-  <app-glass-card class="p-5 block">
-    <app-section-header title="Recent events" description="Check-ins and check-outs in your scope" />
-    <div class="relative mb-4 max-w-sm">
-      <svg lucideSearch class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"></svg>
-      <input type="search" class="ui-input pl-9 w-full" placeholder="Search activity…" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+  <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4 mt-4">
+    <div class="rounded-lg border bg-muted/20 px-3 py-2">
+      <div class="label-mono">Events loaded</div>
+      <div class="text-lg font-semibold tabular-nums">{{ filteredItems().length }}</div>
     </div>
-    @if (filteredActivity(d).length === 0) {
-      <p class="text-sm text-muted-foreground">No activity found.</p>
-    } @else {
-      <ol class="space-y-3">
-        @for (a of filteredActivity(d); track a.id) {
-          <li class="flex items-start gap-3 text-sm border-b pb-3 last:border-0">
-            <span class="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold shrink-0">{{ initials(a.actor) }}</span>
-            <div>
-              <span class="font-medium">{{ a.actor }}</span>
-              <span class="text-muted-foreground"> {{ a.action }} </span>
-              <span class="font-mono text-xs">{{ a.target }}</span>
-              <div class="label-mono mt-0.5">{{ a.timeLabel }}</div>
-            </div>
-          </li>
+    <div class="rounded-lg border bg-muted/20 px-3 py-2">
+      <div class="label-mono">Check-ins today</div>
+      <div class="text-lg font-semibold tabular-nums">{{ d.summary.todayCheckIns }}</div>
+    </div>
+    <div class="rounded-lg border bg-muted/20 px-3 py-2">
+      <div class="label-mono">Payments today</div>
+      <div class="text-lg font-semibold tabular-nums">{{ d.summary.todayPayments }}</div>
+    </div>
+    <div class="rounded-lg border bg-muted/20 px-3 py-2">
+      <div class="label-mono">Enrollments today</div>
+      <div class="text-lg font-semibold tabular-nums">{{ d.summary.todayEnrollments }}</div>
+    </div>
+    <div class="rounded-lg border bg-muted/20 px-3 py-2">
+      <div class="label-mono">Book loans today</div>
+      <div class="text-lg font-semibold tabular-nums">{{ d.summary.todayBookLoans }}</div>
+    </div>
+    <div class="rounded-lg border bg-muted/20 px-3 py-2">
+      <div class="label-mono">Pending dues today</div>
+      <div class="text-lg font-semibold tabular-nums">{{ d.summary.todayPendingPayments }}</div>
+    </div>
+  </section>
+
+  <app-glass-card class="block">
+    <app-section-header
+      title="Activity feed"
+      [description]="'Check-ins, payments, renewals, enrollments, books and pending dues · ' + d.totalCount + ' events'" />
+
+    <div class="mb-4 flex flex-wrap items-center gap-3 justify-between">
+      <div class="flex flex-wrap gap-1.5">
+        @for (option of dayOptions; track option.days) {
+          <button type="button" (click)="setActivityDays(option.days)" [class]="dayClass(option.days)">
+            {{ option.label }}
+          </button>
         }
-      </ol>
-    }
+      </div>
+      <div class="activity-search w-full sm:w-80 sm:min-w-[280px]">
+        <svg lucideSearch class="activity-search-icon"></svg>
+        <input
+          type="text"
+          class="activity-search-input"
+          placeholder="Search member, library or detail…"
+          autocomplete="off"
+          spellcheck="false"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)" />
+        @if (search()) {
+          <button type="button" class="activity-search-clear" (click)="search.set('')" aria-label="Clear search">
+            <svg lucideX class="h-3.5 w-3.5"></svg>
+          </button>
+        }
+      </div>
+    </div>
+
+    <app-dashboard-activity-feed
+      [activities]="filteredItems()"
+      [showFilters]="true"
+      [enableLoadMore]="true"
+      [pageSize]="40"
+      emptyMessage="No activity found for your filters." />
   </app-glass-card>
 }

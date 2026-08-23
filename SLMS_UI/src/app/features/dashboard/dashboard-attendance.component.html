@@ -1,11 +1,6 @@
 @if (loading()) {
   <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading attendance…</div>
 } @else if (data(); as d) {
-  <app-page-header
-    eyebrow="Attendance"
-    title="Attendance overview"
-    [description]="d.scopeLabel" />
-
   <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <app-kpi-card label="Avg present / day" [value]="avgPresent()" [delta]="0">
       <svg lucideUsers icon class="h-4 w-4"></svg>

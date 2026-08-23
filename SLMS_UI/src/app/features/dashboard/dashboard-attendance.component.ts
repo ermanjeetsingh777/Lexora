@@ -5,16 +5,16 @@ import { DashboardOverview } from '@core/models/dashboard.models';
 import { DashboardService } from '@core/services/dashboard.service';
 import { ToastService } from '@core/services/toast.service';
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
-import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { GlassCardComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { buildAttendanceBarChartData, buildBarChartOptions } from './dashboard-chart.util';
 import { DashboardFilterService } from './dashboard-filter.service';
+import { DashboardHeaderService } from './dashboard-header.service';
 
 @Component({
   selector: 'app-dashboard-attendance',
   standalone: true,
   imports: [
     ChartModule,
-    PageHeaderComponent,
     SectionHeaderComponent,
     GlassCardComponent,
     KpiCardComponent,
@@ -28,6 +28,7 @@ import { DashboardFilterService } from './dashboard-filter.service';
 export class DashboardAttendanceComponent {
   private readonly dashboard = inject(DashboardService);
   private readonly filters = inject(DashboardFilterService);
+  private readonly header = inject(DashboardHeaderService);
   private readonly toast = inject(ToastService);
 
   readonly loading = signal(true);
@@ -63,6 +64,7 @@ export class DashboardAttendanceComponent {
     this.dashboard.getOverview(this.filters.query()).subscribe({
       next: (overview) => {
         this.data.set(overview);
+        this.header.update({ description: overview.scopeLabel });
         this.loading.set(false);
       },
       error: (err) => {

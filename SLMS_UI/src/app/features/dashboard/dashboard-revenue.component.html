@@ -1,19 +1,22 @@
 @if (loading()) {
   <div class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading revenue…</div>
 } @else if (data(); as d) {
-  <app-page-header
-    eyebrow="Finance"
-    title="Revenue"
-    [description]="d.isSuperAdmin ? 'Daily revenue across all tenants.' : 'Daily revenue for libraries you can access.'" />
+  <section class="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <app-kpi-card label="This week" [value]="formatCurrency(d.revenueBreakdown.weekly)" />
+    <app-kpi-card label="This month" [value]="formatCurrency(d.revenueBreakdown.monthly)" />
+    <app-kpi-card label="This quarter" [value]="formatCurrency(d.revenueBreakdown.quarterly)" />
+    <app-kpi-card label="This year" [value]="formatCurrency(d.revenueBreakdown.yearly)" />
+    <app-kpi-card label="All time" [value]="formatCurrency(d.revenueBreakdown.allTime)" />
+  </section>
 
   <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <app-kpi-card [label]="'Revenue · ' + d.days + 'd'" [value]="formatCurrency(d.kpis.totalRevenue)" [delta]="0">
+    <app-kpi-card [label]="'Selected · ' + d.periodLabel" [value]="formatCurrency(d.kpis.totalRevenue)" [delta]="0">
       <svg lucideIndianRupee icon class="h-4 w-4"></svg>
     </app-kpi-card>
     <app-kpi-card label="Renewals" [value]="formatCurrency(d.kpis.totalRenewals)" [delta]="0">
       <svg lucideRepeat icon class="h-4 w-4"></svg>
     </app-kpi-card>
-    <app-kpi-card label="Avg / day" [value]="formatCurrency(d.kpis.avgDailyRevenue)" [delta]="0">
+    <app-kpi-card label="Avg / bucket" [value]="formatCurrency(d.kpis.avgDailyRevenue)" [delta]="0">
       <svg lucideTrendingUp icon class="h-4 w-4"></svg>
     </app-kpi-card>
     <app-kpi-card label="Pending payments" [value]="d.kpis.pendingCount" [hint]="d.kpis.paidCount + ' paid'">
@@ -21,8 +24,11 @@
     </app-kpi-card>
   </section>
 
+  <app-section-header title="Revenue by period" description="Monthly, quarterly and yearly breakdown" />
+  <app-dashboard-revenue-charts [charts]="revenueCharts()" />
+
   <app-glass-card class="p-5 block">
-    <app-section-header [title]="'Revenue · ' + d.days + ' days'" description="Revenue vs renewals" />
+    <app-section-header [title]="'Selected period · ' + d.periodLabel" description="Revenue vs renewals from filter bar" />
     <div class="h-[320px]">
       <p-chart type="line" [data]="chartData()" [options]="chartOptions" />
     </div>
@@ -42,6 +48,8 @@
             <div class="label-mono" [class.text-success]="p.paymentStatus === 'Paid'" [class.text-warning]="p.paymentStatus === 'Pending'">{{ p.paymentStatus }}</div>
           </div>
         </li>
+      } @empty {
+        <li class="py-6 text-center text-muted-foreground">No transactions in this period.</li>
       }
     </ul>
   </app-glass-card>

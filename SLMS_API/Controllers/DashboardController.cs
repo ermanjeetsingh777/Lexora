@@ -51,4 +51,19 @@ public class DashboardController : ControllerBase
         var revenue = await _dashboardService.GetRevenueAsync(query, userId, cancellationToken);
         return Ok(ApiResponse<DashboardRevenueResponse>.Ok(revenue));
     }
+
+    [HttpGet("activity")]
+    [Permission(PermissionKey.DashboardView)]
+    public async Task<ActionResult<ApiResponse<DashboardActivityResponse>>> GetActivity(
+        [FromQuery] DashboardActivityQuery query,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var activity = await _dashboardService.GetActivityAsync(query, userId, cancellationToken);
+        return Ok(ApiResponse<DashboardActivityResponse>.Ok(activity));
+    }
 }

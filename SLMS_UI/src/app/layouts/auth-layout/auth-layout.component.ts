@@ -35,7 +35,7 @@ import { environment } from '@env/environment';
         
 
         <div class="animate-fade-up relative space-y-6">
-          <p class="label-mono text-primary-foreground/70">Institutional Precision</p>
+          <p class="text-sm text-primary-foreground/75">Institutional Precision</p>
           <h2 class="text-4xl font-semibold leading-tight tracking-tight">
             Run every branch, every library, every seat — with one calm console.
           </h2>
@@ -45,14 +45,14 @@ import { environment } from '@env/environment';
           <div class="grid grid-cols-3 gap-3 max-w-md">
             @for (s of stats; track s.k) {
               <div class="rounded-lg border border-primary-foreground/15 bg-primary-foreground/5 p-3">
-                <div class="label-mono text-primary-foreground/60">{{ s.k }}</div>
+                <div class="text-primary-foreground/60">{{ s.k }}</div>
                 <div class="text-lg font-semibold tabular-nums mt-1">{{ s.v }}</div>
               </div>
             }
           </div>
         </div>
 
-        <p class="relative label-mono text-primary-foreground/60">© 2026 {{ appName }} · v2.4</p>
+        <p class="relative text-primary-foreground/60">© 2026 {{ appName }} · v2.4</p>
       </div>
 
       <div class="flex items-center justify-center p-6 md:p-10">

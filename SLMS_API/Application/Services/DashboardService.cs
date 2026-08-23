@@ -41,16 +41,23 @@ public class DashboardService : IDashboardService
         CancellationToken cancellationToken = default)
     {
         var scope = await ResolveScopeAsync(query, userId, cancellationToken);
-        var days = NormalizeDays(query.Days);
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var dateFrom = today.AddDays(-(days - 1));
+        var period = DashboardPeriodHelper.Parse(query.Period);
+        var (dateFrom, dateTo) = DashboardPeriodHelper.ResolveRange(period, DateOnly.FromDateTime(DateTime.UtcNow));
         var rangeStartUtc = dateFrom.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         var planRows = await LoadScopedPlanRowsAsync(scope.LibraryIds, cancellationToken);
+        var revenueBreakdown = DashboardPeriodHelper.ComputeBreakdown(
+            planRows.Select(x => (x.CreatedAtUtc, x.PaidAmount)),
+            DateTime.UtcNow);
+
+        var trendRows = planRows.Select(x => (x.CreatedAtUtc, x.PaidAmount, x.IsRenewal));
+        var trend = DashboardPeriodHelper.BuildRevenueTrend(period, dateTo, trendRows);
+        var revenueCharts = DashboardPeriodHelper.BuildRevenueCharts(dateTo, trendRows);
+
         var rangeRows = planRows.Where(x => x.CreatedAtUtc >= rangeStartUtc).ToList();
-        var trend = BuildRevenueTrend(dateFrom, today, rangeRows);
         var totalRevenue = rangeRows.Sum(x => x.PaidAmount);
         var totalRenewals = rangeRows.Where(x => x.IsRenewal).Sum(x => x.PaidAmount);
+        var bucketCount = Math.Max(1, trend.Count);
 
         var transactions = rangeRows
             .OrderByDescending(x => x.CreatedAtUtc)
@@ -73,17 +80,43 @@ public class DashboardService : IDashboardService
         return new DashboardRevenueResponse
         {
             IsSuperAdmin = scope.IsSuperAdmin,
-            Days = days,
+            ScopeLabel = scope.ScopeLabel,
+            Period = DashboardPeriodHelper.ToApiValue(period),
+            PeriodLabel = DashboardPeriodHelper.GetLabel(period),
+            Days = dateTo.DayNumber - dateFrom.DayNumber + 1,
             Trend = trend,
+            RevenueBreakdown = revenueBreakdown,
+            RevenueCharts = revenueCharts,
             RecentTransactions = transactions,
             Kpis = new DashboardRevenueKpiResponse
             {
                 TotalRevenue = totalRevenue,
                 TotalRenewals = totalRenewals,
-                AvgDailyRevenue = days > 0 ? Math.Round(totalRevenue / days, 2) : 0,
+                AvgDailyRevenue = Math.Round(totalRevenue / bucketCount, 2),
                 PaidCount = paidCount,
                 PendingCount = pendingCount,
             },
+        };
+    }
+
+    public async Task<DashboardActivityResponse> GetActivityAsync(
+        DashboardActivityQuery query,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var scope = await ResolveScopeAsync(query, userId, cancellationToken);
+        var days = Math.Clamp(query.ActivityDays, 7, 365);
+        var limit = Math.Clamp(query.Limit, 10, 200);
+        var (items, summary) = await BuildRecentActivityAsync(scope.LibraryIds, days, limit, cancellationToken);
+
+        return new DashboardActivityResponse
+        {
+            IsSuperAdmin = scope.IsSuperAdmin,
+            ScopeLabel = scope.ScopeLabel,
+            ActivityDays = days,
+            TotalCount = items.Count,
+            Summary = summary,
+            Items = items,
         };
     }
 
@@ -93,10 +126,17 @@ public class DashboardService : IDashboardService
         CancellationToken cancellationToken)
     {
         var scope = await ResolveScopeAsync(query, userId, cancellationToken);
-        var days = NormalizeDays(query.Days);
+        var period = DashboardPeriodHelper.Parse(query.Period);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var dateFrom = today.AddDays(-(days - 1));
-        var attendanceFrom = today.AddDays(-Math.Min(days, 14) + 1);
+        var (dateFrom, dateTo) = DashboardPeriodHelper.ResolveRange(period, today);
+        var attendanceFrom = period switch
+        {
+            DashboardPeriodKind.Monthly => today.AddDays(-29),
+            DashboardPeriodKind.Quarterly => DashboardPeriodHelper.ResolveRange(DashboardPeriodKind.Quarterly, today).DateFrom,
+            DashboardPeriodKind.Yearly => new DateOnly(today.Year, 1, 1),
+            DashboardPeriodKind.All => today.AddDays(-29),
+            _ => today.AddDays(-6),
+        };
         var nowUtc = DateTime.UtcNow;
         var rangeStartUtc = dateFrom.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var userIdString = userId.ToString();
@@ -128,12 +168,17 @@ public class DashboardService : IDashboardService
             .Distinct()
             .ToListAsync(cancellationToken);
 
+        var distinctMembers = memberRows
+            .GroupBy(x => x.Id)
+            .Select(g => g.First())
+            .ToList();
+
         var activeMembers = 0;
         var inactiveMembers = 0;
         var suspendedMembers = 0;
         decimal totalFeesOwed = 0;
 
-        foreach (var member in memberRows)
+        foreach (var member in distinctMembers)
         {
             if (!member.IsActive)
             {
@@ -156,10 +201,13 @@ public class DashboardService : IDashboardService
                 suspendedMembers++;
             }
 
-            if (member.PlanAmount is > 0 && member.PaidAmount is not null)
-            {
-                totalFeesOwed += Math.Max(0, member.PlanAmount.Value - member.PaidAmount.Value);
-            }
+            var planAmount = member.PlanAmount ?? 0m;
+            var paidAmount = member.PaidAmount ?? 0m;
+            totalFeesOwed += MemberPlanMetricsHelper.ComputeMemberFeesOwed(
+                member.PlanEndDate,
+                planAmount,
+                paidAmount,
+                today);
         }
 
         var memberCountsByLibrary = await InstitutionStatsHelper.GetLibraryMemberCountsAsync(
@@ -200,9 +248,9 @@ public class DashboardService : IDashboardService
             b.Status == InstitutionStatus.Pending);
 
         var branchStats = await InstitutionStatsHelper.GetBranchStatsAsync(_db, branchIds, cancellationToken);
-        var revenueByBranch = InstitutionRevenueHelper.AggregateByBranch(
+        var revenueByBranch = InstitutionRevenueHelper.AggregateByBranchFrom(
             planRows.Select(x => (x.BranchId, x.PaidAmount, x.CreatedAtUtc)),
-            nowUtc);
+            rangeStartUtc);
 
         var branchPerformance = branches
             .Select(b =>
@@ -216,7 +264,7 @@ public class DashboardService : IDashboardService
                     City = b.City,
                     Members = stats?.MemberCount ?? 0,
                     OccupancyPercent = stats?.OccupancyPercent ?? 0,
-                    RevenueMtd = revenue?.Mtd ?? 0,
+                    RevenueMtd = revenue,
                 };
             })
             .OrderByDescending(x => x.OccupancyPercent)
@@ -224,17 +272,35 @@ public class DashboardService : IDashboardService
             .ToList();
 
         var rangePlanRows = planRows.Where(x => x.CreatedAtUtc >= rangeStartUtc).ToList();
-        var revenueTrend = BuildRevenueTrend(dateFrom, today, rangePlanRows);
+        var revenueBreakdown = DashboardPeriodHelper.ComputeBreakdown(
+            planRows.Select(x => (x.CreatedAtUtc, x.PaidAmount)),
+            nowUtc);
+        var revenueTrend = DashboardPeriodHelper.BuildRevenueTrend(
+            period,
+            dateTo,
+            planRows.Select(x => (x.CreatedAtUtc, x.PaidAmount, x.IsRenewal)));
+        var revenueCharts = DashboardPeriodHelper.BuildRevenueCharts(
+            dateTo,
+            planRows.Select(x => (x.CreatedAtUtc, x.PaidAmount, x.IsRenewal)));
         var attendanceTrend = await BuildAttendanceTrendAsync(libraryIds, attendanceFrom, today, totalCapacity, cancellationToken);
 
-        var recentActivity = await BuildRecentActivityAsync(libraryIds, cancellationToken);
+        var libraryPerformance = await BuildLibraryPerformanceAsync(
+            libraryIds,
+            memberCountsByLibrary,
+            planRows,
+            rangeStartUtc,
+            cancellationToken);
+
+        var (recentActivity, activitySummary) = await BuildRecentActivityAsync(libraryIds, days: 30, limit: 25, cancellationToken);
         var notifications = await LoadNotificationsAsync(userIdString, cancellationToken);
 
         return new DashboardOverviewResponse
         {
             IsSuperAdmin = scope.IsSuperAdmin,
             ScopeLabel = scope.ScopeLabel,
-            Days = days,
+            Period = DashboardPeriodHelper.ToApiValue(period),
+            PeriodLabel = DashboardPeriodHelper.GetLabel(period),
+            Days = dateTo.DayNumber - dateFrom.DayNumber + 1,
             Kpis = new DashboardKpiResponse
             {
                 ActiveMembers = activeMembers,
@@ -247,8 +313,12 @@ public class DashboardService : IDashboardService
                 BranchesMaintenance = branchesMaintenance,
                 TotalFeesOwed = totalFeesOwed,
                 AccessibleLibraries = libraryIds.Count,
+                TotalMembers = memberRows.Count,
+                TotalLibraries = libraryIds.Count,
             },
+            RevenueBreakdown = revenueBreakdown,
             RevenueTrend = revenueTrend,
+            RevenueCharts = revenueCharts,
             AttendanceTrend = attendanceTrend,
             MemberMix = new DashboardMemberMixResponse
             {
@@ -259,9 +329,66 @@ public class DashboardService : IDashboardService
                 TotalFeesOwed = totalFeesOwed,
             },
             BranchPerformance = branchPerformance,
+            LibraryPerformance = libraryPerformance,
             RecentActivity = recentActivity,
+            ActivitySummary = activitySummary,
             Notifications = notifications,
         };
+    }
+
+    private async Task<List<DashboardLibraryPerformanceResponse>> BuildLibraryPerformanceAsync(
+        IReadOnlyCollection<Guid> libraryIds,
+        IReadOnlyDictionary<Guid, int> memberCountsByLibrary,
+        IReadOnlyCollection<ScopedPlanRow> planRows,
+        DateTime rangeStartUtc,
+        CancellationToken cancellationToken)
+    {
+        if (libraryIds.Count == 0)
+        {
+            return [];
+        }
+
+        var libraries = await _db.Libraries.AsNoTracking()
+            .Where(l => libraryIds.Contains(l.Id) && !l.IsDeleted)
+            .Select(l => new { l.Id, l.Name, l.BranchId, l.Capacity })
+            .ToListAsync(cancellationToken);
+
+        var branchIds = libraries.Select(l => l.BranchId).Distinct().ToList();
+        var branchNames = branchIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _db.Branches.AsNoTracking()
+                .Where(b => branchIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.Name, cancellationToken);
+
+        var revenueByLibrary = InstitutionRevenueHelper.AggregateByLibraryFrom(
+            planRows.Select(x => (x.LibraryId, x.PaidAmount, x.CreatedAtUtc)),
+            rangeStartUtc);
+
+        return libraries
+            .Select(l =>
+            {
+                memberCountsByLibrary.TryGetValue(l.Id, out var members);
+                revenueByLibrary.TryGetValue(l.Id, out var revenue);
+                var capacity = l.Capacity ?? 0;
+                var occupancy = capacity > 0
+                    ? Math.Round((decimal)members / capacity * 100m, 1)
+                    : 0m;
+
+                branchNames.TryGetValue(l.BranchId, out var branchName);
+
+                return new DashboardLibraryPerformanceResponse
+                {
+                    LibraryId = l.Id,
+                    LibraryName = l.Name,
+                    BranchName = branchName ?? "—",
+                    Members = members,
+                    OccupancyPercent = occupancy,
+                    RevenueMtd = revenue,
+                };
+            })
+            .OrderByDescending(x => x.Members)
+            .Take(8)
+            .ToList();
     }
 
     private async Task<DashboardScope> ResolveScopeAsync(
@@ -315,8 +442,8 @@ public class DashboardService : IDashboardService
                 .ToListAsync(cancellationToken);
 
         var scopeLabel = isSuperAdmin
-            ? "All institutions · SuperAdmin"
-            : $"Your workspace · {libraryIds.Count} libraries";
+            ? $"All institutions · {libraryIds.Count} libraries"
+            : $"Your workspace · {libraryIds.Count} accessible libraries";
 
         return new DashboardScope(isSuperAdmin, libraryIds, branchIds, scopeLabel);
     }
@@ -368,28 +495,6 @@ public class DashboardService : IDashboardService
         }).ToList();
     }
 
-    private static List<DashboardTrendPointResponse> BuildRevenueTrend(
-        DateOnly dateFrom,
-        DateOnly dateTo,
-        IReadOnlyCollection<ScopedPlanRow> rows)
-    {
-        var trend = new List<DashboardTrendPointResponse>();
-        for (var date = dateFrom; date <= dateTo; date = date.AddDays(1))
-        {
-            var dayStart = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var dayEnd = date.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var dayRows = rows.Where(x => x.CreatedAtUtc >= dayStart && x.CreatedAtUtc < dayEnd).ToList();
-            trend.Add(new DashboardTrendPointResponse
-            {
-                Date = date.ToString("yyyy-MM-dd"),
-                Revenue = dayRows.Sum(x => x.PaidAmount),
-                Renewals = dayRows.Where(x => x.IsRenewal).Sum(x => x.PaidAmount),
-            });
-        }
-
-        return trend;
-    }
-
     private async Task<List<DashboardAttendanceTrendPointResponse>> BuildAttendanceTrendAsync(
         IReadOnlyCollection<Guid> libraryIds,
         DateOnly dateFrom,
@@ -426,48 +531,277 @@ public class DashboardService : IDashboardService
         return trend;
     }
 
-    private async Task<List<DashboardActivityItemResponse>> BuildRecentActivityAsync(
+    private async Task<(List<DashboardActivityItemResponse> Items, DashboardActivitySummaryResponse Summary)> BuildRecentActivityAsync(
         IReadOnlyCollection<Guid> libraryIds,
+        int days,
+        int limit,
         CancellationToken cancellationToken)
     {
         if (libraryIds.Count == 0)
         {
-            return [];
+            return ([], new DashboardActivitySummaryResponse());
         }
 
-        var rows = await (
+        var since = DateTime.UtcNow.AddDays(-Math.Clamp(days, 1, 365));
+        var todayStart = DateTime.UtcNow.Date;
+        var nowUtc = DateTime.UtcNow;
+        var items = new List<DashboardActivityItemResponse>();
+        var attendanceTake = Math.Min(limit * 2, 250);
+        var paymentTake = Math.Min(limit, 200);
+        var enrollmentTake = Math.Min(Math.Max(limit / 2, 20), 100);
+        var bookTake = Math.Min(Math.Max(limit / 2, 20), 100);
+        var pendingTake = Math.Min(50, Math.Max(limit / 4, 10));
+
+        var attendanceRows = await (
             from a in _db.MemberAttendances.AsNoTracking()
             join m in _db.Members.AsNoTracking() on a.MemberId equals m.Id
             join l in _db.Libraries.AsNoTracking() on a.LibraryId equals l.Id
-            where !a.IsDeleted && libraryIds.Contains(a.LibraryId) && a.CheckInTime.HasValue
+            where !a.IsDeleted && libraryIds.Contains(a.LibraryId) && a.CreatedAtUtc >= since
             orderby a.UpdatedAtUtc descending, a.CreatedAtUtc descending
             select new
             {
                 a.Id,
-                MemberName = m.FullName,
+                MemberName = m.FullName ?? "Member",
                 LibraryName = l.Name,
+                a.SeatNo,
+                a.CheckInTime,
                 a.CheckOutTime,
-                a.UpdatedAtUtc,
                 a.CreatedAtUtc,
+                a.UpdatedAtUtc,
             })
-            .Take(8)
+            .Take(attendanceTake)
             .ToListAsync(cancellationToken);
 
-        var nowUtc = DateTime.UtcNow;
-        return rows.Select(x =>
+        foreach (var row in attendanceRows)
         {
-            var occurred = x.UpdatedAtUtc ?? x.CreatedAtUtc;
-            return new DashboardActivityItemResponse
+            var seatDetail = string.IsNullOrWhiteSpace(row.SeatNo) ? null : $"Seat {row.SeatNo}";
+            var occurred = row.CreatedAtUtc;
+            items.Add(new DashboardActivityItemResponse
             {
-                Id = x.Id.ToString(),
-                Actor = x.MemberName,
-                Action = x.CheckOutTime.HasValue ? "checked out at" : "checked in at",
-                Target = x.LibraryName,
+                Id = $"checkin-{row.Id}",
+                ActivityType = "check-in",
+                Actor = row.MemberName,
+                Action = "checked in at",
+                Target = row.LibraryName,
+                Detail = seatDetail,
                 OccurredAtUtc = occurred,
                 TimeLabel = FormatRelativeTime(nowUtc - occurred),
-            };
-        }).ToList();
+            });
+
+            if (row.CheckOutTime.HasValue)
+            {
+                var checkoutAt = row.UpdatedAtUtc ?? row.CreatedAtUtc;
+                items.Add(new DashboardActivityItemResponse
+                {
+                    Id = $"checkout-{row.Id}",
+                    ActivityType = "check-out",
+                    Actor = row.MemberName,
+                    Action = "checked out from",
+                    Target = row.LibraryName,
+                    Detail = seatDetail,
+                    OccurredAtUtc = checkoutAt,
+                    TimeLabel = FormatRelativeTime(nowUtc - checkoutAt),
+                });
+            }
+        }
+
+        var paymentRows = await (
+            from mp in _db.MemberPlans.AsNoTracking()
+            join m in _db.Members.AsNoTracking() on mp.MemberId equals m.Id
+            join ml in _db.MemberLibraries.AsNoTracking() on m.Id equals ml.MemberId
+            join l in _db.Libraries.AsNoTracking() on ml.LibraryId equals l.Id
+            join p in _db.Plans.AsNoTracking() on mp.PlanId equals p.Id
+            where !mp.IsDeleted
+                  && !m.IsDeleted
+                  && !ml.IsDeleted
+                  && ml.IsCurrent
+                  && libraryIds.Contains(ml.LibraryId)
+                  && mp.PaidAmount > 0
+                  && mp.CreatedAtUtc >= since
+            orderby mp.CreatedAtUtc descending
+            select new
+            {
+                mp.Id,
+                mp.CreatedAtUtc,
+                mp.PaidAmount,
+                MemberName = m.FullName ?? "Member",
+                PlanName = p.Name,
+                LibraryName = l.Name,
+                PriorPlanCount = m.MemberPlans.Count(x => !x.IsDeleted && x.CreatedAtUtc < mp.CreatedAtUtc),
+            })
+            .Take(paymentTake)
+            .ToListAsync(cancellationToken);
+
+        foreach (var row in paymentRows)
+        {
+            var isRenewal = row.PriorPlanCount > 0;
+            items.Add(new DashboardActivityItemResponse
+            {
+                Id = $"payment-{row.Id}",
+                ActivityType = isRenewal ? "renewal" : "payment",
+                Actor = row.MemberName,
+                Action = isRenewal ? "renewed plan at" : "paid for plan at",
+                Target = row.LibraryName,
+                Detail = $"{row.PlanName} · ₹{FormatActivityAmount(row.PaidAmount)}",
+                OccurredAtUtc = row.CreatedAtUtc,
+                TimeLabel = FormatRelativeTime(nowUtc - row.CreatedAtUtc),
+            });
+        }
+
+        var enrollmentRows = await (
+            from ml in _db.MemberLibraries.AsNoTracking()
+            join m in _db.Members.AsNoTracking() on ml.MemberId equals m.Id
+            join l in _db.Libraries.AsNoTracking() on ml.LibraryId equals l.Id
+            where !ml.IsDeleted && libraryIds.Contains(ml.LibraryId) && ml.JoinedOn >= since
+            orderby ml.JoinedOn descending
+            select new
+            {
+                ml.Id,
+                ml.JoinedOn,
+                MemberName = m.FullName ?? "Member",
+                LibraryName = l.Name,
+            })
+            .Take(enrollmentTake)
+            .ToListAsync(cancellationToken);
+
+        foreach (var row in enrollmentRows)
+        {
+            items.Add(new DashboardActivityItemResponse
+            {
+                Id = $"enrollment-{row.Id}",
+                ActivityType = "enrollment",
+                Actor = row.MemberName,
+                Action = "joined library",
+                Target = row.LibraryName,
+                Detail = "New member enrolled",
+                OccurredAtUtc = row.JoinedOn,
+                TimeLabel = FormatRelativeTime(nowUtc - row.JoinedOn),
+            });
+        }
+
+        var bookRows = await (
+            from bl in _db.BookLoans.AsNoTracking()
+            join b in _db.Books.AsNoTracking() on bl.BookId equals b.Id
+            join l in _db.Libraries.AsNoTracking() on bl.LibraryId equals l.Id
+            where !bl.IsDeleted
+                  && libraryIds.Contains(bl.LibraryId)
+                  && (bl.CheckedOutAtUtc >= since || (bl.ReturnedAtUtc.HasValue && bl.ReturnedAtUtc.Value >= since))
+            orderby bl.UpdatedAtUtc descending, bl.CheckedOutAtUtc descending
+            select new
+            {
+                bl.Id,
+                bl.MemberName,
+                BookTitle = b.Title,
+                LibraryName = l.Name,
+                bl.CheckedOutAtUtc,
+                bl.ReturnedAtUtc,
+            })
+            .Take(bookTake)
+            .ToListAsync(cancellationToken);
+
+        foreach (var row in bookRows)
+        {
+            if (row.CheckedOutAtUtc >= since)
+            {
+                items.Add(new DashboardActivityItemResponse
+                {
+                    Id = $"book-checkout-{row.Id}",
+                    ActivityType = "book-checkout",
+                    Actor = row.MemberName,
+                    Action = "borrowed book at",
+                    Target = row.LibraryName,
+                    Detail = row.BookTitle,
+                    OccurredAtUtc = row.CheckedOutAtUtc,
+                    TimeLabel = FormatRelativeTime(nowUtc - row.CheckedOutAtUtc),
+                });
+            }
+
+            if (row.ReturnedAtUtc.HasValue && row.ReturnedAtUtc.Value >= since)
+            {
+                var returnedAt = row.ReturnedAtUtc.Value;
+                items.Add(new DashboardActivityItemResponse
+                {
+                    Id = $"book-return-{row.Id}",
+                    ActivityType = "book-return",
+                    Actor = row.MemberName,
+                    Action = "returned book at",
+                    Target = row.LibraryName,
+                    Detail = row.BookTitle,
+                    OccurredAtUtc = returnedAt,
+                    TimeLabel = FormatRelativeTime(nowUtc - returnedAt),
+                });
+            }
+        }
+
+        var pendingRows = await (
+            from mp in _db.MemberPlans.AsNoTracking()
+            join m in _db.Members.AsNoTracking() on mp.MemberId equals m.Id
+            join ml in _db.MemberLibraries.AsNoTracking() on m.Id equals ml.MemberId
+            join l in _db.Libraries.AsNoTracking() on ml.LibraryId equals l.Id
+            join p in _db.Plans.AsNoTracking() on mp.PlanId equals p.Id
+            where !mp.IsDeleted
+                  && !m.IsDeleted
+                  && !ml.IsDeleted
+                  && ml.IsCurrent
+                  && libraryIds.Contains(ml.LibraryId)
+                  && mp.Amount > 0
+                  && mp.PaidAmount < mp.Amount
+                  && (mp.UpdatedAtUtc ?? mp.CreatedAtUtc) >= since
+            orderby (mp.UpdatedAtUtc ?? mp.CreatedAtUtc) descending
+            select new
+            {
+                mp.Id,
+                mp.UpdatedAtUtc,
+                mp.CreatedAtUtc,
+                mp.Amount,
+                mp.PaidAmount,
+                MemberName = m.FullName ?? "Member",
+                PlanName = p.Name,
+                LibraryName = l.Name,
+            })
+            .Take(pendingTake)
+            .ToListAsync(cancellationToken);
+
+        foreach (var row in pendingRows)
+        {
+            var due = row.Amount - row.PaidAmount;
+            var occurred = row.UpdatedAtUtc ?? row.CreatedAtUtc;
+            items.Add(new DashboardActivityItemResponse
+            {
+                Id = $"pending-{row.Id}",
+                ActivityType = "pending-payment",
+                Actor = row.MemberName,
+                Action = "has pending dues at",
+                Target = row.LibraryName,
+                Detail = $"{row.PlanName} · ₹{FormatActivityAmount(due)} due",
+                OccurredAtUtc = occurred,
+                TimeLabel = FormatRelativeTime(nowUtc - occurred),
+            });
+        }
+
+        var ordered = items
+            .OrderByDescending(x => x.OccurredAtUtc)
+            .Take(limit)
+            .ToList();
+
+        var summary = new DashboardActivitySummaryResponse
+        {
+            TodayCheckIns = attendanceRows.Count(x => x.CreatedAtUtc >= todayStart && x.CheckInTime.HasValue),
+            TodayCheckOuts = attendanceRows.Count(x =>
+                x.CheckOutTime.HasValue && (x.UpdatedAtUtc ?? x.CreatedAtUtc) >= todayStart),
+            TodayPayments = paymentRows.Count(x => x.CreatedAtUtc >= todayStart),
+            TodayEnrollments = enrollmentRows.Count(x => x.JoinedOn >= todayStart),
+            TodayBookLoans = bookRows.Count(x => x.CheckedOutAtUtc >= todayStart),
+            TodayPendingPayments = pendingRows.Count(x => (x.UpdatedAtUtc ?? x.CreatedAtUtc) >= todayStart),
+        };
+
+        return (ordered, summary);
     }
+
+    private static string FormatActivityAmount(decimal amount) =>
+        amount >= 100000 ? $"{amount / 100000m:0.#}L"
+        : amount >= 1000 ? $"{amount / 1000m:0.#}K"
+        : amount.ToString("0");
 
     private async Task<List<DashboardNotificationItemResponse>> LoadNotificationsAsync(
         string userId,
@@ -494,13 +828,6 @@ public class DashboardService : IDashboardService
         var user = await _userManager.FindByIdAsync(userId.ToString());
         return user is not null && await _userManager.IsInRoleAsync(user, RoleDefinitions.SuperAdmin);
     }
-
-    private static int NormalizeDays(int days) => days switch
-    {
-        <= 0 => 30,
-        > 90 => 90,
-        _ => days,
-    };
 
     private static string FormatRelativeTime(TimeSpan elapsed)
     {

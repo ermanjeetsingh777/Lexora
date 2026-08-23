@@ -182,7 +182,8 @@ vite.config.ts.timestamp-*
 obj/
 **/obj/
 SLMS_API/_build_check/
-
+SLMS_API/bin/
+SLMS_API/obj/
 # Visual Studio
 .vs/
 **/.vs/

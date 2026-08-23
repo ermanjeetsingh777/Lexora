@@ -41,6 +41,13 @@ builder.Services.AddCors(options =>
 
 WebApplication app = builder.Build();
 
+if (args.Contains("--seed-superadmin", StringComparer.OrdinalIgnoreCase))
+{
+    await DbSeeder.SeedRolesAsync(app.Services);
+    await SuperAdminSeedData.SeedAsync(app.Services);
+    return;
+}
+
 await DbSeeder.MigrateAndSeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.

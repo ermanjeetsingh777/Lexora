@@ -1,0 +1,178 @@
+<app-page-header
+  [isBack]="true"
+  backLink="/members"
+  eyebrow="Members"
+  title="Bulk upload members"
+  description="Download the Excel or PDF template, fill member details in Excel, and upload to enroll many members at once." />
+
+<div class="mx-auto max-w-4xl px-4 py-4">
+  <app-glass-card class="block mb-4">
+    <div class="space-y-4">
+      <div>
+        <h3 class="text-sm font-semibold">1. Select location</h3>
+        <p class="text-sm text-muted-foreground mt-1">Members will be enrolled in the selected library using the same rules as single add member.</p>
+      </div>
+
+      <form [formGroup]="scopeForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Institution <span class="text-red-500">*</span></label>
+          <select formControlName="institutionId" (change)="onInstitutionChange()"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            <option value="" disabled>Select institution</option>
+            @for (inst of institutions(); track inst.value) {
+              <option [value]="inst.value">{{ inst.key }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Branch <span class="text-red-500">*</span></label>
+          <select formControlName="branchId" (change)="onBranchChange()"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50">
+            <option value="" disabled>Select branch</option>
+            @for (branch of branches(); track branch.value) {
+              <option [value]="branch.value">{{ branch.key }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Library <span class="text-red-500">*</span></label>
+          <select formControlName="libraryId" (change)="onLibraryChange()"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50">
+            <option value="" disabled>Select library</option>
+            @for (library of libraries(); track library.value) {
+              <option [value]="library.value">{{ library.key }}</option>
+            }
+          </select>
+        </div>
+      </form>
+    </div>
+  </app-glass-card>
+
+  <app-glass-card class="block mb-4">
+    <div class="space-y-4">
+      <div>
+        <h3 class="text-sm font-semibold">2. Download template</h3>
+        <p class="text-sm text-muted-foreground mt-1">
+          Excel template is used for upload. PDF is a printable reference with column instructions, sample row, and plan names.
+          Email must be unique across the system.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <app-button variant="outline" size="sm" [disabled]="scopeForm.invalid || downloadingTemplate()" (click)="downloadTemplate()">
+          <svg lucideFileSpreadsheet class="h-4 w-4 mr-1.5"></svg>
+          Download Excel template
+        </app-button>
+
+        <app-button variant="outline" size="sm" [disabled]="scopeForm.invalid || downloadingPdfTemplate()" (click)="downloadPdfTemplate()">
+          <svg lucideFileText class="h-4 w-4 mr-1.5"></svg>
+          Download PDF template
+        </app-button>
+      </div>
+    </div>
+  </app-glass-card>
+
+  <app-glass-card class="block mb-4">
+    <div class="space-y-4">
+      <div>
+        <h3 class="text-sm font-semibold">3. Upload filled Excel</h3>
+        <p class="text-sm text-muted-foreground mt-1">Only .xlsx files up to 5 MB are supported.</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="inline-flex items-center gap-2 rounded-md border border-dashed px-4 py-3 text-sm cursor-pointer hover:bg-muted/40"
+          [class.opacity-50]="uploading()" [class.pointer-events-none]="uploading()">
+          <svg lucideFileSpreadsheet class="h-4 w-4"></svg>
+          <span>{{ selectedFile()?.name ?? 'Choose Excel file' }}</span>
+          <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden" [disabled]="uploading()" (change)="onFileSelected($event)" />
+        </label>
+
+        <app-button size="sm" [disabled]="scopeForm.invalid || !selectedFile() || uploading()" (click)="uploadFile()">
+          @if (uploading()) {
+            <svg lucideLoaderCircle class="h-4 w-4 mr-1.5 animate-spin"></svg>
+            Processing…
+          } @else {
+            <svg lucideUpload class="h-4 w-4 mr-1.5"></svg>
+            Upload members
+          }
+        </app-button>
+
+        <app-button type="button" variant="outline" size="sm" (click)="cancel()">Cancel</app-button>
+      </div>
+    </div>
+  </app-glass-card>
+
+  @if (uploadProgress(); as progress) {
+    <app-glass-card class="block mb-4 bulk-upload-progress">
+      <div class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2 text-sm font-medium">
+            <svg lucideLoaderCircle class="h-4 w-4 animate-spin text-primary"></svg>
+            Processing members…
+          </div>
+          <span class="text-sm tabular-nums text-muted-foreground">
+            {{ progress.processed }} / {{ progress.total }} done ({{ progressPercent() }}%)
+          </span>
+        </div>
+
+        <div class="bulk-upload-progress__bar" role="progressbar" [attr.aria-valuenow]="progressPercent()" aria-valuemin="0" aria-valuemax="100">
+          <div class="bulk-upload-progress__fill" [style.width.%]="progressPercent()"></div>
+        </div>
+
+        <div class="flex flex-wrap gap-4 text-sm">
+          <span class="text-emerald-600"><b class="tabular-nums">{{ progress.success }}</b> succeeded</span>
+          <span class="text-rose-600"><b class="tabular-nums">{{ progress.failed }}</b> failed</span>
+          <span class="text-muted-foreground truncate">Current: {{ progress.currentLabel }}</span>
+        </div>
+      </div>
+    </app-glass-card>
+  }
+
+  @if (uploadResult(); as result) {
+    <app-glass-card class="block">
+      <div class="space-y-4">
+        <div class="flex flex-wrap items-center gap-4 text-sm">
+          @if (uploading()) {
+            <span class="text-muted-foreground">Live results updating…</span>
+          }
+          <span><b class="tabular-nums">{{ result.totalRows }}</b> rows total</span>
+          <span class="text-emerald-600"><b class="tabular-nums">{{ result.successCount }}</b> succeeded</span>
+          <span class="text-rose-600"><b class="tabular-nums">{{ result.failedCount }}</b> failed</span>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border">
+          <table class="w-full text-sm">
+            <thead class="bg-muted/50">
+              <tr>
+                <th class="px-3 py-2 text-left font-medium">Row</th>
+                <th class="px-3 py-2 text-left font-medium">Name</th>
+                <th class="px-3 py-2 text-left font-medium">Email</th>
+                <th class="px-3 py-2 text-left font-medium">Status</th>
+                <th class="px-3 py-2 text-left font-medium">Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of result.results; track row.rowNumber + row.email) {
+                <tr class="border-t">
+                  <td class="px-3 py-2 tabular-nums">{{ row.rowNumber }}</td>
+                  <td class="px-3 py-2">{{ row.fullName }}</td>
+                  <td class="px-3 py-2">{{ row.email }}</td>
+                  <td class="px-3 py-2">
+                    @if (row.success) {
+                      <span class="text-emerald-600">Success</span>
+                    } @else {
+                      <span class="text-rose-600">Failed</span>
+                    }
+                  </td>
+                  <td class="px-3 py-2 text-muted-foreground">{{ row.message }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </app-glass-card>
+  }
+</div>

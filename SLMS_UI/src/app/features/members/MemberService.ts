@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, MemberContactResponse, MemberDetailResponse, MemberListResponse, UpdateMemberRequest } from '@core/models/MemberRequest';
+import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, BulkMemberUploadResponse, MemberContactResponse, MemberDetailResponse, MemberListResponse, UpdateMemberRequest } from '@core/models/MemberRequest';
 import { ApiService } from '@core/services/api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
@@ -22,6 +22,26 @@ export class MemberService {
             `/members`;
 
         return this.httpApi.post<CreateMemberResponse>(url, request);
+    }
+
+    downloadBulkTemplate(institutionId: string, branchId: string, libraryId: string): Observable<Blob> {
+        const url =
+            `institutions/${institutionId}` +
+            `/branches/${branchId}` +
+            `/libraries/${libraryId}` +
+            `/members/bulk/template`;
+
+        return this.httpApi.download(url);
+    }
+
+    bulkUploadMembers(institutionId: string, branchId: string, libraryId: string, file: File): Observable<APIResponseModel<BulkMemberUploadResponse>> {
+        const url =
+            `institutions/${institutionId}` +
+            `/branches/${branchId}` +
+            `/libraries/${libraryId}` +
+            `/members/bulk`;
+
+        return this.httpApi.upload<BulkMemberUploadResponse>(url, file);
     }
 
     getLibraryMember(institutionId: string, branchId: string, libraryId: string): Observable<APIResponseModel<MemberListResponse[]>> {

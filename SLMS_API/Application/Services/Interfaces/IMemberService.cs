@@ -8,6 +8,8 @@ public interface IMemberService
 {
     //Task<IReadOnlyCollection<MemberResponse>> GetByLibraryAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default);
     Task<MemberResponse> CreateAsync(Guid institutionId, Guid branchId, Guid libraryId, CreateMemberRequest request, string? userId, CancellationToken cancellationToken = default);
+    Task<byte[]> GetBulkUploadTemplateAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default);
+    Task<BulkMemberUploadResponse> BulkCreateAsync(Guid institutionId, Guid branchId, Guid libraryId, IFormFile file, string? userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<MemberListResponse>> GetLibraryMemberListAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<MemberListResponse>> GetInstitutionMemberListAsync(Guid institutionId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<MemberListResponse>> GetBranchMemberListAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default);

@@ -171,6 +171,174 @@ public class MemberService : IMemberService
         }
     }
 
+    public async Task<byte[]> GetBulkUploadTemplateAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default)
+    {
+        var libraryExists = await _dbContext.Libraries.AsNoTracking()
+            .AnyAsync(x => x.Id == libraryId && x.BranchId == branchId && x.InstitutionId == institutionId, cancellationToken);
+
+        if (!libraryExists)
+        {
+            throw new InvalidOperationException("Library not found for the selected institution and branch.");
+        }
+
+        var plans = await _dbContext.Plans.AsNoTracking()
+            .Where(x => x.LibraryId == libraryId && x.IsActive)
+            .OrderBy(x => x.Name)
+            .Select(x => new { x.Name, x.DurationInDays, x.Price })
+            .ToListAsync(cancellationToken);
+
+        return MemberBulkExcelHelper.GenerateTemplate(
+            plans.Select(x => (x.Name, x.DurationInDays, x.Price)));
+    }
+
+    public async Task<BulkMemberUploadResponse> BulkCreateAsync(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        IFormFile file,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_currentUserService.UserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        if (file is null || file.Length == 0)
+        {
+            throw new InvalidOperationException("Please upload an Excel file.");
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Only .xlsx Excel files are supported.");
+        }
+
+        const long maxBytes = 5 * 1024 * 1024;
+        if (file.Length > maxBytes)
+        {
+            throw new InvalidOperationException("File size must be 5 MB or smaller.");
+        }
+
+        var libraryExists = await _dbContext.Libraries.AsNoTracking()
+            .AnyAsync(x => x.Id == libraryId && x.BranchId == branchId && x.InstitutionId == institutionId, cancellationToken);
+
+        if (!libraryExists)
+        {
+            throw new InvalidOperationException("Library not found for the selected institution and branch.");
+        }
+
+        IReadOnlyList<BulkMemberExcelRow> rows;
+        await using (var stream = file.OpenReadStream())
+        {
+            rows = MemberBulkExcelHelper.Parse(stream);
+        }
+
+        if (rows.Count == 0)
+        {
+            throw new InvalidOperationException("No member rows found in the uploaded file.");
+        }
+
+        var plans = await _dbContext.Plans.AsNoTracking()
+            .Where(x => x.LibraryId == libraryId && x.IsActive)
+            .ToListAsync(cancellationToken);
+
+        var planByName = plans.ToDictionary(x => x.Name.Trim(), x => x, StringComparer.OrdinalIgnoreCase);
+
+        var results = new List<BulkMemberUploadRowResult>();
+        var seenEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var row in rows)
+        {
+            var validationError = MemberBulkExcelHelper.ValidateRow(row);
+            if (validationError is not null)
+            {
+                results.Add(new BulkMemberUploadRowResult
+                {
+                    RowNumber = row.RowNumber,
+                    FullName = row.FullName,
+                    Email = row.Email,
+                    Success = false,
+                    Message = validationError
+                });
+                continue;
+            }
+
+            var normalizedEmail = row.Email.Trim();
+            if (!seenEmails.Add(normalizedEmail))
+            {
+                results.Add(new BulkMemberUploadRowResult
+                {
+                    RowNumber = row.RowNumber,
+                    FullName = row.FullName,
+                    Email = normalizedEmail,
+                    Success = false,
+                    Message = $"Duplicate email '{normalizedEmail}' found in the uploaded file."
+                });
+                continue;
+            }
+
+            if (!planByName.TryGetValue(row.PlanName.Trim(), out var plan))
+            {
+                results.Add(new BulkMemberUploadRowResult
+                {
+                    RowNumber = row.RowNumber,
+                    FullName = row.FullName,
+                    Email = normalizedEmail,
+                    Success = false,
+                    Message = $"Plan '{row.PlanName}' was not found for this library."
+                });
+                continue;
+            }
+
+            try
+            {
+                var request = new CreateMemberRequest
+                {
+                    FullName = row.FullName.Trim(),
+                    Email = normalizedEmail,
+                    PhoneNumber = row.PhoneNumber.Trim(),
+                    DateOfBirth = row.DateOfBirth!.Value,
+                    Gender = row.Gender.Trim(),
+                    Shift = row.Shift.Trim(),
+                    PlanId = plan.Id,
+                    IsActive = true
+                };
+
+                var created = await CreateAsync(institutionId, branchId, libraryId, request, userId, cancellationToken);
+                results.Add(new BulkMemberUploadRowResult
+                {
+                    RowNumber = row.RowNumber,
+                    FullName = row.FullName,
+                    Email = normalizedEmail,
+                    Success = true,
+                    Message = "Member created successfully.",
+                    MemberId = created.Id
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                results.Add(new BulkMemberUploadRowResult
+                {
+                    RowNumber = row.RowNumber,
+                    FullName = row.FullName,
+                    Email = normalizedEmail,
+                    Success = false,
+                    Message = ex.Message
+                });
+            }
+        }
+
+        return new BulkMemberUploadResponse
+        {
+            TotalRows = rows.Count,
+            SuccessCount = results.Count(x => x.Success),
+            FailedCount = results.Count(x => !x.Success),
+            Results = results
+        };
+    }
+
     public async Task<MemberContactResponse> AddContactAsync(Guid memberId, CreateMemberContactRequest request, string? userId, CancellationToken cancellationToken = default)
     {
         var memberExists = await _dbContext.Members

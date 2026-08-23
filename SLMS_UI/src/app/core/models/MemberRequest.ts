@@ -19,6 +19,22 @@ export interface CreateMemberResponse {
   membershipNo: string;
 }
 
+export interface BulkMemberUploadRowResult {
+  rowNumber: number;
+  fullName: string;
+  email: string;
+  success: boolean;
+  message?: string;
+  memberId?: string;
+}
+
+export interface BulkMemberUploadResponse {
+  totalRows: number;
+  successCount: number;
+  failedCount: number;
+  results: BulkMemberUploadRowResult[];
+}
+
 export interface UpdateMemberRequest {
   fullName?: string;
   email?: string;

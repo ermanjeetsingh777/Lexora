@@ -91,6 +91,7 @@ export const routes: Routes = [
                 children: [
                     { path: '', loadComponent: () => import('./features/members/members-list-component/members-list-component').then((m) => m.MembersListComponent) },
                     { path: 'create', loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
+                    { path: 'bulk-upload', loadComponent: () => import('./features/members/bulk-upload-members-component/bulk-upload-members-component').then((m) => m.BulkUploadMembersComponent) },
                     { path: ':memberId/edit', loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
                     { path: ':memberId', loadComponent: () => import('./features/members/member-details-component/member-details-component').then((m) => m.MemberDetailsComponent) },
                 ],

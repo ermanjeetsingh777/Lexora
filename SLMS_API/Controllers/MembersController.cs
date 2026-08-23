@@ -35,6 +35,48 @@ public class MembersController : ControllerBase
     //    return Ok(ApiResponse<IReadOnlyCollection<MemberResponse>>.Ok(items));
     //}
 
+    [HttpGet("bulk/template")]
+    public async Task<IActionResult> DownloadBulkTemplate(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var content = await _memberService.GetBulkUploadTemplateAsync(institutionId, branchId, libraryId, cancellationToken);
+            return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "member-bulk-upload-template.xlsx");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPost("bulk")]
+    public async Task<ActionResult<ApiResponse<BulkMemberUploadResponse>>> BulkUpload(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = _currentUserService.UserId;
+            var result = await _memberService.BulkCreateAsync(institutionId, branchId, libraryId, file, userId, cancellationToken);
+            var message = result.FailedCount == 0
+                ? $"{result.SuccessCount} member(s) created successfully."
+                : $"{result.SuccessCount} created, {result.FailedCount} failed.";
+            return Ok(ApiResponse<BulkMemberUploadResponse>.Ok(result, message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Bulk member upload failed for library {LibraryId}", libraryId);
+            return BadRequest(ApiResponse<BulkMemberUploadResponse>.Fail(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<BulkMemberUploadResponse>.Fail(ex.Message));
+        }
+    }
+
     [HttpPost]
     //[Permission(PermissionKey.MembersManage)]
     public async Task<ActionResult<ApiResponse<MemberResponse>>> Create(Guid institutionId, Guid branchId, Guid libraryId, [FromBody] CreateMemberRequest request, CancellationToken cancellationToken)

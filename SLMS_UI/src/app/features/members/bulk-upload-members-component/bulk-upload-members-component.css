@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+
+.bulk-upload-progress__bar {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--muted) 80%, transparent);
+}
+
+.bulk-upload-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 70%, white));
+  transition: width 0.25s ease;
+}

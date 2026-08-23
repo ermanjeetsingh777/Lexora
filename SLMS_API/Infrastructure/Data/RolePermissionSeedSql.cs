@@ -41,6 +41,7 @@ public static class RolePermissionSeedSql
                 SELECT r.Id, v.PermissionId
                 FROM AspNetRoles r
                 CROSS JOIN (VALUES {permissionValues}) AS v(PermissionId)
+                INNER JOIN Permissions p ON p.Id = v.PermissionId
                 WHERE r.NormalizedName = '{normalizedRoleName}'
                 AND NOT EXISTS (
                     SELECT 1 FROM RolePermissions rp

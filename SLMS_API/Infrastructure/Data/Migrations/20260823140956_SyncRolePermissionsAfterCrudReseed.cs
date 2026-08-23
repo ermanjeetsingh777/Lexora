@@ -6,12 +6,13 @@ using SLMS_API.Infrastructure.Data;
 namespace SLMS_API.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class SeedMissingRolesAndPermissions : Migration
+    public partial class SyncRolePermissionsAfterCrudReseed : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(RoleSeedSql.GetSeedSql());
+            migrationBuilder.Sql(PermissionSeedSql.GetMergeSql());
+            migrationBuilder.Sql(RolePermissionSeedSql.GetSeedSql());
         }
 
         /// <inheritdoc />

@@ -11,7 +11,8 @@ namespace SLMS_API.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(RolePermissionSeedSql.GetSeedSql());
+            // Role-permission links require all Permission rows (1–109).
+            // Those are created in ReseedCrudPermissions; full sync runs there and at app startup (DbSeeder).
         }
 
         /// <inheritdoc />

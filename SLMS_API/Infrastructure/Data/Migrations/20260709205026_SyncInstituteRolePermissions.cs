@@ -11,7 +11,7 @@ namespace SLMS_API.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(RolePermissionSeedSql.GetSeedSql());
+            // Deferred to ReseedCrudPermissions + DbSeeder.SeedRolePermissionsAsync.
         }
 
         /// <inheritdoc />

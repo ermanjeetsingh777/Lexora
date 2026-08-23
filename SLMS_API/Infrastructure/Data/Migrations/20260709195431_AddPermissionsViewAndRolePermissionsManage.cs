@@ -21,8 +21,6 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     { 25, "permissions.view", "Permissions View" },
                     { 26, "rolepermissions.manage", "Role Permissions Manage" }
                 });
-
-            migrationBuilder.Sql(RolePermissionSeedSql.GetSeedSql());
         }
 
         /// <inheritdoc />

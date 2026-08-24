@@ -40,6 +40,7 @@ export class UserFormDialogComponent {
   readonly overlayLeft = input('0');
   readonly statusLocked = input(false);
   readonly scopeOptions = input<InstitutionDropdownResponse[]>([]);
+  readonly canAssignRoles = input(true);
 
   readonly submitted = output<UserFormSubmit>();
   readonly closed = output<void>();

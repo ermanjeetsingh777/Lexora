@@ -15,8 +15,9 @@ import {
   LucideUsers,
   LucideX,
 } from '@lucide/angular';
-import { catchError, forkJoin, of } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 import { AdminService } from '@core/services/admin.service';
+import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { SidebarService } from '../../../layouts/sidebar/sidebar.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
@@ -28,10 +29,14 @@ import {
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import {
+  applyRolePermissionsFromApi,
   AuditEntry,
   buildRoleViews,
+  canOrganisationAdminEditRole,
   claimKeysToPermissionKeys,
   formatRoleDate,
+  isPersistedRoleId,
+  shouldHideRoleFromList,
   PERMISSION_CATALOG,
   PERMISSION_MODULES_UI,
   PermissionCatalogItem,
@@ -44,12 +49,12 @@ import { PermissionKey } from '@core/constants/permissions';
 type ScopeFilter = 'all' | RoleScope;
 type DrawerTab = 'perms' | 'members' | 'audit';
 
-/** Default matrix columns: SuperAdmin, OrganisationAdmin, OrganisationManager, InstitutionAdmin */
+/** Default matrix columns — SuperAdmin excluded from org-admin views */
 const DEFAULT_MATRIX_ROLE_NAMES = [
-  'SuperAdmin',
   'OrganisationAdmin',
   'OrganisationManager',
   'InstitutionAdmin',
+  'InstitutionManager',
 ] as const;
 
 const MATRIX_ROLE_ABBREV: Record<string, string> = {
@@ -97,8 +102,13 @@ const MATRIX_ROLE_ABBREV: Record<string, string> = {
 })
 export class RolesListComponent implements OnInit {
   private readonly admin = inject(AdminService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly sidebar = inject(SidebarService);
+
+  readonly isSuperAdmin = () => this.auth.hasRole('SuperAdmin');
+  readonly isOrganisationAdmin = () => this.auth.hasRole('OrganisationAdmin');
+  readonly canCreateCustomRole = () => this.isSuperAdmin() || this.isOrganisationAdmin();
 
   readonly loading = signal(true);
   readonly roles = signal<RoleView[]>([]);
@@ -139,6 +149,7 @@ export class RolesListComponent implements OnInit {
     const q = this.query().trim().toLowerCase();
     const scope = this.scopeFilter();
     return this.roles().filter((r) => {
+      if (shouldHideRoleFromList(r.name, this.isSuperAdmin())) return false;
       if (scope !== 'all' && r.scope !== scope) return false;
       if (!q) return true;
       return (
@@ -206,13 +217,27 @@ export class RolesListComponent implements OnInit {
 
   readonly matrixAvailableRoles = computed(() => {
     const selected = new Set(this.matrixSelectedRoleNames());
-    return this.roles().filter((r) => !selected.has(r.name));
+    return this.roles().filter(
+      (r) => !selected.has(r.name) && !shouldHideRoleFromList(r.name, this.isSuperAdmin()),
+    );
   });
+
+  canEditRole(role: RoleView): boolean {
+    if (this.isSuperAdmin()) return true;
+    if (this.isOrganisationAdmin()) return canOrganisationAdminEditRole(role);
+    return false;
+  }
+
+  canDeleteRole(role: RoleView): boolean {
+    return this.canCreateCustomRole() && !role.system && role.members === 0;
+  }
 
   matrixReplaceCandidates(index: number): RoleView[] {
     const names = this.matrixSelectedRoleNames();
     const excluded = new Set(names.filter((_, i) => i !== index));
-    return this.roles().filter((r) => !excluded.has(r.name));
+    return this.roles().filter(
+      (r) => !excluded.has(r.name) && !shouldHideRoleFromList(r.name, this.isSuperAdmin()),
+    );
   }
 
   readonly matrixModules = computed(() => {
@@ -233,15 +258,14 @@ export class RolesListComponent implements OnInit {
   readonly editorScopes: RoleScope[] = ['Global', 'Institution', 'Branch'];
 
   ngOnInit(): void {
+    this.loading.set(true);
     forkJoin({
       roles: this.admin.getRoles().pipe(catchError(() => of([]))),
       users: this.admin.getUsers().pipe(catchError(() => of([]))),
       audit: this.admin.getAuditLogs().pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ roles, users, audit }) => {
-        this.roles.set(buildRoleViews(roles, users));
         this.users.set(users);
-        this.syncMatrixRoleSelection();
         this.audit.set(
           audit.map((a) => ({
             id: String(a.id),
@@ -253,13 +277,73 @@ export class RolesListComponent implements OnInit {
             ts: a.createdAtUtc,
           })),
         );
-        this.loading.set(false);
+        this.hydrateCustomRolePermissions(buildRoleViews(roles, users)).subscribe({
+          next: (hydrated) => {
+            this.roles.set(hydrated);
+            this.syncMatrixRoleSelection();
+            this.loading.set(false);
+          },
+          error: () => {
+            this.roles.set(buildRoleViews(roles, users));
+            this.syncMatrixRoleSelection();
+            this.loading.set(false);
+          },
+        });
       },
       error: () => {
         this.roles.set(buildRoleViews([], []));
         this.loading.set(false);
         this.toast.error('Failed to load roles data');
       },
+    });
+  }
+
+  private applyRolesData(roles: Parameters<typeof buildRoleViews>[0], users: Parameters<typeof buildRoleViews>[1]): void {
+    const views = buildRoleViews(roles, users);
+    this.users.set(users);
+    this.hydrateCustomRolePermissions(views).subscribe({
+      next: (hydrated) => {
+        this.roles.set(hydrated);
+        this.syncMatrixRoleSelection();
+      },
+      error: () => {
+        this.roles.set(views);
+        this.syncMatrixRoleSelection();
+      },
+    });
+  }
+
+  private hydrateCustomRolePermissions(roles: RoleView[]): Observable<RoleView[]> {
+    const customRoles = roles.filter((role) => !role.system && isPersistedRoleId(role.id));
+    if (customRoles.length === 0) {
+      return of(roles);
+    }
+
+    return forkJoin(
+      customRoles.map((role) =>
+        this.admin.getRolePermissions(role.id).pipe(
+          map((response) => ({ id: role.id, permissions: response.permissions })),
+          catchError(() => of({ id: role.id, permissions: [] })),
+        ),
+      ),
+    ).pipe(
+      map((results) => {
+        const permissionsByRoleId = new Map(results.map((result) => [result.id, result.permissions]));
+        return roles.map((role) => {
+          const permissions = permissionsByRoleId.get(role.id);
+          return permissions ? applyRolePermissionsFromApi(role, permissions) : role;
+        });
+      }),
+    );
+  }
+
+  private reloadRoles(): void {
+    forkJoin({
+      roles: this.admin.getRoles().pipe(catchError(() => of([]))),
+      users: this.admin.getUsers().pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ roles, users }) => this.applyRolesData(roles, users),
+      error: () => this.toast.error('Failed to refresh roles'),
     });
   }
 
@@ -404,7 +488,11 @@ export class RolesListComponent implements OnInit {
   }
 
   private syncMatrixRoleSelection(forceDefault = false): void {
-    const available = new Set(this.roles().map((r) => r.name));
+    const available = new Set(
+      this.roles()
+        .filter((r) => !shouldHideRoleFromList(r.name, this.isSuperAdmin()))
+        .map((r) => r.name),
+    );
     if (forceDefault) {
       const defaults = DEFAULT_MATRIX_ROLE_NAMES.filter((n) => available.has(n));
       this.matrixSelectedRoleNames.set(
@@ -449,6 +537,10 @@ export class RolesListComponent implements OnInit {
   }
 
   openCreate(): void {
+    if (!this.canCreateCustomRole()) {
+      this.toast.error('Only SuperAdmin or OrganisationAdmin can create custom roles.');
+      return;
+    }
     const role: RoleView = {
       id: `r_${Date.now()}`,
       name: '',
@@ -459,6 +551,7 @@ export class RolesListComponent implements OnInit {
       members: 0,
       permissions: [],
       permissionKeys: [],
+      institutionIds: [],
       updatedAt: new Date().toISOString(),
     };
     this.editorRole.set(role);
@@ -468,10 +561,31 @@ export class RolesListComponent implements OnInit {
   }
 
   openEdit(role: RoleView): void {
-    this.editorRole.set(structuredClone(role));
-    this.editorOriginal.set(structuredClone(role));
-    this.editorSearch.set('');
-    this.editorOpen.set(true);
+    if (!this.canEditRole(role)) {
+      this.toast.error('You cannot edit this role.');
+      return;
+    }
+
+    const openEditor = (nextRole: RoleView) => {
+      this.editorRole.set(structuredClone(nextRole));
+      this.editorOriginal.set(structuredClone(nextRole));
+      this.editorSearch.set('');
+      this.editorOpen.set(true);
+    };
+
+    if (!role.system && isPersistedRoleId(role.id) && role.permissions.length === 0) {
+      this.admin.getRolePermissions(role.id).subscribe({
+        next: (response) => {
+          const hydrated = applyRolePermissionsFromApi(role, response.permissions);
+          this.roles.update((prev) => prev.map((r) => (r.id === role.id ? hydrated : r)));
+          openEditor(hydrated);
+        },
+        error: () => this.toast.error('Failed to load role permissions'),
+      });
+      return;
+    }
+
+    openEditor(role);
   }
 
   closeEditor(): void {
@@ -495,33 +609,40 @@ export class RolesListComponent implements OnInit {
   }
 
   cloneRole(role: RoleView): void {
-    const copy: RoleView = {
-      ...structuredClone(role),
-      id: `r_${Date.now()}`,
-      name: `${role.name} (copy)`,
-      key: `${role.key}_copy`,
-      system: false,
-      members: 0,
-      updatedAt: new Date().toISOString(),
-    };
-    this.roles.update((prev) => [copy, ...prev]);
-    this.logAudit({
-      roleId: copy.id,
-      roleName: copy.name,
-      actor: 'You',
-      action: 'Role cloned',
-      detail: `From ${role.name}`,
+    if (!this.canCreateCustomRole()) {
+      this.toast.error('Only SuperAdmin or OrganisationAdmin can create custom roles.');
+      return;
+    }
+
+    const copyName = `${role.name} (copy)`;
+    const institutionIds = role.institutionIds.length ? [...role.institutionIds] : undefined;
+    const cloneOptions = isPersistedRoleId(role.id)
+      ? { institutionIds, cloneFromRoleId: role.id }
+      : role.permissionKeys.length > 0
+        ? { institutionIds, clonePermissionKeys: role.permissionKeys }
+        : null;
+
+    if (!cloneOptions) {
+      this.toast.error('Cannot clone this role — source permissions are unavailable.');
+      return;
+    }
+
+    this.admin.createRole(copyName, cloneOptions).subscribe({
+      next: () => {
+        this.reloadRoles();
+        this.toast.success(`Cloned "${role.name}"`);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to clone role');
+      },
     });
-    this.toast.success(`Cloned "${role.name}"`);
   }
 
   deleteRole(role: RoleView): void {
-    if (role.system) {
-      this.toast.error('System roles cannot be deleted');
-      return;
-    }
-    if (role.members > 0) {
-      this.toast.error('Reassign members before deleting');
+    if (!this.canDeleteRole(role)) {
+      if (role.system) this.toast.error('System roles cannot be deleted');
+      else if (role.members > 0) this.toast.error('Reassign members before deleting');
+      else this.toast.error('You cannot delete this role');
       return;
     }
     this.roles.update((prev) => prev.filter((x) => x.id !== role.id));
@@ -578,7 +699,7 @@ export class RolesListComponent implements OnInit {
       this.closeEditor();
     };
 
-    const hasApiId = !updated.id.startsWith('def_') && !updated.id.startsWith('r_');
+    const hasApiId = isPersistedRoleId(updated.id);
 
     if (!isNew && hasApiId && prev && prev.name.trim() !== updated.name.trim()) {
       this.admin.updateRole(updated.id, updated.name.trim()).subscribe({
@@ -602,18 +723,26 @@ export class RolesListComponent implements OnInit {
     if (isNew) {
       this.admin.createRole(updated.name).subscribe({
         next: (apiRole) => {
-          const role = { ...updated, id: apiRole.id };
+          const role = { ...updated, id: apiRole.id, institutionIds: (apiRole.institutionIds ?? []).map(String) };
           if (permissionKeys.length) {
             this.admin.assignRolePermissions(apiRole.id, permissionKeys).subscribe({
-              next: () => finish(role),
-              error: () => finish(role),
+              next: () => {
+                finish(role);
+                this.reloadRoles();
+              },
+              error: (err) => {
+                this.saving.set(false);
+                this.toast.error(err?.error?.message ?? 'Role created but permissions failed to save');
+              },
             });
           } else {
             finish(role);
+            this.reloadRoles();
           }
         },
-        error: () => {
-          finish(updated);
+        error: (err) => {
+          this.saving.set(false);
+          this.toast.error(err?.error?.message ?? 'Failed to create role');
         },
       });
       return;

@@ -4,9 +4,11 @@
   description="Define what each role can do, where it applies, and who holds it."
 >
   <div actions>
-    <app-button size="sm" (click)="openCreate()">
-      <svg lucidePlus class="h-4 w-4 mr-1.5"></svg> New role
-    </app-button>
+    @if (canCreateCustomRole()) {
+      <app-button size="sm" (click)="openCreate()">
+        <svg lucidePlus class="h-4 w-4 mr-1.5"></svg> New role
+      </app-button>
+    }
   </div>
 </app-page-header>
 
@@ -403,17 +405,19 @@
         </div>
 
         <div class="flex gap-2 mt-4 flex-wrap">
-          <app-button size="sm" [disabled]="role.system" (click)="openEdit(role)">
+          <app-button size="sm" [disabled]="!canEditRole(role)" (click)="openEdit(role)">
             <svg lucidePencil class="h-4 w-4 mr-1.5"></svg> Edit
           </app-button>
-          <app-button size="sm" variant="outline" (click)="cloneRole(role)">
-            <svg lucideCopy class="h-4 w-4 mr-1.5"></svg> Clone
-          </app-button>
+          @if (canCreateCustomRole()) {
+            <app-button size="sm" variant="outline" (click)="cloneRole(role)">
+              <svg lucideCopy class="h-4 w-4 mr-1.5"></svg> Clone
+            </app-button>
+          }
           <app-button
             size="sm"
             variant="outline"
             class="text-destructive hover:text-destructive"
-            [disabled]="role.system || role.members > 0"
+            [disabled]="!canDeleteRole(role)"
             (click)="deleteRole(role)"
           >
             <svg lucideTrash2 class="h-4 w-4 mr-1.5"></svg> Delete

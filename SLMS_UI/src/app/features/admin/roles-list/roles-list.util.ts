@@ -28,6 +28,7 @@ export interface RoleView {
   members: number;
   permissions: string[];
   permissionKeys: PermissionKey[];
+  institutionIds: string[];
   updatedAt: string;
 }
 
@@ -159,6 +160,7 @@ export function buildRoleViews(apiRoles: AdminRole[], users: AdminUser[]): RoleV
       members: memberCounts.get(def.key) ?? 0,
       permissionKeys: [...def.permissions],
       permissions: def.permissions.map(toClaimValue),
+      institutionIds: [],
       updatedAt: now,
     };
   });
@@ -175,10 +177,11 @@ export function buildRoleViews(apiRoles: AdminRole[], users: AdminUser[]): RoleV
         key: name || api.id,
         description: 'Custom identity role',
         scope: 'Branch',
-        system: false,
+        system: api.isSystem ?? false,
         members: memberCounts.get(name) ?? 0,
         permissionKeys: [],
         permissions: [],
+        institutionIds: (api.institutionIds ?? []).map(String),
         updatedAt: now,
       });
     }
@@ -192,4 +195,41 @@ export function claimKeysToPermissionKeys(claims: string[]): PermissionKey[] {
   return claims
     .map((c) => lookup.get(c))
     .filter((k): k is PermissionKey => k !== undefined);
+}
+
+export function applyRolePermissionsFromApi(
+  role: RoleView,
+  items: { key: PermissionKey; value: string }[],
+): RoleView {
+  return {
+    ...role,
+    permissionKeys: items.map((p) => p.key),
+    permissions: items.map((p) => p.value),
+  };
+}
+
+export function isPersistedRoleId(id: string): boolean {
+  return !id.startsWith('def_') && !id.startsWith('r_');
+}
+
+export const SUPER_ADMIN_ROLE = 'SuperAdmin';
+
+export const DEFAULT_ADMIN_ROLE_KEYS = new Set<string>([
+  'OrganisationAdmin',
+  'InstitutionAdmin',
+  'BranchAdmin',
+  'LibrarianAdmin',
+]);
+
+export function isDefaultAdminRole(roleName: string): boolean {
+  return DEFAULT_ADMIN_ROLE_KEYS.has(roleName);
+}
+
+export function canOrganisationAdminEditRole(role: RoleView): boolean {
+  if (!role.system) return true;
+  return isDefaultAdminRole(role.name);
+}
+
+export function shouldHideRoleFromList(roleName: string, isSuperAdmin: boolean): boolean {
+  return !isSuperAdmin && roleName === SUPER_ADMIN_ROLE;
 }

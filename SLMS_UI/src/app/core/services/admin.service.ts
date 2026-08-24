@@ -59,8 +59,22 @@ export class AdminService {
     return this.api.get<AdminRole[]>(`${this.base}/roles`).pipe(map((r) => r.data ?? []));
   }
 
-  createRole(name: string): Observable<AdminRole> {
-    return this.api.post<AdminRole>(`${this.base}/roles`, { name }).pipe(map((r) => r.data!));
+  createRole(
+    name: string,
+    options?: {
+      institutionIds?: string[];
+      cloneFromRoleId?: string;
+      clonePermissionKeys?: PermissionKey[];
+    },
+  ): Observable<AdminRole> {
+    return this.api
+      .post<AdminRole>(`${this.base}/roles`, {
+        name,
+        institutionIds: options?.institutionIds,
+        cloneFromRoleId: options?.cloneFromRoleId,
+        clonePermissionKeys: options?.clonePermissionKeys,
+      })
+      .pipe(map((r) => r.data!));
   }
 
   updateRole(id: string, name: string): Observable<AdminRole> {

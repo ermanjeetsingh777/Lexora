@@ -80,7 +80,7 @@
   </app-glass-card>
 
   <!-- Filters -->
-  <app-glass-card class="mt-4 block users-filters-card">
+  <app-glass-card class="mt-4  p-0 block users-filters-card">
     <div class="users-filter-bar">
       <div class="users-filter-search">
         <svg lucideSearch class="users-filter-icon"></svg>
@@ -146,7 +146,7 @@
   }
 
   <!-- Table -->
-  <app-glass-card class="p-0 mt-4 overflow-hidden block">
+  <app-glass-card class="p-1 mt-4 overflow-hidden block">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
@@ -484,6 +484,7 @@
   [overlayLeft]="overlayLeft()"
   [statusLocked]="editUser() ? isStatusChangeProtected(editUser()!, currentUserId()) : false"
   [scopeOptions]="scopeOptions()"
+  [canAssignRoles]="canAssignRoles"
   (submitted)="onFormSubmit($event)"
   (closed)="closeForm()"
 />

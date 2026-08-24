@@ -16,6 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<RoleInstitution> RoleInstitutions => Set<RoleInstitution>();
     public DbSet<Package> Packages => Set<Package>();
     public DbSet<PackageFeatures> PackageFeatures => Set<PackageFeatures>();
     public DbSet<UserPackage> UserPackages => Set<UserPackage>();
@@ -107,6 +108,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasOne(x => x.Permission)
                 .WithMany()
                 .HasForeignKey(x => x.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<RoleInstitution>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.RoleId).HasMaxLength(450).IsRequired();
+            entity.Property(x => x.CreatedByUserId).HasMaxLength(450);
+            entity.HasIndex(x => new { x.RoleId, x.InstitutionId }).IsUnique();
+            entity.HasIndex(x => x.InstitutionId);
+            entity.HasOne(x => x.Institution)
+                .WithMany()
+                .HasForeignKey(x => x.InstitutionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

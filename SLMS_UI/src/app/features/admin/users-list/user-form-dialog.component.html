@@ -145,35 +145,45 @@
           }
         </div>
 
-        <div class="border-t pt-4 space-y-2">
-          <label class="text-sm font-medium">Role</label>
-          <div class="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto">
-            @for (r of staffRoleOptions; track r.key) {
-              <label
-                class="flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer transition"
-                [class.border-primary]="selectedRole() === r.key"
-                [class.bg-primary/5]="selectedRole() === r.key"
-                [class.hover:bg-muted/40]="selectedRole() !== r.key"
-              >
-                <input
-                  type="radio"
-                  class="mt-1 accent-primary"
-                  name="role"
-                  [value]="r.key"
-                  [checked]="selectedRole() === r.key"
-                  (change)="selectedRole.set(r.key)"
-                />
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-medium">{{ r.label }}</span>
-                    <span class="font-mono text-[10px] text-muted-foreground">{{ r.key }}</span>
+        @if (canAssignRoles()) {
+          <div class="border-t pt-4 space-y-2">
+            <label class="text-sm font-medium">Role</label>
+            <div class="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto">
+              @for (r of staffRoleOptions; track r.key) {
+                <label
+                  class="flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer transition"
+                  [class.border-primary]="selectedRole() === r.key"
+                  [class.bg-primary/5]="selectedRole() === r.key"
+                  [class.hover:bg-muted/40]="selectedRole() !== r.key"
+                >
+                  <input
+                    type="radio"
+                    class="mt-1 accent-primary"
+                    name="role"
+                    [value]="r.key"
+                    [checked]="selectedRole() === r.key"
+                    (change)="selectedRole.set(r.key)"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-medium">{{ r.label }}</span>
+                      <span class="font-mono text-[10px] text-muted-foreground">{{ r.key }}</span>
+                    </div>
+                    <p class="text-xs text-muted-foreground">{{ r.description }}</p>
                   </div>
-                  <p class="text-xs text-muted-foreground">{{ r.description }}</p>
-                </div>
-              </label>
-            }
+                </label>
+              }
+            </div>
           </div>
-        </div>
+        } @else if (isEdit() && selectedRole()) {
+          <div class="border-t pt-4 space-y-1.5">
+            <label class="text-sm font-medium">Role</label>
+            <p class="text-sm text-muted-foreground">
+              {{ roleLabel(selectedRole()) }}
+              <span class="text-xs">(only SuperAdmin can change roles)</span>
+            </p>
+          </div>
+        }
       </form>
 
       <div class="flex justify-end gap-2 border-t p-6 shrink-0">

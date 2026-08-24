@@ -192,10 +192,20 @@ public class AdminController : ControllerBase
         [FromBody] AdminAssignRolesRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<AdminUserResponse>.Fail("User is not authenticated."));
+        }
+
         try
         {
-            var user = await _adminService.AssignRolesAsync(id, request, _currentUserService.IpAddress, cancellationToken);
+            var user = await _adminService.AssignRolesAsync(id, request, userId, _currentUserService.IpAddress, cancellationToken);
             return Ok(ApiResponse<AdminUserResponse>.Ok(user, "Roles updated successfully."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<AdminUserResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -207,8 +217,21 @@ public class AdminController : ControllerBase
     [Permission(PermissionKey.RolesList)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<AdminRoleResponse>>>> GetRoles(CancellationToken cancellationToken)
     {
-        var roles = await _adminService.GetRolesAsync(cancellationToken);
-        return Ok(ApiResponse<IReadOnlyCollection<AdminRoleResponse>>.Ok(roles));
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<AdminRoleResponse>>.Fail("User is not authenticated."));
+        }
+
+        try
+        {
+            var roles = await _adminService.GetRolesAsync(userId, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyCollection<AdminRoleResponse>>.Ok(roles));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<AdminRoleResponse>>.Fail(ex.Message));
+        }
     }
 
     [HttpPost("roles")]
@@ -217,10 +240,20 @@ public class AdminController : ControllerBase
         [FromBody] AdminCreateRoleRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<AdminRoleResponse>.Fail("User is not authenticated."));
+        }
+
         try
         {
-            var role = await _adminService.CreateRoleAsync(request, _currentUserService.IpAddress, cancellationToken);
+            var role = await _adminService.CreateRoleAsync(request, userId, _currentUserService.IpAddress, cancellationToken);
             return Ok(ApiResponse<AdminRoleResponse>.Ok(role, "Role created successfully."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<AdminRoleResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -235,10 +268,20 @@ public class AdminController : ControllerBase
         [FromBody] AdminUpdateRoleRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<AdminRoleResponse>.Fail("User is not authenticated."));
+        }
+
         try
         {
-            var role = await _adminService.UpdateRoleAsync(id, request, _currentUserService.IpAddress, cancellationToken);
+            var role = await _adminService.UpdateRoleAsync(id, request, userId, _currentUserService.IpAddress, cancellationToken);
             return Ok(ApiResponse<AdminRoleResponse>.Ok(role, "Role updated successfully."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<AdminRoleResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -270,10 +313,20 @@ public class AdminController : ControllerBase
         [FromBody] AdminAssignRolePermissionsRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<AdminRolePermissionsResponse>.Fail("User is not authenticated."));
+        }
+
         try
         {
-            var result = await _adminService.AssignRolePermissionsAsync(id, request, _currentUserService.IpAddress, cancellationToken);
+            var result = await _adminService.AssignRolePermissionsAsync(id, request, userId, _currentUserService.IpAddress, cancellationToken);
             return Ok(ApiResponse<AdminRolePermissionsResponse>.Ok(result, "Role permissions updated successfully."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<AdminRolePermissionsResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {

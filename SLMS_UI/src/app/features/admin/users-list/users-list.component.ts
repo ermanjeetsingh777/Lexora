@@ -118,7 +118,7 @@ export class UsersListComponent implements OnInit {
   readonly canCreate = this.auth.hasPermission(PermissionKey.UsersCreate);
   readonly canUpdate = this.auth.hasPermission(PermissionKey.UsersUpdate);
   readonly canDelete = this.auth.hasPermission(PermissionKey.UsersDelete);
-  readonly canAssignRoles = this.auth.hasPermission(PermissionKey.RolesUpdate);
+  readonly canAssignRoles = this.auth.hasRole('SuperAdmin');
 
   readonly staffRoleOptions = STAFF_ROLE_OPTIONS;
   readonly fmt = formatUserDate;

@@ -36,6 +36,8 @@ export interface AdminUser {
 export interface AdminRole {
   id: string;
   name: string | null;
+  isSystem?: boolean;
+  institutionIds?: string[];
 }
 
 export interface PermissionItem {

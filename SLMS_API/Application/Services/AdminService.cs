@@ -289,8 +289,23 @@ public class AdminService : IAdminService
         await _auditLogService.WriteAsync("UserDelete", id, "Admin deleted user", ipAddress, cancellationToken);
     }
 
-    public async Task<AdminUserResponse> AssignRolesAsync(string id, AdminAssignRolesRequest request, string? ipAddress, CancellationToken cancellationToken = default)
+    public async Task<AdminUserResponse> AssignRolesAsync(
+        string id,
+        AdminAssignRolesRequest request,
+        string callerUserId,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        if (!await IsSuperAdminAsync(callerUserId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("Only SuperAdmin can change user roles.");
+        }
+
         var user = await _userManager.FindByIdAsync(id)
             ?? throw new InvalidOperationException("User not found.");
 
@@ -300,10 +315,7 @@ public class AdminService : IAdminService
 
         foreach (var role in rolesToAssign)
         {
-            if (!RoleDefinitions.All.Contains(role, StringComparer.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException($"Invalid role: {role}");
-            }
+            await EnsureRoleIsAssignableAsync(role, cancellationToken);
         }
 
         var existingRoles = await _userManager.GetRolesAsync(user);
@@ -335,22 +347,60 @@ public class AdminService : IAdminService
         return ToAdminUserResponse(user, roles, scopeMap.GetValueOrDefault(user.Id));
     }
 
-    public async Task<IReadOnlyCollection<AdminRoleResponse>> GetRolesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<AdminRoleResponse>> GetRolesAsync(string callerUserId, CancellationToken cancellationToken = default)
     {
-        var roles = await _roleManager.Roles
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        var identityRoles = await _roleManager.Roles
             .OrderBy(x => x.Name)
-            .Select(x => new AdminRoleResponse { Id = x.Id, Name = x.Name })
             .ToListAsync(cancellationToken);
 
-        return roles;
+        var roleInstitutionMap = await GetRoleInstitutionMapAsync(cancellationToken);
+        var isSuperAdmin = await IsSuperAdminAsync(callerUserId, cancellationToken);
+
+        if (isSuperAdmin)
+        {
+            return identityRoles
+                .Select(role => ToAdminRoleResponse(role, roleInstitutionMap))
+                .ToList();
+        }
+
+        var callerInstitutionIds = await GetCallerInstitutionIdsAsync(callerUserId, cancellationToken);
+
+        return identityRoles
+            .Where(role => CanCallerViewRole(role.Name, role.Id, roleInstitutionMap, callerInstitutionIds))
+            .Select(role => ToAdminRoleResponse(role, roleInstitutionMap))
+            .ToList();
     }
 
-    public async Task<AdminRoleResponse> CreateRoleAsync(AdminCreateRoleRequest request, string? ipAddress, CancellationToken cancellationToken = default)
+    public async Task<AdminRoleResponse> CreateRoleAsync(
+        AdminCreateRoleRequest request,
+        string callerUserId,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        if (!await CanManageCustomRolesAsync(callerUserId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("Only SuperAdmin or OrganisationAdmin can create custom roles.");
+        }
+
         if (RoleDefinitions.All.Contains(request.Name, StringComparer.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("This role already exists in ROLE_DEFINITIONS.");
         }
+
+        var institutionIds = await ResolveRoleInstitutionIdsForCreateAsync(
+            request.InstitutionIds,
+            callerUserId,
+            cancellationToken);
 
         var result = await _roleManager.CreateAsync(new IdentityRole(request.Name));
         if (!result.Succeeded)
@@ -358,18 +408,64 @@ public class AdminService : IAdminService
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
         }
 
-        await _auditLogService.WriteAsync("RoleCreate", null, $"Role created: {request.Name}", ipAddress, cancellationToken);
-
         var role = await _roleManager.FindByNameAsync(request.Name)
             ?? throw new InvalidOperationException("Role created but not found.");
 
-        return new AdminRoleResponse { Id = role.Id, Name = role.Name };
+        foreach (var institutionId in institutionIds)
+        {
+            _dbContext.RoleInstitutions.Add(new RoleInstitution
+            {
+                RoleId = role.Id,
+                InstitutionId = institutionId,
+                CreatedByUserId = callerUserId,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await ApplyClonedPermissionsAsync(
+            role.Id,
+            request.CloneFromRoleId,
+            request.ClonePermissionKeys,
+            callerUserId,
+            cancellationToken);
+
+        await _auditLogService.WriteAsync("RoleCreate", null, $"Role created: {request.Name}", ipAddress, cancellationToken);
+
+        var roleInstitutionMap = await GetRoleInstitutionMapAsync(cancellationToken);
+        return ToAdminRoleResponse(role, roleInstitutionMap);
     }
 
-    public async Task<AdminRoleResponse> UpdateRoleAsync(string id, AdminUpdateRoleRequest request, string? ipAddress, CancellationToken cancellationToken = default)
+    public async Task<AdminRoleResponse> UpdateRoleAsync(
+        string id,
+        AdminUpdateRoleRequest request,
+        string callerUserId,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
         var role = await _roleManager.FindByIdAsync(id)
             ?? throw new InvalidOperationException("Role not found.");
+
+        if (!await IsSuperAdminAsync(callerUserId, cancellationToken))
+        {
+            if (!await IsOrganisationAdminAsync(callerUserId, cancellationToken))
+            {
+                throw new UnauthorizedAccessException("Only SuperAdmin or OrganisationAdmin can update roles.");
+            }
+
+            if (IsBuiltInRole(role.Name))
+            {
+                throw new InvalidOperationException("Built-in roles cannot be renamed.");
+            }
+
+            await EnsureCallerCanAccessCustomRoleAsync(callerUserId, role, cancellationToken);
+        }
 
         if (role.Name is not null && RoleDefinitions.All.Contains(role.Name, StringComparer.OrdinalIgnoreCase))
         {
@@ -385,7 +481,8 @@ public class AdminService : IAdminService
 
         await _auditLogService.WriteAsync("RoleUpdate", null, $"Role updated: {role.Id}", ipAddress, cancellationToken);
 
-        return new AdminRoleResponse { Id = role.Id, Name = role.Name };
+        var roleInstitutionMap = await GetRoleInstitutionMapAsync(cancellationToken);
+        return ToAdminRoleResponse(role, roleInstitutionMap);
     }
 
     public async Task<AdminRolePermissionsResponse> GetRolePermissionsAsync(string roleId, CancellationToken cancellationToken = default)
@@ -416,11 +513,20 @@ public class AdminService : IAdminService
     public async Task<AdminRolePermissionsResponse> AssignRolePermissionsAsync(
         string roleId,
         AdminAssignRolePermissionsRequest request,
+        string callerUserId,
         string? ipAddress,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
         var role = await _roleManager.FindByIdAsync(roleId)
             ?? throw new InvalidOperationException("Role not found.");
+
+        await EnsureCanManageRolePermissionsAsync(callerUserId, role, cancellationToken);
+        await EnsureCallerCanAccessCustomRoleAsync(callerUserId, role, cancellationToken);
 
         var permissionIds = request.Permissions
             .Distinct()
@@ -594,6 +700,305 @@ public class AdminService : IAdminService
             status = canConnect ? "Healthy" : "Unhealthy",
             database = new { canConnect }
         };
+    }
+
+    private static readonly HashSet<string> NonAssignableRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        RoleDefinitions.SuperAdmin,
+        RoleDefinitions.Members,
+    };
+
+    private static readonly HashSet<string> DefaultAdminRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        RoleDefinitions.OrganisationAdmin,
+        RoleDefinitions.InstitutionAdmin,
+        RoleDefinitions.BranchAdmin,
+        RoleDefinitions.LibrarianAdmin,
+    };
+
+    private static bool IsBuiltInRole(string? roleName) =>
+        roleName is not null && RoleDefinitions.All.Contains(roleName, StringComparer.OrdinalIgnoreCase);
+
+    private static bool IsCustomRole(string? roleName) =>
+        roleName is not null && !IsBuiltInRole(roleName);
+
+    private static bool IsDefaultAdminRole(string? roleName) =>
+        roleName is not null && DefaultAdminRoles.Contains(roleName);
+
+    private async Task<bool> CanManageCustomRolesAsync(string callerUserId, CancellationToken cancellationToken) =>
+        await IsSuperAdminAsync(callerUserId, cancellationToken)
+        || await IsOrganisationAdminAsync(callerUserId, cancellationToken);
+
+    private async Task EnsureRoleIsAssignableAsync(string roleName, CancellationToken cancellationToken)
+    {
+        if (NonAssignableRoles.Contains(roleName))
+        {
+            throw new InvalidOperationException($"{roleName} role cannot be assigned through user management.");
+        }
+
+        if (IsBuiltInRole(roleName))
+        {
+            return;
+        }
+
+        if (await _roleManager.RoleExistsAsync(roleName))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException($"Invalid role: {roleName}");
+    }
+
+    private async Task EnsureCanManageRolePermissionsAsync(
+        string callerUserId,
+        IdentityRole role,
+        CancellationToken cancellationToken)
+    {
+        if (await IsSuperAdminAsync(callerUserId, cancellationToken))
+        {
+            return;
+        }
+
+        if (!await IsOrganisationAdminAsync(callerUserId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("Only SuperAdmin or OrganisationAdmin can manage role permissions.");
+        }
+
+        if (string.Equals(role.Name, RoleDefinitions.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("SuperAdmin role permissions cannot be modified.");
+        }
+
+        if (IsCustomRole(role.Name) || IsDefaultAdminRole(role.Name))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException("You can only modify custom roles or default admin roles.");
+    }
+
+    private async Task<List<Guid>> GetCallerInstitutionIdsAsync(string callerUserId, CancellationToken cancellationToken)
+    {
+        var institutionIds = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .Where(ui => ui.UserId == callerUserId && ui.IsActive)
+            .Select(ui => ui.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        var branchInstitutionIds = await _dbContext.UserBranches
+            .AsNoTracking()
+            .Where(ub => ub.UserId == callerUserId && ub.IsActive)
+            .Select(ub => ub.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        var libraryInstitutionIds = await _dbContext.UserLibraries
+            .AsNoTracking()
+            .Where(ul => ul.UserId == callerUserId && ul.IsActive)
+            .Select(ul => ul.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        return institutionIds
+            .Concat(branchInstitutionIds)
+            .Concat(libraryInstitutionIds)
+            .Distinct()
+            .ToList();
+    }
+
+    private async Task<Dictionary<string, List<Guid>>> GetRoleInstitutionMapAsync(CancellationToken cancellationToken)
+    {
+        var rows = await _dbContext.RoleInstitutions
+            .AsNoTracking()
+            .Select(x => new { x.RoleId, x.InstitutionId })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(x => x.RoleId, StringComparer.Ordinal)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => x.InstitutionId).Distinct().ToList(),
+                StringComparer.Ordinal);
+    }
+
+    private static AdminRoleResponse ToAdminRoleResponse(
+        IdentityRole role,
+        IReadOnlyDictionary<string, List<Guid>> roleInstitutionMap)
+    {
+        roleInstitutionMap.TryGetValue(role.Id, out var institutionIds);
+
+        return new AdminRoleResponse
+        {
+            Id = role.Id,
+            Name = role.Name,
+            IsSystem = IsBuiltInRole(role.Name),
+            InstitutionIds = institutionIds ?? []
+        };
+    }
+
+    private static bool CanCallerViewRole(
+        string? roleName,
+        string roleId,
+        IReadOnlyDictionary<string, List<Guid>> roleInstitutionMap,
+        IReadOnlyCollection<Guid> callerInstitutionIds)
+    {
+        if (string.Equals(roleName, RoleDefinitions.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (IsBuiltInRole(roleName))
+        {
+            return true;
+        }
+
+        if (!roleInstitutionMap.TryGetValue(roleId, out var scopedInstitutionIds) || scopedInstitutionIds.Count == 0)
+        {
+            return false;
+        }
+
+        return scopedInstitutionIds.Any(callerInstitutionIds.Contains);
+    }
+
+    private async Task<List<Guid>> ResolveRoleInstitutionIdsForCreateAsync(
+        IReadOnlyCollection<Guid>? requestedInstitutionIds,
+        string callerUserId,
+        CancellationToken cancellationToken)
+    {
+        var callerInstitutionIds = await GetCallerInstitutionIdsAsync(callerUserId, cancellationToken);
+        var isSuperAdmin = await IsSuperAdminAsync(callerUserId, cancellationToken);
+
+        if (requestedInstitutionIds is { Count: > 0 })
+        {
+            var normalized = requestedInstitutionIds.Distinct().ToList();
+            if (!isSuperAdmin)
+            {
+                if (normalized.Any(id => !callerInstitutionIds.Contains(id)))
+                {
+                    throw new InvalidOperationException("You do not have access to one or more selected institutions.");
+                }
+            }
+
+            return normalized;
+        }
+
+        if (isSuperAdmin)
+        {
+            return [];
+        }
+
+        if (callerInstitutionIds.Count == 0)
+        {
+            throw new InvalidOperationException("Institution scope is required to create a custom role.");
+        }
+
+        return callerInstitutionIds;
+    }
+
+    private async Task ApplyClonedPermissionsAsync(
+        string newRoleId,
+        string? cloneFromRoleId,
+        IReadOnlyCollection<int>? clonePermissionKeys,
+        string callerUserId,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyCollection<int> permissionIds;
+
+        if (!string.IsNullOrWhiteSpace(cloneFromRoleId))
+        {
+            var sourceRole = await _roleManager.FindByIdAsync(cloneFromRoleId)
+                ?? throw new InvalidOperationException("Source role for clone was not found.");
+
+            if (string.Equals(sourceRole.Name, RoleDefinitions.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("SuperAdmin role cannot be cloned.");
+            }
+
+            if (!await IsSuperAdminAsync(callerUserId, cancellationToken))
+            {
+                var roleInstitutionMap = await GetRoleInstitutionMapAsync(cancellationToken);
+                var callerInstitutionIds = await GetCallerInstitutionIdsAsync(callerUserId, cancellationToken);
+                if (!CanCallerViewRole(sourceRole.Name, sourceRole.Id, roleInstitutionMap, callerInstitutionIds))
+                {
+                    throw new UnauthorizedAccessException("You do not have access to clone this role.");
+                }
+            }
+
+            permissionIds = await _dbContext.RolePermissions
+                .AsNoTracking()
+                .Where(x => x.RoleId == cloneFromRoleId)
+                .Select(x => x.PermissionId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            if (permissionIds.Count == 0
+                && sourceRole.Name is not null
+                && RolePermissionDefinitions.GetDefaultRolePermissionMap().TryGetValue(sourceRole.Name, out var defaults))
+            {
+                permissionIds = defaults.Select(x => (int)x).ToArray();
+            }
+        }
+        else if (clonePermissionKeys is { Count: > 0 })
+        {
+            permissionIds = clonePermissionKeys.Distinct().ToArray();
+        }
+        else
+        {
+            return;
+        }
+
+        if (permissionIds.Count == 0)
+        {
+            return;
+        }
+
+        var validPermissionIds = await _dbContext.Permissions
+            .AsNoTracking()
+            .Where(x => permissionIds.Contains(x.Id))
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        if (validPermissionIds.Count != permissionIds.Count)
+        {
+            throw new InvalidOperationException("One or more permissions are invalid.");
+        }
+
+        foreach (var permissionId in validPermissionIds)
+        {
+            _dbContext.RolePermissions.Add(new RolePermission
+            {
+                RoleId = newRoleId,
+                PermissionId = permissionId
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnsureCallerCanAccessCustomRoleAsync(
+        string callerUserId,
+        IdentityRole role,
+        CancellationToken cancellationToken)
+    {
+        if (await IsSuperAdminAsync(callerUserId, cancellationToken) || IsBuiltInRole(role.Name))
+        {
+            return;
+        }
+
+        var roleInstitutionIds = await _dbContext.RoleInstitutions
+            .AsNoTracking()
+            .Where(x => x.RoleId == role.Id)
+            .Select(x => x.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        if (roleInstitutionIds.Count == 0)
+        {
+            throw new UnauthorizedAccessException("Only SuperAdmin can manage platform-wide custom roles.");
+        }
+
+        var callerInstitutionIds = await GetCallerInstitutionIdsAsync(callerUserId, cancellationToken);
+        if (!roleInstitutionIds.Any(callerInstitutionIds.Contains))
+        {
+            throw new UnauthorizedAccessException("You do not have access to manage this role.");
+        }
     }
 
     private async Task<bool> IsSuperAdminAsync(string userId, CancellationToken cancellationToken)

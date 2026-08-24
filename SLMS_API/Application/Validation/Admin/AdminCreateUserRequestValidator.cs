@@ -10,6 +10,9 @@ public class AdminCreateUserRequestValidator : AbstractValidator<AdminCreateUser
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8);
         RuleFor(x => x.FullName).MaximumLength(100);
+        RuleFor(x => x.InstitutionScopes)
+            .NotEmpty()
+            .WithMessage("At least one institution is required.");
     }
 }
 

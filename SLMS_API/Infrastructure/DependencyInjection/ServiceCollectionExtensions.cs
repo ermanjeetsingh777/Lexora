@@ -13,6 +13,7 @@ using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Domain.Entities;
 using SLMS_API.Infrastructure.Authorization;
 using SLMS_API.Infrastructure.Data;
+using SLMS_API.Infrastructure.Email;
 using SLMS_API.Infrastructure.Repositories;
 using SLMS_API.Infrastructure.Repositories.Interfaces;
 using SLMS_API.Infrastructure.Support;
@@ -25,6 +26,8 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<DemoOptions>(configuration.GetSection(DemoOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
 
         services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -83,6 +86,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();

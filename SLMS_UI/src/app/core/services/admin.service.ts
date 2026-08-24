@@ -4,6 +4,7 @@ import { Observable, map } from 'rxjs';
 import {
   AdminAuditLog,
   AdminAssignRolesRequest,
+  AdminChangeUserPasswordRequest,
   AdminCreateUserRequest,
   AdminRole,
   AdminRolePermissions,
@@ -12,6 +13,7 @@ import {
   PermissionItem,
 } from '@core/models/admin.models';
 import { PermissionKey } from '@core/constants/permissions';
+import { InstitutionDropdownResponse } from '@core/models/institution-dropdown.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -35,6 +37,12 @@ export class AdminService {
 
   updateUser(id: string, request: AdminUpdateUserRequest): Observable<AdminUser> {
     return this.api.putTo<AdminUser>(`${this.base}/users/${id}`, request).pipe(map((r) => r.data!));
+  }
+
+  changeUserPassword(id: string, request: AdminChangeUserPasswordRequest): Observable<string> {
+    return this.api
+      .post<{ message: string }>(`${this.base}/users/${id}/password`, request)
+      .pipe(map((r) => r.message ?? 'User password updated successfully.'));
   }
 
   deleteUser(id: string): Observable<void> {
@@ -77,5 +85,11 @@ export class AdminService {
 
   getAuditLogs(): Observable<AdminAuditLog[]> {
     return this.api.get<AdminAuditLog[]>(`${this.base}/audit-logs`).pipe(map((r) => r.data ?? []));
+  }
+
+  getUserScopeOptions(): Observable<InstitutionDropdownResponse[]> {
+    return this.api
+      .get<InstitutionDropdownResponse[]>(`${this.base}/users/scope-options`)
+      .pipe(map((r) => r.data ?? []));
   }
 }

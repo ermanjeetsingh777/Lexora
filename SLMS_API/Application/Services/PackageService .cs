@@ -39,6 +39,32 @@ namespace SLMS_API.Application.Services
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyCollection<PackageResponse>> GetActiveAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.Packages
+                .Include(x => x.Features)
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Price)
+                .Select(x => new PackageResponse
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Price = x.Price,
+                    DurationInDays = x.DurationInDays,
+                    Description = x.Description,
+                    IsActive = x.IsActive,
+                    Features = x.Features
+                        .Select(f => new PackageFeatureResponse
+                        {
+                            Id = f.Id,
+                            FeatureName = f.FeatureName,
+                            FeatureValue = f.FeatureValue
+                        }).ToList()
+                })
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<PackageResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var package = await _context.Packages

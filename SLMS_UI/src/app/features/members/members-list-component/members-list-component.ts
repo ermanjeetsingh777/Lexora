@@ -10,6 +10,7 @@ import {
   LucideArrowUp, LucideArrowDown, LucideChevronsUpDown,
   LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
   LucideFileSpreadsheet,
+  LucideKeyRound,
 } from '@lucide/angular';
 import { AttendanceModuleQuery } from '@core/models/attendanceModels';
 import { AttendanceExportService } from '@features/attendance/attendance-export.service';
@@ -25,6 +26,7 @@ import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
 import { ToastService } from '@core/services/toast.service';
+import { AuthService } from '@core/services/auth.service';
 import { MemberService } from '../MemberService';
 import { MemberListResponse } from '@core/models/MemberRequest';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
@@ -83,6 +85,7 @@ interface MemberRow extends MemberListResponse {
     LucideArrowUp, LucideArrowDown, LucideChevronsUpDown,
     LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
     LucideFileSpreadsheet,
+    LucideKeyRound,
     RenewPlanDialogComponent,
     MemberAvatarComponent,
   ],
@@ -96,6 +99,7 @@ interface MemberRow extends MemberListResponse {
 export class MembersListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly memberService = inject(MemberService);
+  private readonly auth = inject(AuthService);
   private readonly exportService = inject(AttendanceExportService);
   readonly commonService = inject(CommonService);
 
@@ -124,6 +128,12 @@ export class MembersListComponent implements OnInit {
   readonly renewTarget = signal<RenewTarget | null>(null);
   readonly renewPlans = signal<PlanResponse[]>([]);
   readonly renewBusy = signal(false);
+  readonly canChangePassword =
+    this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin');
+  readonly passwordTarget = signal<{ id: string; name: string } | null>(null);
+  readonly passwordBusy = signal(false);
+  readonly newPassword = signal('');
+  readonly confirmPassword = signal('');
 
   readonly STATUS_OPTS = STATUS_OPTS;
   readonly LIFECYCLE_OPTS = LIFECYCLE_OPTS;
@@ -408,6 +418,54 @@ export class MembersListComponent implements OnInit {
     this.renewTarget.set(null);
     this.renewBusy.set(false);
     this.renewPlans.set([]);
+  }
+
+  openPasswordDialog(member: MemberRow): void {
+    this.closeDropdown();
+    this.passwordTarget.set({ id: member.id, name: member.name });
+    this.newPassword.set('');
+    this.confirmPassword.set('');
+  }
+
+  closePasswordDialog(): void {
+    this.passwordTarget.set(null);
+    this.passwordBusy.set(false);
+    this.newPassword.set('');
+    this.confirmPassword.set('');
+  }
+
+  confirmPasswordChange(): void {
+    const target = this.passwordTarget();
+    if (!target) return;
+
+    const password = this.newPassword().trim();
+    const confirm = this.confirmPassword().trim();
+
+    if (password.length < 8) {
+      this.toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    if (password !== confirm) {
+      this.toast.error('Passwords do not match');
+      return;
+    }
+
+    this.passwordBusy.set(true);
+    this.memberService.changeMemberPassword(target.id, {
+      newPassword: password,
+      confirmPassword: confirm,
+    }).subscribe({
+      next: (response) => {
+        this.passwordBusy.set(false);
+        this.closePasswordDialog();
+        this.toast.success(response.message ?? 'Member password updated');
+      },
+      error: (error) => {
+        this.passwordBusy.set(false);
+        this.toast.error(error?.error?.message ?? 'Failed to update member password');
+      },
+    });
   }
 
   confirmRenew(target: RenewTarget): void {

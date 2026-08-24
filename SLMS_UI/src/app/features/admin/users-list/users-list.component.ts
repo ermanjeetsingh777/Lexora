@@ -1,5 +1,4 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   LucideChevronDown,
@@ -30,6 +29,7 @@ import { ButtonComponent } from '@shared/components/button/button.component';
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
 import { AdminService } from '@core/services/admin.service';
 import { AdminAuditLog, AdminRole, AdminUser } from '@core/models/admin.models';
+import { InstitutionDropdownResponse } from '@core/models/institution-dropdown.model';
 import { ToastService } from '@core/services/toast.service';
 import { PermissionKey } from '@core/constants/permissions';
 import { AuthService } from '@core/services/auth.service';
@@ -38,10 +38,16 @@ import { SidebarService } from '../../../layouts/sidebar/sidebar.service';
 import { PERMISSION_CATALOG } from '../roles-list/roles-list.util';
 import { UserFormDialogComponent, UserFormSubmit } from './user-form-dialog.component';
 import {
+  auditEventLabel,
   formatUserDate,
+  formatUserDateOnly,
+  getAuditEventMeta,
   isAdminRole,
+  canDeactivateUser,
+  isStatusChangeProtected,
   primaryRole,
   roleLabel,
+  userScopeSummary,
   STAFF_ROLE_OPTIONS,
   userDisplayName,
   userInitials,
@@ -54,7 +60,6 @@ import {
   selector: 'app-users-list',
   standalone: true,
   imports: [
-    DatePipe,
     FormsModule,
     PageHeaderComponent,
     GlassCardComponent,
@@ -94,6 +99,7 @@ export class UsersListComponent implements OnInit {
   readonly users = signal<AdminUser[]>([]);
   readonly roles = signal<AdminRole[]>([]);
   readonly audit = signal<AdminAuditLog[]>([]);
+  readonly scopeOptions = signal<InstitutionDropdownResponse[]>([]);
 
   readonly query = signal('');
   readonly roleFilter = signal<string>('all');
@@ -116,14 +122,30 @@ export class UsersListComponent implements OnInit {
 
   readonly staffRoleOptions = STAFF_ROLE_OPTIONS;
   readonly fmt = formatUserDate;
+  readonly fmtDate = formatUserDateOnly;
   readonly userDisplayName = userDisplayName;
   readonly userInitials = userInitials;
   readonly userStatus = userStatus;
   readonly primaryRole = primaryRole;
   readonly roleLabel = roleLabel;
+  readonly userScopeSummary = userScopeSummary;
+  readonly canDeactivateUser = canDeactivateUser;
+  readonly isStatusChangeProtected = isStatusChangeProtected;
+
+  readonly canChangePassword =
+    this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin');
+  readonly passwordTarget = signal<AdminUser | null>(null);
+  readonly passwordBusy = signal(false);
+  readonly newPassword = signal('');
+  readonly confirmPassword = signal('');
+
+  readonly currentUserId = computed(() => this.auth.currentUser()()?.id ?? null);
 
   readonly assignableRoles = computed(() =>
-    this.roles().filter((r) => (r.name ?? '').toLowerCase() !== 'members'),
+    this.roles().filter((r) => {
+      const name = (r.name ?? '').toLowerCase();
+      return name !== 'members' && name !== 'superadmin';
+    }),
   );
 
   readonly overlayLeft = computed(() => {
@@ -177,6 +199,17 @@ export class UsersListComponent implements OnInit {
     );
   });
 
+  readonly selectedUserActivity = computed(() =>
+    this.selectedUserAudit().filter((e) => getAuditEventMeta(e.eventType).category === 'activity'),
+  );
+
+  readonly selectedUserGovernanceAudit = computed(() =>
+    this.selectedUserAudit().filter((e) => getAuditEventMeta(e.eventType).category === 'audit'),
+  );
+
+  readonly auditEventLabel = auditEventLabel;
+  readonly getAuditEventMeta = getAuditEventMeta;
+
   readonly selectedUserPermissions = computed(() => {
     const user = this.selectedUser();
     if (!user) return [];
@@ -200,11 +233,13 @@ export class UsersListComponent implements OnInit {
       users: this.admin.getUsers({ staffOnly: true }).pipe(catchError(() => of([]))),
       roles: this.admin.getRoles().pipe(catchError(() => of([]))),
       audit: this.admin.getAuditLogs().pipe(catchError(() => of([]))),
+      scopeOptions: this.admin.getUserScopeOptions().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ users, roles, audit }) => {
+      next: ({ users, roles, audit, scopeOptions }) => {
         this.users.set(users);
         this.roles.set(roles);
         this.audit.set(audit);
+        this.scopeOptions.set(scopeOptions);
         this.loading.set(false);
         this.error.set(null);
       },
@@ -238,14 +273,33 @@ export class UsersListComponent implements OnInit {
       return;
     }
 
-    this.formBusy.set(true);
+    if (!payload.institutionScopes.length) {
+      this.toast.error('At least one institution is required');
+      return;
+    }
+
     const editing = this.editUser();
+    if (
+      editing &&
+      !payload.isActive &&
+      !canDeactivateUser(editing, this.currentUserId())
+    ) {
+      this.toast.error('This account cannot be deactivated.');
+      return;
+    }
+
+    this.formBusy.set(true);
 
     if (editing) {
       this.admin
         .updateUser(editing.id, {
           fullName: payload.fullName || null,
           isActive: payload.isActive,
+          institutionScopes: payload.institutionScopes.map((scope) => ({
+            institutionId: scope.institutionId,
+            branchIds: scope.branchIds,
+            libraryIds: scope.libraryIds,
+          })),
         })
         .pipe(
           switchMap(() =>
@@ -281,6 +335,11 @@ export class UsersListComponent implements OnInit {
         password: payload.password,
         fullName: payload.fullName || null,
         isActive: payload.isActive,
+        institutionScopes: payload.institutionScopes.map((scope) => ({
+          institutionId: scope.institutionId,
+          branchIds: scope.branchIds,
+          libraryIds: scope.libraryIds,
+        })),
       })
       .pipe(
         switchMap((user) => {
@@ -335,13 +394,33 @@ export class UsersListComponent implements OnInit {
     const ids = Array.from(this.selectedIds());
     if (!ids.length || !this.canUpdate) return;
 
+    const currentUserId = this.currentUserId();
     const targets = this.users().filter((u) => ids.includes(u.id));
+    const eligible = active
+      ? targets
+      : targets.filter((u) => canDeactivateUser(u, currentUserId));
+    const skipped = active ? 0 : targets.length - eligible.length;
+
+    if (!active && skipped > 0 && eligible.length === 0) {
+      this.toast.error('Selected users cannot be deactivated.');
+      return;
+    }
+
+    if (!eligible.length) {
+      this.clearSelection();
+      return;
+    }
+
     let done = 0;
-    for (const user of targets) {
+    for (const user of eligible) {
       if (user.isActive === active) {
         done++;
-        if (done === targets.length) {
-          this.toast.success(`${targets.length} user(s) ${active ? 'enabled' : 'disabled'}`);
+        if (done === eligible.length) {
+          const msg =
+            skipped > 0
+              ? `${eligible.length} user(s) disabled. ${skipped} protected account(s) skipped.`
+              : `${eligible.length} user(s) ${active ? 'enabled' : 'disabled'}`;
+          this.toast.success(msg);
           this.clearSelection();
         }
         continue;
@@ -350,12 +429,16 @@ export class UsersListComponent implements OnInit {
         next: (updated) => {
           this.upsertUser(updated);
           done++;
-          if (done === targets.length) {
-            this.toast.success(`${targets.length} user(s) ${active ? 'enabled' : 'disabled'}`);
+          if (done === eligible.length) {
+            const msg =
+              skipped > 0
+                ? `${eligible.length} user(s) disabled. ${skipped} protected account(s) skipped.`
+                : `${eligible.length} user(s) ${active ? 'enabled' : 'disabled'}`;
+            this.toast.success(msg);
             this.clearSelection();
           }
         },
-        error: () => this.toast.error('Failed to update some users'),
+        error: (err) => this.toast.error(err?.error?.message ?? 'Failed to update some users'),
       });
     }
   }
@@ -369,6 +452,13 @@ export class UsersListComponent implements OnInit {
   toggleUserActive(user: AdminUser, event?: Event): void {
     event?.stopPropagation();
     if (!this.canUpdate) return;
+
+    const deactivating = user.isActive;
+    if (deactivating && !canDeactivateUser(user, this.currentUserId())) {
+      this.toast.error('This account cannot be deactivated.');
+      return;
+    }
+
     this.admin.updateUser(user.id, { isActive: !user.isActive }).subscribe({
       next: (updated) => {
         this.upsertUser(updated);
@@ -386,6 +476,54 @@ export class UsersListComponent implements OnInit {
 
   sendResetLink(user: AdminUser): void {
     this.toast.success('Password reset link sent');
+  }
+
+  openPasswordDialog(user: AdminUser, event?: Event): void {
+    event?.stopPropagation();
+    this.passwordTarget.set(user);
+    this.newPassword.set('');
+    this.confirmPassword.set('');
+  }
+
+  closePasswordDialog(): void {
+    this.passwordTarget.set(null);
+    this.passwordBusy.set(false);
+    this.newPassword.set('');
+    this.confirmPassword.set('');
+  }
+
+  confirmPasswordChange(): void {
+    const user = this.passwordTarget();
+    if (!user) return;
+
+    const password = this.newPassword().trim();
+    const confirm = this.confirmPassword().trim();
+
+    if (password.length < 8) {
+      this.toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    if (password !== confirm) {
+      this.toast.error('Passwords do not match');
+      return;
+    }
+
+    this.passwordBusy.set(true);
+    this.admin.changeUserPassword(user.id, {
+      newPassword: password,
+      confirmPassword: confirm,
+    }).subscribe({
+      next: (message) => {
+        this.passwordBusy.set(false);
+        this.closePasswordDialog();
+        this.toast.success(message);
+      },
+      error: (err) => {
+        this.passwordBusy.set(false);
+        this.toast.error(err?.error?.message ?? 'Failed to update user password');
+      },
+    });
   }
 
   deleteUser(user: AdminUser, event?: Event): void {

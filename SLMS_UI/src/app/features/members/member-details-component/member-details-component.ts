@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
+import { AppDatePipe, AppDateTimePipe, AppTimePipe } from '@core/pipes/app-date.pipes';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -26,8 +27,10 @@ import {
   LucideBookMarked,
   LucideRotateCcw,
   LucideFileSpreadsheet,
+  LucideKeyRound,
 } from '@lucide/angular';
 import { ToastService } from '@core/services/toast.service';
+import { AuthService } from '@core/services/auth.service';
 import { WhatsAppService } from '@core/services/whatsapp.service';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
@@ -88,13 +91,13 @@ interface HeatmapCell {
 @Component({
   selector: 'app-member-details-component',
   imports: [
-    DatePipe, FormsModule, RouterLink,
+    AppDatePipe, AppDateTimePipe, AppTimePipe, FormsModule, RouterLink,
     ButtonComponent, PageHeaderComponent, SectionHeaderComponent, GlassCardComponent, StatusBadgeComponent,
     LucideArrowLeft, LucideMail, LucidePhone, LucideIdCard, LucideBuilding2,
     LucideMapPin, LucideArmchair, LucideClock, LucideDownload, LucideCreditCard,
     LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideTrendingUp, LucideCheckCircle2,
     LucideXCircle, LucideAlertTriangle, LucideCalendar, LucideUser, LucideShieldAlert,
-    LucideCopy, LucideSettings2, LucideArrowRightLeft, LucideBadgeDollarSign, DatePipe,
+    LucideCopy, LucideSettings2, LucideArrowRightLeft, LucideBadgeDollarSign,
     MemberContactComponent, MemberDigitalBooksComponent, CurrencyPipe, LucideTimer, LucideWallet, LucideBookOpen,
     LucideHistory, LucidePencil, LucideCalendarClock, LucideClock3, LucideSun,
     LucideFlame, LucideCalendarCheck, LucideActivity, LucideBookMarked, LucideRotateCcw,
@@ -113,6 +116,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
   private readonly whatsapp = inject(WhatsAppService);
   private readonly memberService = inject(MemberService);
   private readonly attendanceScanner = inject(AttendanceScannerService);
@@ -162,7 +166,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   readonly activeTab = signal<TabId>('overview');
   readonly actionsOpen = signal(false);
-  readonly dialog = signal<null | 'branch' | 'seat' | 'shift' | 'plan' | 'attendance'>(null);
+  readonly dialog = signal<null | 'branch' | 'seat' | 'shift' | 'plan' | 'attendance' | 'password'>(null);
   hexNumber = Math.floor(Math.random() * 360);
   readonly tabs: { value: TabId; label: string }[] = [
     { value: 'overview', label: 'Overview' },
@@ -204,6 +208,10 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly editCheckOutTime = signal('');
   readonly editSeatNumber = signal('');
   readonly editRemarks = signal('');
+  readonly newPassword = signal('');
+  readonly confirmPassword = signal('');
+  readonly canChangePassword =
+    this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin');
   readonly eventDot = EVENT_DOT;
   readonly ATTENDANCE_LOG_PAGE_SIZE_OPTS = ATTENDANCE_LOG_PAGE_SIZE_OPTS;
   readonly attendanceLogPage = signal(1);
@@ -1214,6 +1222,44 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     );
 
     this.selectedPlan.set(currentPlan ?? null);
+  }
+
+  openPasswordDialog(): void {
+    this.actionsOpen.set(false);
+    this.newPassword.set('');
+    this.confirmPassword.set('');
+    this.dialog.set('password');
+  }
+
+  confirmChangePassword(): void {
+    const password = this.newPassword().trim();
+    const confirm = this.confirmPassword().trim();
+
+    if (password.length < 8) {
+      this.toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    if (password !== confirm) {
+      this.toast.error('Passwords do not match');
+      return;
+    }
+
+    this.dialogBusy.set(true);
+    this.memberService.changeMemberPassword(this.memberId, {
+      newPassword: password,
+      confirmPassword: confirm,
+    }).subscribe({
+      next: (response) => {
+        this.dialogBusy.set(false);
+        this.closeDialog();
+        this.toast.success(response.message ?? 'Member password updated');
+      },
+      error: (error) => {
+        this.dialogBusy.set(false);
+        this.toast.error(error?.error?.message ?? 'Failed to update member password');
+      },
+    });
   }
 
   renewFromBanner(): void {

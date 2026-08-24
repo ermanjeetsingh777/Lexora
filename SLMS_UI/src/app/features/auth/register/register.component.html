@@ -39,6 +39,36 @@
             }
         </div>
         <div class="space-y-1.5">
+            <label class="ui-label" for="packageId">Subscription package <span class="text-red-500">*</span></label>
+            <select
+                id="packageId"
+                class="ui-input"
+                name="packageId"
+                [(ngModel)]="packageId"
+                #packageCtrl="ngModel"
+                required
+                [disabled]="packagesLoading() || busy()">
+                <option value="" disabled>Select a package</option>
+                @for (pkg of packages(); track pkg.id) {
+                    <option [value]="pkg.id">{{ packageLabel(pkg) }}</option>
+                }
+            </select>
+            @if (packagesLoading()) {
+                <p class="text-xs text-[var(--muted-foreground)]">Loading packages…</p>
+            } @else if (packages().length === 0) {
+                <p class="text-xs text-red-500">No packages available. Contact support.</p>
+            } @else {
+                @for (pkg of packages(); track pkg.id) {
+                    @if (pkg.id === packageId && pkg.description) {
+                        <p class="text-xs text-[var(--muted-foreground)]">{{ pkg.description }}</p>
+                    }
+                }
+            }
+            @if (packageCtrl.invalid && (packageCtrl.touched || registerForm.submitted)) {
+                <div class="text-sm text-red-500">Please select a subscription package.</div>
+            }
+        </div>
+        <div class="space-y-1.5">
             <label class="ui-label" for="password">Password <span class="text-red-500">*</span></label>
             <input id="password" class="ui-input" type="password" [(ngModel)]="password" name="password"
                 #passwordCtrl="ngModel" required minlength="6" maxlength="30" />
@@ -86,7 +116,7 @@
         </div>
         }
         <button type="submit" class="ui-btn-primary w-full cursorPointer"
-            [disabled]="busy() || registerForm.invalid || password() !== confirmPassword()">
+            [disabled]="busy() || packagesLoading() || packages().length === 0 || registerForm.invalid || password() !== confirmPassword()">
             {{ busy() ? 'Creating workspace…' : 'Create account' }}
         </button>
     </form>

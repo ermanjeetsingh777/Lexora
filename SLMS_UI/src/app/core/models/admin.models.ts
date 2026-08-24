@@ -1,5 +1,26 @@
 import { PermissionKey } from '@core/constants/permissions';
 
+export interface AdminUserInstitutionScope {
+  institutionId: string;
+  institutionName: string;
+  branches: AdminUserScopeItem[];
+  libraries: AdminUserScopeItem[];
+}
+
+export interface AdminUserAccessScope {
+  institutionId?: string | null;
+  institutionName?: string | null;
+  institutionScopes: AdminUserInstitutionScope[];
+  branches: AdminUserScopeItem[];
+  libraries: AdminUserScopeItem[];
+  summary: string;
+}
+
+export interface AdminUserScopeItem {
+  id: string;
+  name: string;
+}
+
 export interface AdminUser {
   id: string;
   email: string | null;
@@ -9,6 +30,7 @@ export interface AdminUser {
   twoFactorEnabled: boolean;
   roles: string[];
   createdAtUtc: string;
+  accessScope?: AdminUserAccessScope | null;
 }
 
 export interface AdminRole {
@@ -36,18 +58,31 @@ export interface AdminAuditLog {
   createdAtUtc: string;
 }
 
+export interface AdminUserInstitutionScopeRequest {
+  institutionId: string;
+  branchIds?: string[];
+  libraryIds?: string[];
+}
+
 export interface AdminCreateUserRequest {
   email: string;
   password: string;
   fullName?: string | null;
   isActive?: boolean;
+  institutionScopes: AdminUserInstitutionScopeRequest[];
 }
 
 export interface AdminUpdateUserRequest {
   fullName?: string | null;
   isActive?: boolean | null;
+  institutionScopes?: AdminUserInstitutionScopeRequest[];
 }
 
 export interface AdminAssignRolesRequest {
   roles: string[];
+}
+
+export interface AdminChangeUserPasswordRequest {
+  newPassword: string;
+  confirmPassword: string;
 }

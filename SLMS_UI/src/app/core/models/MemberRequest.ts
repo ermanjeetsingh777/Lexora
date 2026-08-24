@@ -179,6 +179,11 @@ export interface ChangeMemberPlanShiftRequest {
   shift?: string | null;
 }
 
+export interface ChangeMemberPasswordRequest {
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface MemberInsightCard {
   title: string;
   value: string;

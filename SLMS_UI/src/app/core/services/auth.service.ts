@@ -6,7 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { StorageService } from './storage.service';
 import { ApiService } from './api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
-import { AuthResponse, LoginRequest, RefreshTokenRequest, RegisterRequest } from '@core/models/AuthResponse.model';
+import { AuthResponse, ForgotPasswordRequest, LoginRequest, MessageResponse, RefreshTokenRequest, RegisterRequest, ResetPasswordRequest } from '@core/models/AuthResponse.model';
 import { Router } from '@angular/router';
 
 const STORAGE_KEY = 'mock-auth-session';
@@ -46,6 +46,14 @@ export class AuthService {
         }
       })
     );
+  }
+
+  forgotPassword(request: ForgotPasswordRequest): Observable<APIResponseModel<MessageResponse>> {
+    return this.httpApi.post<MessageResponse>('auth/forgot-password', request);
+  }
+
+  resetPassword(request: ResetPasswordRequest): Observable<APIResponseModel<MessageResponse>> {
+    return this.httpApi.post<MessageResponse>('auth/reset-password', request);
   }
 
   restoreSession(): void {

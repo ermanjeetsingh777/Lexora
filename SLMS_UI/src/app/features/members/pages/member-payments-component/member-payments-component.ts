@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { AppDatePipe } from '@core/pipes/app-date.pipes';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { MemberPlanResponse } from '@core/models/MemberRequest';
 import { CommonService } from '@core/services/common.service';
@@ -16,7 +16,7 @@ import {
 
 @Component({
   selector: 'app-member-payments-component',
-  imports: [GlassCardComponent, DatePipe, StatusBadgeComponent, LucideDownload, LucideMail, LucideMessageCircle, LucideShare2],
+  imports: [GlassCardComponent, AppDatePipe, StatusBadgeComponent, LucideDownload, LucideMail, LucideMessageCircle, LucideShare2],
   templateUrl: './member-payments-component.html',
   styleUrl: './member-payments-component.css',
 })

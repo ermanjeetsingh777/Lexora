@@ -10,5 +10,6 @@ public class AdminUserResponse
     public bool TwoFactorEnabled { get; set; }
     public IReadOnlyCollection<string> Roles { get; set; } = [];
     public DateTime CreatedAtUtc { get; set; }
+    public AdminUserAccessScopeResponse? AccessScope { get; set; }
 }
 

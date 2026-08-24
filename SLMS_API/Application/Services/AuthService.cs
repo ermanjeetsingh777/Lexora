@@ -1,13 +1,16 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 using SLMS_API.Application.Contracts.Auth.Requests;
 using SLMS_API.Application.Contracts.Auth.Responses;
 using SLMS_API.Application.Contracts.Package.Request;
+using SLMS_API.Application.Options;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 using SLMS_API.Domain.Entities;
 using SLMS_API.Infrastructure.Repositories.Interfaces;
+using System.Net;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
@@ -27,6 +30,8 @@ public class AuthService : IAuthService
     private readonly IPermissionResolver _permissionResolver;
     private readonly ILogger<AuthService> _logger;
     private readonly IUserPackageService _userPackageService;
+    private readonly IEmailSender _emailSender;
+    private readonly AppOptions _appOptions;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -38,6 +43,8 @@ public class AuthService : IAuthService
         IPermissionResolver permissionResolver,
         IPackageService packageService,
         IUserPackageService userPackageService,
+        IEmailSender emailSender,
+        IOptions<AppOptions> appOptions,
         ILogger<AuthService> logger)
     {
         _userManager = userManager;
@@ -50,6 +57,8 @@ public class AuthService : IAuthService
         _logger = logger;
         _packageService = packageService;
         _userPackageService = userPackageService;
+        _emailSender = emailSender;
+        _appOptions = appOptions.Value;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress, CancellationToken cancellationToken = default)
@@ -78,10 +87,10 @@ public class AuthService : IAuthService
         }
 
         // Create UserPackage
-        var package = await _packageService.GetByIdAsync(request.PackageId);
-        if (package == null)
+        var package = await _packageService.GetByIdAsync(request.PackageId, cancellationToken);
+        if (package is null || !package.IsActive)
         {
-            throw new InvalidOperationException("The selected package does not exist.");
+            throw new InvalidOperationException("The selected package does not exist or is not available.");
         }
 
         var subscribePackageRequest = new SubscribePackageRequest
@@ -261,18 +270,44 @@ public class AuthService : IAuthService
 
     public async Task<MessageResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
     {
+        const string responseMessage = "If the email exists, a password reset mail has been sent.";
+
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
         {
-            return new MessageResponse { Message = "If the email exists, a password reset link has been sent." };
+            return new MessageResponse { Message = responseMessage };
         }
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var frontendBase = _appOptions.FrontendBaseUrl.TrimEnd('/');
+        var resetUrl =
+            $"{frontendBase}/reset-password?email={Uri.EscapeDataString(request.Email.Trim())}&token={encodedToken}";
 
-        _logger.LogInformation("Password reset token for {Email}: {Token}", request.Email, encodedToken);
+        var htmlBody = $"""
+            <p>Hello{(string.IsNullOrWhiteSpace(user.FullName) ? "" : $" {WebUtility.HtmlEncode(user.FullName)}")},</p>
+            <p>We received a request to reset your SLMS account password.</p>
+            <p><a href="{WebUtility.HtmlEncode(resetUrl)}">Reset your password</a></p>
+            <p>If you did not request this, you can ignore this email.</p>
+            <p>This link expires when used or when a newer reset is requested.</p>
+            """;
 
-        return new MessageResponse { Message = "If the email exists, a password reset link has been sent." };
+        try
+        {
+            await _emailSender.SendAsync(
+                request.Email.Trim(),
+                "Reset your SLMS password",
+                htmlBody,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password reset email to {Email}", request.Email);
+        }
+
+        _logger.LogInformation("Password reset requested for {Email}. Reset URL: {ResetUrl}", request.Email, resetUrl);
+
+        return new MessageResponse { Message = responseMessage };
     }
 
     public async Task<MessageResponse> ResetPasswordAsync(ResetPasswordRequest request, string? ipAddress, CancellationToken cancellationToken = default)

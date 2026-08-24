@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Admin.Requests;
 using SLMS_API.Application.Contracts.Admin.Responses;
 using SLMS_API.Application.Contracts.Auth.Responses;
+using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Enums;
@@ -35,8 +36,21 @@ public class AdminController : ControllerBase
         [FromQuery] bool staffOnly = false,
         CancellationToken cancellationToken = default)
     {
-        var users = await _adminService.GetUsersAsync(staffOnly, cancellationToken);
-        return Ok(ApiResponse<IReadOnlyCollection<AdminUserResponse>>.Ok(users));
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<AdminUserResponse>>.Fail("User is not authenticated."));
+        }
+
+        try
+        {
+            var users = await _adminService.GetUsersAsync(userId, staffOnly, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyCollection<AdminUserResponse>>.Ok(users));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<AdminUserResponse>>.Fail(ex.Message));
+        }
     }
 
     [HttpPost("users")]
@@ -45,9 +59,15 @@ public class AdminController : ControllerBase
         [FromBody] AdminCreateUserRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<AdminUserResponse>.Fail("User is not authenticated."));
+        }
+
         try
         {
-            var user = await _adminService.CreateUserAsync(request, _currentUserService.IpAddress, cancellationToken);
+            var user = await _adminService.CreateUserAsync(request, userId, _currentUserService.IpAddress, cancellationToken);
             return Ok(ApiResponse<AdminUserResponse>.Ok(user, "User created successfully."));
         }
         catch (InvalidOperationException ex)
@@ -57,11 +77,39 @@ public class AdminController : ControllerBase
         }
     }
 
+    [HttpGet("users/scope-options")]
+    [Permission(PermissionKey.UsersList)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<InstitutionDropdownResponse>>>> GetUserScopeOptions(
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<InstitutionDropdownResponse>>.Fail("User is not authenticated."));
+        }
+
+        try
+        {
+            var options = await _adminService.GetUserScopeOptionsAsync(userId, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyCollection<InstitutionDropdownResponse>>.Ok(options));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<InstitutionDropdownResponse>>.Fail(ex.Message));
+        }
+    }
+
     [HttpGet("users/{id}")]
     [Permission(PermissionKey.UsersView)]
     public async Task<ActionResult<ApiResponse<AdminUserResponse>>> GetUserById(string id, CancellationToken cancellationToken)
     {
-        var user = await _adminService.GetUserByIdAsync(id, cancellationToken);
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<AdminUserResponse>.Fail("User is not authenticated."));
+        }
+
+        var user = await _adminService.GetUserByIdAsync(id, userId, cancellationToken);
         if (user is null)
         {
             return NotFound(ApiResponse<AdminUserResponse>.Fail("User not found."));
@@ -77,14 +125,48 @@ public class AdminController : ControllerBase
         [FromBody] AdminUpdateUserRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<AdminUserResponse>.Fail("User is not authenticated."));
+        }
+
         try
         {
-            var user = await _adminService.UpdateUserAsync(id, request, _currentUserService.IpAddress, cancellationToken);
+            var user = await _adminService.UpdateUserAsync(id, request, userId, _currentUserService.IpAddress, cancellationToken);
             return Ok(ApiResponse<AdminUserResponse>.Ok(user, "User updated successfully."));
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(ApiResponse<AdminUserResponse>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPost("users/{id}/password")]
+    [Permission(PermissionKey.UsersUpdate)]
+    public async Task<ActionResult<ApiResponse<MessageResponse>>> ChangeUserPassword(
+        string id,
+        [FromBody] AdminChangeUserPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<MessageResponse>.Fail("User is not authenticated."));
+        }
+
+        try
+        {
+            await _adminService.ChangeUserPasswordAsync(id, request, userId, _currentUserService.IpAddress, cancellationToken);
+            return Ok(ApiResponse<MessageResponse>.Ok(new MessageResponse { Message = "User password updated successfully." }));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<MessageResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<MessageResponse>.Fail(ex.Message));
         }
     }
 
@@ -211,8 +293,21 @@ public class AdminController : ControllerBase
     [Permission(PermissionKey.ReportsView)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<AdminAuditLogResponse>>>> GetAuditLogs(CancellationToken cancellationToken)
     {
-        var logs = await _adminService.GetAuditLogsAsync(cancellationToken);
-        return Ok(ApiResponse<IReadOnlyCollection<AdminAuditLogResponse>>.Ok(logs));
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<AdminAuditLogResponse>>.Fail("User is not authenticated."));
+        }
+
+        try
+        {
+            var logs = await _adminService.GetAuditLogsAsync(userId, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyCollection<AdminAuditLogResponse>>.Ok(logs));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<IReadOnlyCollection<AdminAuditLogResponse>>.Fail(ex.Message));
+        }
     }
 
     [HttpPost("backup")]

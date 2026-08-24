@@ -41,7 +41,7 @@
             <tbody class="divide-y">
                 @for (p of plans(); track p.id) {
                 <tr class="hover:bg-muted/40">
-                    <td class="px-4 py-2.5 tabular-nums">{{ p.createdAtUtc | date:'dd MMM yyyy' }}</td>
+                    <td class="px-4 py-2.5 tabular-nums">{{ p.createdAtUtc | appDate }}</td>
                     <td class="px-2 py-2.5 font-mono text-xs">
                         <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
                             [class]="commonService.planClasses(p.planName)">{{ p.planName }}</span>
@@ -50,9 +50,9 @@
                         <app-status-badge [status]="p.isActive ? p.status : 'Inactive'" />
                     </td>
                     <td class="px-4 py-2.5 font-mono text-xs">
-                        <div>{{ p.startDate | date:'dd MMM yyyy' }}</div>
+                        <div>{{ p.startDate | appDate }}</div>
                         <div class="text-xs text-muted-foreground">
-                            → {{ p.endDate | date:'dd MMM yyyy' }}
+                            → {{ p.endDate | appDate }}
                         </div>
                     </td>
                     <td class="px-4 py-2.5 text-right tabular-nums">₹{{ p.price.toLocaleString() }}</td>

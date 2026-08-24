@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyModel;
 using SLMS_API.Application.Contracts.Books.Responses;
+using SLMS_API.Application.Contracts.Auth.Responses;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations.Responses;
@@ -167,6 +168,27 @@ namespace SLMS_API.Controllers
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<MemberDetailResponse>.Fail(ex.Message));
+            }
+        }
+
+        [HttpPost("{memberId:guid}/password")]
+        public async Task<ActionResult<ApiResponse<MessageResponse>>> ChangePassword(
+            Guid memberId,
+            [FromBody] ChangeMemberPasswordRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _memberService.ChangeMemberPasswordAsync(memberId, request, _currentUserService.UserId, cancellationToken);
+                return Ok(ApiResponse<MessageResponse>.Ok(new MessageResponse { Message = "Member password updated successfully." }));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<MessageResponse>.Fail(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<MessageResponse>.Fail(ex.Message));
             }
         }
 

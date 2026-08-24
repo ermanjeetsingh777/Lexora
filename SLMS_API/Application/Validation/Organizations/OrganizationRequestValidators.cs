@@ -66,3 +66,12 @@ public class UpdateLibraryRequestValidator : AbstractValidator<UpdateLibraryRequ
         RuleFor(x => x.Floor).GreaterThanOrEqualTo(0).When(x => x.Floor.HasValue);
     }
 }
+
+public class ChangeMemberPasswordRequestValidator : AbstractValidator<ChangeMemberPasswordRequest>
+{
+    public ChangeMemberPasswordRequestValidator()
+    {
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8);
+        RuleFor(x => x.ConfirmPassword).Equal(x => x.NewPassword).WithMessage("Passwords do not match.");
+    }
+}

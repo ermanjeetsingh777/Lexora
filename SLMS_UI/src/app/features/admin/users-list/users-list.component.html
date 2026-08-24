@@ -34,10 +34,10 @@
   </div>
 
   <!-- Governance activity feed -->
-  <app-glass-card class="mt-5 p-0 overflow-hidden block">
+  <app-glass-card class="mt-5 p-0 activityfeed overflow-hidden block">
     <button
       type="button"
-      class="w-full flex items-center justify-between p-3 hover:bg-muted/40 transition"
+      class="w-full flex items-center justify-between hover:bg-muted/40 transition"
       (click)="auditFeedOpen.set(!auditFeedOpen())"
     >
       <div class="flex items-center gap-2">
@@ -60,15 +60,17 @@
         } @else {
           <ul class="divide-y">
             @for (e of governanceFeed(); track e.id) {
-              <li class="p-3 text-xs flex items-center gap-3">
-                <svg lucideShield class="h-3.5 w-3.5 text-muted-foreground shrink-0"></svg>
+              <li class="user-governance-item">
+                <span class="user-governance-dot" [class]="getAuditEventMeta(e.eventType).dotClass"></span>
                 <div class="flex-1 min-w-0">
-                  <span class="font-medium">{{ e.eventType }}</span>
+                  <div class="flex items-start justify-between gap-2">
+                    <span class="text-xs font-medium">{{ auditEventLabel(e.eventType) }}</span>
+                    <span class="text-[10px] text-muted-foreground shrink-0">{{ fmt(e.createdAtUtc) }}</span>
+                  </div>
                   @if (e.details) {
-                    <span class="text-muted-foreground"> · {{ e.details }}</span>
+                    <p class="text-[11px] text-muted-foreground mt-0.5">{{ e.details }}</p>
                   }
                 </div>
-                <span class="text-muted-foreground shrink-0">{{ fmt(e.createdAtUtc) }}</span>
               </li>
             }
           </ul>
@@ -121,7 +123,7 @@
 
   <!-- Bulk actions -->
   @if (selectedCount() > 0) {
-    <app-glass-card class="mt-3 p-3 flex flex-wrap items-center gap-2 border-primary/40 block">
+    <app-glass-card class="mt-3 p-1 flex flex-wrap items-center gap-2 border-primary/40 block">
       <span class="text-sm font-medium">{{ selectedCount() }} selected</span>
       <span class="h-5 w-px bg-border"></span>
       @if (canUpdate) {
@@ -149,7 +151,7 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left border-b label-mono">
-            <th class="px-3 py-2.5 w-8">
+            <!-- <th class="px-3 py-2.5 w-8">
               <input
                 type="checkbox"
                 class="h-4 w-4"
@@ -157,7 +159,7 @@
                 (change)="selectAllFiltered($any($event.target).checked)"
                 aria-label="Select all"
               />
-            </th>
+            </th> -->
             <th class="py-2.5 font-medium">User</th>
             <th class="font-medium">Role</th>
             <th class="font-medium">Scope</th>
@@ -169,7 +171,7 @@
         <tbody class="divide-y">
           @for (user of filtered(); track user.id) {
             <tr class="hover:bg-muted/40 cursor-pointer" (click)="selectUser(user)">
-              <td class="px-3 py-2.5" (click)="$event.stopPropagation()">
+              <!-- <td class="px-3 py-2.5" (click)="$event.stopPropagation()">
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -177,7 +179,7 @@
                   (change)="toggleSelect(user.id, $event)"
                   [attr.aria-label]="'Select ' + userDisplayName(user)"
                 />
-              </td>
+              </td> -->
               <td class="py-2.5">
                 <div class="flex items-center gap-2">
                   <span class="h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-semibold grid place-items-center shrink-0">
@@ -192,27 +194,39 @@
               <td>
                 <span class="rounded-md border px-2 py-0.5 font-mono text-[11px]">{{ primaryRole(user) }}</span>
               </td>
-              <td class="text-muted-foreground text-xs">Platform</td>
+              <td class="text-muted-foreground text-xs">{{ userScopeSummary(user) }}</td>
               <td><app-status-badge [status]="userStatus(user)" /></td>
-              <td class="px-4 text-muted-foreground text-xs">{{ user.createdAtUtc | date: 'mediumDate' }}</td>
+              <td class="px-4 text-muted-foreground text-xs">{{ fmtDate(user.createdAtUtc) }}</td>
               <td class="px-4 text-right" (click)="$event.stopPropagation()">
                 <div class="inline-flex gap-1">
                   @if (canUpdate) {
                     <app-button size="sm" variant="ghost" title="Edit" (click)="openEdit(user, $event)">
                       <svg lucideUserCog class="h-4 w-4"></svg>
                     </app-button>
-                    <app-button
-                      size="sm"
-                      variant="ghost"
-                      [title]="user.isActive ? 'Disable' : 'Enable'"
-                      (click)="toggleUserActive(user, $event)"
-                    >
-                      @if (user.isActive) {
-                        <svg lucideLock class="h-4 w-4"></svg>
-                      } @else {
-                        <svg lucideUnlock class="h-4 w-4"></svg>
-                      }
-                    </app-button>
+                    @if (!user.isActive || canDeactivateUser(user, currentUserId())) {
+                      <app-button
+                        size="sm"
+                        variant="ghost"
+                        [title]="user.isActive ? 'Disable' : 'Enable'"
+                        (click)="toggleUserActive(user, $event)"
+                      >
+                        @if (user.isActive) {
+                          <svg lucideLock class="h-4 w-4"></svg>
+                        } @else {
+                          <svg lucideUnlock class="h-4 w-4"></svg>
+                        }
+                      </app-button>
+                    }
+                    @if (canChangePassword) {
+                      <app-button
+                        size="sm"
+                        variant="ghost"
+                        title="Change password"
+                        (click)="openPasswordDialog(user, $event)"
+                      >
+                        <svg lucideKeyRound class="h-4 w-4"></svg>
+                      </app-button>
+                    }
                   }
                 </div>
               </td>
@@ -282,7 +296,7 @@
             </div>
             <div class="rounded-md border p-2.5">
               <p class="label-mono text-[10px]">Scope</p>
-              <div class="mt-0.5">Platform</div>
+              <div class="mt-0.5">{{ userScopeSummary(user) }}</div>
             </div>
             <div class="rounded-md border p-2.5">
               <p class="label-mono text-[10px]">Status</p>
@@ -290,7 +304,7 @@
             </div>
             <div class="rounded-md border p-2.5">
               <p class="label-mono text-[10px]">Created</p>
-              <div class="mt-0.5">{{ user.createdAtUtc | date: 'mediumDate' }}</div>
+              <div class="mt-0.5">{{ fmtDate(user.createdAtUtc) }}</div>
             </div>
             <div class="rounded-md border p-2.5 col-span-2">
               <p class="label-mono text-[10px]">All roles</p>
@@ -314,15 +328,22 @@
               <svg lucideMail class="h-3.5 w-3.5 mr-1"></svg> Send reset link
             </app-button>
             @if (canUpdate) {
-              <app-button size="sm" variant="outline" (click)="toggleUserActive(user)">
-                @if (user.isActive) {
-                  <svg lucideLock class="h-3.5 w-3.5 mr-1"></svg> Disable account
-                } @else {
-                  <svg lucideUnlock class="h-3.5 w-3.5 mr-1"></svg> Enable account
-                }
-              </app-button>
+              @if (!user.isActive || canDeactivateUser(user, currentUserId())) {
+                <app-button size="sm" variant="outline" (click)="toggleUserActive(user)">
+                  @if (user.isActive) {
+                    <svg lucideLock class="h-3.5 w-3.5 mr-1"></svg> Disable account
+                  } @else {
+                    <svg lucideUnlock class="h-3.5 w-3.5 mr-1"></svg> Enable account
+                  }
+                </app-button>
+              }
               <app-button size="sm" variant="outline" (click)="openEdit(user)">
                 <svg lucideUserCog class="h-3.5 w-3.5 mr-1"></svg> Edit
+              </app-button>
+            }
+            @if (canChangePassword) {
+              <app-button size="sm" variant="outline" (click)="openPasswordDialog(user)">
+                <svg lucideKeyRound class="h-3.5 w-3.5 mr-1"></svg> Change password
               </app-button>
             }
             @if (canDelete) {
@@ -334,21 +355,29 @@
         }
 
         @if (drawerTab() === 'activity') {
-          @if (!selectedUserAudit().length) {
-            <p class="text-xs text-muted-foreground text-center py-8">No activity recorded for this user yet.</p>
+          <app-section-header
+            title="Activity"
+            [description]="'Sign-in, sign-out, and account events · ' + selectedUserActivity().length + ' recorded'"
+          />
+          @if (!selectedUserActivity().length) {
+            <p class="text-xs text-muted-foreground text-center py-8">No sign-in or account activity yet.</p>
           } @else {
-            <ol class="relative border-l ml-2 space-y-3">
-              @for (e of selectedUserAudit(); track e.id) {
-                <li class="ml-4 relative">
-                  <span class="absolute -left-[9px] top-1 flex items-center justify-center w-4 h-4 rounded-full bg-background border">
-                    <svg lucideHistory class="h-2.5 w-2.5 text-muted-foreground"></svg>
-                  </span>
-                  <div class="flex items-baseline justify-between gap-2">
-                    <p class="text-sm font-medium">{{ e.eventType }}</p>
-                    <p class="text-[11px] text-muted-foreground">{{ fmt(e.createdAtUtc) }}</p>
+            <ol class="user-event-timeline mt-4">
+              @for (e of selectedUserActivity(); track e.id) {
+                <li class="user-event-item">
+                  <span
+                    class="user-event-marker"
+                    [class]="getAuditEventMeta(e.eventType).dotClass"
+                  ></span>
+                  <div class="user-event-header">
+                    <p class="user-event-title">{{ auditEventLabel(e.eventType) }}</p>
+                    <time class="user-event-time">{{ fmt(e.createdAtUtc) }}</time>
                   </div>
                   @if (e.details) {
-                    <p class="text-xs text-muted-foreground">{{ e.details }}</p>
+                    <p class="user-event-detail">{{ e.details }}</p>
+                  }
+                  @if (e.ipAddress) {
+                    <p class="user-event-meta">IP {{ e.ipAddress }}</p>
                   }
                 </li>
               }
@@ -378,22 +407,29 @@
         }
 
         @if (drawerTab() === 'audit') {
-          <app-section-header title="Audit log" description="Role and permission changes recorded for this user." />
-          @if (!selectedUserAudit().length) {
-            <p class="text-xs text-muted-foreground text-center py-8">No audit entries yet.</p>
+          <app-section-header
+            title="Audit log"
+            [description]="'Administrative changes · ' + selectedUserGovernanceAudit().length + ' recorded'"
+          />
+          @if (!selectedUserGovernanceAudit().length) {
+            <p class="text-xs text-muted-foreground text-center py-8">No administrative changes recorded yet.</p>
           } @else {
-            <ol class="relative border-l ml-2 space-y-3 mt-4">
-              @for (e of selectedUserAudit(); track e.id) {
-                <li class="ml-4 relative">
-                  <span class="absolute -left-[9px] top-1 flex items-center justify-center w-4 h-4 rounded-full bg-background border">
-                    <svg lucideShieldAlert class="h-2.5 w-2.5 text-muted-foreground"></svg>
-                  </span>
-                  <div class="flex items-baseline justify-between gap-2">
-                    <p class="text-sm font-medium">{{ e.eventType }}</p>
-                    <p class="text-[11px] text-muted-foreground">{{ fmt(e.createdAtUtc) }}</p>
+            <ol class="user-event-timeline mt-4">
+              @for (e of selectedUserGovernanceAudit(); track e.id) {
+                <li class="user-event-item">
+                  <span
+                    class="user-event-marker"
+                    [class]="getAuditEventMeta(e.eventType).dotClass"
+                  ></span>
+                  <div class="user-event-header">
+                    <p class="user-event-title">{{ auditEventLabel(e.eventType) }}</p>
+                    <time class="user-event-time">{{ fmt(e.createdAtUtc) }}</time>
                   </div>
                   @if (e.details) {
-                    <p class="text-xs text-muted-foreground">{{ e.details }}</p>
+                    <p class="user-event-detail">{{ e.details }}</p>
+                  }
+                  @if (e.ipAddress) {
+                    <p class="user-event-meta">IP {{ e.ipAddress }}</p>
                   }
                 </li>
               }
@@ -414,12 +450,24 @@
             </div>
             <div class="rounded-md border p-3 flex items-center justify-between gap-3">
               <div>
-                <p class="text-sm font-medium">Force password rotation</p>
-                <p class="text-xs text-muted-foreground">Prompt this user to set a new password on next sign-in.</p>
+                <p class="text-sm font-medium">Password</p>
+                <p class="text-xs text-muted-foreground">
+                  @if (canChangePassword) {
+                    Set a new password directly for this user.
+                  } @else {
+                    Prompt this user to set a new password on next sign-in.
+                  }
+                </p>
               </div>
-              <app-button size="sm" variant="outline" (click)="sendResetLink(user)">
-                <svg lucideKeyRound class="h-3.5 w-3.5 mr-1"></svg> Schedule
-              </app-button>
+              @if (canChangePassword) {
+                <app-button size="sm" variant="outline" (click)="openPasswordDialog(user)">
+                  <svg lucideKeyRound class="h-3.5 w-3.5 mr-1"></svg> Change
+                </app-button>
+              } @else {
+                <app-button size="sm" variant="outline" (click)="sendResetLink(user)">
+                  <svg lucideKeyRound class="h-3.5 w-3.5 mr-1"></svg> Schedule
+                </app-button>
+              }
             </div>
           </div>
         }
@@ -434,6 +482,43 @@
   [roles]="assignableRoles()"
   [busy]="formBusy()"
   [overlayLeft]="overlayLeft()"
+  [statusLocked]="editUser() ? isStatusChangeProtected(editUser()!, currentUserId()) : false"
+  [scopeOptions]="scopeOptions()"
   (submitted)="onFormSubmit($event)"
   (closed)="closeForm()"
 />
+
+@if (passwordTarget(); as user) {
+<div class="content-overlay flex items-center justify-center" [style.left]="overlayLeft()">
+  <div class="absolute inset-0 bg-black/40" (click)="closePasswordDialog()"></div>
+  <div class="relative w-full max-w-md rounded-xl border bg-background shadow-xl p-6 space-y-5 mx-4" (click)="$event.stopPropagation()">
+    <div>
+      <h2 class="text-lg font-semibold">Change user password</h2>
+      <p class="text-sm text-muted-foreground mt-0.5">
+        Set a new login password for {{ userDisplayName(user) }}.
+      </p>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">New password</label>
+      <input type="password" minlength="8"
+        class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+        [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" name="userNewPassword" />
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">Confirm password</label>
+      <input type="password" minlength="8"
+        class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+        [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" name="userConfirmPassword" />
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2 border-t">
+      <app-button variant="outline" (click)="closePasswordDialog()">Cancel</app-button>
+      <app-button [disabled]="passwordBusy()" (click)="confirmPasswordChange()">
+        {{ passwordBusy() ? 'Saving…' : 'Update password' }}
+      </app-button>
+    </div>
+  </div>
+</div>
+}

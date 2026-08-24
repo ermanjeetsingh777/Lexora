@@ -6,6 +6,7 @@ namespace SLMS_API.Application.Services.Interfaces
     public interface IPackageService
     {
         Task<IReadOnlyCollection<PackageResponse>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<IReadOnlyCollection<PackageResponse>> GetActiveAsync(CancellationToken cancellationToken = default);
         Task<PackageResponse?> GetByIdAsync(Guid packageId, CancellationToken cancellationToken = default);
 
         Task<PackageResponse> CreateAsync(CreatePackageRequest request, string? userId, CancellationToken cancellationToken = default);

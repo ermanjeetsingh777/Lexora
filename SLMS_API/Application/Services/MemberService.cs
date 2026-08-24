@@ -1324,6 +1324,24 @@ public class MemberService : IMemberService
         ).AnyAsync(cancellationToken);
     }
 
+    private async Task<bool> IsOrganisationAdminAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var userIdString = userId.ToString();
+
+        return await (
+            from ur in _dbContext.UserRoles.AsNoTracking()
+            join role in _dbContext.Roles.AsNoTracking() on ur.RoleId equals role.Id
+            where ur.UserId == userIdString && role.Name == RoleDefinitions.OrganisationAdmin
+            select ur.UserId
+        ).AnyAsync(cancellationToken);
+    }
+
+    private async Task<bool> CanChangeAccountPasswordAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await IsSuperAdminAsync(userId, cancellationToken)
+            || await IsOrganisationAdminAsync(userId, cancellationToken);
+    }
+
     private async Task<MemberAccessScope> ResolveMemberAccessScopeAsync(Guid userId, CancellationToken cancellationToken)
     {
         if (await IsSuperAdminAsync(userId, cancellationToken))
@@ -1743,6 +1761,51 @@ public class MemberService : IMemberService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return (await GetMemberDetailsByIdAsync(memberId, cancellationToken))!;
+    }
+
+    public async Task ChangeMemberPasswordAsync(
+        Guid memberId,
+        ChangeMemberPasswordRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        var callerId = await RequireCurrentUserIdAsync(cancellationToken);
+        if (!await CanChangeAccountPasswordAsync(callerId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("Only SuperAdmin or OrganisationAdmin can change member passwords.");
+        }
+
+        var member = await _dbContext.Members
+            .Include(m => m.User)
+            .Include(m => m.MemberLibraries.Where(ml => ml.IsCurrent))
+            .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Member not found.");
+
+        var scope = await ResolveMemberAccessScopeAsync(callerId, cancellationToken);
+        var currentLibrary = member.MemberLibraries.FirstOrDefault(ml => ml.IsCurrent);
+        if (!CanAccessMemberLibrary(currentLibrary?.InstitutionId, currentLibrary?.BranchId, currentLibrary?.LibraryId, scope))
+        {
+            throw new InvalidOperationException("Member not found.");
+        }
+
+        if (member.User is null)
+        {
+            throw new InvalidOperationException("Member login account not found.");
+        }
+
+        var resetToken = await _userManager.GeneratePasswordResetTokenAsync(member.User);
+        var result = await _userManager.ResetPasswordAsync(member.User, resetToken, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
+
+        await _auditLogService.WriteAsync(
+            AuditEventTypes.PasswordReset,
+            member.UserId,
+            $"Admin changed password for member {member.User.Email}",
+            _currentUserService.IpAddress,
+            cancellationToken);
     }
 
     public async Task<(string FilePath, string ContentType, string FileName)?> GetAadhaarAsync(

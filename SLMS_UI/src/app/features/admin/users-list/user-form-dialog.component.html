@@ -58,7 +58,8 @@
           <div class="space-y-1.5">
             <label class="text-sm font-medium">Status</label>
             <select
-              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm disabled:opacity-50"
+              [disabled]="statusLocked()"
               [ngModel]="isActive() ? 'Active' : 'Inactive'"
               (ngModelChange)="isActive.set($event === 'Active')"
               name="status"
@@ -66,7 +67,82 @@
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
+            @if (statusLocked()) {
+              <p class="text-xs text-muted-foreground">Status cannot be changed for this account.</p>
+            }
           </div>
+        </div>
+
+        <div class="border-t pt-4 space-y-3">
+          <div>
+            <label class="text-sm font-medium">Access scope</label>
+            <p class="text-xs text-muted-foreground mt-0.5">
+              Choose institution, branch, and library access for this user.
+            </p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">Institutions <span class="text-destructive">*</span></label>
+            <div class="grid grid-cols-1 gap-1.5 max-h-40 overflow-y-auto rounded-md border p-2">
+              @for (inst of scopeOptions(); track inst.value) {
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    class="accent-primary"
+                    [checked]="isInstitutionSelected(idValue(inst.value))"
+                    (change)="toggleInstitution(idValue(inst.value), $any($event.target).checked)"
+                  />
+                  <span>{{ inst.key }}</span>
+                </label>
+              }
+            </div>
+            <p class="text-xs text-muted-foreground">Select one or more institutions for this user.</p>
+          </div>
+
+          @for (inst of selectedInstitutions(); track inst.value) {
+            <div class="rounded-md border p-3 space-y-3">
+              <p class="text-sm font-medium">{{ inst.key }}</p>
+
+              @if (branchesForInstitution(inst).length) {
+                <div class="space-y-2">
+                  <label class="text-sm font-medium">Branches</label>
+                  <div class="grid grid-cols-1 gap-1.5 max-h-32 overflow-y-auto rounded-md border p-2">
+                    @for (branch of branchesForInstitution(inst); track branch.value) {
+                      <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          class="accent-primary"
+                          [checked]="isBranchSelected(idValue(inst.value), idValue(branch.value))"
+                          (change)="toggleBranch(idValue(inst.value), idValue(branch.value), $any($event.target).checked)"
+                        />
+                        <span>{{ branch.key }}</span>
+                      </label>
+                    }
+                  </div>
+                  <p class="text-xs text-muted-foreground">Leave empty for institution-wide branch access.</p>
+                </div>
+              }
+
+              @if (librariesForInstitution(inst).length) {
+                <div class="space-y-2">
+                  <label class="text-sm font-medium">Libraries</label>
+                  <div class="grid grid-cols-1 gap-1.5 max-h-32 overflow-y-auto rounded-md border p-2">
+                    @for (library of librariesForInstitution(inst); track library.value) {
+                      <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          class="accent-primary"
+                          [checked]="isLibrarySelected(idValue(inst.value), idValue(library.value))"
+                          (change)="toggleLibrary(idValue(inst.value), idValue(library.value), $any($event.target).checked)"
+                        />
+                        <span>{{ library.key }}</span>
+                      </label>
+                    }
+                  </div>
+                  <p class="text-xs text-muted-foreground">Leave empty for all libraries under selected scope.</p>
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <div class="border-t pt-4 space-y-2">

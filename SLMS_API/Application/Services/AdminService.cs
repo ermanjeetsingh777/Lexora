@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using SLMS_API.Application.Contracts.Admin.Requests;
 using SLMS_API.Application.Contracts.Admin.Responses;
+using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
@@ -39,9 +40,28 @@ public class AdminService : IAdminService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyCollection<AdminUserResponse>> GetUsersAsync(bool staffOnly = false, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<AdminUserResponse>> GetUsersAsync(string callerUserId, bool staffOnly = false, CancellationToken cancellationToken = default)
     {
-        var users = await _userManager.Users
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        var isSuperAdmin = await IsSuperAdminAsync(callerUserId, cancellationToken);
+        IQueryable<ApplicationUser> usersQuery = _userManager.Users;
+
+        if (!isSuperAdmin)
+        {
+            var allowedUserIds = await GetInstitutionScopedUserIdsAsync(callerUserId, cancellationToken);
+            if (allowedUserIds.Count == 0)
+            {
+                return Array.Empty<AdminUserResponse>();
+            }
+
+            usersQuery = usersQuery.Where(u => allowedUserIds.Contains(u.Id));
+        }
+
+        var users = await usersQuery
             .OrderByDescending(x => x.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
@@ -55,7 +75,7 @@ public class AdminService : IAdminService
                 .ToHashSetAsync(cancellationToken);
         }
 
-        var result = new List<AdminUserResponse>(users.Count);
+        var filteredUsers = new List<(ApplicationUser User, IList<string> Roles)>();
         foreach (var user in users)
         {
             var roles = await _userManager.GetRolesAsync(user);
@@ -65,10 +85,13 @@ public class AdminService : IAdminService
                 continue;
             }
 
-            result.Add(ToAdminUserResponse(user, roles));
+            filteredUsers.Add((user, roles));
         }
 
-        return result;
+        var scopeMap = await LoadAccessScopesAsync(filteredUsers.Select(x => x.User.Id), cancellationToken);
+        return filteredUsers
+            .Select(x => ToAdminUserResponse(x.User, x.Roles, scopeMap.GetValueOrDefault(x.User.Id)))
+            .ToList();
     }
 
     private static bool ShouldExcludeStaffUser(string userId, IList<string> roles, HashSet<string> memberLinkedUserIds)
@@ -81,24 +104,45 @@ public class AdminService : IAdminService
         return memberLinkedUserIds.Contains(userId);
     }
 
-    public async Task<AdminUserResponse?> GetUserByIdAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<AdminUserResponse?> GetUserByIdAsync(string id, string callerUserId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
         var user = await _userManager.FindByIdAsync(id);
         if (user is null)
         {
             return null;
         }
 
+        if (!await CanAccessUserAsync(callerUserId, user.Id, cancellationToken))
+        {
+            return null;
+        }
+
         var roles = await _userManager.GetRolesAsync(user);
-        return ToAdminUserResponse(user, roles);
+        var scopeMap = await LoadAccessScopesAsync([user.Id], cancellationToken);
+        return ToAdminUserResponse(user, roles, scopeMap.GetValueOrDefault(user.Id));
     }
 
-    public async Task<AdminUserResponse> CreateUserAsync(AdminCreateUserRequest request, string? ipAddress, CancellationToken cancellationToken = default)
+    public async Task<AdminUserResponse> CreateUserAsync(AdminCreateUserRequest request, string callerUserId, string? ipAddress, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
         var existing = await _userManager.FindByEmailAsync(request.Email);
         if (existing is not null)
         {
             throw new InvalidOperationException("A user with this email already exists.");
+        }
+
+        if (request.InstitutionScopes is null || request.InstitutionScopes.Count == 0)
+        {
+            throw new InvalidOperationException("At least one institution is required when creating a user.");
         }
 
         var user = new ApplicationUser
@@ -107,7 +151,8 @@ public class AdminService : IAdminService
             Email = request.Email,
             FullName = request.FullName,
             IsActive = request.IsActive,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            OnboardingStep = OnboardingStep.Completed
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -116,16 +161,41 @@ public class AdminService : IAdminService
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
         }
 
+        await AssignUserAccessScopesAsync(
+            user.Id,
+            callerUserId,
+            request.InstitutionScopes,
+            cancellationToken);
+
         await _auditLogService.WriteAsync(AuditEventTypes.Register, user.Id, "Admin created user", ipAddress, cancellationToken);
 
         var roles = await _userManager.GetRolesAsync(user);
-        return ToAdminUserResponse(user, roles);
+        var scopeMap = await LoadAccessScopesAsync([user.Id], cancellationToken);
+        return ToAdminUserResponse(user, roles, scopeMap.GetValueOrDefault(user.Id));
     }
 
-    public async Task<AdminUserResponse> UpdateUserAsync(string id, AdminUpdateUserRequest request, string? ipAddress, CancellationToken cancellationToken = default)
+    private static readonly HashSet<string> StatusProtectedRoles = new(StringComparer.OrdinalIgnoreCase)
     {
+        RoleDefinitions.SuperAdmin,
+        RoleDefinitions.OrganisationAdmin
+    };
+
+    public async Task<AdminUserResponse> UpdateUserAsync(string id, AdminUpdateUserRequest request, string callerUserId, string? ipAddress, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
         var user = await _userManager.FindByIdAsync(id)
             ?? throw new InvalidOperationException("User not found.");
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        if (request.IsActive is false)
+        {
+            EnsureCanDeactivateUser(user, roles, callerUserId);
+        }
 
         if (request.FullName is not null) user.FullName = request.FullName;
         if (request.IsActive.HasValue) user.IsActive = request.IsActive.Value;
@@ -137,10 +207,72 @@ public class AdminService : IAdminService
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
         }
 
+        if (request.InstitutionScopes is { Count: > 0 })
+        {
+            await AssignUserAccessScopesAsync(
+                user.Id,
+                callerUserId,
+                request.InstitutionScopes,
+                cancellationToken);
+        }
+
         await _auditLogService.WriteAsync("UserUpdate", user.Id, "Admin updated user", ipAddress, cancellationToken);
 
-        var roles = await _userManager.GetRolesAsync(user);
-        return ToAdminUserResponse(user, roles);
+        var scopeMap = await LoadAccessScopesAsync([user.Id], cancellationToken);
+        return ToAdminUserResponse(user, roles, scopeMap.GetValueOrDefault(user.Id));
+    }
+
+    public async Task ChangeUserPasswordAsync(
+        string id,
+        AdminChangeUserPasswordRequest request,
+        string callerUserId,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        if (!await CanChangeAccountPasswordAsync(callerUserId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("Only SuperAdmin or OrganisationAdmin can change user passwords.");
+        }
+
+        if (!await CanAccessUserAsync(callerUserId, id, cancellationToken))
+        {
+            throw new InvalidOperationException("User not found.");
+        }
+
+        var user = await _userManager.FindByIdAsync(id)
+            ?? throw new InvalidOperationException("User not found.");
+
+        var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, resetToken, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
+
+        await _auditLogService.WriteAsync(
+            AuditEventTypes.PasswordReset,
+            user.Id,
+            $"Admin changed password for user {user.Email}",
+            ipAddress,
+            cancellationToken);
+    }
+
+    private static void EnsureCanDeactivateUser(ApplicationUser user, IList<string> roles, string callerUserId)
+    {
+        if (string.Equals(user.Id, callerUserId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("You cannot deactivate your own account.");
+        }
+
+        if (roles.Any(StatusProtectedRoles.Contains))
+        {
+            throw new InvalidOperationException("SuperAdmin and OrganisationAdmin accounts cannot be deactivated.");
+        }
     }
 
     public async Task DeleteUserAsync(string id, string? ipAddress, CancellationToken cancellationToken = default)
@@ -199,7 +331,8 @@ public class AdminService : IAdminService
         await _auditLogService.WriteAsync(AuditEventTypes.RoleAssignment, user.Id, $"Roles updated to: {string.Join(",", rolesToAssign)}", ipAddress, cancellationToken);
 
         var roles = await _userManager.GetRolesAsync(user);
-        return ToAdminUserResponse(user, roles);
+        var scopeMap = await LoadAccessScopesAsync([user.Id], cancellationToken);
+        return ToAdminUserResponse(user, roles, scopeMap.GetValueOrDefault(user.Id));
     }
 
     public async Task<IReadOnlyCollection<AdminRoleResponse>> GetRolesAsync(CancellationToken cancellationToken = default)
@@ -351,9 +484,38 @@ public class AdminService : IAdminService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<AdminAuditLogResponse>> GetAuditLogsAsync(CancellationToken cancellationToken = default)
+    private static readonly HashSet<string> GovernanceAuditEventTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        return await _dbContext.AuditLogs
+        AuditEventTypes.Register,
+        "UserUpdate",
+        "UserDelete",
+        AuditEventTypes.RoleAssignment,
+        AuditEventTypes.Login,
+        AuditEventTypes.Logout,
+        AuditEventTypes.PasswordReset,
+    };
+
+    public async Task<IReadOnlyCollection<AdminAuditLogResponse>> GetAuditLogsAsync(string callerUserId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        var query = _dbContext.AuditLogs.AsNoTracking().AsQueryable();
+
+        if (!await IsSuperAdminAsync(callerUserId, cancellationToken))
+        {
+            var allowedUserIds = await GetInstitutionScopedUserIdsAsync(callerUserId, cancellationToken);
+            allowedUserIds.Add(callerUserId);
+
+            query = query.Where(x =>
+                x.UserId != null
+                && allowedUserIds.Contains(x.UserId)
+                && GovernanceAuditEventTypes.Contains(x.EventType));
+        }
+
+        return await query
             .OrderByDescending(x => x.CreatedAtUtc)
             .Take(500)
             .Select(x => new AdminAuditLogResponse
@@ -366,6 +528,21 @@ public class AdminService : IAdminService
                 CreatedAtUtc = x.CreatedAtUtc
             })
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<InstitutionDropdownResponse>> GetUserScopeOptionsAsync(string callerUserId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        if (await IsSuperAdminAsync(callerUserId, cancellationToken))
+        {
+            return await BuildFullInstitutionDropdownAsync(cancellationToken);
+        }
+
+        return await BuildScopedInstitutionDropdownAsync(callerUserId, cancellationToken);
     }
 
     public async Task<string> BackupAsync(string? ipAddress, CancellationToken cancellationToken = default)
@@ -419,7 +596,98 @@ public class AdminService : IAdminService
         };
     }
 
-    private static AdminUserResponse ToAdminUserResponse(ApplicationUser user, IEnumerable<string> roles)
+    private async Task<bool> IsSuperAdminAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        return user is not null && await _userManager.IsInRoleAsync(user, RoleDefinitions.SuperAdmin);
+    }
+
+    private async Task<bool> IsOrganisationAdminAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        return user is not null && await _userManager.IsInRoleAsync(user, RoleDefinitions.OrganisationAdmin);
+    }
+
+    private async Task<bool> CanChangeAccountPasswordAsync(string userId, CancellationToken cancellationToken)
+    {
+        return await IsSuperAdminAsync(userId, cancellationToken)
+            || await IsOrganisationAdminAsync(userId, cancellationToken);
+    }
+
+    private async Task<HashSet<string>> GetInstitutionScopedUserIdsAsync(string callerUserId, CancellationToken cancellationToken)
+    {
+        var institutionIds = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .Where(ui => ui.UserId == callerUserId && ui.IsActive)
+            .Select(ui => ui.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        var branchInstitutionIds = await _dbContext.UserBranches
+            .AsNoTracking()
+            .Where(ub => ub.UserId == callerUserId && ub.IsActive)
+            .Select(ub => ub.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        var libraryInstitutionIds = await _dbContext.UserLibraries
+            .AsNoTracking()
+            .Where(ul => ul.UserId == callerUserId && ul.IsActive)
+            .Select(ul => ul.InstitutionId)
+            .ToListAsync(cancellationToken);
+
+        institutionIds = institutionIds
+            .Concat(branchInstitutionIds)
+            .Concat(libraryInstitutionIds)
+            .Distinct()
+            .ToList();
+
+        if (institutionIds.Count == 0)
+        {
+            return [];
+        }
+
+        var userIds = new HashSet<string>(StringComparer.Ordinal);
+
+        var institutionUserIds = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .Where(ui => ui.IsActive && institutionIds.Contains(ui.InstitutionId))
+            .Select(ui => ui.UserId)
+            .ToListAsync(cancellationToken);
+
+        var branchUserIds = await _dbContext.UserBranches
+            .AsNoTracking()
+            .Where(ub => ub.IsActive && institutionIds.Contains(ub.InstitutionId))
+            .Select(ub => ub.UserId)
+            .ToListAsync(cancellationToken);
+
+        var libraryUserIds = await _dbContext.UserLibraries
+            .AsNoTracking()
+            .Where(ul => ul.IsActive && institutionIds.Contains(ul.InstitutionId))
+            .Select(ul => ul.UserId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var id in institutionUserIds.Concat(branchUserIds).Concat(libraryUserIds))
+        {
+            userIds.Add(id);
+        }
+
+        return userIds;
+    }
+
+    private async Task<bool> CanAccessUserAsync(string callerUserId, string targetUserId, CancellationToken cancellationToken)
+    {
+        if (await IsSuperAdminAsync(callerUserId, cancellationToken))
+        {
+            return true;
+        }
+
+        var allowedUserIds = await GetInstitutionScopedUserIdsAsync(callerUserId, cancellationToken);
+        return allowedUserIds.Contains(targetUserId);
+    }
+
+    private static AdminUserResponse ToAdminUserResponse(
+        ApplicationUser user,
+        IEnumerable<string> roles,
+        AdminUserAccessScopeResponse? accessScope = null)
     {
         return new AdminUserResponse
         {
@@ -430,8 +698,403 @@ public class AdminService : IAdminService
             IsActive = user.IsActive,
             TwoFactorEnabled = user.TwoFactorEnabled,
             Roles = roles.ToArray(),
-            CreatedAtUtc = user.CreatedAtUtc
+            CreatedAtUtc = user.CreatedAtUtc,
+            AccessScope = accessScope
         };
+    }
+
+    private async Task<Dictionary<string, AdminUserAccessScopeResponse>> LoadAccessScopesAsync(
+        IEnumerable<string> userIds,
+        CancellationToken cancellationToken)
+    {
+        var ids = userIds.Distinct(StringComparer.Ordinal).ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<string, AdminUserAccessScopeResponse>(StringComparer.Ordinal);
+        }
+
+        var institutions = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .Where(ui => ui.IsActive && ids.Contains(ui.UserId))
+            .Include(ui => ui.Institution)
+            .ToListAsync(cancellationToken);
+
+        var branches = await _dbContext.UserBranches
+            .AsNoTracking()
+            .Where(ub => ub.IsActive && ids.Contains(ub.UserId))
+            .Include(ub => ub.Branch)
+            .ToListAsync(cancellationToken);
+
+        var libraries = await _dbContext.UserLibraries
+            .AsNoTracking()
+            .Where(ul => ul.IsActive && ids.Contains(ul.UserId))
+            .Include(ul => ul.Library)
+            .ToListAsync(cancellationToken);
+
+        var result = new Dictionary<string, AdminUserAccessScopeResponse>(StringComparer.Ordinal);
+        foreach (var userId in ids)
+        {
+            var userInstitutions = institutions.Where(x => x.UserId == userId).ToList();
+            var userBranches = branches.Where(x => x.UserId == userId).ToList();
+            var userLibraries = libraries.Where(x => x.UserId == userId).ToList();
+            result[userId] = BuildAccessScopeResponse(userInstitutions, userBranches, userLibraries);
+        }
+
+        return result;
+    }
+
+    private static AdminUserAccessScopeResponse BuildAccessScopeResponse(
+        IReadOnlyCollection<UserInstitution> institutionMappings,
+        IReadOnlyCollection<UserBranch> branchMappings,
+        IReadOnlyCollection<UserLibrary> libraryMappings)
+    {
+        if (institutionMappings.Count == 0 && branchMappings.Count == 0 && libraryMappings.Count == 0)
+        {
+            return new AdminUserAccessScopeResponse { Summary = "Platform" };
+        }
+
+        var primaryInstitution = institutionMappings
+            .OrderByDescending(x => x.IsPrimary)
+            .FirstOrDefault();
+
+        var institutionScopes = institutionMappings
+            .OrderByDescending(x => x.IsPrimary)
+            .ThenBy(x => x.Institution?.Name)
+            .Select(inst => new AdminUserInstitutionScopeResponse
+            {
+                InstitutionId = inst.InstitutionId,
+                InstitutionName = inst.Institution?.Name ?? "Institution",
+                Branches = branchMappings
+                    .Where(x => x.InstitutionId == inst.InstitutionId)
+                    .Select(x => new AdminUserScopeItemResponse { Id = x.BranchId, Name = x.Branch?.Name ?? "Branch" })
+                    .DistinctBy(x => x.Id)
+                    .ToArray(),
+                Libraries = libraryMappings
+                    .Where(x => x.InstitutionId == inst.InstitutionId)
+                    .Select(x => new AdminUserScopeItemResponse { Id = x.LibraryId, Name = x.Library?.Name ?? "Library" })
+                    .DistinctBy(x => x.Id)
+                    .ToArray()
+            })
+            .ToArray();
+
+        var branchItems = branchMappings
+            .Select(x => new AdminUserScopeItemResponse { Id = x.BranchId, Name = x.Branch?.Name ?? "Branch" })
+            .DistinctBy(x => x.Id)
+            .ToArray();
+        var libraryItems = libraryMappings
+            .Select(x => new AdminUserScopeItemResponse { Id = x.LibraryId, Name = x.Library?.Name ?? "Library" })
+            .DistinctBy(x => x.Id)
+            .ToArray();
+
+        var summaryParts = new List<string>();
+        if (institutionScopes.Length > 1)
+        {
+            summaryParts.Add($"{institutionScopes.Length} institutions");
+        }
+        else if (institutionScopes.Length == 1)
+        {
+            summaryParts.Add(institutionScopes[0].InstitutionName);
+        }
+        else if (!string.IsNullOrWhiteSpace(primaryInstitution?.Institution?.Name))
+        {
+            summaryParts.Add(primaryInstitution.Institution.Name);
+        }
+
+        if (branchItems.Length > 0)
+        {
+            summaryParts.Add($"{branchItems.Length} branch{(branchItems.Length == 1 ? "" : "es")}");
+        }
+
+        if (libraryItems.Length > 0)
+        {
+            summaryParts.Add($"{libraryItems.Length} librar{(libraryItems.Length == 1 ? "y" : "ies")}");
+        }
+
+        return new AdminUserAccessScopeResponse
+        {
+            InstitutionId = primaryInstitution?.InstitutionId,
+            InstitutionName = primaryInstitution?.Institution?.Name,
+            InstitutionScopes = institutionScopes,
+            Branches = branchItems,
+            Libraries = libraryItems,
+            Summary = summaryParts.Count > 0 ? string.Join(" · ", summaryParts) : "Platform"
+        };
+    }
+
+    private async Task AssignUserAccessScopesAsync(
+        string targetUserId,
+        string callerUserId,
+        IReadOnlyCollection<AdminUserInstitutionScopeRequest> scopes,
+        CancellationToken cancellationToken)
+    {
+        if (scopes.Count == 0)
+        {
+            throw new InvalidOperationException("At least one institution is required.");
+        }
+
+        foreach (var scope in scopes)
+        {
+            await EnsureCallerCanAssignScopeAsync(callerUserId, scope.InstitutionId, cancellationToken);
+        }
+
+        await RemoveUserAccessScopeAsync(targetUserId, cancellationToken);
+
+        var isFirstInstitution = true;
+        foreach (var scope in scopes)
+        {
+            await AddUserAccessScopeForInstitutionAsync(
+                targetUserId,
+                scope.InstitutionId,
+                scope.BranchIds ?? [],
+                scope.LibraryIds ?? [],
+                isFirstInstitution,
+                cancellationToken);
+            isFirstInstitution = false;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task AddUserAccessScopeForInstitutionAsync(
+        string targetUserId,
+        Guid institutionId,
+        IReadOnlyCollection<Guid> branchIds,
+        IReadOnlyCollection<Guid> libraryIds,
+        bool isPrimaryInstitution,
+        CancellationToken cancellationToken)
+    {
+        var institution = await _dbContext.Institutions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == institutionId && !x.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Institution not found.");
+
+        var normalizedBranchIds = branchIds.Distinct().ToArray();
+        var normalizedLibraryIds = libraryIds.Distinct().ToArray();
+
+        var branchEntities = normalizedBranchIds.Length == 0
+            ? []
+            : await _dbContext.Branches
+                .AsNoTracking()
+                .Where(x => normalizedBranchIds.Contains(x.Id) && x.InstitutionId == institutionId && !x.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+        if (branchEntities.Count != normalizedBranchIds.Length)
+        {
+            throw new InvalidOperationException("One or more selected branches are invalid.");
+        }
+
+        var libraryEntities = normalizedLibraryIds.Length == 0
+            ? []
+            : await _dbContext.Libraries
+                .AsNoTracking()
+                .Where(x => normalizedLibraryIds.Contains(x.Id) && x.InstitutionId == institutionId && !x.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+        if (libraryEntities.Count != normalizedLibraryIds.Length)
+        {
+            throw new InvalidOperationException("One or more selected libraries are invalid.");
+        }
+
+        foreach (var library in libraryEntities)
+        {
+            if (normalizedBranchIds.Length > 0 && !normalizedBranchIds.Contains(library.BranchId))
+            {
+                throw new InvalidOperationException("Selected libraries must belong to selected branches.");
+            }
+        }
+
+        _dbContext.UserInstitutions.Add(new UserInstitution
+        {
+            UserId = targetUserId,
+            InstitutionId = institution.Id,
+            IsPrimary = isPrimaryInstitution,
+            IsActive = true,
+            AssignedAtUtc = DateTime.UtcNow
+        });
+
+        foreach (var branch in branchEntities)
+        {
+            _dbContext.UserBranches.Add(new UserBranch
+            {
+                UserId = targetUserId,
+                InstitutionId = institution.Id,
+                BranchId = branch.Id,
+                IsPrimary = branchEntities.Count == 1,
+                IsActive = true,
+                AssignedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        foreach (var library in libraryEntities)
+        {
+            _dbContext.UserLibraries.Add(new UserLibrary
+            {
+                UserId = targetUserId,
+                InstitutionId = institution.Id,
+                BranchId = library.BranchId,
+                LibraryId = library.Id,
+                IsPrimary = libraryEntities.Count == 1,
+                IsActive = true,
+                AssignedAtUtc = DateTime.UtcNow
+            });
+        }
+    }
+
+    private async Task RemoveUserAccessScopeAsync(string userId, CancellationToken cancellationToken)
+    {
+        var institutions = await _dbContext.UserInstitutions.Where(x => x.UserId == userId).ToListAsync(cancellationToken);
+        var branches = await _dbContext.UserBranches.Where(x => x.UserId == userId).ToListAsync(cancellationToken);
+        var libraries = await _dbContext.UserLibraries.Where(x => x.UserId == userId).ToListAsync(cancellationToken);
+
+        if (institutions.Count > 0) _dbContext.UserInstitutions.RemoveRange(institutions);
+        if (branches.Count > 0) _dbContext.UserBranches.RemoveRange(branches);
+        if (libraries.Count > 0) _dbContext.UserLibraries.RemoveRange(libraries);
+
+        if (institutions.Count > 0 || branches.Count > 0 || libraries.Count > 0)
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    private async Task EnsureCallerCanAssignScopeAsync(string callerUserId, Guid institutionId, CancellationToken cancellationToken)
+    {
+        if (await IsSuperAdminAsync(callerUserId, cancellationToken))
+        {
+            return;
+        }
+
+        var hasAccess = await _dbContext.UserInstitutions.AsNoTracking().AnyAsync(
+                ui => ui.UserId == callerUserId && ui.IsActive && ui.InstitutionId == institutionId,
+                cancellationToken)
+            || await _dbContext.UserBranches.AsNoTracking().AnyAsync(
+                ub => ub.UserId == callerUserId && ub.IsActive && ub.InstitutionId == institutionId,
+                cancellationToken)
+            || await _dbContext.UserLibraries.AsNoTracking().AnyAsync(
+                ul => ul.UserId == callerUserId && ul.IsActive && ul.InstitutionId == institutionId,
+                cancellationToken);
+
+        if (!hasAccess)
+        {
+            throw new InvalidOperationException("You do not have access to assign users to this institution.");
+        }
+    }
+
+    private async Task<List<InstitutionDropdownResponse>> BuildScopedInstitutionDropdownAsync(
+        string callerUserId,
+        CancellationToken cancellationToken)
+    {
+        var institutions = await _dbContext.UserInstitutions
+            .AsNoTracking()
+            .Where(x => x.UserId == callerUserId && x.IsActive)
+            .Include(x => x.Institution)
+            .ToListAsync(cancellationToken);
+
+        var branches = await _dbContext.UserBranches
+            .AsNoTracking()
+            .Where(x => x.UserId == callerUserId && x.IsActive)
+            .Include(x => x.Branch)
+            .ToListAsync(cancellationToken);
+
+        var libraries = await _dbContext.UserLibraries
+            .AsNoTracking()
+            .Where(x => x.UserId == callerUserId && x.IsActive)
+            .Include(x => x.Library)
+            .ToListAsync(cancellationToken);
+
+        return BuildInstitutionDropdown(institutions, branches, libraries);
+    }
+
+    private async Task<List<InstitutionDropdownResponse>> BuildFullInstitutionDropdownAsync(CancellationToken cancellationToken)
+    {
+        var institutionEntities = await _dbContext.Institutions
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .OrderBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+
+        var branchEntities = await _dbContext.Branches
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .ToListAsync(cancellationToken);
+
+        var libraryEntities = await _dbContext.Libraries
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .ToListAsync(cancellationToken);
+
+        return institutionEntities.Select(inst => new InstitutionDropdownResponse
+        {
+            Value = inst.Id,
+            Key = inst.Name,
+            Branches = branchEntities
+                .Where(b => b.InstitutionId == inst.Id)
+                .OrderBy(b => b.Name)
+                .Select(b => new BranchDropdownResponse
+                {
+                    Value = b.Id,
+                    Key = b.Name,
+                    Libraries = libraryEntities
+                        .Where(l => l.BranchId == b.Id)
+                        .OrderBy(l => l.Name)
+                        .Select(l => new LibraryDropdownResponse
+                        {
+                            Value = l.Id,
+                            Key = l.Name,
+                            Plans = []
+                        })
+                        .ToList()
+                })
+                .ToList()
+        }).ToList();
+    }
+
+    private static List<InstitutionDropdownResponse> BuildInstitutionDropdown(
+        IReadOnlyCollection<UserInstitution> institutions,
+        IReadOnlyCollection<UserBranch> branches,
+        IReadOnlyCollection<UserLibrary> libraries)
+    {
+        return institutions
+            .GroupBy(x => x.InstitutionId)
+            .Select(group =>
+            {
+                var institution = group.First().Institution;
+                return new InstitutionDropdownResponse
+                {
+                    Value = group.Key,
+                    Key = institution?.Name ?? "Institution",
+                    Branches = branches
+                        .Where(b => b.InstitutionId == group.Key)
+                        .GroupBy(b => b.BranchId)
+                        .Select(branchGroup =>
+                        {
+                            var branch = branchGroup.First().Branch;
+                            return new BranchDropdownResponse
+                            {
+                                Value = branchGroup.Key,
+                                Key = branch?.Name ?? "Branch",
+                                Libraries = libraries
+                                    .Where(l => l.BranchId == branchGroup.Key)
+                                    .GroupBy(l => l.LibraryId)
+                                    .Select(libraryGroup =>
+                                    {
+                                        var library = libraryGroup.First().Library;
+                                        return new LibraryDropdownResponse
+                                        {
+                                            Value = libraryGroup.Key,
+                                            Key = library?.Name ?? "Library",
+                                            Plans = []
+                                        };
+                                    })
+                                    .OrderBy(l => l.Key)
+                                    .ToList()
+                            };
+                        })
+                        .OrderBy(b => b.Key)
+                        .ToList()
+                };
+            })
+            .OrderBy(i => i.Key)
+            .ToList();
     }
 }
 

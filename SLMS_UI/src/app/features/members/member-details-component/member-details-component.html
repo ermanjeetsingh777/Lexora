@@ -1,7 +1,7 @@
 @if(!loading()){
 @if (memberDetails(); as m) {
 <app-page-header eyebrow="Members" [title]="m.name"
-  [description]="(m.membershipNo ?? '') + ' · joined ' + (m.joinedOn | date:'dd MMM yyyy')">
+  [description]="(m.membershipNo ?? '') + ' · joined ' + (m.joinedOn | appDate)">
   <div actions class="flex items-center gap-2">
     <a [routerLink]="backLink" [queryParams]="backQueryParams">
       <app-button variant="outline" size="sm">
@@ -42,7 +42,12 @@
         <button type="button" (click)="openDialog('plan')" class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
           <svg lucideBadgeDollarSign class="h-4 w-4"></svg> {{m.planStatus === planStatus.Expired ? 'Renew' : 'Upgrade'}} plan
         </button>
-        
+        @if (canChangePassword) {
+          <button type="button" (click)="openPasswordDialog()"
+            class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+            <svg lucideKeyRound class="h-4 w-4"></svg> Change password
+          </button>
+        }
       </div>
       }
     </div>
@@ -180,7 +185,7 @@
           Visits · 30d
         </div>
         <div class="text-lg font-semibold tabular-nums mt-1 text-blue-600">{{ m.visits30d }}</div>
-        <div class="text-[10px] text-muted-foreground truncate mt-0.5">Last {{ m.lastVisit ? (m.lastVisit | date:'dd MMM yyyy') : '—' }}</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">Last {{ m.lastVisit ? (m.lastVisit | appDate) : '—' }}</div>
       </div>
       <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background"
         [class]="bookLoanStats().overdue > 0 ? 'border-rose-200' : ''">
@@ -214,7 +219,7 @@
           Member for
         </div>
         <div class="text-lg font-semibold tabular-nums mt-1">{{ daysAsMember() }}d</div>
-        <div class="text-[10px] text-muted-foreground truncate mt-0.5">Since {{ m.joinedOn | date:'dd MMM yyyy' }}</div>
+        <div class="text-[10px] text-muted-foreground truncate mt-0.5">Since {{ m.joinedOn | appDate }}</div>
       </div>
     </div>
 
@@ -255,7 +260,7 @@
             Today
           </div>
           <div class="text-sm font-medium">
-            {{ today() | date:'dd MMM yyyy' }}
+            {{ today() | appDate }}
           </div>
         </div>
       </div>
@@ -266,7 +271,7 @@
             <app-status-badge
               [status]="attendanceStatus[todayAttendance()?.status || 0] ?? 'Absent'"></app-status-badge>
             <span class="text-sm text-muted-foreground">
-              {{todayAttendance()?.checkInAtUtc ? 'Checked in at '+(todayAttendance()?.checkInAtUtc | date:'HH:mm') :
+              {{todayAttendance()?.checkInAtUtc ? 'Checked in at '+(todayAttendance()?.checkInAtUtc | appTime) :
               'Not checked in today'}}
             </span>
           </div>
@@ -290,7 +295,7 @@
             Check In
           </div>
           <div class="mt-2 text-lg font-semibold">
-            {{ (todayAttendance()?.checkInAtUtc | date:'HH:mm') || '--' }}
+            {{ (todayAttendance()?.checkInAtUtc | appTime) || '--' }}
           </div>
         </div>
         <div class="rounded-lg border bg-background p-3">
@@ -299,7 +304,7 @@
             Check Out
           </div>
           <div class="mt-2 text-lg font-semibold">
-            {{(todayAttendance()?.checkOutAtUtc | date:'HH:mm') || '--' }}
+            {{(todayAttendance()?.checkOutAtUtc | appTime) || '--' }}
           </div>
         </div>
         <div class="rounded-lg border bg-background p-3">
@@ -420,7 +425,7 @@
           </div>
           <div class="text-sm font-semibold mt-1 truncate text-blue-500">
             @if (nextRenewalDate(); as renewalDate) {
-              {{ renewalDate | date:'dd MMM yyyy' }}
+              {{ renewalDate | appDate }}
             } @else {
               —
             }
@@ -531,7 +536,7 @@
           @if (e.description) {
           <div class="text-xs text-muted-foreground">{{ e.description }}</div>
           }
-          <div class="text-[10px] label-mono mt-0.5">{{ e.ts | date:'medium' }}</div>
+          <div class="text-[10px] label-mono mt-0.5">{{ e.ts | appDateTime }}</div>
         </li>
         }
       </ol>
@@ -963,7 +968,7 @@
       <div class="flex justify-between text-sm">
         <span class="text-muted-foreground">Expires </span>
         <span class="font-medium">
-          {{ m.planEndDate | date:'dd MMM yyyy'}}
+          {{ m.planEndDate | appDate}}
         </span>
       </div>
 
@@ -1041,13 +1046,47 @@
 </div>
 }
 
+@if (dialog() === 'password') {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-md rounded-xl border bg-background shadow-xl p-6 space-y-5">
+    <div>
+      <h2 class="text-lg font-semibold">Change member password</h2>
+      <p class="text-sm text-muted-foreground mt-0.5">
+        Set a new login password for {{ m.name }}.
+      </p>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">New password</label>
+      <input type="password" minlength="8"
+        class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+        [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" name="newPassword" />
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">Confirm password</label>
+      <input type="password" minlength="8"
+        class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+        [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" name="confirmPassword" />
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2 border-t">
+      <app-button variant="outline" (click)="closeDialog()">Cancel</app-button>
+      <app-button [disabled]="dialogBusy()" (click)="confirmChangePassword()">
+        {{ dialogBusy() ? 'Saving…' : 'Update password' }}
+      </app-button>
+    </div>
+  </div>
+</div>
+}
+
 @if (dialog() === 'attendance') {
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
   <div class="w-full max-w-md rounded-xl border bg-background shadow-xl p-6 space-y-5">
     <div>
       <h2 class="text-lg font-semibold">Edit today's attendance</h2>
       <p class="text-sm text-muted-foreground mt-0.5">
-        Update check-in/out times, seat, and remarks for {{ today() | date:'dd MMM yyyy' }}.
+        Update check-in/out times, seat, and remarks for {{ today() | appDate }}.
       </p>
     </div>
 

@@ -194,7 +194,7 @@
               <td class="py-2.5 pr-4 align-middle tabular-nums">{{ m.seatNumber || m.seat || '—' }}</td>
               <td class="py-2.5 pr-4 align-middle text-muted-foreground whitespace-nowrap">
                 @if (m.lastVisit) {
-                  {{ m.lastVisit | date:'dd MMM yyyy' }}
+                  {{ m.lastVisit | appDate }}
                 } @else {
                   —
                 }

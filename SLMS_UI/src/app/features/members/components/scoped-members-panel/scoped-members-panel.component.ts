@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { AppDatePipe } from '@core/pipes/app-date.pipes';
 import { FormsModule } from '@angular/forms';
 import {
   LucideChevronLeft,
@@ -58,7 +58,7 @@ const STATUS_OPTS = ['Active', 'Inactive', 'Suspended'] as const;
   imports: [
     RouterLink,
     FormsModule,
-    DatePipe,
+    AppDatePipe,
     ButtonComponent,
     SectionHeaderComponent,
     StatusBadgeComponent,

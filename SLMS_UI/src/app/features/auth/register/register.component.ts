@@ -1,10 +1,11 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { RegisterRequest } from '@core/models/AuthResponse.model';
+import { PackageCatalogItem } from '@core/models/package-subscription.models';
 import { AuthService } from '@core/services/auth.service';
+import { PackageService } from '@core/services/package.service';
 import { ToastService } from '@core/services/toast.service';
-import { ButtonComponent } from '@shared/components/button/button.component';
 import { InputDirective } from '@shared/components/input/input.directive';
 import { LabelDirective } from '@shared/components/label/label.directive';
 import { AuthLayoutComponent } from 'src/app/layouts/auth-layout/auth-layout.component';
@@ -17,11 +18,12 @@ import { UserTypes } from '@core/enums/OnbardingSteps';
   imports: [FormsModule, RouterLink, AuthLayoutComponent, InputDirective, LabelDirective],
   templateUrl: './register.component.html',
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly packageService = inject(PackageService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
-  private destroyRef = inject(DestroyRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly name = signal('');
   readonly email = signal('');
@@ -29,10 +31,39 @@ export class RegisterComponent {
   readonly confirmPassword = signal('');
   readonly busy = signal(false);
   readonly terms = signal(false);
+  readonly packages = signal<PackageCatalogItem[]>([]);
+  readonly packagesLoading = signal(true);
 
+  packageId = '';
+
+  ngOnInit(): void {
+    this.packageService.getActivePackages().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (packages) => {
+        this.packages.set(packages);
+        if (packages.length === 1) {
+          this.packageId = packages[0].id;
+        }
+        this.packagesLoading.set(false);
+      },
+      error: () => {
+        this.toast.error('Could not load subscription packages.');
+        this.packagesLoading.set(false);
+      },
+    });
+  }
+
+  packageLabel(pkg: PackageCatalogItem): string {
+    const price = pkg.price > 0 ? `₹${pkg.price.toLocaleString('en-IN')}` : 'Free';
+    return `${pkg.name} — ${price} / ${pkg.durationInDays} days`;
+  }
 
   async submit() {
     if (this.password() !== this.confirmPassword()) {
+      return;
+    }
+
+    if (!this.packageId) {
+      this.toast.error('Please select a package.');
       return;
     }
 
@@ -43,9 +74,9 @@ export class RegisterComponent {
       password: this.password(),
       confirmPassword: this.confirmPassword(),
       name: this.name(),
-      packageId: '44444444-4444-4444-4444-444444444444', // Replace with actual package ID if available
-      userType: UserTypes.OrganizationOwner // Assuming the user type is OrganizationOwner for registration
-    }
+      packageId: this.packageId,
+      userType: UserTypes.OrganizationOwner,
+    };
     this.auth.register(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {

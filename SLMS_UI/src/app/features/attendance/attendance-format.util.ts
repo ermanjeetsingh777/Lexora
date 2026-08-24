@@ -1,10 +1,12 @@
+import { parseUtcIso } from '@core/utils/date-format.util';
+
 export function formatAttendanceDisplayTime(
   utcValue?: string | Date | null,
   timeOnlyValue?: string | null,
 ): string {
   if (utcValue) {
-    const parsed = utcValue instanceof Date ? utcValue : new Date(utcValue);
-    if (!Number.isNaN(parsed.getTime())) {
+    const parsed = utcValue instanceof Date ? utcValue : parseUtcIso(String(utcValue));
+    if (parsed && !Number.isNaN(parsed.getTime())) {
       return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     }
   }

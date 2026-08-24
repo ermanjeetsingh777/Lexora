@@ -11,3 +11,12 @@ public class AdminUpdateUserRequestValidator : AbstractValidator<AdminUpdateUser
     }
 }
 
+public class AdminChangeUserPasswordRequestValidator : AbstractValidator<AdminChangeUserPasswordRequest>
+{
+    public AdminChangeUserPasswordRequestValidator()
+    {
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8);
+        RuleFor(x => x.ConfirmPassword).Equal(x => x.NewPassword).WithMessage("Passwords do not match.");
+    }
+}
+

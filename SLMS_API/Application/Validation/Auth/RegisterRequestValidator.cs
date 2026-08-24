@@ -11,5 +11,6 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8);
         RuleFor(x => x.ConfirmPassword).Equal(x => x.Password).WithMessage("Passwords do not match.");
         RuleFor(x => x.Name).MaximumLength(100);
+        RuleFor(x => x.PackageId).NotEmpty().WithMessage("Please select a package.");
     }
 }

@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, BulkMemberUploadResponse, MemberContactResponse, MemberDetailResponse, MemberListResponse, UpdateMemberRequest } from '@core/models/MemberRequest';
+import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, BulkMemberUploadResponse, ChangeMemberPasswordRequest, MemberContactResponse, MemberDetailResponse, MemberListResponse, UpdateMemberRequest } from '@core/models/MemberRequest';
 import { ApiService } from '@core/services/api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
@@ -113,5 +113,9 @@ export class MemberService {
 
     downloadAadhaar(memberId: string): Observable<Blob> {
         return this.httpApi.download(`members/${memberId}/aadhaar`);
+    }
+
+    changeMemberPassword(memberId: string, request: ChangeMemberPasswordRequest): Observable<APIResponseModel<{ message: string }>> {
+        return this.httpApi.post<{ message: string }>(`members/${memberId}/password`, request);
     }
 } 

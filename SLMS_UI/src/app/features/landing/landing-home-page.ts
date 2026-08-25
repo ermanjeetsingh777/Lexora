@@ -45,6 +45,35 @@ export class LandingHomePage implements OnInit {
 
   protected features = signal<LandingFeature[]>(toLandingFeatures());
 
+  protected readonly landingAssets = {
+    hero3d: '/assets/landing/landing-hero-3d.png',
+    floatOccupancy: '/assets/landing/landing-float-occupancy.png',
+    floatAttendance: '/assets/landing/landing-float-attendance.png',
+    floatRevenue: '/assets/landing/landing-float-revenue.png',
+    workflowNetwork: '/assets/features/branch-management.png',
+  };
+
+  protected heroRotateX = signal(0);
+  protected heroRotateY = signal(0);
+
+  protected heroSceneTransform = computed(
+    () => `rotateX(${this.heroRotateX()}deg) rotateY(${this.heroRotateY()}deg)`,
+  );
+
+  onHeroParallax(event: MouseEvent): void {
+    const element = event.currentTarget as HTMLElement;
+    const rect = element.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    this.heroRotateY.set(x * 14);
+    this.heroRotateX.set(-y * 10);
+  }
+
+  resetHeroParallax(): void {
+    this.heroRotateX.set(0);
+    this.heroRotateY.set(0);
+  }
+
   ngOnInit(): void {
     this.loadPackages();
   }

@@ -2,6 +2,207 @@
   min-height: 100%;
 }
 
+/* 3D hero motion visuals */
+.landing-hero-visual {
+  width: 100%;
+}
+
+.landing-hero-3d {
+  position: relative;
+  min-height: 420px;
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 45%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, #10b981 18%, transparent), transparent 40%),
+    color-mix(in srgb, var(--card) 70%, transparent);
+  overflow: hidden;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+.landing-hero-3d__glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(48px);
+  pointer-events: none;
+}
+
+.landing-hero-3d__glow--primary {
+  top: -2rem;
+  left: -2rem;
+  width: 10rem;
+  height: 10rem;
+  background: color-mix(in srgb, var(--primary) 35%, transparent);
+  animation: landing-pulse-glow 4s ease-in-out infinite;
+}
+
+.landing-hero-3d__glow--emerald {
+  right: -2rem;
+  bottom: -2rem;
+  width: 11rem;
+  height: 11rem;
+  background: color-mix(in srgb, #10b981 28%, transparent);
+  animation: landing-pulse-glow 5s ease-in-out infinite reverse;
+}
+
+.landing-hero-3d__stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  transform-style: preserve-3d;
+  transition: transform 0.35s ease-out;
+}
+
+.landing-hero-3d__main {
+  position: absolute;
+  inset: 6%;
+  width: 88%;
+  height: 88%;
+  margin: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 28px 42px rgb(0 0 0 / 0.28));
+  animation: landing-float-main 6s ease-in-out infinite;
+}
+
+@keyframes landing-float-main {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.landing-hero-3d__orbit {
+  position: absolute;
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.landing-hero-3d__orbit--one {
+  inset: 12%;
+  animation: landing-orbit-spin 18s linear infinite;
+}
+
+.landing-hero-3d__orbit--two {
+  inset: 22%;
+  border-color: color-mix(in srgb, #10b981 22%, transparent);
+  animation: landing-orbit-spin 24s linear infinite reverse;
+}
+
+.landing-stat-card__visual {
+  position: relative;
+  aspect-ratio: 16 / 11;
+  min-height: 9.5rem;
+  overflow: hidden;
+  background: rgb(15 23 42);
+}
+
+.landing-stat-card__visual--wide {
+  aspect-ratio: 21 / 9;
+  min-height: 10.5rem;
+}
+
+.landing-stat-card__image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.landing-stat-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0.875rem 1rem;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.05) 20%, rgb(0 0 0 / 0.55) 68%, rgb(0 0 0 / 0.82) 100%);
+  color: white;
+}
+
+.landing-stat-card__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.82);
+}
+
+.landing-stat-card__value {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.landing-stat-card__value--sm {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.landing-stat-card__badge {
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+}
+
+.landing-stat-card__badge--primary {
+  background: rgb(255 255 255 / 0.16);
+  color: white;
+}
+
+.landing-stat-card__badge--indigo {
+  background: rgb(129 140 248 / 0.28);
+  color: #e0e7ff;
+}
+
+.landing-stat-card__badge--emerald {
+  background: rgb(16 185 129 / 0.28);
+  color: #d1fae5;
+}
+
+.landing-workflow-visual {
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(145deg, color-mix(in srgb, #6366f1 10%, transparent), color-mix(in srgb, var(--background) 90%, transparent));
+}
+
+.landing-workflow-visual__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: center;
+}
+
+@keyframes landing-pulse-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+
+@keyframes landing-orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-3d__main,
+  .landing-hero-3d__glow,
+  .landing-hero-3d__orbit {
+    animation: none;
+  }
+
+  .landing-hero-3d__stage {
+    transition: none;
+  }
+}
+
 .landing-pricing-card--popular {
   position: relative;
 }

@@ -55,78 +55,26 @@
             </div>
         </div>
 
-        <div>
+        <div class="landing-hero-visual">
             <div
-                class="relative rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-4 shadow-elegant backdrop-blur">
-                <div class="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-[var(--primary)]/15 blur-2xl"></div>
-                <div class="absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-emerald-500/15 blur-2xl"></div>
-
-                <div class="relative grid gap-4 md:grid-cols-2">
-                    <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                        <div class="flex items-center justify-between">
-                            <div class="text-sm font-semibold">Live seat occupancy</div>
-                            <span
-                                class="rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-500">Healthy</span>
-                        </div>
-                        <div class="mt-4 flex items-end gap-2">
-                            <div class="h-16 w-3 rounded-md bg-[var(--primary)]/70"></div>
-                            <div class="h-24 w-3 rounded-md bg-[var(--primary)]"></div>
-                            <div class="h-14 w-3 rounded-md bg-[var(--primary)]/60"></div>
-                            <div class="h-30 w-3 rounded-md bg-[var(--primary)]/90"></div>
-                            <div class="h-20 w-3 rounded-md bg-[var(--primary)]/75"></div>
-                            <div class="h-26 w-3 rounded-md bg-[var(--primary)]/85"></div>
-                        </div>
-                        <div class="mt-3 text-xs text-[var(--muted-foreground)]">Real-time updates for multi-branch
-                            libraries.</div>
-                    </div>
-
-                    <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                        <div class="flex items-center justify-between">
-                            <div class="text-sm font-semibold">Revenue analytics</div>
-                            <span
-                                class="rounded-full bg-indigo-500/10 px-2 py-1 text-xs font-medium text-indigo-500">+18%
-                                MTD</span>
-                        </div>
-                        <div
-                            class="mt-4 h-24 rounded-xl bg-gradient-to-r from-[var(--primary)]/20 via-[var(--primary)]/5 to-transparent p-3">
-                            <div class="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                                <span>Today</span>
-                                <span>Weekly</span>
-                                <span>MTD</span>
-                            </div>
-                            <div class="mt-2 text-2xl font-semibold">₹ 24.7L</div>
-                        </div>
-                    </div>
-
-                    <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4 md:col-span-2">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-sm font-semibold">Animated insights</div>
-                                <div class="mt-1 text-xs text-[var(--muted-foreground)]">Smart charts, attendance
-                                    trends, and QR activity.</div>
-                            </div>
-                            <a class="text-sm font-semibold text-[var(--primary)] hover:underline">Explore</a>
-                        </div>
-                        <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                            <div class="rounded-xl bg-[var(--muted)]/30 p-3">
-                                <div class="text-xs text-[var(--muted-foreground)]">Attendance</div>
-                                <div class="mt-1 text-xl font-semibold">+7.2%</div>
-                            </div>
-                            <div class="rounded-xl bg-[var(--muted)]/30 p-3">
-                                <div class="text-xs text-[var(--muted-foreground)]">QR Check-in</div>
-                                <div class="mt-1 text-xl font-semibold">14,203</div>
-                            </div>
-                            <div class="rounded-xl bg-[var(--muted)]/30 p-3">
-                                <div class="text-xs text-[var(--muted-foreground)]">Active Members</div>
-                                <div class="mt-1 text-xl font-semibold">8,941</div>
-                            </div>
-                        </div>
-                    </div>
+                class="landing-hero-3d"
+                (mousemove)="onHeroParallax($event)"
+                (mouseleave)="resetHeroParallax()">
+                <div class="landing-hero-3d__glow landing-hero-3d__glow--primary"></div>
+                <div class="landing-hero-3d__glow landing-hero-3d__glow--emerald"></div>
+                <div class="landing-hero-3d__stage" [style.transform]="heroSceneTransform()">
+                    <img
+                        [src]="landingAssets.hero3d"
+                        alt="Lexora 3D smart library management platform"
+                        class="landing-hero-3d__main"
+                        loading="eager"
+                        decoding="async" />
                 </div>
+                <div class="landing-hero-3d__orbit landing-hero-3d__orbit--one"></div>
+                <div class="landing-hero-3d__orbit landing-hero-3d__orbit--two"></div>
             </div>
-
             <div class="mt-4 text-center text-xs text-[var(--muted-foreground)]">
-                Premium mockup preview (UI demo)
+                Interactive 3D platform preview
             </div>
         </div>
     </div>
@@ -161,12 +109,12 @@
 </section>
 
 <section id="features" class="mx-auto max-w-7xl px-4 py-4 md:px-6">
-    <div class="flex items-end justify-between gap-4">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div class="space-y-1">
             <h2 class="text-2xl font-semibold tracking-tight">Everything you need to run modern libraries</h2>
-            <p class="text-sm text-[var(--muted-foreground)]">Premium modules designed for multi-tenant
-                institutions.</p>
+            <p class="text-sm text-[var(--muted-foreground)]">Premium modules designed for multi-tenant institutions.</p>
         </div>
+        <a class="text-sm font-semibold text-[var(--primary)] hover:underline" routerLink="/features">Explore all modules</a>
     </div>
 
     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -193,34 +141,62 @@
             <div class="flex items-center justify-between">
                 <div>
                     <div class="text-sm font-semibold">Dashboard Showcase</div>
-                    <div class="mt-1 text-xs text-[var(--muted-foreground)]">Apex-style preview cards with animated
-                        stats (mock).</div>
+                    <div class="mt-1 text-xs text-[var(--muted-foreground)]">Live occupancy, revenue, and attendance insights.</div>
                 </div>
-                <a class="text-sm font-semibold text-[var(--primary)] hover:underline" routerLink="/features">See
-                    modules</a>
+                <a class="text-sm font-semibold text-[var(--primary)] hover:underline" routerLink="/features">See modules</a>
             </div>
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
-                <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                    <div class="text-xs text-[var(--muted-foreground)]">Occupancy</div>
-                    <div class="mt-2 text-2xl font-semibold">72%</div>
-                    <div class="mt-3 h-20 rounded-xl bg-gradient-to-r from-[var(--primary)]/20 to-transparent p-3">
-                    </div>
-                </div>
-                <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                    <div class="text-xs text-[var(--muted-foreground)]">Revenue</div>
-                    <div class="mt-2 text-2xl font-semibold">₹ 24.7L</div>
-                    <div class="mt-3 h-20 rounded-xl bg-gradient-to-r from-indigo-500/20 to-transparent p-3"></div>
-                </div>
-                <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4 sm:col-span-2">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-xs text-[var(--muted-foreground)]">Attendance trend</div>
-                            <div class="mt-2 text-lg font-semibold">Weekly active check-ins</div>
+                <div class="landing-stat-card rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 overflow-hidden">
+                    <div class="landing-stat-card__visual">
+                        <img
+                            [src]="landingAssets.floatOccupancy"
+                            alt=""
+                            class="landing-stat-card__image"
+                            loading="lazy"
+                            decoding="async" />
+                        <div class="landing-stat-card__overlay">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="landing-stat-card__label">Occupancy</span>
+                                <span class="landing-stat-card__badge landing-stat-card__badge--primary">Live</span>
+                            </div>
+                            <div class="landing-stat-card__value">72%</div>
                         </div>
-                        <div class="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-500">
-                            +7.2%</div>
                     </div>
-                    <div class="mt-4 h-28 rounded-xl bg-gradient-to-b from-[var(--primary)]/15 to-transparent">
+                </div>
+                <div class="landing-stat-card rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 overflow-hidden">
+                    <div class="landing-stat-card__visual">
+                        <img
+                            [src]="landingAssets.floatRevenue"
+                            alt=""
+                            class="landing-stat-card__image"
+                            loading="lazy"
+                            decoding="async" />
+                        <div class="landing-stat-card__overlay">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="landing-stat-card__label">Revenue</span>
+                                <span class="landing-stat-card__badge landing-stat-card__badge--indigo">+18% MTD</span>
+                            </div>
+                            <div class="landing-stat-card__value">₹ 24.7L</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="landing-stat-card rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 overflow-hidden sm:col-span-2">
+                    <div class="landing-stat-card__visual landing-stat-card__visual--wide">
+                        <img
+                            [src]="landingAssets.floatAttendance"
+                            alt=""
+                            class="landing-stat-card__image"
+                            loading="lazy"
+                            decoding="async" />
+                        <div class="landing-stat-card__overlay">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="landing-stat-card__label">Attendance trend</span>
+                                    <div class="landing-stat-card__value landing-stat-card__value--sm">Weekly active check-ins</div>
+                                </div>
+                                <span class="landing-stat-card__badge landing-stat-card__badge--emerald">+7.2%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -251,16 +227,26 @@
 
 <section id="workflow" class="mx-auto max-w-7xl px-4 py-8 md:px-6">
     <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-6 shadow-sm md:p-8">
-        <div class="space-y-3">
-            <div class="inline-flex items-center gap-2 rounded-full border border-[var(--primary)]/20 bg-[var(--primary)]/10 px-3 py-1 text-xs font-medium text-[var(--primary)]">
-                Multi-tenant architecture
+        <div class="grid items-center gap-8 lg:grid-cols-[1fr_340px]">
+            <div class="space-y-3">
+                <div class="inline-flex items-center gap-2 rounded-full border border-[var(--primary)]/20 bg-[var(--primary)]/10 px-3 py-1 text-xs font-medium text-[var(--primary)]">
+                    Multi-tenant architecture
+                </div>
+                <h2 class="text-2xl font-semibold tracking-tight">How Lexora maps your library network</h2>
+                <p class="max-w-3xl text-sm text-[var(--muted-foreground)]">
+                    Each institution is an isolated tenant with multiple branches. Branches host libraries in sequence,
+                    members map to one library each, and attendance is tracked at that library — with enterprise security
+                    across the full hierarchy.
+                </p>
             </div>
-            <h2 class="text-2xl font-semibold tracking-tight">How Lexora maps your library network</h2>
-            <p class="max-w-3xl text-sm text-[var(--muted-foreground)]">
-                Each institution is an isolated tenant with multiple branches. Branches host libraries in sequence,
-                members map to one library each, and attendance is tracked at that library — with enterprise security
-                across the full hierarchy.
-            </p>
+            <div class="landing-workflow-visual">
+                <img
+                    [src]="landingAssets.workflowNetwork"
+                    alt="Multi-branch library network map"
+                    class="landing-workflow-visual__image"
+                    loading="lazy"
+                    decoding="async" />
+            </div>
         </div>
 
         <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">

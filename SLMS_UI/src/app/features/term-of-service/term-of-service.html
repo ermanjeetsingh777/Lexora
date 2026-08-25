@@ -1,305 +1,181 @@
 <div class="mx-auto max-w-7xl space-y-8 px-4 py-4 md:px-6">
+  <section
+    class="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm backdrop-blur-xl lg:p-8">
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10"></div>
+    <div class="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
 
-    <!-- Hero -->
-    <section
-        class="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm backdrop-blur-xl lg:p-8">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10"></div>
-        <div class="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
-
-        <div class="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-
-            <div class="max-w-4xl space-y-5">
-
-                <div
-                    class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    <span class="h-2 w-2 rounded-full bg-primary"></span>
-                    Legal Documentation · Librify Platform
-                </div>
-
-                <div>
-                    <h1 class="text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-                        Terms of Service
-                    </h1>
-
-                    <p class="mt-4 max-w-3xl text-sm leading-7 text-[var(--muted-foreground)] md:text-base">
-                        These Terms of Service govern your access to and use of Librify,
-                        including institution management, branch operations, library
-                        administration, memberships, smart seat allocation, subscriptions,
-                        attendance tracking, payments, analytics, and all related services.
-                    </p>
-                </div>
-
-                <div class="flex flex-wrap gap-3">
-
-                    <div
-                        class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium shadow-sm">
-                        <app-icon name="calendar" [size]="16" />
-                        Updated May 3, 2026
-                    </div>
-
-                    <div
-                        class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium shadow-sm">
-                        <app-icon name="shield-check" [size]="16" />
-                        Version 1.0
-                    </div>
-
-                    <div
-                        class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium shadow-sm">
-                        <app-icon name="badge-check" [size]="16" />
-                        Effective Immediately
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- Summary -->
-            <div class="w-full max-w-sm rounded-3xl border border-[var(--border)] bg-background/80 p-5 shadow-sm">
-                <div class="flex items-start gap-4">
-
-                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <app-icon name="file-text" [size]="24" />
-                    </div>
-
-                    <div>
-                        <h3 class="font-semibold">
-                            Legal Overview
-                        </h3>
-
-                        <p class="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                            This agreement outlines your rights, responsibilities,
-                            subscription policies, acceptable usage requirements, and
-                            limitations while using Librify.
-                        </p>
-                    </div>
-
-                </div>
-            </div>
-
+    <div class="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-4xl space-y-5">
+        <div
+          class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+          <span class="h-2 w-2 rounded-full bg-primary"></span>
+          Legal Documentation · {{ appName }} Platform
         </div>
-    </section>
 
-    <!-- Important Notice -->
-    <section class="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6">
-        <div class="flex gap-4">
-
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
-                <app-icon name="triangle-alert" [size]="20" />
-            </div>
-
-            <div>
-                <h2 class="font-semibold">
-                    Important Notice
-                </h2>
-
-                <p class="mt-2 text-sm leading-7 text-[var(--muted-foreground)]">
-                    By accessing or using Librify, you acknowledge that you have read,
-                    understood, and agreed to be legally bound by these Terms of Service
-                    and our Privacy Policy.
-                </p>
-            </div>
-
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
+            {{ terms.title }}
+          </h1>
+          <p class="mt-4 max-w-3xl text-sm leading-7 text-[var(--muted-foreground)] md:text-base">
+            {{ terms.description }}
+          </p>
         </div>
-    </section>
 
-    <!-- Content -->
-    <div class="grid gap-6">
+        <div class="flex flex-wrap gap-3">
+          <div
+            class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium shadow-sm">
+            <app-icon name="calendar" [size]="16" />
+            Updated {{ terms.updatedAt }}
+          </div>
+          <div
+            class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium shadow-sm">
+            <app-icon name="shield-check" [size]="16" />
+            Version {{ terms.version }}
+          </div>
+          <div
+            class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/80 px-4 py-2 text-sm font-medium shadow-sm">
+            <app-icon name="badge-check" [size]="16" />
+            Effective Immediately
+          </div>
+        </div>
+      </div>
 
-        <!-- Introduction -->
-        <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
-            <div class="flex items-center gap-3 mb-5">
-                <app-icon name="book-open" [size]="22" />
-                <h2 class="text-xl font-semibold">Introduction</h2>
-            </div>
-
-            <p class="leading-8 text-[var(--muted-foreground)]">
-                Welcome to Librify. These Terms of Service govern your use of our
-                platform, website, applications, APIs, and services. By accessing
-                or using Librify, you agree to comply with these terms. If you do
-                not agree with any provision, you must discontinue use of the Service.
+      <div class="w-full max-w-sm rounded-3xl border border-[var(--border)] bg-background/80 p-5 shadow-sm">
+        <div class="flex items-start gap-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <app-icon name="file-text" [size]="24" />
+          </div>
+          <div>
+            <h3 class="font-semibold">{{ terms.overviewTitle }}</h3>
+            <p class="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+              {{ terms.overviewDescription }}
             </p>
-        </section>
-
-        <!-- Definitions -->
-        <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <app-icon name="file-text" [size]="22" />
-                <h2 class="text-xl font-semibold">Definitions</h2>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-
-                <div class="rounded-2xl border p-4">
-                    <h3 class="font-semibold">Service</h3>
-                    <p class="mt-2 text-sm text-[var(--muted-foreground)]">
-                        The Librify platform and all associated features and services.
-                    </p>
-                </div>
-
-                <div class="rounded-2xl border p-4">
-                    <h3 class="font-semibold">User</h3>
-                    <p class="mt-2 text-sm text-[var(--muted-foreground)]">
-                        Any individual, institution, organization, or administrator using Librify.
-                    </p>
-                </div>
-
-                <div class="rounded-2xl border p-4">
-                    <h3 class="font-semibold">Subscription</h3>
-                    <p class="mt-2 text-sm text-[var(--muted-foreground)]">
-                        Paid access to premium features and services.
-                    </p>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Registration -->
-        <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <app-icon name="user-plus" [size]="22" />
-                <h2 class="text-xl font-semibold">Account Registration</h2>
-            </div>
-
-            <div class="grid gap-3">
-
-                <div class="flex items-center gap-3 rounded-2xl border p-4">
-                    <app-icon name="check-circle-2" [size]="18" />
-                    Provide accurate and up-to-date information.
-                </div>
-
-                <div class="flex items-center gap-3 rounded-2xl border p-4">
-                    <app-icon name="shield-check" [size]="18" />
-                    Maintain the security of your account credentials.
-                </div>
-
-                <div class="flex items-center gap-3 rounded-2xl border p-4">
-                    <app-icon name="alert-circle" [size]="18" />
-                    Report unauthorized account access immediately.
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Acceptable Use -->
-        <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <app-icon name="shield" [size]="22" />
-                <h2 class="text-xl font-semibold">Acceptable Use Policy</h2>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2">
-
-                <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
-                    ❌ Illegal or unauthorized activities
-                </div>
-
-                <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
-                    ❌ Attempts to disrupt platform operations
-                </div>
-
-                <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
-                    ❌ Unauthorized access to data
-                </div>
-
-                <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
-                    ❌ Credential sharing with unauthorized users
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Data -->
-        <section class="rounded-3xl border border-primary/20 bg-primary/5 p-6">
-            <div class="flex gap-4">
-
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <app-icon name="database" [size]="22" />
-                </div>
-
-                <div>
-                    <h2 class="text-xl font-semibold">
-                        Data Ownership & Responsibility
-                    </h2>
-
-                    <p class="mt-3 leading-7 text-[var(--muted-foreground)]">
-                        You retain ownership of all records, memberships, payments,
-                        attendance, reports, and other information stored within Librify.
-                    </p>
-
-                    <p class="mt-4 font-medium text-primary">
-                        Librify never claims ownership of customer data.
-                    </p>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Pricing -->
-        <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
-            <div class="flex items-center gap-3 mb-5">
-                <app-icon name="credit-card" [size]="22" />
-                <h2 class="text-xl font-semibold">Pricing & Subscriptions</h2>
-            </div>
-
-            <p class="leading-8 text-[var(--muted-foreground)]">
-                Librify offers both free and paid subscription plans. Pricing may
-                change from time to time with reasonable notice. Subscription fees
-                are billed according to your selected plan and billing cycle.
-            </p>
-        </section>
-
-        <!-- Privacy CTA -->
-        <section class="rounded-3xl border border-[var(--border)] bg-gradient-to-r from-primary/5 to-primary/10 p-6">
-            <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-
-                <div>
-                    <h2 class="text-xl font-semibold">
-                        Privacy & Data Protection
-                    </h2>
-
-                    <p class="mt-2 text-sm text-[var(--muted-foreground)]">
-                        Learn how we collect, process, store, and protect your information.
-                    </p>
-                </div>
-
-                <a routerLink="/privacy-policy"
-                    class="inline-flex items-center gap-2 rounded-2xl border bg-background px-5 py-3 font-medium shadow-sm">
-                    View Privacy Policy
-                    <app-icon name="arrow-right" [size]="16" />
-                </a>
-
-            </div>
-        </section>
-
-        <!-- Contact -->
-        <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <app-icon name="mail" [size]="22" />
-                <h2 class="text-xl font-semibold">Contact Information</h2>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2">
-
-                <div class="rounded-2xl border p-5">
-                    <div class="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
-                        Email
-                    </div>
-                    <div class="mt-2 font-medium">
-                        support@librify.com
-                    </div>
-                </div>
-
-                <div class="rounded-2xl border p-5">
-                    <div class="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
-                        Address
-                    </div>
-                    <div class="mt-2 font-medium">
-                        Gurgaon, Haryana, India
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
+          </div>
+        </div>
+      </div>
     </div>
+  </section>
 
+  <section class="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6">
+    <div class="flex gap-4">
+      <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+        <app-icon name="triangle-alert" [size]="20" />
+      </div>
+      <div>
+        <h2 class="font-semibold">Important Notice</h2>
+        <p class="mt-2 text-sm leading-7 text-[var(--muted-foreground)]">
+          {{ terms.noticeText }}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    @for (card of terms.trustCards; track card.title) {
+      <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-5 shadow-sm">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <app-icon [name]="card.icon" [size]="22" />
+        </div>
+        <h3 class="mt-4 font-semibold">{{ card.title }}</h3>
+        <p class="mt-2 text-sm text-[var(--muted-foreground)]">{{ card.description }}</p>
+      </div>
+    }
+  </section>
+
+  <div class="grid gap-6">
+    @for (section of terms.sections; track section.id) {
+      <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
+        <div class="mb-4 flex items-center gap-3">
+          <app-icon [name]="section.icon" [size]="22" />
+          <h2 class="text-xl font-semibold">{{ section.title }}</h2>
+        </div>
+
+        @switch (section.kind) {
+          @case ('cards') {
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              @for (card of section.cards ?? []; track card.title) {
+                <div class="rounded-2xl border border-[var(--border)] p-4">
+                  <h3 class="font-semibold">{{ card.title }}</h3>
+                  <p class="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{{ card.body }}</p>
+                </div>
+              }
+            </div>
+          }
+          @case ('list') {
+            <div class="grid gap-3">
+              @for (item of section.items ?? []; track item) {
+                <div class="flex items-start gap-3 rounded-2xl border border-[var(--border)] p-4">
+                  <app-icon name="check-circle-2" [size]="18" />
+                  <span>{{ item }}</span>
+                </div>
+              }
+            </div>
+          }
+          @case ('highlight') {
+            <div class="rounded-3xl border border-primary/20 bg-primary/5 p-5">
+              @for (paragraph of section.paragraphs ?? []; track paragraph) {
+                <p class="leading-8 text-[var(--muted-foreground)]">{{ paragraph }}</p>
+              }
+            </div>
+          }
+          @default {
+            @for (paragraph of section.paragraphs ?? []; track paragraph) {
+              <p class="leading-8 text-[var(--muted-foreground)]">{{ paragraph }}</p>
+            }
+          }
+        }
+      </section>
+    }
+  </div>
+
+  <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
+    <div class="mb-4 flex items-center gap-3">
+      <app-icon name="layers" [size]="20" />
+      <h2 class="text-xl font-semibold">Related Policies</h2>
+    </div>
+    <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+      @for (policy of relatedPolicies; track policy.route) {
+        <a
+          [routerLink]="policy.route"
+          class="rounded-2xl border border-[var(--border)] p-4 transition-colors hover:bg-[var(--background)]/50">
+          <div class="font-semibold">{{ policy.title }}</div>
+          <p class="mt-1 text-sm text-[var(--muted-foreground)]">{{ policy.description }}</p>
+        </a>
+      }
+    </div>
+  </section>
+
+  <section class="rounded-3xl border border-[var(--border)] bg-gradient-to-r from-primary/5 to-primary/10 p-6">
+    <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 class="text-xl font-semibold">Privacy & Data Protection</h2>
+        <p class="mt-2 text-sm text-[var(--muted-foreground)]">
+          Review how {{ appName }} collects, processes, stores, and protects institutional and member information.
+        </p>
+      </div>
+      <a
+        routerLink="/privacy-policy"
+        class="inline-flex items-center gap-2 rounded-2xl border bg-background px-5 py-3 font-medium shadow-sm">
+        View Privacy Policy
+        <app-icon name="arrow-right" [size]="16" />
+      </a>
+    </div>
+  </section>
+
+  <section class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm">
+    <div class="mb-4 flex items-center gap-3">
+      <app-icon name="mail" [size]="22" />
+      <h2 class="text-xl font-semibold">Contact Information</h2>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="rounded-2xl border border-[var(--border)] p-5">
+        <div class="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">Email</div>
+        <div class="mt-2 font-medium">{{ terms.contactEmail }}</div>
+      </div>
+      <div class="rounded-2xl border border-[var(--border)] p-5">
+        <div class="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">Address</div>
+        <div class="mt-2 font-medium">{{ terms.contactAddress }}</div>
+      </div>
+    </div>
+  </section>
 </div>

@@ -1,0 +1,74 @@
+<div class="mx-auto max-w-7xl space-y-8 px-4 py-4 md:px-6">
+  <section
+    class="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-8 shadow-sm backdrop-blur-xl">
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10"></div>
+    <div class="relative space-y-4">
+      <div
+        class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+        <app-icon name="file-text" [size]="14"></app-icon>
+        Legal & Compliance
+      </div>
+      <h1 class="text-3xl font-bold tracking-tight md:text-5xl">{{ appName }} Policies</h1>
+      <p class="max-w-3xl text-base leading-8 text-[var(--muted-foreground)]">
+        Review privacy, security, billing, and platform usage policies for institutions using
+        {{ appName }} across multi-branch library operations.
+      </p>
+    </div>
+  </section>
+
+  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    @for (policy of policies; track policy.id) {
+      <a
+        [routerLink]="policy.route"
+        class="group rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-5 shadow-sm transition-transform hover:-translate-y-1">
+        <div class="flex items-start justify-between gap-3">
+          <div
+            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <app-icon name="shield-check" [size]="20"></app-icon>
+          </div>
+          <span class="text-xs text-[var(--muted-foreground)]">{{ policy.updatedAt }}</span>
+        </div>
+        <h2 class="mt-4 text-lg font-semibold">{{ policy.title }}</h2>
+        <p class="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{{ policy.description }}</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          @for (tag of policy.tags; track tag) {
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted-foreground)]">
+              {{ tag }}
+            </span>
+          }
+        </div>
+        <div class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+          Read policy
+          <app-icon name="arrow-right" [size]="16"></app-icon>
+        </div>
+      </a>
+    }
+
+    <a
+      routerLink="/terms"
+      class="group rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-5 shadow-sm transition-transform hover:-translate-y-1">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <app-icon name="file-text" [size]="20"></app-icon>
+        </div>
+        <span class="text-xs text-[var(--muted-foreground)]">August 2026</span>
+      </div>
+      <h2 class="mt-4 text-lg font-semibold">Terms of Service</h2>
+      <p class="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+        Master agreement covering account registration, subscriptions, acceptable use, and service limitations.
+      </p>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <span class="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted-foreground)]">
+          Legal agreement
+        </span>
+        <span class="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted-foreground)]">
+          All users
+        </span>
+      </div>
+      <div class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+        Read terms
+        <app-icon name="arrow-right" [size]="16"></app-icon>
+      </div>
+    </a>
+  </section>
+</div>

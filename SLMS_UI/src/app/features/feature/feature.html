@@ -34,7 +34,7 @@
 
                 <div
                     class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/70 px-4 py-2 text-sm font-medium shadow-sm">
-                    <app-icon [name]="'building-2'" [size]="16" />
+                    <app-icon [name]="'map-pin'" [size]="16" />
                     Branches
                 </div>
 
@@ -75,23 +75,23 @@
             <!-- Stats -->
             <div class="mt-5 grid grid-cols-2 gap-3">
                 <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)]/50 p-3">
-                    <div class="text-lg font-bold">50+</div>
+                    <div class="text-lg font-bold">{{ featureCount() }}+</div>
                     <div class="text-xs text-[var(--muted-foreground)]">
-                        Smart Modules
+                        Platform Features
                     </div>
                 </div>
 
                 <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)]/50 p-3">
-                    <div class="text-lg font-bold">Multi-Tenant</div>
+                    <div class="text-lg font-bold">{{ moduleCount() }} Modules</div>
                     <div class="text-xs text-[var(--muted-foreground)]">
-                        SaaS Architecture
+                        Multi-Tenant SaaS
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         @for(section of featureSections(); track section.id){
             <div
                 class="group relative rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-5 shadow-sm transition-transform hover:-translate-y-1">

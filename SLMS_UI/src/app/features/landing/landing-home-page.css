@@ -166,6 +166,61 @@
   color: #d1fae5;
 }
 
+.landing-feature-card {
+  position: relative;
+  min-height: 11.5rem;
+  background: rgb(15 23 42);
+}
+
+.landing-feature-card__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.35s ease;
+}
+
+.landing-feature-card:hover .landing-feature-card__bg {
+  transform: scale(1.06);
+}
+
+.landing-feature-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(0 0 0 / 0.18) 0%,
+    rgb(0 0 0 / 0.45) 45%,
+    rgb(0 0 0 / 0.88) 100%
+  );
+}
+
+.landing-feature-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  min-height: 11.5rem;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1rem 1.125rem 1.125rem;
+}
+
+.landing-feature-card__icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.14);
+  color: white;
+  backdrop-filter: blur(8px);
+}
+
 .landing-workflow-visual {
   overflow: hidden;
   border-radius: 1.25rem;

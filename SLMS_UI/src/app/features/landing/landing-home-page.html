@@ -118,20 +118,26 @@
     </div>
 
     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        @for (feature of features(); track feature.title) {
-        <div
-            class="group rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-5 shadow-sm transition-transform hover:-translate-y-1">
-            <div class="flex items-center gap-3">
-                <div
-                    class="grid h-10 w-10 place-items-center rounded-xl {{ feature.iconBgClass }} {{ feature.iconTextClass }}">
-                    <app-icon [name]="feature.icon" [size]="18" />
+        @for (feature of features(); track feature.id) {
+        <div class="landing-feature-card group overflow-hidden rounded-3xl border border-[var(--border)] shadow-sm transition-transform hover:-translate-y-1">
+            <img
+                [src]="feature.image"
+                alt=""
+                class="landing-feature-card__bg"
+                loading="lazy"
+                decoding="async" />
+            <div class="landing-feature-card__overlay"></div>
+            <div class="landing-feature-card__content">
+                <div class="flex items-center gap-3">
+                    <div class="landing-feature-card__icon">
+                        <app-icon [name]="feature.icon" [size]="18" />
+                    </div>
+                    <div class="text-sm font-semibold text-white">{{ feature.title }}</div>
                 </div>
-                <div class="text-sm font-semibold">{{ feature.title }}</div>
+                <p class="mt-2 text-sm leading-relaxed text-white/85">{{ feature.description }}</p>
             </div>
-            <p class="mt-2 text-sm text-[var(--muted-foreground)]">{{ feature.description }}</p>
         </div>
         }
-
     </div>
 </section>
 

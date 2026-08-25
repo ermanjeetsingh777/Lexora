@@ -457,8 +457,10 @@ export function toLandingFeatures(catalog: FeatureSection[] = FEATURE_CATALOG): 
     const highlights = section.features.slice(0, 3).map((item) => item.title).join(', ');
 
     return {
+      id: section.id,
       icon: section.icon,
       title: section.title,
+      image: section.image ?? featureModuleImage(section.id),
       description: highlights ? `${highlights}, and more.` : section.features[0]?.description ?? '',
       iconBgClass: colors.iconBgClass,
       iconTextClass: colors.iconTextClass,

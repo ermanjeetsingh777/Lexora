@@ -1,12 +1,22 @@
 import { FeatureSection } from '@core/models/FeatureModel';
 import { LandingFeature } from '@core/models/LandingFeature';
 
+export const FEATURE_HERO = {
+  src: '/assets/features/platform-modules-hero.png',
+  alt: 'Lexora platform modules — institutions, branches, libraries, members, and analytics',
+};
+
+export function featureModuleImage(moduleId: string): string {
+  return `/assets/features/${moduleId}.png`;
+}
+
 export const FEATURE_CATALOG: FeatureSection[] = [
   {
     id: 'institution-tenant',
     title: 'Institution & Multi-Tenant',
     icon: 'building-2',
     color: 'bg-primary/10 text-primary',
+    imageAlt: 'Institution and multi-tenant management',
     features: [
       {
         title: 'Institution Onboarding',
@@ -35,6 +45,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Branch Management',
     icon: 'map-pin',
     color: 'bg-indigo-100 text-indigo-700',
+    imageAlt: 'Multi-branch library operations',
     features: [
       {
         title: 'Multi-Branch Setup',
@@ -63,6 +74,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Library Management',
     icon: 'library',
     color: 'bg-emerald-100 text-emerald-700',
+    imageAlt: 'Library setup and seat inventory',
     features: [
       {
         title: 'Library Setup',
@@ -91,6 +103,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Member Management',
     icon: 'UsersRound',
     color: 'bg-primary/10 text-primary',
+    imageAlt: 'Member profiles and onboarding',
     features: [
       {
         title: 'Member Profiles',
@@ -124,6 +137,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Seat & Shift Management',
     icon: 'event_seat',
     color: 'bg-green-100 text-green-700',
+    imageAlt: 'Seat maps and shift scheduling',
     features: [
       {
         title: 'Interactive Seat Map',
@@ -152,6 +166,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Attendance Management',
     icon: 'calendar-check',
     color: 'bg-teal-100 text-teal-700',
+    imageAlt: 'Attendance tracking and QR check-in',
     features: [
       {
         title: 'Daily Attendance Tracking',
@@ -190,6 +205,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Subscription & Billing',
     icon: 'credit-card',
     color: 'bg-purple-100 text-purple-700',
+    imageAlt: 'Subscriptions, plans, and billing',
     features: [
       {
         title: 'Member Plan Subscriptions',
@@ -223,6 +239,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Books & Circulation',
     icon: 'book-open',
     color: 'bg-cyan-100 text-cyan-700',
+    imageAlt: 'Book catalog and circulation',
     features: [
       {
         title: 'Book Catalog',
@@ -252,6 +269,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     icon: 'layout-dashboard',
     color: 'bg-amber-100 text-amber-700',
     isPremium: true,
+    imageAlt: 'Dashboard KPIs and analytics',
     features: [
       {
         title: 'Real-Time KPI Dashboard',
@@ -286,6 +304,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     icon: 'bar_chart',
     color: 'bg-yellow-100 text-yellow-700',
     isPremium: true,
+    imageAlt: 'Revenue reports and exports',
     features: [
       {
         title: 'Daily Reports',
@@ -314,6 +333,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Communication & Notifications',
     icon: 'bell',
     color: 'bg-pink-100 text-pink-700',
+    imageAlt: 'Notifications and alerts',
     features: [
       {
         title: 'In-App Notifications',
@@ -342,6 +362,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Admin & Access Control',
     icon: 'shield',
     color: 'bg-red-100 text-red-700',
+    imageAlt: 'Roles, permissions, and audit logs',
     features: [
       {
         title: 'Role-Based Access Control',
@@ -380,6 +401,7 @@ export const FEATURE_CATALOG: FeatureSection[] = [
     title: 'Support Centre',
     icon: 'life-buoy',
     color: 'bg-sky-100 text-sky-700',
+    imageAlt: 'Support centre and help resources',
     features: [
       {
         title: 'Help & Documentation',

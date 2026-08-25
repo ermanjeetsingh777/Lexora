@@ -9,6 +9,8 @@ export interface FeatureSection {
   title: string;
   icon: string;
   color: string;
+  image?: string;
+  imageAlt?: string;
   isPremium?: boolean;
   features: FeatureItem[];
 }

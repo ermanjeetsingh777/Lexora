@@ -154,7 +154,9 @@ public class InstitutionService : IInstitutionService
         if (!isSuperAdmin)
         {
             institutionsQuery = institutionsQuery.Where(x =>
-                x.UserInstitutions.Any(ui => ui.UserId == userIdString && ui.IsActive));
+                x.UserInstitutions.Any(ui => ui.UserId == userIdString && ui.IsActive) ||
+                x.UserBranches.Any(ub => ub.UserId == userIdString && ub.IsActive) ||
+                x.UserLibraries.Any(ul => ul.UserId == userIdString && ul.IsActive));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -301,13 +303,18 @@ public class InstitutionService : IInstitutionService
         };
     }
 
-    public async Task<InstitutionOverviewResponse?> GetOverviewAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<InstitutionOverviewResponse?> GetOverviewAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         var entity = await _dbContext.Institutions
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
 
         if (entity is null)
+        {
+            return null;
+        }
+
+        if (!await CanAccessInstitutionDetailAsync(id, userId, cancellationToken))
         {
             return null;
         }
@@ -388,13 +395,18 @@ public class InstitutionService : IInstitutionService
         };
     }
 
-    public async Task<InstitutionBillingResponse?> GetBillingAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<InstitutionBillingResponse?> GetBillingAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         var entity = await _dbContext.Institutions
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
 
         if (entity is null)
+        {
+            return null;
+        }
+
+        if (!await CanAccessInstitutionDetailAsync(id, userId, cancellationToken))
         {
             return null;
         }
@@ -428,6 +440,7 @@ public class InstitutionService : IInstitutionService
     public async Task<InstitutionBranchesViewResponse?> GetBranchesViewAsync(
         Guid id,
         InstitutionBranchListQuery query,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
         var entity = await _dbContext.Institutions
@@ -435,6 +448,11 @@ public class InstitutionService : IInstitutionService
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
 
         if (entity is null)
+        {
+            return null;
+        }
+
+        if (!await CanAccessInstitutionDetailAsync(id, userId, cancellationToken))
         {
             return null;
         }
@@ -677,10 +695,9 @@ public class InstitutionService : IInstitutionService
             .AsNoTracking()
             .Where(x => x.Id == id && !x.IsDeleted);
 
-        if (!isSuperAdmin)
+        if (!isSuperAdmin && !await CanAccessInstitutionPageAsync(id, userIdString, cancellationToken))
         {
-            institutionQuery = institutionQuery.Where(x =>
-                x.UserInstitutions.Any(ui => ui.UserId == userIdString && ui.IsActive));
+            return null;
         }
 
         var exists = await institutionQuery.AnyAsync(cancellationToken);
@@ -713,17 +730,32 @@ public class InstitutionService : IInstitutionService
         };
     }
 
-    public async Task<InstitutionResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<InstitutionResponse?> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         var entity = await _dbContext.Institutions
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
 
-        return entity is null ? null : ToResponse(entity);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        if (!await CanAccessInstitutionDetailAsync(id, userId, cancellationToken))
+        {
+            return null;
+        }
+
+        return ToResponse(entity);
     }
 
     public async Task<InstitutionResponse> UpdateAsync(Guid id, UpdateInstitutionRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
+        if (!await CanAccessInstitutionDetailAsync(id, userId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("You do not have access to this institution.");
+        }
+
         var entity = await _dbContext.Institutions
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Institution not found.");
@@ -762,6 +794,16 @@ public class InstitutionService : IInstitutionService
 
     public async Task DeleteAsync(Guid id, string? userId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var callerUserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        if (!await CanAccessInstitutionDetailAsync(id, callerUserId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("You do not have access to this institution.");
+        }
+
         var entity = await _dbContext.Institutions
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Institution not found.");
@@ -775,12 +817,17 @@ public class InstitutionService : IInstitutionService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<OrganizationAnalyticsResponse> GetAnalyticsAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<OrganizationAnalyticsResponse> GetAnalyticsAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         var exists = await _dbContext.Institutions.AnyAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
         if (!exists)
         {
             throw new InvalidOperationException("Institution not found.");
+        }
+
+        if (!await CanAccessInstitutionDetailAsync(id, userId, cancellationToken))
+        {
+            throw new UnauthorizedAccessException("You do not have access to this institution.");
         }
 
         var branchCount = await _dbContext.Branches.CountAsync(x => x.InstitutionId == id && !x.IsDeleted, cancellationToken);
@@ -907,6 +954,19 @@ public class InstitutionService : IInstitutionService
         return librariesQuery.Where(x =>
             accessibleBranchIds.Contains(x.BranchId) ||
             accessibleLibraryIds.Contains(x.Id));
+    }
+
+    private async Task<bool> CanAccessInstitutionDetailAsync(
+        Guid institutionId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (await IsSuperAdminAsync(userId, cancellationToken))
+        {
+            return true;
+        }
+
+        return await CanAccessInstitutionPageAsync(institutionId, userId.ToString(), cancellationToken);
     }
 
     private async Task<bool> CanAccessInstitutionPageAsync(

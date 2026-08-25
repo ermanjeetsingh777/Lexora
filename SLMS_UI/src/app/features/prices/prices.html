@@ -1,160 +1,214 @@
 <div class="mx-auto max-w-7xl space-y-6 px-4 py-4 md:px-6">
-    <!-- Header -->
     <div
         class="flex flex-row gap-6 rounded-3xl border border-[var(--border)] bg-[var(--card)]/40 p-6 shadow-sm backdrop-blur-xl lg:flex-row lg:items-end lg:justify-between">
-        <!-- Left Content -->
         <div class="space-y-4">
-            <!-- Badge -->
             <div
                 class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                 <span class="h-2 w-2 rounded-full bg-primary"></span>
                 Library Insight · Flexible Pricing
             </div>
 
-            <!-- Heading -->
             <div class="space-y-3">
                 <h1 class="text-xl font-bold tracking-tight text-foreground sm:text-xl lg:text-3xl">
                     Simple Pricing for Modern Libraries
                 </h1>
 
                 <p class="text-sm leading-7 text-[var(--muted-foreground)] sm:text-base">
-                    Start free, scale effortlessly, and unlock powerful tools for
-                    institutions, branches, libraries, seat management, analytics,
-                    billing, and enterprise security.
+                    Start free, scale effortlessly, and unlock modules for institutions, branches, libraries,
+                    members, attendance, analytics, billing, and enterprise security.
                 </p>
             </div>
 
-            <!-- Mini Features -->
             <div class="flex flex-wrap items-center gap-3 pt-2">
                 <div
                     class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/70 px-4 py-2 text-sm font-medium shadow-sm">
-                    <app-icon [name]="'building-2'" [size]="16" />
+                    <app-icon name="building-2" [size]="16" />
                     Multi Institution
                 </div>
-
                 <div
                     class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/70 px-4 py-2 text-sm font-medium shadow-sm">
-                    <app-icon [name]="'building-2'" [size]="16" />
-                    Unlimited Branches
+                    <app-icon name="map-pin" [size]="16" />
+                    Branch Management
                 </div>
-
                 <div
                     class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/70 px-4 py-2 text-sm font-medium shadow-sm">
-                    <app-icon [name]="'library'" [size]="16" />
+                    <app-icon name="library" [size]="16" />
                     Smart Libraries
                 </div>
-
                 <div
                     class="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-background/70 px-4 py-2 text-sm font-medium shadow-sm">
-                    <app-icon [name]="'armchair'" [size]="16" />
-                    Smart Seat Allocation
+                    <app-icon name="armchair" [size]="16" />
+                    Seat Allocation
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Pricing Grid -->
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        @for(tier of pricingTiers(); track tier.key){
-            <div class="group relative overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--card)]/40 p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-                [class.border-primary]="tier.primary || tier.mostPopular">
-                <!-- Glow -->
-                @if(tier.primary || tier.mostPopular){
-                    <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent"></div>
-                }                
-            
-                <!-- Popular Badge -->
-                 @if(tier.mostPopular){
-                    <div class="absolute right-5 top-5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"> Most Popular</div>
-                }
-            
-                <!-- Plan -->
-                <div class="relative z-10">
-                    <div class="space-y-3">
-                        <div class="text-sm font-semibold uppercase tracking-wide text-primary">
-                            {{ tier.name }}
+    @if (loading()) {
+        <div class="flex items-center justify-center gap-2 py-20 text-[var(--muted-foreground)]">
+            <svg lucideLoader2 class="h-5 w-5 animate-spin"></svg>
+            Loading plans…
+        </div>
+    } @else if (error()) {
+        <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-8 text-center">
+            <p class="text-sm text-[var(--muted-foreground)]">{{ error() }}</p>
+            <button type="button"
+                class="mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+                (click)="loadPackages()">
+                Retry
+            </button>
+        </div>
+    } @else if (packages().length === 0) {
+        <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-8 text-center text-sm text-[var(--muted-foreground)]">
+            Pricing plans will be published soon. Contact us for a demo.
+        </div>
+    } @else {
+        <div class="grid gap-6 {{ gridClass() }}">
+            @for (pkg of packages(); track pkg.id) {
+                <article
+                    class="prices-card group relative flex flex-col overflow-hidden rounded-[28px] border bg-[var(--card)]/40 p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                    [class.prices-card--popular]="pkg.isPopular"
+                    [class.border-[var(--border)]]="!pkg.isPopular"
+                    [class.border-primary]="pkg.isPopular"
+                    [class.border-2]="pkg.isPopular">
+                    @if (pkg.isPopular) {
+                        <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent"></div>
+                        <div class="absolute right-5 top-5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                            Most Popular
                         </div>
-            
-                        <div class="flex items-end gap-1">
-                            <div class="text-4xl font-bold tracking-tight">
-                                {{ tier.priceLabel }}
+                    }
+
+                    <div class="relative z-10 flex flex-1 flex-col">
+                        <div class="space-y-3">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <div class="text-sm font-semibold uppercase tracking-wide text-primary">
+                                    {{ pkg.name }}
+                                </div>
+                                @if (pkg.category) {
+                                    <span class="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+                                        {{ pkg.category }}
+                                    </span>
+                                }
                             </div>
-            
-                            <span class="pb-1 text-sm text-[var(--muted-foreground)]">
-                                /month
-                            </span>
+
+                            <div class="flex items-end gap-2">
+                                <div class="text-4xl font-bold tracking-tight tabular-nums">
+                                    {{ formatPackagePrice(pkg.price) }}
+                                </div>
+                                <span class="pb-1 text-sm text-[var(--muted-foreground)]">
+                                    {{ formatPackageDuration(pkg.durationInDays) }}
+                                </span>
+                            </div>
+
+                            @if (pkg.description) {
+                                <p class="text-sm leading-6 text-[var(--muted-foreground)]">{{ pkg.description }}</p>
+                            }
                         </div>
-            
-                        <p class="text-sm leading-6 text-[var(--muted-foreground)]">
-                            {{ tier.description }}
-                        </p>
+
+                        <div class="mt-7 flex-1 space-y-4 border-t border-[var(--border)] pt-5">
+                            @for (group of groupFeaturesByModule(pkg.features); track group.module) {
+                                <div>
+                                    <div class="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                                        {{ group.module }}
+                                    </div>
+                                    <ul class="mt-2 space-y-2">
+                                        @for (feature of group.features; track feature.id) {
+                                            <li class="flex items-start gap-3">
+                                                <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs"
+                                                    [class.border-primary]="isFeatureIncluded(feature)"
+                                                    [class.bg-primary/10]="isFeatureIncluded(feature)"
+                                                    [class.border-[var(--border)]]="!isFeatureIncluded(feature)">
+                                                    @if (isFeatureIncluded(feature)) {
+                                                        <svg lucideCheck class="h-3 w-3 text-primary"></svg>
+                                                    } @else {
+                                                        <svg lucideX class="h-3 w-3 text-[var(--muted-foreground)]"></svg>
+                                                    }
+                                                </div>
+                                                <span class="text-sm leading-6"
+                                                    [class.text-[var(--muted-foreground)]]="!isFeatureIncluded(feature)">
+                                                    {{ featureLabel(feature) }}
+                                                </span>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mt-8">
+                            <a
+                                class="inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-300"
+                                [class.bg-primary]="pkg.isPopular || pkg.price > 0"
+                                [class.text-primary-foreground]="pkg.isPopular || pkg.price > 0"
+                                [class.shadow-lg]="pkg.isPopular"
+                                [class.shadow-primary/20]="pkg.isPopular"
+                                [class.border]="!pkg.isPopular && pkg.price <= 0"
+                                [class.border-[var(--border)]]="!pkg.isPopular && pkg.price <= 0"
+                                [class.bg-background/80]="!pkg.isPopular && pkg.price <= 0"
+                                [routerLink]="['/register']"
+                                [queryParams]="{ packageId: pkg.id }">
+                                {{ packageCtaLabel(pkg) }}
+                            </a>
+                        </div>
                     </div>
-            
-                    <!-- Features -->
-                    <div class="mt-7 space-y-3">
-                        @for(f of tier.features; track f.title){
-                            <div class="flex items-start gap-3">
-                                <div class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border text-xs"
-                                    [class.border-primary]="f.included" [class.bg-primary/10]="f.included">
-                                    @if(f.included){
-                                        <span class="font-semibold text-primary">
-                                            ✓
-                                        </span>
-                                    }@else{
-                                        <span class="text-[var(--muted-foreground)]">
-                                            ×
-                                        </span>
+                </article>
+            }
+        </div>
+
+        @if (comparisonRows().length) {
+            <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-4 shadow-sm md:p-6">
+                <div class="space-y-1">
+                    <h2 class="text-lg font-semibold">Compare modules & features</h2>
+                    <p class="text-sm text-[var(--muted-foreground)]">See what each plan includes across every module.</p>
+                </div>
+
+                <div class="mt-5 overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-[var(--border)] text-left">
+                                <th class="px-3 py-3 font-medium text-[var(--muted-foreground)]">Module / Feature</th>
+                                @for (pkg of packages(); track pkg.id) {
+                                    <th class="px-3 py-3 font-medium">{{ pkg.name }}</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (row of comparisonRows(); track row.featureName; let i = $index) {
+                                @if (i === 0 || comparisonRows()[i - 1].module !== row.module) {
+                                    <tr class="bg-[var(--muted)]/20">
+                                        <td [attr.colspan]="packages().length + 1" class="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                                            {{ row.module }}
+                                        </td>
+                                    </tr>
+                                }
+                                <tr class="border-b border-[var(--border)]/70 last:border-0">
+                                    <td class="px-3 py-2.5 text-[var(--muted-foreground)]">{{ row.featureName }}</td>
+                                    @for (pkg of packages(); track pkg.id) {
+                                        <td class="px-3 py-2.5">
+                                            @if (row.values[pkg.id]) {
+                                                <svg lucideCheck class="h-4 w-4 text-emerald-500"></svg>
+                                            } @else {
+                                                <svg lucideX class="h-4 w-4 text-[var(--muted-foreground)]/60"></svg>
+                                            }
+                                        </td>
                                     }
-                                </div>
-                            
-                                <div class="text-sm leading-6" [class.text-[var(--muted-foreground)]]="!f.included">
-                                    {{ f.title }}
-                                </div>
-                            </div>
-                        }                        
-                    </div>
-            
-                    <!-- CTA -->
-                    <div class="mt-8">
-                        <button type="button"
-                            class="inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-300"
-                            [class.bg-primary]="tier.primary || tier.mostPopular"
-                            [class.text-primary-foreground]="tier.primary || tier.mostPopular"
-                            [class.shadow-lg]="tier.primary || tier.mostPopular"
-                            [class.shadow-primary/20]="tier.primary || tier.mostPopular"
-                            [class.border]="!(tier.primary || tier.mostPopular)"
-                            [class.border-[var(--border)]]="!(tier.primary || tier.mostPopular)"
-                            [class.bg-background/80]="!(tier.primary || tier.mostPopular)"
-                            [class.hover:bg-muted/40]="!(tier.primary || tier.mostPopular)">
-                            <!-- <mat-icon class="mr-2 text-base">bolt</mat-icon> -->
-            
-                            {{
-                            tier.primary || tier.mostPopular
-                            ? 'Get Started Now'
-                            : 'Choose Plan'
-                            }}
-                        </button>
-                    </div>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        }  
-    </div>
+        }
+    }
 
-    <!-- Bottom Note -->
     <div class="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--card)]/20 p-5 text-center">
-        <h3 class="text-lg font-semibold">
-            Need a custom enterprise solution?
-        </h3>
-
+        <h3 class="text-lg font-semibold">Need a custom enterprise solution?</h3>
         <p class="mt-2 text-sm text-[var(--muted-foreground)]">
-            Contact our team for custom pricing, dedicated onboarding, and advanced
-            multi-institution deployment support.
+            Contact our team for custom pricing, dedicated onboarding, and advanced multi-institution deployment support.
         </p>
-
-        <button
+        <a routerLink="/register"
             class="mt-4 inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-background px-5 py-2.5 text-sm font-medium shadow-sm transition-all hover:bg-muted/40">
-            <!-- <mat-icon class="mr-2 text-base">support_agent</mat-icon> -->
-            Contact Sales
-        </button>
+            Get Started
+        </a>
     </div>
 </div>

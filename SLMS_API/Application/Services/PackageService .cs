@@ -24,10 +24,14 @@ namespace SLMS_API.Application.Services
                 {
                     Id = x.Id,
                     Name = x.Name,
+                    Code = x.Code,
+                    Category = x.Category,
                     Price = x.Price,
                     DurationInDays = x.DurationInDays,
                     Description = x.Description,
                     IsActive = x.IsActive,
+                    IsPopular = x.IsPopular,
+                    CtaLabel = x.CtaLabel,
                     Features = x.Features
                         .Select(f => new PackageFeatureResponse
                         {
@@ -50,10 +54,14 @@ namespace SLMS_API.Application.Services
                 {
                     Id = x.Id,
                     Name = x.Name,
+                    Code = x.Code,
+                    Category = x.Category,
                     Price = x.Price,
                     DurationInDays = x.DurationInDays,
                     Description = x.Description,
                     IsActive = x.IsActive,
+                    IsPopular = x.IsPopular,
+                    CtaLabel = x.CtaLabel,
                     Features = x.Features
                         .Select(f => new PackageFeatureResponse
                         {
@@ -79,10 +87,14 @@ namespace SLMS_API.Application.Services
             {
                 Id = package.Id,
                 Name = package.Name,
+                Code = package.Code,
+                Category = package.Category,
                 Price = package.Price,
                 DurationInDays = package.DurationInDays,
                 Description = package.Description,
                 IsActive = package.IsActive,
+                IsPopular = package.IsPopular,
+                CtaLabel = package.CtaLabel,
                 Features = package.Features
                     .Select(f => new PackageFeatureResponse
                     {
@@ -120,10 +132,14 @@ namespace SLMS_API.Application.Services
             {
                 Id = package.Id,
                 Name = package.Name,
+                Code = package.Code,
+                Category = package.Category,
                 Price = package.Price,
                 DurationInDays = package.DurationInDays,
                 Description = package.Description,
                 IsActive = package.IsActive,
+                IsPopular = package.IsPopular,
+                CtaLabel = package.CtaLabel,
                 Features = package.Features
                      .Select(f => new PackageFeatureResponse
                      {
@@ -165,10 +181,14 @@ namespace SLMS_API.Application.Services
             {
                 Id = package.Id,
                 Name = package.Name,
+                Code = package.Code,
+                Category = package.Category,
                 Price = package.Price,
                 DurationInDays = package.DurationInDays,
                 Description = package.Description,
                 IsActive = package.IsActive,
+                IsPopular = package.IsPopular,
+                CtaLabel = package.CtaLabel,
                 Features = package.Features
                     .Select(f => new PackageFeatureResponse
                     {

@@ -9,10 +9,14 @@ export interface PackageFeature {
 export interface PackageCatalogItem {
   id: string;
   name: string;
+  code?: string;
+  category?: string;
   description?: string | null;
   price: number;
   durationInDays: number;
   isActive: boolean;
+  isPopular?: boolean;
+  ctaLabel?: string | null;
   features: PackageFeature[];
 }
 

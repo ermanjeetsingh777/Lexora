@@ -1,0 +1,7 @@
+.prices-card {
+  min-height: 100%;
+}
+
+.prices-card--popular {
+  box-shadow: 0 20px 40px -24px color-mix(in srgb, var(--primary) 45%, transparent);
+}

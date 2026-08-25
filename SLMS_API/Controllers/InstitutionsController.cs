@@ -59,7 +59,12 @@ public class InstitutionsController : ControllerBase
     //[Permission(PermissionKey.InstitutionsManage)]
     public async Task<ActionResult<ApiResponse<InstitutionOverviewResponse>>> GetOverview(Guid id, CancellationToken cancellationToken)
     {
-        var overview = await _institutionService.GetOverviewAsync(id, cancellationToken);
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var overview = await _institutionService.GetOverviewAsync(id, userId, cancellationToken);
         if (overview is null)
         {
             return NotFound(ApiResponse<InstitutionOverviewResponse>.Fail("Institution not found."));
@@ -71,7 +76,12 @@ public class InstitutionsController : ControllerBase
     [HttpGet("{id:guid}/billing")]
     public async Task<ActionResult<ApiResponse<InstitutionBillingResponse>>> GetBilling(Guid id, CancellationToken cancellationToken)
     {
-        var billing = await _institutionService.GetBillingAsync(id, cancellationToken);
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var billing = await _institutionService.GetBillingAsync(id, userId, cancellationToken);
         if (billing is null)
         {
             return NotFound(ApiResponse<InstitutionBillingResponse>.Fail("Institution not found."));
@@ -87,7 +97,12 @@ public class InstitutionsController : ControllerBase
         [FromQuery] InstitutionBranchListQuery query,
         CancellationToken cancellationToken)
     {
-        var view = await _institutionService.GetBranchesViewAsync(id, query, cancellationToken);
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var view = await _institutionService.GetBranchesViewAsync(id, query, userId, cancellationToken);
         if (view is null)
         {
             return NotFound(ApiResponse<InstitutionBranchesViewResponse>.Fail("Institution not found."));
@@ -174,7 +189,12 @@ public class InstitutionsController : ControllerBase
     //[Permission(PermissionKey.InstitutionsManage)]
     public async Task<ActionResult<ApiResponse<InstitutionResponse>>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var institution = await _institutionService.GetByIdAsync(id, cancellationToken);
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var institution = await _institutionService.GetByIdAsync(id, userId, cancellationToken);
         if (institution is null)
         {
             return NotFound(ApiResponse<InstitutionResponse>.Fail("Institution not found."));
@@ -205,6 +225,10 @@ public class InstitutionsController : ControllerBase
         {
             return BadRequest(ApiResponse<InstitutionResponse>.Fail(ex.Message));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<InstitutionResponse>.Fail(ex.Message));
+        }
     }
 
     [HttpDelete("{id:guid}")]
@@ -219,6 +243,10 @@ public class InstitutionsController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<object>.Fail(ex.Message));
         }
     }
 
@@ -246,14 +274,23 @@ public class InstitutionsController : ControllerBase
     //[Permission(PermissionKey.InstitutionsManage)]
     public async Task<ActionResult<ApiResponse<OrganizationAnalyticsResponse>>> GetAnalytics(Guid id, CancellationToken cancellationToken)
     {
+        if (!Guid.TryParse(_currentUserService.UserId, out var userId))
+        {
+            return Unauthorized();
+        }
+
         try
         {
-            var analytics = await _institutionService.GetAnalyticsAsync(id, cancellationToken);
+            var analytics = await _institutionService.GetAnalyticsAsync(id, userId, cancellationToken);
             return Ok(ApiResponse<OrganizationAnalyticsResponse>.Ok(analytics));
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(ApiResponse<OrganizationAnalyticsResponse>.Fail(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<OrganizationAnalyticsResponse>.Fail(ex.Message));
         }
     }
 }

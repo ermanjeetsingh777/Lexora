@@ -249,90 +249,376 @@
     </div>
 </section>
 
-<section id="architecture" class="mx-auto max-w-7xl px-4 py-4 md:px-6">
-    <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-6 shadow-sm">
-        <div class="flex items-end justify-between gap-4">
-            <div>
-                <div class="text-2xl font-semibold tracking-tight">Multi-Tenant Architecture</div>
-                <p class="mt-2 text-sm text-[var(--muted-foreground)]">Institution → Branch → Library → Seats (with
-                    tenant isolation and enterprise security).</p>
+<section id="workflow" class="mx-auto max-w-7xl px-4 py-8 md:px-6">
+    <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-6 shadow-sm md:p-8">
+        <div class="space-y-3">
+            <div class="inline-flex items-center gap-2 rounded-full border border-[var(--primary)]/20 bg-[var(--primary)]/10 px-3 py-1 text-xs font-medium text-[var(--primary)]">
+                Multi-tenant architecture
+            </div>
+            <h2 class="text-2xl font-semibold tracking-tight">How Lexora maps your library network</h2>
+            <p class="max-w-3xl text-sm text-[var(--muted-foreground)]">
+                Each institution is an isolated tenant with multiple branches. Branches host libraries in sequence,
+                members map to one library each, and attendance is tracked at that library — with enterprise security
+                across the full hierarchy.
+            </p>
+        </div>
+
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div class="arch-layer-card">
+                <div class="arch-layer-card__icon arch-layer-card__icon--institution">
+                    <app-icon name="building-2" [size]="16" />
+                </div>
+                <div class="arch-layer-card__title">Institution</div>
+                <p class="arch-layer-card__text">Top-level tenant for your organisation.</p>
+            </div>
+            <div class="arch-layer-card">
+                <div class="arch-layer-card__icon arch-layer-card__icon--branch">
+                    <app-icon name="map-pin" [size]="16" />
+                </div>
+                <div class="arch-layer-card__title">Branch</div>
+                <p class="arch-layer-card__text">Campus or city units under the institution.</p>
+            </div>
+            <div class="arch-layer-card">
+                <div class="arch-layer-card__icon arch-layer-card__icon--library">
+                    <app-icon name="library" [size]="16" />
+                </div>
+                <div class="arch-layer-card__title">Library</div>
+                <p class="arch-layer-card__text">Reading halls with seats and resources.</p>
+            </div>
+            <div class="arch-layer-card">
+                <div class="arch-layer-card__icon arch-layer-card__icon--member">
+                    <app-icon name="users" [size]="16" />
+                </div>
+                <div class="arch-layer-card__title">Member</div>
+                <p class="arch-layer-card__text">One member mapped to exactly one library.</p>
+            </div>
+            <div class="arch-layer-card">
+                <div class="arch-layer-card__icon arch-layer-card__icon--attendance">
+                    <app-icon name="calendar-check" [size]="16" />
+                </div>
+                <div class="arch-layer-card__title">Attendance</div>
+                <p class="arch-layer-card__text">Daily check-in/out at the mapped library.</p>
             </div>
         </div>
 
-        <div class="mt-6 grid gap-4 md:grid-cols-4">
-            <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                <div class="flex items-center gap-2 font-semibold"><app-icon name="building-2" [size]="16" />
-                    Institution</div>
-                <p class="mt-2 text-xs text-[var(--muted-foreground)]">Tenant container for all assets.</p>
-            </div>
-            <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                <div class="flex items-center gap-2 font-semibold"><app-icon name="map-pin" [size]="16" /> Branch
+        <div class="my-8 border-t border-[var(--border)]"></div>
+
+        <div class="wf-flow-legend mt-6 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
+            <span class="wf-flow-legend__item wf-flow-legend__item--institution">Institution</span>
+            <span class="wf-flow-legend__arrow">→</span>
+            <span class="wf-flow-legend__item wf-flow-legend__item--branch">Branches</span>
+            <span class="wf-flow-legend__arrow">→</span>
+            <span class="wf-flow-legend__item wf-flow-legend__item--library">Libraries</span>
+            <span class="wf-flow-legend__arrow">→</span>
+            <span class="wf-flow-legend__item wf-flow-legend__item--member">Members</span>
+            <span class="wf-flow-legend__arrow">→</span>
+            <span class="wf-flow-legend__item wf-flow-legend__item--attendance">Attendance</span>
+        </div>
+
+        <div class="wf-tree mt-8">
+            <!-- Root: Institution -->
+            <div class="wf-tree__root">
+                <div class="wf-card wf-card--institution">
+                    <div class="wf-card__icon wf-card__icon--institution">
+                        <app-icon name="building-2" [size]="22" />
+                    </div>
+                    <div>
+                        <div class="wf-card__title">Institution</div>
+                        <div class="wf-card__meta">One organisation · multiple branches</div>
+                    </div>
                 </div>
-                <p class="mt-2 text-xs text-[var(--muted-foreground)]">Operational units with schedules.</p>
             </div>
-            <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                <div class="flex items-center gap-2 font-semibold"><app-icon name="library" [size]="16" /> Library
+
+            <div class="wf-tree__stem" aria-hidden="true"></div>
+
+            <!-- Branch columns -->
+            <div class="wf-tree__branches">
+                <!-- Branch A -->
+                <div class="wf-branch-col">
+                    <div class="wf-branch-col__header">
+                        <div class="wf-card wf-card--branch">
+                            <div class="wf-card__icon wf-card__icon--branch">
+                                <app-icon name="map-pin" [size]="18" />
+                            </div>
+                            <div>
+                                <div class="wf-card__title">Branch A</div>
+                                <div class="wf-card__meta">North campus</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wf-branch-col__body">
+                        <p class="wf-branch-col__sequence-label">Libraries in this branch (left → right)</p>
+                        <div class="wf-branch-rail" aria-hidden="true">
+                            <span class="wf-branch-rail__down"></span>
+                            <span class="wf-branch-rail__across"></span>
+                        </div>
+
+                        <div class="wf-library-sequence">
+                            <div class="wf-library-sequence__item">
+                                <span class="wf-library-sequence__drop" aria-hidden="true"></span>
+                                <div class="wf-library-stack">
+                                    <div class="wf-card wf-card--library">
+                                        <div class="wf-card__icon wf-card__icon--library">
+                                            <app-icon name="library" [size]="16" />
+                                        </div>
+                                        <div class="wf-card__title">Library 1</div>
+                                    </div>
+                                    <div class="wf-library-stack__members">
+                                        <div class="wf-library-stack__label">Members mapped here</div>
+                                        <div class="wf-member-pill"><app-icon name="users" [size]="12" /> Member A</div>
+                                        <div class="wf-member-pill"><app-icon name="users" [size]="12" /> Member B</div>
+                                    </div>
+                                    <div class="wf-attendance-badge">
+                                        <app-icon name="calendar-check" [size]="14" />
+                                        Daily attendance
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="wf-library-sequence__link" aria-hidden="true">
+                                <span class="wf-library-sequence__arrow">→</span>
+                            </div>
+
+                            <div class="wf-library-sequence__item">
+                                <span class="wf-library-sequence__drop" aria-hidden="true"></span>
+                                <div class="wf-library-stack">
+                                    <div class="wf-card wf-card--library">
+                                        <div class="wf-card__icon wf-card__icon--library">
+                                            <app-icon name="library" [size]="16" />
+                                        </div>
+                                        <div class="wf-card__title">Library 2</div>
+                                    </div>
+                                    <div class="wf-library-stack__members">
+                                        <div class="wf-library-stack__label">Members mapped here</div>
+                                        <div class="wf-member-pill"><app-icon name="users" [size]="12" /> Member C</div>
+                                    </div>
+                                    <div class="wf-attendance-badge">
+                                        <app-icon name="calendar-check" [size]="14" />
+                                        Daily attendance
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p class="mt-2 text-xs text-[var(--muted-foreground)]">Resource & seat inventory.</p>
+
+                <!-- Branch B -->
+                <div class="wf-branch-col">
+                    <div class="wf-branch-col__header">
+                        <div class="wf-card wf-card--branch">
+                            <div class="wf-card__icon wf-card__icon--branch">
+                                <app-icon name="map-pin" [size]="18" />
+                            </div>
+                            <div>
+                                <div class="wf-card__title">Branch B</div>
+                                <div class="wf-card__meta">East campus</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wf-branch-col__body">
+                        <p class="wf-branch-col__sequence-label">Library under this branch</p>
+                        <div class="wf-branch-rail" aria-hidden="true">
+                            <span class="wf-branch-rail__down"></span>
+                            <span class="wf-branch-rail__across wf-branch-rail__across--single"></span>
+                        </div>
+
+                        <div class="wf-library-sequence wf-library-sequence--single">
+                            <div class="wf-library-sequence__item">
+                                <span class="wf-library-sequence__drop" aria-hidden="true"></span>
+                                <div class="wf-library-stack">
+                                    <div class="wf-card wf-card--library">
+                                        <div class="wf-card__icon wf-card__icon--library">
+                                            <app-icon name="library" [size]="16" />
+                                        </div>
+                                        <div class="wf-card__title">Library 3</div>
+                                    </div>
+                                    <div class="wf-library-stack__members">
+                                        <div class="wf-library-stack__label">Members mapped here</div>
+                                        <div class="wf-member-pill"><app-icon name="users" [size]="12" /> Member D</div>
+                                    </div>
+                                    <div class="wf-attendance-badge">
+                                        <app-icon name="calendar-check" [size]="14" />
+                                        Daily attendance
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="rounded-2xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                <div class="flex items-center gap-2 font-semibold"><app-icon name="armchair" [size]="16" /> Seats
-                </div>
-                <p class="mt-2 text-xs text-[var(--muted-foreground)]">Real-time occupancy and assignment.</p>
+        </div>
+
+        <div class="wf-rules mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="wf-rule-card">
+                <div class="wf-rule-card__icon wf-rule-card__icon--institution">1→N</div>
+                <div class="wf-rule-card__title">Institution → Branches</div>
+                <p class="wf-rule-card__text">Ek institution ke andar aap multiple branches bana sakte ho.</p>
+            </div>
+            <div class="wf-rule-card">
+                <div class="wf-rule-card__icon wf-rule-card__icon--branch">1→N</div>
+                <div class="wf-rule-card__title">Branch → Libraries</div>
+                <p class="wf-rule-card__text">Har branch me alag-alag reading halls / libraries ho sakti hain.</p>
+            </div>
+            <div class="wf-rule-card wf-rule-card--highlight">
+                <div class="wf-rule-card__icon wf-rule-card__icon--member">1→1</div>
+                <div class="wf-rule-card__title">Member → One library</div>
+                <p class="wf-rule-card__text">Har member sirf ek hi library se mapped hota hai — kabhi do libraries se nahi.</p>
+            </div>
+            <div class="wf-rule-card">
+                <div class="wf-rule-card__icon wf-rule-card__icon--attendance">✓</div>
+                <div class="wf-rule-card__title">Library → Attendance</div>
+                <p class="wf-rule-card__text">Check-in/out usi library par track hota hai jahan member mapped hai.</p>
             </div>
         </div>
     </div>
 </section>
 
-<section id="pricing" class="mx-auto max-w-7xl px-4 py-4 md:px-6">
-    <div class="space-y-2">
+<section id="pricing" class="mx-auto max-w-7xl px-4 py-8 md:px-6">
+    <div class="space-y-2 text-center md:text-left">
         <h2 class="text-2xl font-semibold tracking-tight">Pricing</h2>
-        <p class="text-sm text-[var(--muted-foreground)]">Choose a plan built for multi-branch growth.</p>
+        <p class="text-sm text-[var(--muted-foreground)]">
+            Institution SaaS packages — pick the modules and capacity that match your library network.
+        </p>
     </div>
 
-    <div class="mt-8 grid gap-4 md:grid-cols-3">
-        <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-6 shadow-sm">
-            <div class="text-sm font-semibold">Starter</div>
-            <div class="mt-4 text-3xl font-semibold">$39<span
-                    class="text-sm font-medium text-[var(--muted-foreground)]">/mo</span></div>
-            <ul class="mt-5 space-y-2 text-sm text-[var(--muted-foreground)]">
-                <li>• Core seat management</li>
-                <li>• Attendance & QR</li>
-                <li>• Basic analytics</li>
-            </ul>
-            <a class="mt-6 inline-flex w-full items-center justify-center rounded-md bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-[var(--primary-foreground)]"
-                href="#">Get Started</a>
+    @if (packagesLoading()) {
+        <div class="mt-8 flex items-center justify-center gap-2 py-16 text-[var(--muted-foreground)]">
+            <svg lucideLoader2 class="h-5 w-5 animate-spin"></svg>
+            Loading plans…
+        </div>
+    } @else if (packagesError()) {
+        <div class="mt-8 rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-8 text-center">
+            <p class="text-sm text-[var(--muted-foreground)]">{{ packagesError() }}</p>
+            <button type="button"
+                class="mt-4 inline-flex items-center justify-center rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)]"
+                (click)="loadPackages()">
+                Retry
+            </button>
+        </div>
+    } @else if (packages().length === 0) {
+        <div class="mt-8 rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-8 text-center text-sm text-[var(--muted-foreground)]">
+            Pricing plans will be published soon. Contact us for a demo.
+        </div>
+    } @else {
+        <div class="mt-8 grid gap-4 {{ pricingGridClass() }}">
+            @for (pkg of packages(); track pkg.id) {
+                <article
+                    class="landing-pricing-card flex flex-col rounded-3xl border bg-[var(--card)]/30 p-6 shadow-sm transition-transform hover:-translate-y-0.5"
+                    [class.landing-pricing-card--popular]="pkg.isPopular"
+                    [class.border-[var(--border)]]="!pkg.isPopular"
+                    [class.border-2]="pkg.isPopular"
+                    [class.border-[var(--primary)]]="pkg.isPopular"
+                    [class.bg-[var(--card)]/40]="pkg.isPopular"
+                    [class.shadow-elegant]="pkg.isPopular">
+                    @if (pkg.isPopular) {
+                        <div class="mb-3 inline-flex w-fit rounded-full bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]">
+                            Recommended
+                        </div>
+                    }
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-lg font-semibold">{{ pkg.name }}</h3>
+                        @if (pkg.category) {
+                            <span class="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+                                {{ pkg.category }}
+                            </span>
+                        }
+                    </div>
+
+                    <div class="mt-4 flex items-end gap-2">
+                        <div class="text-3xl font-semibold tabular-nums">{{ formatPackagePrice(pkg.price) }}</div>
+                        <div class="pb-1 text-sm text-[var(--muted-foreground)]">{{ formatPackageDuration(pkg.durationInDays) }}</div>
+                    </div>
+
+                    @if (pkg.description) {
+                        <p class="mt-3 text-sm text-[var(--muted-foreground)]">{{ pkg.description }}</p>
+                    }
+
+                    <div class="mt-5 flex-1 space-y-4 border-t border-[var(--border)] pt-4">
+                        @for (group of groupFeaturesByModule(pkg.features); track group.module) {
+                            <div>
+                                <div class="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                                    {{ group.module }}
+                                </div>
+                                <ul class="mt-2 space-y-1.5">
+                                    @for (feature of group.features; track feature.id) {
+                                        <li class="flex items-start gap-2 text-sm"
+                                            [class.text-[var(--muted-foreground)]]="!isFeatureIncluded(feature)">
+                                            @if (isFeatureIncluded(feature)) {
+                                                <svg lucideCheck class="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500"></svg>
+                                            } @else {
+                                                <svg lucideX class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted-foreground)]/70"></svg>
+                                            }
+                                            <span>{{ featureLabel(feature) }}</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+
+                    <a class="mt-6 inline-flex w-full items-center justify-center rounded-md px-4 py-3 text-sm font-semibold transition-colors"
+                        [class.bg-[var(--primary)]]="pkg.isPopular || pkg.price > 0"
+                        [class.text-[var(--primary-foreground)]]="pkg.isPopular || pkg.price > 0"
+                        [class.border]="!pkg.isPopular && pkg.price <= 0"
+                        [class.border-[var(--border)]]="!pkg.isPopular && pkg.price <= 0"
+                        [class.bg-[var(--background)]]="!pkg.isPopular && pkg.price <= 0"
+                        [class.text-[var(--foreground)]]="!pkg.isPopular && pkg.price <= 0"
+                        [routerLink]="['/register']"
+                        [queryParams]="{ packageId: pkg.id }">
+                        {{ packageCtaLabel(pkg) }}
+                    </a>
+                </article>
+            }
         </div>
 
-        <div
-            class="rounded-3xl border-2 border-[var(--primary)] bg-[var(--card)]/40 p-6 shadow-elegant relative overflow-hidden">
-            <div
-                class="absolute right-4 top-4 rounded-full bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]">
-                Recommended</div>
-            <div class="text-sm font-semibold">Professional</div>
-            <div class="mt-4 text-3xl font-semibold">$99<span
-                    class="text-sm font-medium text-[var(--muted-foreground)]">/mo</span></div>
-            <ul class="mt-5 space-y-2 text-sm text-[var(--muted-foreground)]">
-                <li>• Multi-branch management</li>
-                <li>• Advanced analytics</li>
-                <li>• Role-based access</li>
-            </ul>
-            <a class="mt-6 inline-flex w-full items-center justify-center rounded-md bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-[var(--primary-foreground)]"
-                href="#">Get Started</a>
-        </div>
+        @if (comparisonRows().length) {
+            <div class="mt-10 rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-4 shadow-sm md:p-6">
+                <div class="space-y-1">
+                    <h3 class="text-lg font-semibold">Compare modules & features</h3>
+                    <p class="text-sm text-[var(--muted-foreground)]">Side-by-side view of what each plan includes.</p>
+                </div>
 
-        <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-6 shadow-sm">
-            <div class="text-sm font-semibold">Enterprise</div>
-            <div class="mt-4 text-3xl font-semibold">Custom</div>
-            <ul class="mt-5 space-y-2 text-sm text-[var(--muted-foreground)]">
-                <li>• Tenant isolation</li>
-                <li>• Audit logs & compliance</li>
-                <li>• Priority onboarding</li>
-            </ul>
-            <a class="mt-6 inline-flex w-full items-center justify-center rounded-md border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm font-semibold text-[var(--foreground)]"
-                href="#">Schedule Demo</a>
-        </div>
-    </div>
+                <div class="mt-5 overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-[var(--border)] text-left">
+                                <th class="px-3 py-3 font-medium text-[var(--muted-foreground)]">Module / Feature</th>
+                                @for (pkg of packages(); track pkg.id) {
+                                    <th class="px-3 py-3 font-medium">{{ pkg.name }}</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (row of comparisonRows(); track row.featureName; let i = $index) {
+                                @if (i === 0 || comparisonRows()[i - 1].module !== row.module) {
+                                    <tr class="bg-[var(--muted)]/20">
+                                        <td [attr.colspan]="packages().length + 1" class="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                                            {{ row.module }}
+                                        </td>
+                                    </tr>
+                                }
+                                <tr class="border-b border-[var(--border)]/70 last:border-0">
+                                    <td class="px-3 py-2.5 text-[var(--muted-foreground)]">{{ row.featureName }}</td>
+                                    @for (pkg of packages(); track pkg.id) {
+                                        <td class="px-3 py-2.5">
+                                            @if (row.values[pkg.id]) {
+                                                <svg lucideCheck class="h-4 w-4 text-emerald-500"></svg>
+                                            } @else {
+                                                <svg lucideX class="h-4 w-4 text-[var(--muted-foreground)]/60"></svg>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
 </section>
 
 <section id="security" class="mx-auto max-w-7xl px-4 py-4 md:px-6">

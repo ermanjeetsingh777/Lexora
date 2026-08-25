@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RegisterRequest } from '@core/models/AuthResponse.model';
 import { PackageCatalogItem } from '@core/models/package-subscription.models';
 import { AuthService } from '@core/services/auth.service';
@@ -23,6 +23,7 @@ export class RegisterComponent implements OnInit {
   private readonly packageService = inject(PackageService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly name = signal('');
@@ -37,10 +38,15 @@ export class RegisterComponent implements OnInit {
   packageId = '';
 
   ngOnInit(): void {
+    const preselectedPackageId = this.route.snapshot.queryParamMap.get('packageId') ?? '';
+
     this.packageService.getActivePackages().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (packages) => {
         this.packages.set(packages);
-        if (packages.length === 1) {
+        const matched = packages.find((pkg) => pkg.id === preselectedPackageId);
+        if (matched) {
+          this.packageId = matched.id;
+        } else if (packages.length === 1) {
           this.packageId = packages[0].id;
         }
         this.packagesLoading.set(false);

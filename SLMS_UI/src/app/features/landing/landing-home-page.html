@@ -231,7 +231,7 @@
     </div>
 </section>
 
-<section id="workflow" class="mx-auto max-w-7xl px-4 py-8 md:px-6">
+<section id="workflow" class="mx-auto max-w-7xl px-4 py-4 md:px-6">
     <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-6 shadow-sm md:p-8">
         <div class="grid items-center gap-8 lg:grid-cols-[1fr_340px]">
             <div class="space-y-3">
@@ -467,7 +467,79 @@
     </div>
 </section>
 
-<section id="pricing" class="mx-auto max-w-7xl px-4 py-8 md:px-6">
+<section id="team" class="mx-auto max-w-7xl px-4 py-8 md:px-6">
+    <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)]/30 p-6 shadow-sm md:p-8">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div class="space-y-2">
+                <div class="inline-flex items-center gap-2 rounded-full border border-[var(--primary)]/20 bg-[var(--primary)]/10 px-3 py-1 text-xs font-medium text-[var(--primary)]">
+                    <app-icon name="users" [size]="14" />
+                    Lexora Team
+                </div>
+                <h2 class="text-2xl font-semibold tracking-tight">The people behind the platform</h2>
+                <p class="max-w-2xl text-sm text-[var(--muted-foreground)]">
+                    Product, engineering, design, and customer success teams building Lexora for modern library institutions.
+                </p>
+            </div>
+        </div>
+
+        @if (lexoraTeam.length) {
+            <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                @for (member of lexoraTeam; track member.name) {
+                    <article class="landing-team-card rounded-2xl border border-[var(--border)] bg-[var(--background)]/50 p-5 shadow-sm">
+                        <div class="flex items-start gap-4">
+                            @if (member.avatarUrl) {
+                                <img
+                                    [src]="member.avatarUrl"
+                                    [alt]="member.name"
+                                    class="landing-team-card__avatar landing-team-card__avatar--image"
+                                    loading="lazy"
+                                    decoding="async" />
+                            } @else {
+                                <div class="landing-team-card__avatar" aria-hidden="true">
+                                    {{ teamInitials(member.name) }}
+                                </div>
+                            }
+
+                            <div class="min-w-0 flex-1">
+                                <h3 class="text-sm font-semibold leading-tight">{{ member.name }}</h3>
+                                <p class="mt-1 text-xs font-medium text-[var(--primary)]">{{ member.role }}</p>
+                            </div>
+                        </div>
+
+                        <p class="mt-4 text-sm leading-relaxed text-[var(--muted-foreground)]">{{ member.bio }}</p>
+
+                        @if (member.email || member.linkedIn) {
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                @if (member.email) {
+                                    <a
+                                        [href]="'mailto:' + member.email"
+                                        class="landing-team-card__link inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--muted)]/30">
+                                        <app-icon name="mail" [size]="12" />
+                                        Email
+                                    </a>
+                                }
+                                @if (member.linkedIn) {
+                                    <a
+                                        [href]="member.linkedIn"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="landing-team-card__link inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--muted)]/30">
+                                        <app-icon name="arrow-right" [size]="12" />
+                                        LinkedIn
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        } @else {
+            <p class="mt-6 text-sm text-[var(--muted-foreground)]">Team profiles will be published soon.</p>
+        }
+    </div>
+</section>
+
+<section id="pricing" class="mx-auto max-w-7xl px-4 py-4 md:px-6">
     <div class="space-y-2 text-center md:text-left">
         <h2 class="text-2xl font-semibold tracking-tight">Pricing</h2>
         <p class="text-sm text-[var(--muted-foreground)]">

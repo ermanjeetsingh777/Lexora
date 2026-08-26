@@ -221,6 +221,34 @@
   backdrop-filter: blur(8px);
 }
 
+.landing-team-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.landing-team-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.08);
+}
+
+.landing-team-card__avatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 80%, #6366f1), var(--primary));
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.landing-team-card__avatar--image {
+  object-fit: cover;
+  background: var(--muted);
+}
+
 .landing-workflow-visual {
   overflow: hidden;
   border-radius: 1.25rem;

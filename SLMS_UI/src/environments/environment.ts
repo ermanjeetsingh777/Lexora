@@ -1,3 +1,5 @@
+import { LexoraTeamMember } from '../app/core/models/lexora-team-member.model';
+
 export const environment = {
   production: false,
   baseUrl: '',
@@ -14,5 +16,32 @@ export const environment = {
   TENANT_KEY: 'tenant',
   STORAGE_KEY: 'slms_auth',
   MOCK_OTP: '123456',
+  lexoraTeam: [
+    {
+      name: 'Yogesh Yadav',
+      role: 'Founder & Product Lead',
+      bio: 'Leads Lexora product vision for multi-branch library institutions.',
+      email: 'yogesh@lexora.app',
+      linkedIn: 'https://www.linkedin.com/',
+    },
+    {
+      name: 'Platform Engineering',
+      role: 'Backend & Multi-Tenant Architecture',
+      bio: 'Builds secure APIs, tenant isolation, and institution workflows.',
+      email: 'engineering@lexora.app',
+    },
+    {
+      name: 'Experience Design',
+      role: 'UI/UX & Frontend',
+      bio: 'Crafts admin dashboards, member flows, and landing experiences.',
+      email: 'design@lexora.app',
+    },
+    {
+      name: 'Customer Success',
+      role: 'Onboarding & Support',
+      bio: 'Helps institutions launch branches, libraries, and member operations.',
+      email: 'support@lexora.app',
+    },
+  ] as LexoraTeamMember[],
 };
 

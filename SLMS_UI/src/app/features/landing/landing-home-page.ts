@@ -3,11 +3,13 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideCheck, LucideLoader2, LucideX } from '@lucide/angular';
 import { LandingFeature } from '@core/models/LandingFeature';
+import { LexoraTeamMember } from '@core/models/lexora-team-member.model';
 import { PackageCatalogItem } from '@core/models/package-subscription.models';
 import { toLandingFeatures } from '@core/data/feature-catalog';
 import { PackageService } from '@core/services/package.service';
 import { StorageService } from '@core/services/storage.service';
 import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
+import { environment } from '../../../environments/environment';
 import {
   buildComparisonRows,
   featureLabel,
@@ -44,6 +46,16 @@ export class LandingHomePage implements OnInit {
   protected readonly featureLabel = featureLabel;
 
   protected features = signal<LandingFeature[]>(toLandingFeatures());
+  protected readonly lexoraTeam: LexoraTeamMember[] = environment.lexoraTeam;
+
+  protected teamInitials(name: string): string {
+    return name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('');
+  }
 
   protected readonly landingAssets = {
     hero3d: '/assets/landing/landing-hero-3d.png',

@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { guestGuard } from '@core/guards/auth.guard';
-import { onboardingGuard } from '@core/guards/onboarding.guard';
+import { authGuard } from '@core/guards/auth.guard';
+import { onboardingCompleteGuard, onboardingGuard } from '@core/guards/onboarding.guard';
 import { permissionGuard } from '@core/guards/permission.guard';
 import { PermissionKey } from '@core/constants/permissions';
 
@@ -54,7 +54,7 @@ export const routes: Routes = [
     // --- Authenticated area ---
     {
         path: '',
-        // canActivate: [authGuard],
+        canActivate: [authGuard, onboardingCompleteGuard],
         loadComponent: () => import('./layouts/app-shell/app-shell.component').then((m) => m.AppShellComponent),
         children: [
             // --- Dashboard ---
@@ -75,16 +75,6 @@ export const routes: Routes = [
                 ],
             },
 
-            // // --- Students ---
-            // {
-            //     path: 'students',
-            //     children: [
-            //         { path: '', loadComponent: () => import('./features/students/students-list.component').then((m) => m.StudentsListComponent) },
-            //         { path: 'create', loadComponent: () => import('./features/students/student-create.component').then((m) => m.StudentCreateComponent) },
-            //         { path: ':studentId', loadComponent: () => import('./features/students/student-detail.component').then((m) => m.StudentDetailComponent) },
-            //     ],
-            // },
-
             // --- Members ---
             {
                 path: 'members',
@@ -96,16 +86,6 @@ export const routes: Routes = [
                     { path: ':memberId', loadComponent: () => import('./features/members/member-details-component/member-details-component').then((m) => m.MemberDetailsComponent) },
                 ],
             },
-
-            // // --- Teachers ---
-            // {
-            //     path: 'teachers',
-            //     children: [
-            //         { path: '', loadComponent: () => import('./features/teachers/teachers-list.component').then((m) => m.TeachersListComponent) },
-            //         { path: 'create', loadComponent: () => import('./features/teachers/teacher-create.component').then((m) => m.TeacherCreateComponent) },
-            //         { path: ':teacherId', loadComponent: () => import('./features/teachers/teacher-detail.component').then((m) => m.TeacherDetailComponent) },
-            //     ],
-            // },
 
             // --- Institutions ---
             {
@@ -166,12 +146,6 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/subscriptions/subscriptions.component').then((m) => m.SubscriptionsComponent),
             },
 
-            // // --- Payments ---
-            // {
-            //     path: 'payments',
-            //     loadComponent: () => import('./features/payments/payments.component').then((m) => m.PaymentsComponent),
-            // },
-
             // --- Attendance ---
             {
                 path: 'attendance',
@@ -206,35 +180,11 @@ export const routes: Routes = [
                 ],
             },
 
-            // // --- Reports ---
-            // {
-            //     path: 'reports',
-            //     loadComponent: () => import('./features/reports/reports.component').then((m) => m.ReportsComponent),
-            // },
-
-            // // --- Notifications ---
-            // {
-            //     path: 'notifications',
-            //     loadComponent: () => import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent),
-            // },
-
             // --- Books ---
             {
                 path: 'books',
                 loadComponent: () => import('./features/books/books-list-component/books-list.component').then((m) => m.BooksListComponent),
             },
-
-            // // --- Seats ---
-            // {
-            //     path: 'seats',
-            //     loadComponent: () => import('./features/seats/seats-layout.component').then((m) => m.SeatsLayoutComponent),
-            //     children: [
-            //         { path: '', loadComponent: () => import('./features/seats/seats-overview.component').then((m) => m.SeatsOverviewComponent) },
-            //         { path: 'layout', loadComponent: () => import('./features/seats/seats-floor.component').then((m) => m.SeatsFloorComponent) },
-            //         { path: 'monitoring', loadComponent: () => import('./features/seats/seats-monitoring.component').then((m) => m.SeatsMonitoringComponent) },
-            //         { path: 'heatmap', loadComponent: () => import('./features/seats/seats-heatmap.component').then((m) => m.SeatsHeatmapComponent) },
-            //     ],
-            // },
 
             // --- Users (Admin) ---
             {
@@ -251,12 +201,6 @@ export const routes: Routes = [
                 data: { permission: PermissionKey.RolesList },
                 loadComponent: () => import('./features/admin/roles-list/roles-list.component').then((m) => m.RolesListComponent),
             },
-
-            // // --- Settings ---
-            // {
-            //     path: 'settings',
-            //     loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent),
-            // },
 
             // --- Support ---
             {

@@ -8,8 +8,9 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 
 | Doc | Module | Summary |
 |-----|--------|---------|
-| [auth-workflow.md](./auth-workflow.md) | M-01 Authentication | Login, register, OTP, password reset, JWT |
+| [auth-workflow.md](./auth-workflow.md) | M-01 Authentication | Login, register, OTP, password reset, JWT, guards |
 | [onboarding-workflow.md](./onboarding-workflow.md) | M-03 Onboarding | Institution → branch → library wizard |
+| [profile-workflow.md](./profile-workflow.md) | M-11 Profile | Account, security, workspace access, permissions |
 | [dashboard-workflow.md](./dashboard-workflow.md) | M-07 Dashboard | Overview + Activity tabs, period filter, revenue/dues logic |
 
 ## Organization hierarchy
@@ -45,7 +46,8 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 |-----|--------|---------|
 | [administration-workflow.md](./administration-workflow.md) | M-15 Admin | Roles, permissions seeding |
 | [users-admin-workflow.md](./users-admin-workflow.md) | M-15 Users | User directory and role assignment |
-| [support-workflow.md](./support-workflow.md) | M-09 Support | Tickets, knowledge base, system status |
+| [support-workflow.md](./support-workflow.md) | M-09 Support | Institution-scoped tickets, attachments, KB, status |
+| [subscriptions-workflow.md](./subscriptions-workflow.md) | M-10 SaaS subscriptions | Package renew/upgrade, institution scope |
 
 ## Requirements (source)
 

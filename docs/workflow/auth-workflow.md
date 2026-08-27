@@ -8,7 +8,7 @@ End-to-end workflow for **M-01 Authentication** across **SLMS_UI** (Angular) and
 
 ## 1. Overview
 
-JWT-based auth with refresh tokens, OTP verification, password reset, and optional 2FA. Public auth routes sit outside `AppShellComponent`; authenticated routes use `authGuard` and `permissionGuard`.
+JWT-based auth with refresh tokens, OTP verification, password reset, optional 2FA, and self-service **profile** management. Public auth routes sit outside `AppShellComponent`; authenticated app-shell routes use `authGuard`, `onboardingCompleteGuard`, and route-level `permissionGuard`.
 
 ```mermaid
 flowchart LR
@@ -38,14 +38,19 @@ flowchart LR
 Route config: `SLMS_UI/src/app/app.routes.ts`  
 Layout: `SLMS_UI/src/app/layouts/auth-layout/`
 
+**Landing:** Public `/` page includes **Register** CTAs; authenticated users are redirected by guards (see §2.2).
+
 ### 2.2 Key services & guards
 
 | File | Role |
 |------|------|
 | `SLMS_UI/src/app/core/services/auth.service.ts` | Login, logout, refresh, current user |
 | `SLMS_UI/src/app/core/guards/auth.guard.ts` | Blocks unauthenticated app-shell access |
+| `SLMS_UI/src/app/core/guards/onboarding.guard.ts` | `onboardingGuard` — login/register/onboarding redirect by step; `onboardingCompleteGuard` — blocks app shell until onboarding done |
 | `SLMS_UI/src/app/core/guards/permission.guard.ts` | Route-level permission checks |
-| `SLMS_UI/src/app/core/interceptors/auth.interceptor.ts` | Attaches Bearer token; handles 401 refresh |
+| `SLMS_UI/src/app/core/Interceptor/authInterceptor.ts` | Attaches Bearer token; handles 401 refresh |
+
+**App shell guard chain:** `authGuard` → `onboardingCompleteGuard` (see `app.routes.ts`).
 
 ### 2.3 Login flow
 
@@ -83,9 +88,14 @@ Override credentials via `Identity:SuperAdmin*` and `Demo:Admin*` in `appsetting
 | POST | `/verify-otp` | Verify OTP code |
 | POST | `/forgot-password` | Request reset link/code |
 | POST | `/reset-password` | Set new password |
-| GET | `/current-user` | Authenticated profile + permissions |
+| GET | `/current-user` | Lightweight user + permission keys |
+| GET | `/profile` | Full profile: roles, permissions, workspace access scope |
+| PATCH | `/profile` | Update full name, username, email |
+| POST | `/change-password` | Self-service password change |
 | POST | `/enable-2fa` | Enable two-factor auth |
 | POST | `/disable-2fa` | Disable two-factor auth |
+
+**Profile service:** `SLMS_API/Application/Services/ProfileService.cs` — see [profile-workflow.md](./profile-workflow.md).
 
 Validators: `SLMS_API/Application/Validation/Auth/`
 
@@ -105,11 +115,15 @@ SLMS_UI/src/app/features/auth/
 SLMS_UI/src/app/core/
 ├── services/auth.service.ts
 ├── guards/auth.guard.ts
+├── guards/onboarding.guard.ts
 ├── guards/permission.guard.ts
-└── interceptors/auth.interceptor.ts
+└── Interceptor/authInterceptor.ts
+
+SLMS_UI/src/app/features/profile/   # M-11 — see profile-workflow.md
 
 SLMS_API/
 ├── Controllers/AuthController.cs
+├── Application/Services/ProfileService.cs
 └── Application/Services/ (auth, token, OTP services)
 ```
 
@@ -124,10 +138,14 @@ SLMS_API/
 - [ ] Register → verify OTP flow (if enabled)
 - [ ] Forgot / reset password end-to-end
 - [ ] `/unauthorized` when permission guard fails
+- [ ] Incomplete onboarding user cannot reach `/dashboard` (redirect to wizard)
+- [ ] `GET /profile` returns access scope and permission details
+- [ ] `PATCH /profile` and `POST /change-password` work from `/profile`
 
 ---
 
 ## 6. Related docs
 
+- User profile page: [profile-workflow.md](./profile-workflow.md)
 - Administration & permissions: [administration-workflow.md](./administration-workflow.md)
 - Onboarding after first login: [onboarding-workflow.md](./onboarding-workflow.md)

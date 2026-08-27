@@ -8,7 +8,7 @@ End-to-end workflow for **M-03 Onboarding** across **SLMS_UI** (Angular) and **S
 
 ## 1. Overview
 
-Post-registration wizard: institution → branch → library. Login redirects incomplete onboarding users here before dashboard access.
+Post-registration wizard: institution → branch → library. `onboardingGuard` and `onboardingCompleteGuard` ensure incomplete users stay in the wizard until `OnboardingSteps.Completed`.
 
 ```mermaid
 flowchart LR
@@ -36,7 +36,18 @@ flowchart LR
 Child routes: `onboarding-shell.routes.ts`  
 Stepper UI: `institution-onboarding-stepper.component.ts`
 
-### 2.2 Flow
+**Shell UX:** Header includes **Log out** (`onboarding-shell.ts` → `AuthService.logout()`).
+
+### 2.2 Guards
+
+| Guard | Applied to | Behavior |
+|-------|------------|----------|
+| `onboardingGuard` | `/login`, `/register`, `/onboarding/*` | Redirects authenticated users to required step or dashboard |
+| `onboardingCompleteGuard` | App shell (`authGuard` + this) | Blocks dashboard and other shell routes until onboarding complete |
+
+File: `SLMS_UI/src/app/core/guards/onboarding.guard.ts`
+
+### 2.3 Flow
 
 1. After login, `AuthService` / `CommonService` checks `OnboardingSteps` enum progress.
 2. User completes institution form → `POST institutions`.
@@ -44,7 +55,7 @@ Stepper UI: `institution-onboarding-stepper.component.ts`
 4. Library step → branch-scoped library create.
 5. On completion, redirect to `/dashboard`.
 
-### 2.3 Related enums & models
+### 2.4 Related enums & models
 
 - `SLMS_UI/src/app/core/enums/OnbardingSteps.ts`
 - Institution/branch/library create components reused from main features where possible
@@ -91,6 +102,8 @@ SLMS_UI/src/app/features/libraries/create-library/
 - [ ] Cannot skip steps without required data
 - [ ] Completed onboarding goes to dashboard on next login
 - [ ] Partial progress resumes at correct step
+- [ ] Log out from onboarding shell clears session and returns to login
+- [ ] Completed user visiting `/onboarding/*` redirects to dashboard
 
 ---
 

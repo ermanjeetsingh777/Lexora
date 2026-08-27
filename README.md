@@ -60,6 +60,8 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | M-08 | Libraries (list) | [libraries-list-workflow.md](docs/workflow/libraries-list-workflow.md) |
 | M-08 | Libraries (detail) | [library-detail-workflow.md](docs/workflow/library-detail-workflow.md) |
 | M-09 | Support | [support-workflow.md](docs/workflow/support-workflow.md) |
+| M-10 | SaaS subscriptions | [subscriptions-workflow.md](docs/workflow/subscriptions-workflow.md) |
+| M-11 | Profile | [profile-workflow.md](docs/workflow/profile-workflow.md) |
 | M-12 | Books & circulation | [books-workflow.md](docs/workflow/books-workflow.md) |
 | M-13 | Attendance (staff) | [attendance-module-workflow.md](docs/workflow/attendance-module-workflow.md) |
 | M-13b | Attendance QR kiosk | [attendance-kiosk-workflow.md](docs/workflow/attendance-kiosk-workflow.md) |

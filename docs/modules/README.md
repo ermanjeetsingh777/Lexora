@@ -18,7 +18,8 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 | M-07 | Dashboard | `/dashboard` | [dashboard-workflow.md](../workflow/dashboard-workflow.md) | Implemented (Overview + Activity; other sub-routes exist) |
 | M-08 | Libraries | `/libraries`, `/libraries/:id` | [libraries-list-workflow.md](../workflow/libraries-list-workflow.md), [library-detail-workflow.md](../workflow/library-detail-workflow.md) | Implemented |
 | M-09 | Support | `/support`, `/support/status` | [support-workflow.md](../workflow/support-workflow.md) | Implemented |
-| M-10 | SaaS subscriptions | `/subscriptions` | — | Implemented (UI + `PackageSubscriptionsController`) |
+| M-10 | SaaS subscriptions | `/subscriptions` | [subscriptions-workflow.md](../workflow/subscriptions-workflow.md) | Implemented |
+| M-11 | Profile | `/profile` | [profile-workflow.md](../workflow/profile-workflow.md) | Implemented |
 | M-12 | Books & circulation | `/books` | [books-workflow.md](../workflow/books-workflow.md) | Implemented |
 | M-13 | Attendance (staff) | `/attendance/*` | [attendance-module-workflow.md](../workflow/attendance-module-workflow.md) | Implemented |
 | M-13b | Attendance QR kiosk | `/kiosk/attendance/*`, `/attendance/scanner` | [attendance-kiosk-workflow.md](../workflow/attendance-kiosk-workflow.md) | Implemented |
@@ -28,10 +29,10 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 
 | Area | Notes |
 |------|-------|
-| Subscriptions (SaaS packages) | `/subscriptions` — see UI feature folder |
 | Payments | Route commented out |
 | Seats | Route commented out |
-| Reports, Notifications, Settings | Sidebar entries exist; routes not wired |
+| Reports, Notifications | Sidebar entries exist; routes not wired |
+| Settings (legacy) | Redirects to `/profile` |
 | Dashboard sub-tabs | Analytics, occupancy, revenue, etc. routed but hidden from shell nav |
 
 ## Requirements (source)

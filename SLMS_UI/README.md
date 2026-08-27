@@ -43,7 +43,8 @@ SLMS_UI/src/app/
 | `members/` | `/members`, `/members/bulk-upload` | [members-list-workflow.md](../docs/workflow/members-list-workflow.md), [members-bulk-upload-workflow.md](../docs/workflow/members-bulk-upload-workflow.md) |
 | `attendance/` | `/attendance`, `/kiosk/attendance/*` | [attendance-module-workflow.md](../docs/workflow/attendance-module-workflow.md) |
 | `books/` | `/books` | [books-workflow.md](../docs/workflow/books-workflow.md) |
-| `subscriptions/` | `/subscriptions` | SaaS package subscriptions (SuperAdmin cross-tenant view) |
+| `subscriptions/` | `/subscriptions` | [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md) |
+| `profile/` | `/profile` | [profile-workflow.md](../docs/workflow/profile-workflow.md) |
 | `admin/` | `/users`, `/roles` | [users-admin-workflow.md](../docs/workflow/users-admin-workflow.md) |
 | `support/` | `/support` | [support-workflow.md](../docs/workflow/support-workflow.md) |
 

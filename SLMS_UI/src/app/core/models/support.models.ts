@@ -19,6 +19,8 @@ export enum TicketCategory {
   FeatureRequest = 4,
   Hardware = 5,
   Other = 6,
+  Bug = 7,
+  AttendanceCorrection = 8,
 }
 
 export interface SupportAttachment {
@@ -49,6 +51,24 @@ export interface SupportTicketListItem {
   createdAtUtc: string;
   updatedAtUtc?: string | null;
   messageCount: number;
+  institutionId?: string | null;
+  institutionName?: string | null;
+  isOwnRequest: boolean;
+}
+
+export interface SupportTicketStatusHistory {
+  id: string;
+  fromStatus: TicketStatus;
+  toStatus: TicketStatus;
+  changedByName: string;
+  changedByRole: string;
+  createdAtUtc: string;
+}
+
+export interface SupportTicketCapabilities {
+  canReply: boolean;
+  canChangeStatus: boolean;
+  canCreateOnBehalf: boolean;
 }
 
 export interface SupportTicketDetail {
@@ -65,8 +85,13 @@ export interface SupportTicketDetail {
   createdAtUtc: string;
   updatedAtUtc?: string | null;
   slaDueAtUtc?: string | null;
+  institutionId?: string | null;
+  institutionName?: string | null;
+  memberId?: string | null;
   messages: SupportTicketMessage[];
   attachments: SupportAttachment[];
+  statusHistory: SupportTicketStatusHistory[];
+  capabilities: SupportTicketCapabilities;
 }
 
 export interface CreateSupportTicketRequest {
@@ -76,6 +101,21 @@ export interface CreateSupportTicketRequest {
   area?: string;
   description: string;
   attachmentIds?: string[];
+  institutionId?: string;
+  memberId?: string;
+}
+
+export interface SupportInstitutionOption {
+  id: string;
+  name: string;
+}
+
+export interface SupportContext {
+  isSuperAdmin: boolean;
+  isOrgStaff: boolean;
+  scopeLabel: string;
+  institutions: SupportInstitutionOption[];
+  creatableCategories: TicketCategory[];
 }
 
 export interface AddTicketMessageRequest {
@@ -146,8 +186,10 @@ export interface TicketDraft {
 }
 
 export const TICKET_CATEGORIES: { value: TicketCategory; label: string }[] = [
+  { value: TicketCategory.AttendanceCorrection, label: 'Attendance correction' },
   { value: TicketCategory.Account, label: 'Account' },
   { value: TicketCategory.Billing, label: 'Billing' },
+  { value: TicketCategory.Bug, label: 'Bug report' },
   { value: TicketCategory.Technical, label: 'Technical' },
   { value: TicketCategory.FeatureRequest, label: 'Feature request' },
   { value: TicketCategory.Hardware, label: 'Hardware' },

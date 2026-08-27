@@ -18,6 +18,7 @@ public class SupportService : ISupportService
 
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ISupportAccessResolver _accessResolver;
     private readonly SupportStatusSimulator _statusSimulator;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<SupportService> _logger;
@@ -25,22 +26,29 @@ public class SupportService : ISupportService
     public SupportService(
         ApplicationDbContext db,
         ICurrentUserService currentUserService,
+        ISupportAccessResolver accessResolver,
         SupportStatusSimulator statusSimulator,
         IWebHostEnvironment environment,
         ILogger<SupportService> logger)
     {
         _db = db;
         _currentUserService = currentUserService;
+        _accessResolver = accessResolver;
         _statusSimulator = statusSimulator;
         _environment = environment;
         _logger = logger;
     }
 
+    public Task<SupportContextResponse> GetContextAsync(string userId, CancellationToken cancellationToken = default) =>
+        _accessResolver.BuildContextResponseAsync(userId, cancellationToken);
+
     public async Task<IReadOnlyCollection<SupportTicketListItemResponse>> GetTicketsAsync(string userId, CancellationToken cancellationToken = default)
     {
-        return await _db.SupportTickets
-            .AsNoTracking()
-            .Where(t => !t.IsDeleted && t.RequesterUserId == userId)
+        var access = await _accessResolver.ResolveAsync(userId, cancellationToken);
+        var query = _db.SupportTickets.AsNoTracking().Where(t => !t.IsDeleted);
+        query = ApplyTicketScope(query, access);
+
+        return await query
             .OrderByDescending(t => t.UpdatedAtUtc ?? t.CreatedAtUtc)
             .Select(t => new SupportTicketListItemResponse
             {
@@ -54,22 +62,32 @@ public class SupportService : ISupportService
                 CreatedAtUtc = t.CreatedAtUtc,
                 UpdatedAtUtc = t.UpdatedAtUtc,
                 MessageCount = t.Messages.Count(m => !m.IsDeleted),
+                InstitutionId = t.InstitutionId,
+                InstitutionName = t.InstitutionName,
+                IsOwnRequest = t.RequesterUserId == userId,
             })
             .ToListAsync(cancellationToken);
     }
 
     public async Task<SupportTicketDetailResponse> GetTicketByIdAsync(string userId, Guid ticketId, CancellationToken cancellationToken = default)
     {
+        var access = await _accessResolver.ResolveAsync(userId, cancellationToken);
         var ticket = await LoadTicketQuery()
-            .FirstOrDefaultAsync(t => t.Id == ticketId && t.RequesterUserId == userId && !t.IsDeleted, cancellationToken)
+            .FirstOrDefaultAsync(t => t.Id == ticketId && !t.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Ticket not found.");
 
-        return MapTicketDetail(ticket);
+        if (!_accessResolver.CanViewTicket(access, ticket))
+        {
+            throw new UnauthorizedAccessException("You do not have access to this ticket.");
+        }
+
+        return MapTicketDetail(ticket, access, userId);
     }
 
     public async Task<SupportTicketDetailResponse> CreateTicketAsync(string userId, CreateSupportTicketRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await _currentUserService.GetCurrentUserAsync(cancellationToken)
+        var access = await _accessResolver.ResolveAsync(userId, cancellationToken);
+        var caller = await _currentUserService.GetCurrentUserAsync(cancellationToken)
             ?? throw new InvalidOperationException("User not found.");
 
         if (string.IsNullOrWhiteSpace(request.Subject))
@@ -82,6 +100,14 @@ public class SupportService : ISupportService
             throw new InvalidOperationException("Description is required.");
         }
 
+        if (!_accessResolver.GetCreatableCategories(access).Contains(request.Category))
+        {
+            throw new InvalidOperationException("You cannot create tickets in this category.");
+        }
+
+        var (institutionId, institutionName, memberId, requesterUserId, requesterName, requesterEmail) =
+            await ResolveTicketPartiesAsync(userId, access, request, cancellationToken);
+
         var now = DateTime.UtcNow;
         var ticket = new SupportTicket
         {
@@ -91,24 +117,42 @@ public class SupportService : ISupportService
             Priority = request.Priority,
             Status = TicketStatus.Open,
             Area = request.Area?.Trim(),
-            RequesterUserId = userId,
-            RequesterName = user.FullName ?? user.Email ?? "User",
-            RequesterEmail = user.Email ?? string.Empty,
+            RequesterUserId = requesterUserId,
+            RequesterName = requesterName,
+            RequesterEmail = requesterEmail,
             OwnerName = "Support Team",
-            Channel = "Portal",
+            Channel = request.MemberId.HasValue ? "Staff portal" : "Portal",
+            InstitutionId = institutionId,
+            InstitutionName = institutionName,
+            MemberId = memberId,
+            CreatedByUserId = userId,
             SlaDueAtUtc = now.AddHours(request.Priority == TicketPriority.Urgent ? 4 : request.Priority == TicketPriority.High ? 8 : 24),
             CreatedAtUtc = now,
             CreatedBy = userId,
         };
 
+        var authorRole = _accessResolver.ResolveAuthorRole(access);
         ticket.Messages.Add(new SupportTicketMessage
         {
             Id = Guid.NewGuid(),
             TicketId = ticket.Id,
             AuthorUserId = userId,
-            AuthorName = ticket.RequesterName,
-            AuthorRole = "Member",
+            AuthorName = caller.FullName ?? caller.Email ?? "User",
+            AuthorRole = authorRole,
             Body = request.Description.Trim(),
+            CreatedAtUtc = now,
+            CreatedBy = userId,
+        });
+
+        ticket.StatusHistory.Add(new SupportTicketStatusHistory
+        {
+            Id = Guid.NewGuid(),
+            TicketId = ticket.Id,
+            FromStatus = TicketStatus.Open,
+            ToStatus = TicketStatus.Open,
+            ChangedByUserId = userId,
+            ChangedByName = caller.FullName ?? caller.Email ?? "User",
+            ChangedByRole = authorRole,
             CreatedAtUtc = now,
             CreatedBy = userId,
         });
@@ -118,7 +162,8 @@ public class SupportService : ISupportService
 
         if (request.AttachmentIds?.Any() == true)
         {
-            await LinkAttachmentsAsync(ticket.Id, null, request.AttachmentIds, userId, cancellationToken);
+            var firstMessageId = ticket.Messages.First().Id;
+            await LinkAttachmentsAsync(ticket.Id, firstMessageId, request.AttachmentIds, userId, cancellationToken);
         }
 
         return await GetTicketByIdAsync(userId, ticket.Id, cancellationToken);
@@ -126,17 +171,23 @@ public class SupportService : ISupportService
 
     public async Task<SupportTicketDetailResponse> AddMessageAsync(string userId, Guid ticketId, AddTicketMessageRequest request, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Body))
+        if (string.IsNullOrWhiteSpace(request.Body) && (request.AttachmentIds == null || !request.AttachmentIds.Any()))
         {
-            throw new InvalidOperationException("Message body is required.");
+            throw new InvalidOperationException("Message body or at least one attachment is required.");
         }
 
+        var access = await _accessResolver.ResolveAsync(userId, cancellationToken);
         var ticket = await _db.SupportTickets
-            .Include(t => t.Messages)
-            .FirstOrDefaultAsync(t => t.Id == ticketId && t.RequesterUserId == userId && !t.IsDeleted, cancellationToken)
+            .FirstOrDefaultAsync(t => t.Id == ticketId && !t.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Ticket not found.");
 
+        if (!_accessResolver.CanReply(access, ticket))
+        {
+            throw new UnauthorizedAccessException("You do not have access to reply on this ticket.");
+        }
+
         var user = await _currentUserService.GetCurrentUserAsync(cancellationToken);
+        var authorRole = _accessResolver.ResolveAuthorRole(access);
         var now = DateTime.UtcNow;
         var message = new SupportTicketMessage
         {
@@ -144,18 +195,33 @@ public class SupportService : ISupportService
             TicketId = ticket.Id,
             AuthorUserId = userId,
             AuthorName = user?.FullName ?? user?.Email ?? "User",
-            AuthorRole = "Member",
-            Body = request.Body.Trim(),
+            AuthorRole = authorRole,
+            Body = string.IsNullOrWhiteSpace(request.Body) ? string.Empty : request.Body.Trim(),
             CreatedAtUtc = now,
             CreatedBy = userId,
         };
 
-        ticket.Messages.Add(message);
+        _db.SupportTicketMessages.Add(message);
+
         ticket.UpdatedAtUtc = now;
         ticket.UpdatedBy = userId;
-        if (ticket.Status == TicketStatus.Resolved)
+
+        if (ticket.Status == TicketStatus.Resolved && !_accessResolver.CanChangeStatus(access, ticket))
         {
+            var previousStatus = ticket.Status;
             ticket.Status = TicketStatus.Open;
+            _db.SupportTicketStatusHistories.Add(new SupportTicketStatusHistory
+            {
+                Id = Guid.NewGuid(),
+                TicketId = ticket.Id,
+                FromStatus = previousStatus,
+                ToStatus = TicketStatus.Open,
+                ChangedByUserId = userId,
+                ChangedByName = user?.FullName ?? user?.Email ?? "User",
+                ChangedByRole = authorRole,
+                CreatedAtUtc = now,
+                CreatedBy = userId,
+            });
         }
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -170,9 +236,30 @@ public class SupportService : ISupportService
 
     public async Task<SupportTicketDetailResponse> UpdateTicketStatusAsync(string userId, Guid ticketId, UpdateTicketStatusRequest request, CancellationToken cancellationToken = default)
     {
+        var access = await _accessResolver.ResolveAsync(userId, cancellationToken);
         var ticket = await _db.SupportTickets
-            .FirstOrDefaultAsync(t => t.Id == ticketId && t.RequesterUserId == userId && !t.IsDeleted, cancellationToken)
+            .FirstOrDefaultAsync(t => t.Id == ticketId && !t.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Ticket not found.");
+
+        if (!_accessResolver.CanViewTicket(access, ticket))
+        {
+            throw new UnauthorizedAccessException("You do not have access to this ticket.");
+        }
+
+        if (!_accessResolver.CanChangeStatus(access, ticket))
+        {
+            throw new UnauthorizedAccessException("You are not allowed to change the status of this ticket.");
+        }
+
+        if (ticket.Status == request.Status)
+        {
+            return await GetTicketByIdAsync(userId, ticketId, cancellationToken);
+        }
+
+        var user = await _currentUserService.GetCurrentUserAsync(cancellationToken);
+        var authorRole = _accessResolver.ResolveAuthorRole(access);
+        var now = DateTime.UtcNow;
+        var previousStatus = ticket.Status;
 
         ticket.Status = request.Status;
         if (!string.IsNullOrWhiteSpace(request.OwnerName))
@@ -180,8 +267,22 @@ public class SupportService : ISupportService
             ticket.OwnerName = request.OwnerName.Trim();
         }
 
-        ticket.UpdatedAtUtc = DateTime.UtcNow;
+        ticket.UpdatedAtUtc = now;
         ticket.UpdatedBy = userId;
+
+        _db.SupportTicketStatusHistories.Add(new SupportTicketStatusHistory
+        {
+            Id = Guid.NewGuid(),
+            TicketId = ticket.Id,
+            FromStatus = previousStatus,
+            ToStatus = request.Status,
+            ChangedByUserId = userId,
+            ChangedByName = user?.FullName ?? user?.Email ?? "User",
+            ChangedByRole = authorRole,
+            CreatedAtUtc = now,
+            CreatedBy = userId,
+        });
+
         await _db.SaveChangesAsync(cancellationToken);
 
         return await GetTicketByIdAsync(userId, ticketId, cancellationToken);
@@ -236,8 +337,9 @@ public class SupportService : ISupportService
 
     public async Task<(Stream Stream, string ContentType, string FileName)?> DownloadAttachmentAsync(string userId, Guid attachmentId, CancellationToken cancellationToken = default)
     {
+        var access = await _accessResolver.ResolveAsync(userId, cancellationToken);
         var attachment = await _db.SupportTicketAttachments
-            .Include(a => a.Ticket)
+            .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == attachmentId && !a.IsDeleted, cancellationToken);
 
         if (attachment == null)
@@ -245,7 +347,18 @@ public class SupportService : ISupportService
             return null;
         }
 
-        if (attachment.UploadedByUserId != userId && attachment.Ticket?.RequesterUserId != userId)
+        if (attachment.TicketId.HasValue)
+        {
+            var ticket = await _db.SupportTickets
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == attachment.TicketId && !t.IsDeleted, cancellationToken);
+
+            if (ticket == null || !_accessResolver.CanViewTicket(access, ticket))
+            {
+                throw new InvalidOperationException("You do not have access to this attachment.");
+            }
+        }
+        else if (!string.Equals(attachment.UploadedByUserId, userId, StringComparison.Ordinal))
         {
             throw new InvalidOperationException("You do not have access to this attachment.");
         }
@@ -322,6 +435,12 @@ public class SupportService : ISupportService
 
     public async Task<SystemIncidentResponse> SimulateIncidentAsync(string userId, CancellationToken cancellationToken = default)
     {
+        var access = await _accessResolver.ResolveAsync(userId, cancellationToken);
+        if (!access.IsSuperAdmin)
+        {
+            throw new UnauthorizedAccessException("Only SuperAdmin can simulate incidents.");
+        }
+
         var components = new[] { "API Gateway", "Member Portal", "Attendance", "Notifications" };
         var affected = components.OrderBy(_ => Guid.NewGuid()).Take(2).ToArray();
         var now = DateTime.UtcNow;
@@ -357,12 +476,106 @@ public class SupportService : ISupportService
         return MapIncident(incident);
     }
 
+    private static IQueryable<SupportTicket> ApplyTicketScope(IQueryable<SupportTicket> query, SupportAccessContext access)
+    {
+        if (access.IsSuperAdmin)
+        {
+            return query;
+        }
+
+        return query.Where(t =>
+            t.RequesterUserId == access.UserId
+            || t.CreatedByUserId == access.UserId
+            || (t.InstitutionId.HasValue && access.InstitutionIds.Contains(t.InstitutionId.Value)));
+    }
+
+    private async Task<(Guid? institutionId, string? institutionName, Guid? memberId, string requesterUserId, string requesterName, string requesterEmail)> ResolveTicketPartiesAsync(
+        string callerUserId,
+        SupportAccessContext access,
+        CreateSupportTicketRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.MemberId.HasValue)
+        {
+            if (!_accessResolver.CanCreateOnBehalf(access))
+            {
+                throw new UnauthorizedAccessException("You cannot create tickets on behalf of members.");
+            }
+
+            var member = await _db.Members.AsNoTracking()
+                .Include(m => m.User)
+                .Include(m => m.MemberLibraries)
+                .FirstOrDefaultAsync(m => m.Id == request.MemberId.Value && !m.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException("Member not found.");
+
+            var memberInstitutionId = member.MemberLibraries.FirstOrDefault()?.InstitutionId;
+            if (!memberInstitutionId.HasValue)
+            {
+                throw new InvalidOperationException("Member is not linked to an institution.");
+            }
+
+            if (!access.IsSuperAdmin && !access.InstitutionIds.Contains(memberInstitutionId.Value))
+            {
+                throw new UnauthorizedAccessException("You do not have access to this member's institution.");
+            }
+
+            if (request.InstitutionId.HasValue && request.InstitutionId.Value != memberInstitutionId.Value)
+            {
+                throw new InvalidOperationException("Selected institution does not match the member.");
+            }
+
+            var institution = await _db.Institutions.AsNoTracking()
+                .FirstOrDefaultAsync(i => i.Id == memberInstitutionId.Value && !i.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException("Institution not found.");
+
+            return (
+                institution.Id,
+                institution.Name,
+                member.Id,
+                member.UserId,
+                member.FullName,
+                member.User.Email ?? string.Empty);
+        }
+
+        var institutionId = request.InstitutionId;
+        if (institutionId.HasValue && !access.IsSuperAdmin && !access.InstitutionIds.Contains(institutionId.Value))
+        {
+            throw new UnauthorizedAccessException("You do not have access to the selected institution.");
+        }
+
+        if (!institutionId.HasValue)
+        {
+            institutionId = access.InstitutionIds.FirstOrDefault();
+        }
+
+        string? institutionName = null;
+        if (institutionId.HasValue)
+        {
+            institutionName = await _db.Institutions.AsNoTracking()
+                .Where(i => i.Id == institutionId.Value && !i.IsDeleted)
+                .Select(i => i.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        var caller = await _currentUserService.GetCurrentUserAsync(cancellationToken)
+            ?? throw new InvalidOperationException("User not found.");
+
+        return (
+            institutionId,
+            institutionName,
+            null,
+            callerUserId,
+            caller.FullName ?? caller.Email ?? "User",
+            caller.Email ?? string.Empty);
+    }
+
     private IQueryable<SupportTicket> LoadTicketQuery() =>
         _db.SupportTickets
             .AsNoTracking()
             .Include(t => t.Messages.Where(m => !m.IsDeleted))
                 .ThenInclude(m => m.Attachments.Where(a => !a.IsDeleted))
-            .Include(t => t.Attachments.Where(a => !a.IsDeleted && a.MessageId == null));
+            .Include(t => t.Attachments.Where(a => !a.IsDeleted && a.MessageId == null))
+            .Include(t => t.StatusHistory.Where(h => !h.IsDeleted));
 
     private async Task LinkAttachmentsAsync(Guid ticketId, Guid? messageId, IEnumerable<Guid> attachmentIds, string userId, CancellationToken cancellationToken)
     {
@@ -382,7 +595,7 @@ public class SupportService : ISupportService
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    private SupportTicketDetailResponse MapTicketDetail(SupportTicket ticket) =>
+    private SupportTicketDetailResponse MapTicketDetail(SupportTicket ticket, SupportAccessContext access, string userId) =>
         new()
         {
             Id = ticket.Id,
@@ -398,6 +611,9 @@ public class SupportService : ISupportService
             CreatedAtUtc = ticket.CreatedAtUtc,
             UpdatedAtUtc = ticket.UpdatedAtUtc,
             SlaDueAtUtc = ticket.SlaDueAtUtc,
+            InstitutionId = ticket.InstitutionId,
+            InstitutionName = ticket.InstitutionName,
+            MemberId = ticket.MemberId,
             Messages = ticket.Messages
                 .Where(m => !m.IsDeleted)
                 .OrderBy(m => m.CreatedAtUtc)
@@ -412,6 +628,25 @@ public class SupportService : ISupportService
                 })
                 .ToList(),
             Attachments = ticket.Attachments.Where(a => !a.IsDeleted).Select(MapAttachment).ToList(),
+            StatusHistory = ticket.StatusHistory
+                .Where(h => !h.IsDeleted)
+                .OrderBy(h => h.CreatedAtUtc)
+                .Select(h => new SupportTicketStatusHistoryResponse
+                {
+                    Id = h.Id,
+                    FromStatus = h.FromStatus,
+                    ToStatus = h.ToStatus,
+                    ChangedByName = h.ChangedByName,
+                    ChangedByRole = h.ChangedByRole,
+                    CreatedAtUtc = h.CreatedAtUtc,
+                })
+                .ToList(),
+            Capabilities = new SupportTicketCapabilitiesResponse
+            {
+                CanReply = _accessResolver.CanReply(access, ticket),
+                CanChangeStatus = _accessResolver.CanChangeStatus(access, ticket),
+                CanCreateOnBehalf = _accessResolver.CanCreateOnBehalf(access),
+            },
         };
 
     private SupportAttachmentResponse MapAttachment(SupportTicketAttachment attachment) =>

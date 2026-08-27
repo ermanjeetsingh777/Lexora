@@ -2,14 +2,39 @@
   <app-page-header eyebrow="Help" title="Support center"
     description="Tickets, knowledge base, incident status and direct lines to our team.">
     <div actions class="flex items-center gap-2">
-      <app-button variant="outline" size="sm" [routerLink]="['/support/status']">
+      <!-- <app-button variant="outline" size="sm" [routerLink]="['/support/status']">
         <svg lucideActivity class="h-4 w-4 mr-1"></svg> System status
-      </app-button>
+      </app-button> -->
       <app-button size="sm" (click)="openNewTicket()">
         <svg lucidePlus class="h-4 w-4 mr-1"></svg> New ticket
       </app-button>
     </div>
   </app-page-header>
+
+  @if (context(); as ctx) {
+  <app-glass-card class="mb-4 block">
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary shrink-0">
+        <svg lucideShieldAlert class="h-4 w-4"></svg>
+      </div>
+      <div class="min-w-0 flex-1">
+        <div class="text-sm font-medium">
+          @if (ctx.isSuperAdmin) { Platform support queue — all institutions }
+          @else { Institution support queue — {{ ctx.scopeLabel }} }
+        </div>
+        <div class="text-xs text-muted-foreground mt-0.5">
+          @if (ctx.isSuperAdmin) {
+            You can change status on every ticket, including bugs and feature requests.
+          } @else if (ctx.isOrgStaff) {
+            You can view institution tickets, reply, and update operational tickets. Bug and feature request status changes are handled by SuperAdmin only.
+          } @else {
+            You can view your institution tickets and reply. Status changes are managed by your admin team.
+          }
+        </div>
+      </div>
+    </div>
+  </app-glass-card>
+  }
 
   @if (activeIncidents().length) {
   <app-glass-card class="block border-amber-500/30 bg-amber-500/5">
@@ -28,30 +53,30 @@
   </app-glass-card>
   }
 
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-    <app-glass-card class="p-4 block">
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+    <app-glass-card class="block">
       <div class="label-mono">Open</div>
       <div class="text-2xl font-semibold tracking-tight mt-1">{{ ticketKpis().open }}</div>
       <div class="text-xs mt-1 text-destructive">Awaiting agent</div>
     </app-glass-card>
-    <app-glass-card class="p-4 block">
+    <app-glass-card class="block">
       <div class="label-mono">Pending</div>
       <div class="text-2xl font-semibold tracking-tight mt-1">{{ ticketKpis().pending }}</div>
       <div class="text-xs mt-1 text-amber-500">Waiting on customer</div>
     </app-glass-card>
-    <app-glass-card class="p-4 block">
+    <app-glass-card class="block">
       <div class="label-mono">Resolved (30d)</div>
       <div class="text-2xl font-semibold tracking-tight mt-1">{{ ticketKpis().resolved }}</div>
       <div class="text-xs mt-1 text-emerald-500">Recent closures</div>
     </app-glass-card>
-    <app-glass-card class="p-4 block">
+    <app-glass-card class="block">
       <div class="label-mono">System status</div>
       <div class="text-2xl font-semibold tracking-tight mt-1" [class]="ticketKpis().systemTone">{{ ticketKpis().systemLabel }}</div>
       <div class="text-xs mt-1 text-muted-foreground">{{ ticketKpis().systemHint }}</div>
     </app-glass-card>
   </div>
 
-  <div class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+  <div class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1 mb-4">
     <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors inline-flex items-center gap-1.5"
       [class.bg-background]="activeTab() === 'tickets'" [class.shadow-sm]="activeTab() === 'tickets'"
       [class.text-foreground]="activeTab() === 'tickets'" [class.text-muted-foreground]="activeTab() !== 'tickets'"
@@ -60,20 +85,20 @@
       [class.bg-background]="activeTab() === 'kb'" [class.shadow-sm]="activeTab() === 'kb'"
       [class.text-foreground]="activeTab() === 'kb'" [class.text-muted-foreground]="activeTab() !== 'kb'"
       (click)="setTab('kb')"><svg lucideBookOpen class="h-4 w-4"></svg> Knowledge base</button>
-    <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors inline-flex items-center gap-1.5"
+    <!-- <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors inline-flex items-center gap-1.5"
       [class.bg-background]="activeTab() === 'contact'" [class.shadow-sm]="activeTab() === 'contact'"
       [class.text-foreground]="activeTab() === 'contact'" [class.text-muted-foreground]="activeTab() !== 'contact'"
-      (click)="setTab('contact')"><svg lucideMessageSquare class="h-4 w-4"></svg> Contact</button>
-    <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors inline-flex items-center gap-1.5"
+      (click)="setTab('contact')"><svg lucideMessageSquare class="h-4 w-4"></svg> Contact</button> -->
+    <!-- <button type="button" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors inline-flex items-center gap-1.5"
       [class.bg-background]="activeTab() === 'status'" [class.shadow-sm]="activeTab() === 'status'"
       [class.text-foreground]="activeTab() === 'status'" [class.text-muted-foreground]="activeTab() !== 'status'"
-      (click)="setTab('status')"><svg lucideActivity class="h-4 w-4"></svg> System status</button>
+      (click)="setTab('status')"><svg lucideActivity class="h-4 w-4"></svg> System status</button> -->
   </div>
 
   @if (activeTab() === 'tickets') {
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <app-glass-card class="lg:col-span-2 block p-0 overflow-hidden">
-      <div class="p-3 border-b flex flex-wrap items-center gap-2">
+      <div class="border-b flex flex-wrap items-center gap-2">
         <div class="relative flex-1 min-w-[220px]">
           <svg lucideSearch class="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground"></svg>
           <input class="w-full h-9 rounded-md border bg-background pl-8 pr-3 text-sm"
@@ -89,8 +114,14 @@
         </select>
         <select class="h-9 rounded-md border bg-background px-2 text-sm min-w-[150px]" [ngModel]="categoryFilter()" (ngModelChange)="categoryFilter.set($event)">
           <option value="all">All categories</option>
-          @for (c of TICKET_CATEGORIES; track c.value) { <option [ngValue]="c.value">{{ c.label }}</option> }
+          @for (c of creatableCategories(); track c.value) { <option [ngValue]="c.value">{{ c.label }}</option> }
         </select>
+        @if ((context()?.institutions?.length ?? 0) > 1) {
+        <select class="h-9 rounded-md border bg-background px-2 text-sm min-w-[160px]" [ngModel]="institutionFilter()" (ngModelChange)="institutionFilter.set($event)">
+          <option value="all">All institutions</option>
+          @for (i of context()!.institutions; track i.id) { <option [ngValue]="i.id">{{ i.name }}</option> }
+        </select>
+        }
       </div>
       @if (filteredTickets().length === 0) {
       <div class="p-10 text-center text-sm text-muted-foreground">
@@ -112,7 +143,10 @@
             <div class="flex-1 min-w-0">
               <div class="font-medium text-sm truncate">{{ t.subject }}</div>
               <div class="label-mono mt-0.5 truncate text-muted-foreground">
-                {{ ticketShortId(t.id) }} · {{ ticketCategoryLabel(t.category) }} · {{ t.requesterName }} · Portal
+                {{ ticketShortId(t.id) }} · {{ ticketCategoryLabel(t.category) }}
+                @if (t.institutionName) { · {{ t.institutionName }} }
+                · {{ t.requesterName }}
+                @if (!t.isOwnRequest) { · team ticket }
               </div>
             </div>
             <app-status-badge [status]="ticketPriorityLabel(t.priority)" [variant]="$any(priorityTone(t.priority))" />
@@ -158,7 +192,7 @@
       </app-glass-card>
       }
 
-      <app-glass-card class="block p-5">
+      <!-- <app-glass-card class="block p-5">
         <div class="flex items-center gap-2 mb-3">
           <svg lucideSparkles class="h-4 w-4 text-primary"></svg>
           <h3 class="font-semibold">Ask the assistant</h3>
@@ -174,9 +208,9 @@
           <button type="button" class="px-2 py-1 rounded-md border text-xs bg-muted/40 hover:border-primary/40" (click)="assistantQuery.set(s)">{{ s }}</button>
           }
         </div>
-      </app-glass-card>
+      </app-glass-card> -->
 
-      <app-glass-card class="block p-5">
+      <app-glass-card class="block">
         <h3 class="font-semibold mb-3">Popular articles</h3>
         <ul class="space-y-2 text-sm">
           @for (a of popularArticles(); track a.id) {
@@ -195,7 +229,7 @@
   }
 
   @if (activeTab() === 'kb') {
-  <app-glass-card class="block p-5">
+  <app-glass-card class="block">
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <div class="relative flex-1 min-w-[240px]">
         <svg lucideSearch class="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground"></svg>
@@ -257,30 +291,46 @@
   }
 
   @if (activeTab() === 'contact') {
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-    @for (c of contactChannels; track c.label) {
-    <app-glass-card class="block p-5 flex items-start gap-4">
-      <div class="h-10 w-10 rounded-md bg-primary/10 text-primary grid place-items-center shrink-0">
-        @switch (c.icon) {
-          @case ('message') { <svg lucideMessageSquare class="h-5 w-5"></svg> }
-          @case ('mail') { <svg lucideMail class="h-5 w-5"></svg> }
-          @case ('phone') { <svg lucidePhone class="h-5 w-5"></svg> }
-          @case ('video') { <svg lucideVideo class="h-5 w-5"></svg> }
-        }
+  <div class="space-y-4">
+    <app-glass-card class="block p-5 border-primary/20 bg-primary/5">
+      <div class="flex flex-wrap items-start gap-3">
+        <div class="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <svg lucideMessageSquare class="h-5 w-5"></svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <h2 class="text-base font-semibold">Contact Lexora support</h2>
+          <p class="text-sm text-muted-foreground mt-1">Reach our team through the channel that fits your issue. Operational tickets stay in the Tickets tab for full tracking.</p>
+        </div>
       </div>
-      <div class="flex-1 min-w-0">
-        <div class="font-semibold">{{ c.label }}</div>
-        <div class="text-sm text-muted-foreground">{{ c.meta }}</div>
-        <div class="label-mono mt-1 text-muted-foreground">{{ c.hint }}</div>
-      </div>
-      <app-button size="sm" variant="outline">Open</app-button>
     </app-glass-card>
-    }
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      @for (c of contactChannels; track c.label) {
+      <app-glass-card class="block h-full">
+        <div class="flex items-start gap-4">
+          <div class="h-10 w-10 rounded-md bg-primary/10 text-primary grid place-items-center shrink-0">
+            @switch (c.icon) {
+              @case ('message') { <svg lucideMessageSquare class="h-5 w-5"></svg> }
+              @case ('mail') { <svg lucideMail class="h-5 w-5"></svg> }
+              @case ('phone') { <svg lucidePhone class="h-5 w-5"></svg> }
+              @case ('video') { <svg lucideVideo class="h-5 w-5"></svg> }
+            }
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold">{{ c.label }}</div>
+            <div class="text-sm text-muted-foreground mt-0.5 break-words">{{ c.meta }}</div>
+            <div class="label-mono mt-2 text-muted-foreground">{{ c.hint }}</div>
+          </div>
+          <app-button size="sm" variant="outline" class="shrink-0">{{ c.actionLabel }}</app-button>
+        </div>
+      </app-glass-card>
+      }
+    </div>
   </div>
   }
 
   @if (activeTab() === 'status') {
-  <app-glass-card class="block p-5">
+  <app-glass-card class="block">
     <div class="flex items-center gap-2 mb-4 flex-wrap">
       <span class="inline-block h-2 w-2 rounded-full animate-pulse" [class.bg-emerald-500]="overallHealthy()" [class.bg-amber-500]="!overallHealthy()"></span>
       <span class="font-semibold">{{ overallHealthy() ? 'All systems operational' : 'Some services degraded' }}</span>
@@ -308,6 +358,7 @@
   [open]="showNewTicket()"
   [initialDraft]="newTicketInitialDraft()"
   [busy]="createBusy()"
+  [context]="context()"
   (submitted)="onTicketSubmitted($event)"
   (draftSaved)="refreshDrafts()"
   (closed)="closeNewTicket()" />
@@ -330,8 +381,12 @@
       <p class="text-sm text-muted-foreground mt-1">
         {{ ticketCategoryLabel(ticket.category) }}
         @if (ticket.area) { · {{ ticket.area }} }
+        @if (ticket.institutionName) { · {{ ticket.institutionName }} }
         · opened {{ formatRelative(ticket.createdAtUtc) }} via {{ ticket.channel }}
       </p>
+      @if (isSuperAdminOnlyCategory(ticket.category) && !ticket.capabilities.canChangeStatus) {
+      <p class="text-xs text-amber-600 mt-2">Status for {{ ticketCategoryLabel(ticket.category).toLowerCase() }} tickets is managed by SuperAdmin only. You can still follow the thread and reply.</p>
+      }
     </div>
 
     <div class="px-6 py-3 border-b flex items-center gap-3 flex-wrap shrink-0">
@@ -341,9 +396,13 @@
         <div class="text-xs text-muted-foreground truncate">{{ ticket.requesterEmail }}</div>
       </div>
       <div class="ml-auto flex items-center gap-2 flex-wrap">
+        @if (ticket.capabilities.canChangeStatus) {
         <select class="h-8 rounded-md border bg-background px-2 text-xs" [ngModel]="ticket.status" (ngModelChange)="updateTicketStatus($event)">
           @for (s of TICKET_STATUSES; track s.value) { <option [ngValue]="s.value">{{ s.label }}</option> }
         </select>
+        } @else {
+        <app-status-badge [status]="ticketStatusLabel(ticket.status)" />
+        }
       </div>
     </div>
 
@@ -363,6 +422,20 @@
 
     @if (drawerTab() === 'thread') {
     <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      @if (ticket.attachments.length) {
+      <div class="rounded-md border bg-muted/20 p-3 space-y-2">
+        <div class="text-xs font-medium text-muted-foreground">Ticket attachments</div>
+        @for (a of ticket.attachments; track a.id) {
+        <button type="button" class="w-full flex items-center gap-2 text-xs rounded border p-1.5 bg-background hover:bg-muted/50 text-left"
+          (click)="downloadAttachment(a)">
+          <svg lucideFileText class="h-3 w-3 text-muted-foreground shrink-0"></svg>
+          <span class="flex-1 truncate">{{ a.fileName }}</span>
+          <span class="label-mono">{{ formatBytes(a.sizeBytes) }}</span>
+          <svg lucideDownload class="h-3 w-3 text-muted-foreground shrink-0"></svg>
+        </button>
+        }
+      </div>
+      }
       @for (m of ticket.messages; track m.id) {
       <div class="flex gap-3">
         <div class="h-8 w-8 rounded-full bg-muted grid place-items-center text-[10px] font-semibold shrink-0 mt-0.5">
@@ -382,11 +455,13 @@
             {{ m.body }}
           </div>
           @for (a of m.attachments; track a.id) {
-          <div class="mt-2 flex items-center gap-2 text-xs rounded border p-1.5 bg-muted/30">
-            <svg lucideFileText class="h-3 w-3 text-muted-foreground"></svg>
+          <button type="button" class="mt-2 w-full flex items-center gap-2 text-xs rounded border p-1.5 bg-muted/30 hover:bg-muted/50 text-left"
+            (click)="downloadAttachment(a)">
+            <svg lucideFileText class="h-3 w-3 text-muted-foreground shrink-0"></svg>
             <span class="flex-1 truncate">{{ a.fileName }}</span>
             <span class="label-mono">{{ formatBytes(a.sizeBytes) }}</span>
-          </div>
+            <svg lucideDownload class="h-3 w-3 text-muted-foreground shrink-0"></svg>
+          </button>
           }
         </div>
       </div>
@@ -395,12 +470,37 @@
     <div class="border-t p-4 space-y-2 shrink-0">
       <textarea rows="3" class="w-full rounded-md border bg-background p-3 text-sm" placeholder="Write a reply — the member will be emailed."
         [ngModel]="drawerReply()" (ngModelChange)="drawerReply.set($event)"></textarea>
+      @if (replyAttachmentNames().length) {
+      <ul class="space-y-1">
+        @for (name of replyAttachmentNames(); track $index) {
+        <li class="flex items-center gap-2 text-xs rounded border p-1.5 bg-muted/30">
+          <svg lucideFileText class="h-3 w-3 text-muted-foreground shrink-0"></svg>
+          <span class="flex-1 truncate">{{ name }}</span>
+          <span class="label-mono">{{ formatBytes(replyAttachmentSizes()[$index] || 0) }}</span>
+          <button type="button" class="text-muted-foreground hover:text-destructive" (click)="removeReplyAttachment($index)">
+            <svg lucideX class="h-3 w-3"></svg>
+          </button>
+        </li>
+        }
+      </ul>
+      }
       <div class="flex items-center gap-2 flex-wrap">
-        <app-button variant="outline" size="sm"><svg lucidePaperclip class="h-4 w-4 mr-1"></svg> Attach</app-button>
-        <app-button variant="outline" size="sm"><svg lucideSparkles class="h-4 w-4 mr-1"></svg> Suggest reply</app-button>
+        <input #replyFileInput type="file" class="hidden" multiple
+          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
+          [disabled]="drawerBusy() || replyAttachmentUploading() || replyAttachmentIds().length >= 5"
+          (change)="onReplyFilesSelected($event)" />
+        <app-button variant="outline" size="sm" type="button"
+          [disabled]="drawerBusy() || replyAttachmentUploading() || replyAttachmentIds().length >= 5"
+          (click)="replyFileInput.click()">
+          <svg lucidePaperclip class="h-4 w-4 mr-1"></svg>
+          {{ replyAttachmentUploading() ? 'Uploading…' : 'Attach' }}
+        </app-button>
+        <!-- <app-button variant="outline" size="sm"><svg lucideSparkles class="h-4 w-4 mr-1"></svg> Suggest reply</app-button> -->
         <div class="ml-auto flex gap-2">
           <app-button variant="ghost" size="sm" (click)="closeDrawer()">Close</app-button>
-          <app-button size="sm" [disabled]="drawerBusy() || !drawerReply().trim()" (click)="sendReply()">
+          <app-button size="sm"
+            [disabled]="drawerBusy() || replyAttachmentUploading() || (!drawerReply().trim() && !replyAttachmentIds().length)"
+            (click)="sendReply()">
             <svg lucideSend class="h-4 w-4 mr-1"></svg> Send reply
           </app-button>
         </div>
@@ -418,11 +518,26 @@
     @if (drawerTab() === 'activity') {
     <div class="flex-1 overflow-y-auto px-6 py-4">
       <ol class="ml-2 border-l pl-4 space-y-4">
+        @for (h of ticket.statusHistory; track h.id) {
         <li class="relative">
-          <span class="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-muted-foreground"></span>
-          <div class="text-sm">Ticket created via {{ ticket.channel }}</div>
-          <div class="text-xs text-muted-foreground">{{ formatSupportDate(ticket.createdAtUtc) }}</div>
+          <span class="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-primary/70 ring-4 ring-background"></span>
+          <div class="text-sm">
+            @if (h.fromStatus === h.toStatus) {
+              Ticket opened
+            } @else {
+              Status changed from {{ ticketStatusLabel(h.fromStatus) }} to {{ ticketStatusLabel(h.toStatus) }}
+            }
+          </div>
+          <div class="text-xs text-muted-foreground">{{ h.changedByName }} · {{ h.changedByRole }} · {{ formatSupportDate(h.createdAtUtc) }}</div>
         </li>
+        }
+        @for (m of ticket.messages; track m.id) {
+        <li class="relative">
+          <span class="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-muted-foreground/70 ring-4 ring-background"></span>
+          <div class="text-sm">Message from {{ m.authorName }} ({{ m.authorRole }})</div>
+          <div class="text-xs text-muted-foreground">{{ formatSupportDate(m.createdAtUtc) }}</div>
+        </li>
+        }
       </ol>
     </div>
     }

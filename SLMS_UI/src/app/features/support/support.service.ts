@@ -6,6 +6,7 @@ import {
   CreateSupportTicketRequest,
   KnowledgeBaseArticle,
   SupportAttachment,
+  SupportContext,
   SupportTicketDetail,
   SupportTicketListItem,
   SystemIncident,
@@ -17,6 +18,10 @@ import { Observable } from 'rxjs';
 @Injectable()
 export class SupportService {
   private readonly api = inject(ApiService);
+
+  getContext(): Observable<APIResponseModel<SupportContext>> {
+    return this.api.get<SupportContext>('support/context');
+  }
 
   getTickets(): Observable<APIResponseModel<SupportTicketListItem[]>> {
     return this.api.get<SupportTicketListItem[]>('support/tickets');

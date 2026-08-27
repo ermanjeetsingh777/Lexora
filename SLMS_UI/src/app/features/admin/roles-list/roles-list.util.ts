@@ -6,6 +6,7 @@ import {
 } from '@core/constants/permissions';
 import { ROLE_DEFINITIONS, RoleKey } from '@core/constants/role-permissions';
 import { AdminRole, AdminUser } from '@core/models/admin.models';
+import { formatAppDateTime } from '@core/utils/date-format.util';
 
 export type RoleScope = 'Global' | 'Institution' | 'Branch';
 
@@ -123,10 +124,7 @@ export function permsByModule(permissionIds: string[]) {
 }
 
 export function formatRoleDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
+  return formatAppDateTime(iso);
 }
 
 function countMembersByRole(users: AdminUser[]): Map<string, number> {

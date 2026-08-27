@@ -5,6 +5,7 @@ namespace SLMS_API.Application.Services.Interfaces;
 
 public interface ISupportService
 {
+    Task<SupportContextResponse> GetContextAsync(string userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<SupportTicketListItemResponse>> GetTicketsAsync(string userId, CancellationToken cancellationToken = default);
     Task<SupportTicketDetailResponse> GetTicketByIdAsync(string userId, Guid ticketId, CancellationToken cancellationToken = default);
     Task<SupportTicketDetailResponse> CreateTicketAsync(string userId, CreateSupportTicketRequest request, CancellationToken cancellationToken = default);

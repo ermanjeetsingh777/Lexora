@@ -10,4 +10,6 @@ public class CreateSupportTicketRequest
     public string? Area { get; set; }
     public string Description { get; set; } = string.Empty;
     public IEnumerable<Guid>? AttachmentIds { get; set; }
+    public Guid? InstitutionId { get; set; }
+    public Guid? MemberId { get; set; }
 }

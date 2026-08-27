@@ -17,6 +17,11 @@ public class SupportTicketDetailResponse
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public DateTime? SlaDueAtUtc { get; set; }
+    public Guid? InstitutionId { get; set; }
+    public string? InstitutionName { get; set; }
+    public Guid? MemberId { get; set; }
     public IReadOnlyCollection<SupportTicketMessageResponse> Messages { get; set; } = Array.Empty<SupportTicketMessageResponse>();
     public IReadOnlyCollection<SupportAttachmentResponse> Attachments { get; set; } = Array.Empty<SupportAttachmentResponse>();
+    public IReadOnlyCollection<SupportTicketStatusHistoryResponse> StatusHistory { get; set; } = Array.Empty<SupportTicketStatusHistoryResponse>();
+    public SupportTicketCapabilitiesResponse Capabilities { get; set; } = new();
 }

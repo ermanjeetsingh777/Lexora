@@ -14,4 +14,7 @@ public class SupportTicketListItemResponse
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public int MessageCount { get; set; }
+    public Guid? InstitutionId { get; set; }
+    public string? InstitutionName { get; set; }
+    public bool IsOwnRequest { get; set; }
 }

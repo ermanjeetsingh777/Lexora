@@ -20,7 +20,12 @@ public class SupportTicket : AuditableEntity
     public string? Tags { get; set; }
     public Guid? LinkedArticleId { get; set; }
     public DateTime? SlaDueAtUtc { get; set; }
+    public Guid? InstitutionId { get; set; }
+    public string? InstitutionName { get; set; }
+    public Guid? MemberId { get; set; }
+    public string? CreatedByUserId { get; set; }
 
     public ICollection<SupportTicketMessage> Messages { get; set; } = new List<SupportTicketMessage>();
     public ICollection<SupportTicketAttachment> Attachments { get; set; } = new List<SupportTicketAttachment>();
+    public ICollection<SupportTicketStatusHistory> StatusHistory { get; set; } = new List<SupportTicketStatusHistory>();
 }

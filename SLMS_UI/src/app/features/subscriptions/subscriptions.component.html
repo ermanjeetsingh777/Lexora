@@ -189,7 +189,7 @@
 
     <div>
       <app-section-header title="Available plans" description="Upgrade while active, or renew when expiring or expired" />
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         @for (plan of plans(); track plan.id) {
           <app-glass-card class="block flex flex-col">
             <div class="font-semibold text-lg">{{ plan.name }}</div>

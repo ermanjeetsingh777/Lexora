@@ -1,1 +1,23 @@
-<router-outlet />
+<div class="min-h-screen bg-background">
+    <header
+        class="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--background)]/90 backdrop-blur">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
+            <a class="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[var(--muted)]/50 transition-colors"
+                routerLink="/">
+                <div class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-primary text-white">
+                    <i class="pi pi-book text-base"></i>
+                </div>
+                <span class="text-sm font-semibold tracking-tight">{{ appName }}</span>
+            </a>
+
+            <button type="button"
+                class="inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]/30 transition-colors"
+                (click)="logout()">
+                <svg lucideLogOut class="h-4 w-4"></svg>
+                Logout
+            </button>
+        </div>
+    </header>
+
+    <router-outlet />
+</div>

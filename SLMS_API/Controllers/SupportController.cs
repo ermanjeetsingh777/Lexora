@@ -21,6 +21,14 @@ public class SupportController : ControllerBase
         _currentUserService = currentUserService;
     }
 
+    [HttpGet("context")]
+    public async Task<ActionResult<ApiResponse<SupportContextResponse>>> GetContext(CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId ?? string.Empty;
+        var item = await _supportService.GetContextAsync(userId, cancellationToken);
+        return Ok(ApiResponse<SupportContextResponse>.Ok(item));
+    }
+
     [HttpGet("tickets")]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<SupportTicketListItemResponse>>>> GetTickets(CancellationToken cancellationToken)
     {
@@ -38,9 +46,13 @@ public class SupportController : ControllerBase
             var item = await _supportService.GetTicketByIdAsync(userId, ticketId, cancellationToken);
             return Ok(ApiResponse<SupportTicketDetailResponse>.Ok(item));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<SupportTicketDetailResponse>.Fail(ex.Message));
+        }
         catch (InvalidOperationException ex)
         {
-            return NotFound(ApiResponse<SupportTicketDetailResponse>.Fail(ex.Message));
+            return BadRequest(ApiResponse<SupportTicketDetailResponse>.Fail(ex.Message));
         }
     }
 
@@ -52,6 +64,10 @@ public class SupportController : ControllerBase
             var userId = _currentUserService.UserId ?? string.Empty;
             var item = await _supportService.CreateTicketAsync(userId, request, cancellationToken);
             return Ok(ApiResponse<SupportTicketDetailResponse>.Ok(item, "Ticket created."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<SupportTicketDetailResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -68,6 +84,10 @@ public class SupportController : ControllerBase
             var item = await _supportService.AddMessageAsync(userId, ticketId, request, cancellationToken);
             return Ok(ApiResponse<SupportTicketDetailResponse>.Ok(item, "Reply sent."));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<SupportTicketDetailResponse>.Fail(ex.Message));
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(ApiResponse<SupportTicketDetailResponse>.Fail(ex.Message));
@@ -82,6 +102,10 @@ public class SupportController : ControllerBase
             var userId = _currentUserService.UserId ?? string.Empty;
             var item = await _supportService.UpdateTicketStatusAsync(userId, ticketId, request, cancellationToken);
             return Ok(ApiResponse<SupportTicketDetailResponse>.Ok(item, "Ticket updated."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<SupportTicketDetailResponse>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
@@ -154,8 +178,15 @@ public class SupportController : ControllerBase
     [HttpPost("status/simulate-incident")]
     public async Task<ActionResult<ApiResponse<SystemIncidentResponse>>> SimulateIncident(CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? string.Empty;
-        var item = await _supportService.SimulateIncidentAsync(userId, cancellationToken);
-        return Ok(ApiResponse<SystemIncidentResponse>.Ok(item, "Incident simulated."));
+        try
+        {
+            var userId = _currentUserService.UserId ?? string.Empty;
+            var item = await _supportService.SimulateIncidentAsync(userId, cancellationToken);
+            return Ok(ApiResponse<SystemIncidentResponse>.Ok(item, "Incident simulated."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<SystemIncidentResponse>.Fail(ex.Message));
+        }
     }
 }

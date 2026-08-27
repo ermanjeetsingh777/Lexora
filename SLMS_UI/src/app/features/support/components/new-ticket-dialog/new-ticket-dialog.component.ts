@@ -1,11 +1,11 @@
-import { Component, effect, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   LucideFileText, LucideLifeBuoy, LucidePaperclip, LucideSave, LucideSend, LucideX,
 } from '@lucide/angular';
 import { ToastService } from '@core/services/toast.service';
 import {
-  TICKET_CATEGORIES, TICKET_PRIORITIES, TicketCategory, TicketDraft, TicketPriority,
+  SupportContext, TICKET_CATEGORIES, TICKET_PRIORITIES, TicketCategory, TicketDraft, TicketPriority,
 } from '@core/models/support.models';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import {
@@ -22,6 +22,8 @@ export interface NewTicketSubmitPayload {
   area?: string;
   description: string;
   attachmentIds: string[];
+  institutionId?: string;
+  memberId?: string;
 }
 
 @Component({
@@ -39,20 +41,32 @@ export class NewTicketDialogComponent {
   readonly open = input(false);
   readonly initialDraft = input<TicketDraft | undefined>();
   readonly busy = input(false);
+  readonly context = input<SupportContext | null>(null);
 
   readonly submitted = output<NewTicketSubmitPayload>();
   readonly draftSaved = output<void>();
   readonly closed = output<void>();
 
-  readonly TICKET_CATEGORIES = TICKET_CATEGORIES;
   readonly TICKET_PRIORITIES = TICKET_PRIORITIES;
+  readonly TicketCategory = TicketCategory;
+
+  readonly availableCategories = computed(() => {
+    const ctx = this.context();
+    if (!ctx?.creatableCategories?.length) return TICKET_CATEGORIES;
+    const allowed = new Set(ctx.creatableCategories);
+    return TICKET_CATEGORIES.filter(c => allowed.has(c.value));
+  });
+
+  readonly showInstitutionField = computed(() => (this.context()?.institutions.length ?? 0) > 0);
+  readonly isStaff = computed(() => this.context()?.isOrgStaff ?? false);
 
   readonly draftId = signal(createDraftId());
   readonly subject = signal('');
-  readonly category = signal(TicketCategory.Technical);
+  readonly category = signal(TicketCategory.AttendanceCorrection);
   readonly priority = signal(TicketPriority.Normal);
   readonly area = signal('');
   readonly description = signal('');
+  readonly institutionId = signal<string>('');
   readonly attachmentIds = signal<string[]>([]);
   readonly attachmentNames = signal<string[]>([]);
   readonly attachmentSizes = signal<number[]>([]);
@@ -64,10 +78,11 @@ export class NewTicketDialogComponent {
       const draft = this.initialDraft();
       this.draftId.set(draft?.id ?? createDraftId());
       this.subject.set(draft?.subject ?? '');
-      this.category.set(draft?.category ?? TicketCategory.Technical);
+      this.category.set(draft?.category ?? this.defaultCategory());
       this.priority.set(draft?.priority ?? TicketPriority.Normal);
       this.area.set(draft?.area ?? '');
       this.description.set(draft?.description ?? '');
+      this.institutionId.set(this.context()?.institutions[0]?.id ?? '');
       this.attachmentIds.set(draft?.attachmentIds ?? []);
       this.attachmentNames.set(draft?.attachmentNames ?? []);
       this.attachmentSizes.set([]);
@@ -148,7 +163,15 @@ export class NewTicketDialogComponent {
       area: this.area().trim() || undefined,
       description: this.description().trim(),
       attachmentIds: this.attachmentIds(),
+      institutionId: this.institutionId() || undefined,
     });
+  }
+
+  private defaultCategory(): TicketCategory {
+    const categories = this.availableCategories();
+    return categories.find(c => c.value === TicketCategory.AttendanceCorrection)?.value
+      ?? categories[0]?.value
+      ?? TicketCategory.Other;
   }
 
   private uploadFiles(files: File[]): void {

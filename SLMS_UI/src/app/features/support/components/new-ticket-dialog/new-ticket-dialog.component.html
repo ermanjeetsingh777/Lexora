@@ -29,7 +29,7 @@
           <label class="text-sm font-medium">Category</label>
           <select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             [ngModel]="category()" (ngModelChange)="category.set($event); persistDraft(false)">
-            @for (c of TICKET_CATEGORIES; track c.value) {
+            @for (c of availableCategories(); track c.value) {
             <option [ngValue]="c.value">{{ c.label }}</option>
             }
           </select>
@@ -51,6 +51,21 @@
         </div>
       </div>
 
+      @if (showInstitutionField()) {
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Institution</label>
+        <select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          [ngModel]="institutionId()" (ngModelChange)="institutionId.set($event); persistDraft(false)">
+          @for (i of context()?.institutions ?? []; track i.id) {
+          <option [ngValue]="i.id">{{ i.name }}</option>
+          }
+        </select>
+        @if (isStaff() && category() === TicketCategory.AttendanceCorrection) {
+        <p class="text-xs text-muted-foreground">Use this for member attendance corrections at the selected institution.</p>
+        }
+      </div>
+      }
+
       <div class="space-y-1.5">
         <label class="text-sm font-medium">Description</label>
         <textarea rows="5" placeholder="Steps to reproduce, error messages, screenshots…"
@@ -67,7 +82,7 @@
           <span class="text-muted-foreground">Drop files here or </span>
           <label class="text-primary underline underline-offset-2 cursor-pointer">
             browse
-            <input type="file" class="hidden" multiple (change)="onFilesSelected($event)" />
+            <input type="file" class="hidden" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt" (change)="onFilesSelected($event)" />
           </label>
           <div class="text-xs text-muted-foreground mt-0.5">Up to 5 files · 10 MB each</div>
         </div>

@@ -4,13 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   LucideActivity, LucideAlertCircle, LucideBookOpen, LucideCheckCircle2, LucideChevronRight,
-  LucideClock, LucideExternalLink, LucideFileText, LucideLifeBuoy, LucideMail,
+  LucideClock, LucideDownload, LucideExternalLink, LucideFileText, LucideLifeBuoy, LucideMail,
   LucideMessageSquare, LucidePaperclip, LucidePhone, LucidePlus, LucideSave, LucideSearch,
   LucideSend, LucideShieldAlert, LucideSparkles, LucideTrash2, LucideVideo, LucideX, LucideZap,
 } from '@lucide/angular';
 import { ToastService } from '@core/services/toast.service';
 import {
-  KnowledgeBaseArticle, SupportTicketDetail, SupportTicketListItem, SystemStatus,
+  KnowledgeBaseArticle, SupportAttachment, SupportContext, SupportTicketDetail, SupportTicketListItem, SystemStatus,
   TicketCategory, TicketDraft, TicketPriority, TicketStatus,
   TICKET_CATEGORIES, TICKET_PRIORITIES, TICKET_STATUSES,
   ticketCategoryLabel, ticketPriorityLabel, ticketStatusLabel,
@@ -37,7 +37,7 @@ type DrawerTab = 'thread' | 'notes' | 'activity';
     ButtonComponent, PageHeaderComponent, GlassCardComponent, StatusBadgeComponent, NewTicketDialogComponent,
     LucideLifeBuoy, LucidePlus, LucideSearch, LucideAlertCircle, LucideClock, LucideCheckCircle2,
     LucideChevronRight, LucideMessageSquare, LucideMail, LucidePhone, LucideVideo, LucidePaperclip,
-    LucideSend, LucideTrash2, LucideX, LucideSave, LucideFileText, LucideBookOpen,
+    LucideSend, LucideTrash2, LucideX, LucideSave, LucideFileText, LucideBookOpen, LucideDownload,
     LucideSparkles, LucideShieldAlert, LucideActivity, LucideZap, LucideExternalLink,
   ],
   providers: [SupportService],
@@ -66,14 +66,15 @@ export class SupportCentreComponent implements OnInit {
 
   readonly assistantSuggestions = ['Refund flow', 'QR pairing', 'Bulk import', 'Shift rules'];
   readonly contactChannels = [
-    { icon: 'message', label: 'Live chat', meta: 'Avg reply · 2 min', hint: 'Mon–Sat, 8am–10pm' },
-    { icon: 'mail', label: 'Email support', meta: 'support@smartlibrary.io', hint: 'Reply within 4 hrs' },
-    { icon: 'phone', label: 'Phone (Pro plans)', meta: '+1 (415) 555-0119', hint: '24×7 incident line' },
-    { icon: 'video', label: 'Book a specialist', meta: '30-min screen-share', hint: 'Onboarding & migrations' },
+    { icon: 'message', label: 'Live chat', meta: 'Avg reply · 2 min', hint: 'Mon–Sat, 8am–10pm', actionLabel: 'Open chat' },
+    { icon: 'mail', label: 'Email support', meta: 'support@lexora.app', hint: 'Reply within 4 hrs', actionLabel: 'Send email' },
+    { icon: 'phone', label: 'Phone (Pro plans)', meta: '+91 98765 43210', hint: '24×7 incident line', actionLabel: 'Call now' },
+    { icon: 'video', label: 'Book a specialist', meta: '30-min screen-share', hint: 'Onboarding & migrations', actionLabel: 'Book slot' },
   ];
 
   readonly activeTab = signal<SupportTab>('tickets');
   readonly loading = signal(true);
+  readonly context = signal<SupportContext | null>(null);
   readonly tickets = signal<SupportTicketListItem[]>([]);
   readonly statusData = signal<SystemStatus | null>(null);
   readonly drafts = signal<TicketDraft[]>(loadTicketDrafts());
@@ -90,6 +91,10 @@ export class SupportCentreComponent implements OnInit {
   readonly drawerTab = signal<DrawerTab>('thread');
   readonly drawerReply = signal('');
   readonly drawerBusy = signal(false);
+  readonly replyAttachmentIds = signal<string[]>([]);
+  readonly replyAttachmentNames = signal<string[]>([]);
+  readonly replyAttachmentSizes = signal<number[]>([]);
+  readonly replyAttachmentUploading = signal(false);
 
   readonly createBusy = signal(false);
 
@@ -100,16 +105,28 @@ export class SupportCentreComponent implements OnInit {
   readonly selectedArticle = signal<KnowledgeBaseArticle | null>(null);
   readonly assistantQuery = signal('');
 
+  readonly institutionFilter = signal<'all' | string>('all');
+
+  readonly creatableCategories = computed(() => {
+    const ctx = this.context();
+    if (!ctx?.creatableCategories?.length) return TICKET_CATEGORIES;
+    const allowed = new Set(ctx.creatableCategories);
+    return TICKET_CATEGORIES.filter(c => allowed.has(c.value));
+  });
+
   readonly filteredTickets = computed(() => {
     const q = this.ticketSearch().trim().toLowerCase();
+    const institution = this.institutionFilter();
     return this.tickets().filter(t => {
       if (this.statusFilter() !== 'all' && t.status !== this.statusFilter()) return false;
       if (this.priorityFilter() !== 'all' && t.priority !== this.priorityFilter()) return false;
       if (this.categoryFilter() !== 'all' && t.category !== this.categoryFilter()) return false;
+      if (institution !== 'all' && t.institutionId !== institution) return false;
       if (!q) return true;
       return t.subject.toLowerCase().includes(q)
         || t.id.toLowerCase().includes(q)
         || (t.ownerName ?? '').toLowerCase().includes(q)
+        || (t.institutionName ?? '').toLowerCase().includes(q)
         || t.requesterName.toLowerCase().includes(q);
     });
   });
@@ -178,9 +195,16 @@ export class SupportCentreComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadContext();
     this.refreshTickets();
     this.refreshStatus();
     this.loadArticles();
+  }
+
+  loadContext(): void {
+    this.supportService.getContext().subscribe({
+      next: (res) => this.context.set(res.data ?? null),
+    });
   }
 
   setTab(tab: SupportTab): void {
@@ -256,6 +280,8 @@ export class SupportCentreComponent implements OnInit {
       area: payload.area,
       description: payload.description,
       attachmentIds: payload.attachmentIds,
+      institutionId: payload.institutionId,
+      memberId: payload.memberId,
     }).subscribe({
       next: (res) => {
         this.createBusy.set(false);
@@ -284,6 +310,7 @@ export class SupportCentreComponent implements OnInit {
         this.selectedTicket.set(res.data ?? null);
         this.drawerOpen.set(true);
         this.drawerTab.set('thread');
+        this.clearReplyAttachments();
         this.drawerReply.set('');
       },
       error: () => this.toast.error('Failed to load ticket'),
@@ -293,17 +320,23 @@ export class SupportCentreComponent implements OnInit {
   closeDrawer(): void {
     this.drawerOpen.set(false);
     this.selectedTicket.set(null);
+    this.clearReplyAttachments();
   }
 
   sendReply(): void {
     const ticket = this.selectedTicket();
     const body = this.drawerReply().trim();
-    if (!ticket || !body) return;
+    const attachmentIds = this.replyAttachmentIds();
+    if (!ticket || (!body && !attachmentIds.length)) return;
     this.drawerBusy.set(true);
-    this.supportService.addMessage(ticket.id, { body }).subscribe({
+    this.supportService.addMessage(ticket.id, {
+      body: body,
+      attachmentIds: attachmentIds.length ? attachmentIds : undefined,
+    }).subscribe({
       next: (res) => {
         this.drawerBusy.set(false);
         this.drawerReply.set('');
+        this.clearReplyAttachments();
         this.selectedTicket.set(res.data ?? ticket);
         this.refreshTickets();
         this.toast.success('Reply sent');
@@ -315,8 +348,77 @@ export class SupportCentreComponent implements OnInit {
     });
   }
 
+  onReplyFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.uploadReplyFiles(Array.from(input.files ?? []));
+    input.value = '';
+  }
+
+  removeReplyAttachment(index: number): void {
+    this.replyAttachmentIds.update(ids => ids.filter((_, i) => i !== index));
+    this.replyAttachmentNames.update(names => names.filter((_, i) => i !== index));
+    this.replyAttachmentSizes.update(sizes => sizes.filter((_, i) => i !== index));
+  }
+
+  downloadAttachment(attachment: SupportAttachment): void {
+    this.supportService.downloadAttachment(attachment.id).subscribe({
+      next: (blob) => this.saveBlob(blob, attachment.fileName),
+      error: () => this.toast.error('Failed to download file'),
+    });
+  }
+
+  private uploadReplyFiles(files: File[]): void {
+    if (!files.length) return;
+    const remaining = 5 - this.replyAttachmentIds().length;
+    if (remaining <= 0) {
+      this.toast.error('Maximum 5 attachments per reply');
+      return;
+    }
+
+    this.replyAttachmentUploading.set(true);
+    let pending = Math.min(files.length, remaining);
+
+    const finishUpload = (): void => {
+      pending -= 1;
+      if (pending <= 0) this.replyAttachmentUploading.set(false);
+    };
+
+    for (const file of files.slice(0, remaining)) {
+      this.supportService.uploadAttachment(file).subscribe({
+        next: (res) => {
+          if (!res.data) return;
+          this.replyAttachmentIds.update(ids => [...ids, res.data!.id]);
+          this.replyAttachmentNames.update(names => [...names, res.data!.fileName]);
+          this.replyAttachmentSizes.update(sizes => [...sizes, res.data!.sizeBytes]);
+        },
+        error: () => {
+          this.toast.error(`Failed to upload ${file.name}`);
+          finishUpload();
+        },
+        complete: finishUpload,
+      });
+    }
+  }
+
+  private clearReplyAttachments(): void {
+    this.replyAttachmentIds.set([]);
+    this.replyAttachmentNames.set([]);
+    this.replyAttachmentSizes.set([]);
+    this.replyAttachmentUploading.set(false);
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   updateTicketStatus(status: TicketStatus): void {
     const ticket = this.selectedTicket();
+    if (!ticket?.capabilities?.canChangeStatus) return;
     if (!ticket) return;
     this.supportService.updateStatus(ticket.id, { status }).subscribe({
       next: (res) => {
@@ -336,5 +438,11 @@ export class SupportCentreComponent implements OnInit {
 
   kbHighlight(text: string): string {
     return highlightText(text, tokenize(this.kbQuery()));
+  }
+
+  isSuperAdminOnlyCategory(category: TicketCategory): boolean {
+    return category === TicketCategory.Bug
+      || category === TicketCategory.FeatureRequest
+      || category === TicketCategory.Technical;
   }
 }

@@ -41,6 +41,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
     public DbSet<SupportTicketAttachment> SupportTicketAttachments => Set<SupportTicketAttachment>();
+    public DbSet<SupportTicketStatusHistory> SupportTicketStatusHistories => Set<SupportTicketStatusHistory>();
     public DbSet<KnowledgeBaseArticle> KnowledgeBaseArticles => Set<KnowledgeBaseArticle>();
     public DbSet<SystemIncident> SystemIncidents => Set<SystemIncident>();
     public DbSet<Book> Books => Set<Book>();
@@ -225,7 +226,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(x => x.RequesterEmail).HasMaxLength(255);
             entity.Property(x => x.OwnerName).HasMaxLength(200);
             entity.Property(x => x.Channel).HasMaxLength(50);
+            entity.Property(x => x.InstitutionName).HasMaxLength(200);
+            entity.Property(x => x.CreatedByUserId).HasMaxLength(450);
+            entity.HasIndex(x => new { x.InstitutionId, x.Status, x.IsDeleted });
             entity.HasIndex(x => new { x.RequesterUserId, x.Status, x.IsDeleted });
+        });
+
+        builder.Entity<SupportTicketStatusHistory>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ChangedByUserId).HasMaxLength(450).IsRequired();
+            entity.Property(x => x.ChangedByName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.ChangedByRole).HasMaxLength(50).IsRequired();
+            entity.HasOne(x => x.Ticket)
+                .WithMany(x => x.StatusHistory)
+                .HasForeignKey(x => x.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<SupportTicketMessage>(entity =>

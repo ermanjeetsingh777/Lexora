@@ -20,11 +20,10 @@ export function formatRelative(value?: string | number | Date | null): string {
   return rtf.format(diffMins, 'minute');
 }
 
+import { formatAppDateTime } from '@core/utils/date-format.util';
+
 export function formatSupportDate(value?: string | Date | null): string {
-  if (!value) return '—';
-  const date = typeof value === 'string' ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return formatAppDateTime(value);
 }
 
 export function supportInitials(name?: string | null): string {

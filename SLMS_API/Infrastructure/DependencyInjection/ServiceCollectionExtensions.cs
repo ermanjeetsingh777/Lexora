@@ -105,6 +105,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<SupportStatusSimulator>();
+        services.AddScoped<ISupportAccessResolver, SupportAccessResolver>();
         services.AddScoped<ISupportService, SupportService>();
         services.AddScoped<IBookService, BookService>();
         services.AddScoped<IDashboardService, DashboardService>();

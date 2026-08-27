@@ -1088,10 +1088,16 @@ public class MemberService : IMemberService
         }
 
         var userId = await RequireCurrentUserIdAsync(cancellationToken);
-        var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
-        if (!CanAccessMemberLibrary(member.Library?.InstitutionId, member.Library?.BranchId, member.Library?.LibraryId, scope))
+        var userIdString = userId.ToString();
+        var ownMemberId = await GetMemberIdForUserAsync(userIdString, cancellationToken);
+
+        if (ownMemberId != memberId)
         {
-            return null;
+            var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
+            if (!CanAccessMemberLibrary(member.Library?.InstitutionId, member.Library?.BranchId, member.Library?.LibraryId, scope))
+            {
+                return null;
+            }
         }
 
         var contacts = await _dbContext.MemberGuardianContacts
@@ -1294,6 +1300,23 @@ public class MemberService : IMemberService
             Attendance = recentAttendance,
         };
     }
+
+    public async Task<Guid?> GetCurrentMemberIdAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_currentUserService.UserId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        return await GetMemberIdForUserAsync(_currentUserService.UserId, cancellationToken);
+    }
+
+    private async Task<Guid?> GetMemberIdForUserAsync(string userId, CancellationToken cancellationToken) =>
+        await _dbContext.Members
+            .AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .Select(m => (Guid?)m.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
     private sealed record MemberAccessScope(
         bool IsSuperAdmin,

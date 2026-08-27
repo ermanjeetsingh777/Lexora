@@ -1,13 +1,14 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { LucideBell, LucideLogOut, LucideMoon, LucideSearch, LucideSun, LucideUser } from '@lucide/angular';
-import { AuthService } from '../../core/services/auth.service';
-import { ThemeService } from '../../core/services/theme.service';
+import { AuthService } from '@core/services/auth.service';
+import { MemberPortalService } from '@core/services/member-portal.service';
+import { StorageService } from '@core/services/storage.service';
+import { ThemeService } from '@core/services/theme.service';
 import { SidebarService } from '../sidebar/sidebar.service';
 import { InputDirective } from '@shared/components/input/input.directive';
-import { StorageService } from '@core/services/storage.service';
 
 /** Sticky header with breadcrumbs, search, notifications, theme toggle and account menu. */
 @Component({
@@ -16,9 +17,13 @@ import { StorageService } from '@core/services/storage.service';
   imports: [RouterLink, InputDirective, LucideBell, LucideMoon, LucideSun, LucideSearch, LucideLogOut, LucideUser],
   template: `
     <header class="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 backdrop-blur px-3 md:px-4">
-      <button type="button" (click)="sidebar.toggle()" class="rounded-md border p-1.5 hover:bg-muted/50" aria-label="Toggle sidebar">
-        <span class="block h-4 w-4">☰</span>
-      </button>
+      @if (!memberPortalMode()) {
+        <button type="button" (click)="sidebar.toggle()" class="rounded-md border p-1.5 hover:bg-muted/50" aria-label="Toggle sidebar">
+          <span class="block h-4 w-4">☰</span>
+        </button>
+      } @else {
+        <div class="text-sm font-semibold tracking-tight">My membership</div>
+      }
 
       <!-- <nav class="hidden md:flex items-center gap-1.5 text-sm">
         @for (seg of segments(); track seg.href; let last = $last) {
@@ -51,10 +56,12 @@ import { StorageService } from '@core/services/storage.service';
                 <div class="text-xs text-muted-foreground">{{ storageService.user()?.email }}</div>
               </div>
               <div class="my-1 h-px bg-border"></div>
-              <a routerLink="/profile" class="flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-muted" (click)="userOpen.set(false)">
-                <svg lucideUser class="mr-2 h-4 w-4"></svg> Profile
-              </a>
-              <div class="my-1 h-px bg-border"></div>
+              @if (!memberPortalMode()) {
+                <a routerLink="/profile" class="flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-muted" (click)="userOpen.set(false)">
+                  <svg lucideUser class="mr-2 h-4 w-4"></svg> Profile
+                </a>
+                <div class="my-1 h-px bg-border"></div>
+              }
               <button type="button" (click)="signOut()" class="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted">
                 <svg lucideLogOut class="mr-2 h-4 w-4"></svg> Sign out
               </button>
@@ -66,6 +73,8 @@ import { StorageService } from '@core/services/storage.service';
   `,
 })
 export class TopbarComponent {
+  readonly memberPortalMode = input(false);
+
   protected readonly sidebar = inject(SidebarService);
   protected readonly theme = inject(ThemeService);
   protected readonly auth = inject(AuthService);

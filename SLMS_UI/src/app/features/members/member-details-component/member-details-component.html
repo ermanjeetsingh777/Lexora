@@ -3,22 +3,25 @@
 <app-page-header eyebrow="Members" [title]="m.name"
   [description]="(m.membershipNo ?? '') + ' · joined ' + (m.joinedOn | appDate)">
   <div actions class="flex items-center gap-2">
-    <a [routerLink]="backLink" [queryParams]="backQueryParams">
-      <app-button variant="outline" size="sm">
-        <svg lucideArrowLeft class="h-4 w-4 mr-1"></svg> {{ backLabel }}
-      </app-button>
-    </a>
+    @if (!isMemberPortalView()) {
+      <a [routerLink]="backLink" [queryParams]="backQueryParams">
+        <app-button variant="outline" size="sm">
+          <svg lucideArrowLeft class="h-4 w-4 mr-1"></svg> {{ backLabel }}
+        </app-button>
+      </a>
+    }
     <app-button variant="outline" size="sm" (click)="copyId(m.id)">
       <svg lucideCopy class="h-4 w-4 mr-1"></svg> Copy ID
     </app-button>
-    <a [routerLink]="editLink">
-      <app-button variant="outline" size="sm">
-        <svg lucidePencil class="h-4 w-4 mr-1"></svg> Edit profile
-      </app-button>
-    </a>
+    @if (!isMemberPortalView()) {
+      <a [routerLink]="editLink">
+        <app-button variant="outline" size="sm">
+          <svg lucidePencil class="h-4 w-4 mr-1"></svg> Edit profile
+        </app-button>
+      </a>
 
-    <!-- Actions dropdown -->
-    <div class="relative">
+      <!-- Actions dropdown -->
+      <div class="relative">
       <app-button variant="outline" size="sm" (click)="actionsOpen.set(!actionsOpen())">
         <svg lucideSettings2 class="h-4 w-4 mr-1"></svg> Actions
       </app-button>
@@ -51,6 +54,7 @@
       </div>
       }
     </div>
+    }
   </div>
 </app-page-header>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -13,6 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoginRequest } from '@core/models/AuthResponse.model';
 import { OnboardingSteps } from '@core/enums/OnbardingSteps';
 import { CommonService } from '@core/services/common.service';
+import { MemberPortalService } from '@core/services/member-portal.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -34,6 +35,7 @@ export class LoginComponent {
   private readonly route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
   private readonly CommonService = inject(CommonService);
+  private readonly memberPortal = inject(MemberPortalService);
 
   readonly email = signal('');
   readonly password = signal('');
@@ -64,7 +66,17 @@ export class LoginComponent {
     this.auth.login(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
-          this.getRedirect(response.data.user.onboardingStep);
+          if (this.auth.isMemberPortalUser()) {
+            this.memberPortal.resolveMemberId(true).subscribe((memberId) => {
+              if (memberId) {
+                void this.router.navigate(['/members', memberId]);
+              } else {
+                this.toast.error('Member profile not found for this account.');
+              }
+            });
+          } else {
+            this.getRedirect(response.data.user.onboardingStep);
+          }
         } else {
           this.toast.error(response.message || 'Unable to sign in. Please try again.');
         }

@@ -78,6 +78,25 @@ namespace SLMS_API.Controllers
             }
         }
 
+        [HttpGet("me")]
+        public async Task<ActionResult<ApiResponse<CurrentMemberResponse>>> GetCurrentMember(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var memberId = await _memberService.GetCurrentMemberIdAsync(cancellationToken);
+                if (!memberId.HasValue)
+                {
+                    return NotFound(ApiResponse<CurrentMemberResponse>.Fail("Member profile not found for this account."));
+                }
+
+                return Ok(ApiResponse<CurrentMemberResponse>.Ok(new CurrentMemberResponse { MemberId = memberId.Value }));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<CurrentMemberResponse>.Fail(ex.Message));
+            }
+        }
+
         [HttpGet("{memberId:guid}")]
         public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> GetById(Guid memberId, CancellationToken cancellationToken)
         {

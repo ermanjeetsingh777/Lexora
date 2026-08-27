@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthUser, PERMISSIONS, Role, SEED_USERS, SeededUser } from '../models/auth.model';
+import { isMemberPortalUser } from '@core/constants/roles';
 import { environment } from '@env/environment';
 import { BehaviorSubject, catchError, finalize, firstValueFrom, map, Observable, of, shareReplay, switchMap, tap, throwError, timer } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -8,6 +9,7 @@ import { ApiService } from './api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { AuthResponse, CurrentUser, ForgotPasswordRequest, LoginRequest, MessageResponse, RefreshTokenRequest, RegisterRequest, ResetPasswordRequest } from '@core/models/AuthResponse.model';
 import { Router } from '@angular/router';
+import { MemberPortalService } from './member-portal.service';
 
 const STORAGE_KEY = 'mock-auth-session';
 const USERS_KEY = 'mock-auth-users';
@@ -17,6 +19,7 @@ export class AuthService {
   private readonly httpApi = inject(ApiService);
   private readonly storage = inject(StorageService);
   private readonly router = inject(Router);
+  private readonly memberPortal = inject(MemberPortalService);
   private refreshInProgress = false;
   private refreshSubject = new BehaviorSubject<string | null>(null);
 
@@ -72,6 +75,7 @@ export class AuthService {
   }
 
   logout(): void {
+    this.memberPortal.clear();
     this.storage.clear();
     this.router.navigate(['/login']);
   }
@@ -145,6 +149,10 @@ export class AuthService {
   //role
   hasRole(role: string): boolean {
     return this.storage.hasRole(role);
+  }
+
+  isMemberPortalUser(): boolean {
+    return isMemberPortalUser(this.storage.user()?.roles);
   }
 
   hasPermission(permission: number): boolean {

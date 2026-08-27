@@ -29,8 +29,9 @@ import {
   LucideFileSpreadsheet,
   LucideKeyRound,
 } from '@lucide/angular';
+import { isMemberPortalUser } from '@core/constants/roles';
+import { MemberPortalService } from '@core/services/member-portal.service';
 import { ToastService } from '@core/services/toast.service';
-import { AuthService } from '@core/services/auth.service';
 import { WhatsAppService } from '@core/services/whatsapp.service';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from '@shared/components/page-header/page-header.component';
@@ -65,6 +66,7 @@ import {
 } from '@features/attendance/attendance-format.util';
 import { AttendanceExportService } from '@features/attendance/attendance-export.service';
 import { collectRouteParams, memberBackNav, memberEditLink } from '@core/utils/entity-routes.util';
+import { AuthService } from '@core/services/auth.service';
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -124,6 +126,11 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly commonService = inject(CommonService);
   readonly attendanceService = inject(AttendanceService);
   private readonly attendanceExportService = inject(AttendanceExportService);
+  private readonly memberPortal = inject(MemberPortalService);
+
+  protected readonly isMemberPortalView = computed(
+    () => this.auth.isMemberPortalUser() && this.memberPortal.memberId() === this.memberId,
+  );
 
   get routeParams(): Record<string, string> {
     return collectRouteParams(this.route.snapshot);
@@ -210,8 +217,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly editRemarks = signal('');
   readonly newPassword = signal('');
   readonly confirmPassword = signal('');
-  readonly canChangePassword =
-    this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin');
+  readonly canChangePassword = this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin');
   readonly eventDot = EVENT_DOT;
   readonly ATTENDANCE_LOG_PAGE_SIZE_OPTS = ATTENDANCE_LOG_PAGE_SIZE_OPTS;
   readonly attendanceLogPage = signal(1);

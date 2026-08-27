@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@core/guards/auth.guard';
+import { memberPortalGuard } from '@core/guards/member-portal.guard';
 import { onboardingCompleteGuard, onboardingGuard } from '@core/guards/onboarding.guard';
 import { permissionGuard } from '@core/guards/permission.guard';
 import { PermissionKey } from '@core/constants/permissions';
@@ -55,6 +56,7 @@ export const routes: Routes = [
     {
         path: '',
         canActivate: [authGuard, onboardingCompleteGuard],
+        canActivateChild: [memberPortalGuard],
         loadComponent: () => import('./layouts/app-shell/app-shell.component').then((m) => m.AppShellComponent),
         children: [
             // --- Dashboard ---

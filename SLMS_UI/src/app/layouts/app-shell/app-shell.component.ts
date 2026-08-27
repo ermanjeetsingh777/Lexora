@@ -1,6 +1,8 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AuthService } from '@core/services/auth.service';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
+import { MemberPortalService } from '@core/services/member-portal.service';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { SidebarService } from '../sidebar/sidebar.service';
 import { TopbarComponent } from '../topbar/topbar.component';
@@ -21,12 +23,16 @@ import { TopbarComponent } from '../topbar/topbar.component';
   imports: [RouterOutlet, SidebarComponent, TopbarComponent],
   template: `
     <div class="min-h-screen w-full bg-background">
-      <app-sidebar />
-      <app-topbar />
+      @if (!isMemberPortalUser()) {
+        <app-sidebar />
+      }
+      <app-topbar [memberPortalMode]="isMemberPortalUser()" />
       <div
-        class="flex min-h-screen flex-col pt-14 pl-0 transition-[padding] duration-200 md:pl-16"
-        [class.lg:pl-64]="sidebar.isDesktop() && !sidebar.collapsed()"
-        [class.lg:pl-16]="sidebar.isDesktop() && sidebar.collapsed()"
+        class="flex min-h-screen flex-col pt-14 transition-[padding] duration-200"
+        [class.pl-0]="isMemberPortalUser()"
+        [class.md:pl-16]="!isMemberPortalUser()"
+        [class.lg:pl-64]="!isMemberPortalUser() && sidebar.isDesktop() && !sidebar.collapsed()"
+        [class.lg:pl-16]="!isMemberPortalUser() && sidebar.isDesktop() && sidebar.collapsed()"
       >
         <main class="flex-1 p-4 md:p-6 lg:p-6">
           <div class="mx-auto max-w-7xl space-y-6">
@@ -39,9 +45,20 @@ import { TopbarComponent } from '../topbar/topbar.component';
 })
 export class AppShellComponent implements OnInit {
   protected readonly sidebar = inject(SidebarService);
+  private readonly auth = inject(AuthService);
   private readonly organizationEntitlements = inject(OrganizationEntitlementService);
+  private readonly memberPortal = inject(MemberPortalService);
+
+  protected isMemberPortalUser(): boolean {
+    return this.auth.isMemberPortalUser();
+  }
 
   ngOnInit(): void {
+    if (this.isMemberPortalUser()) {
+      this.memberPortal.resolveMemberId().subscribe();
+      return;
+    }
+
     this.organizationEntitlements.load().subscribe();
   }
 }

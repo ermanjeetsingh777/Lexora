@@ -6,7 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { StorageService } from './storage.service';
 import { ApiService } from './api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
-import { AuthResponse, ForgotPasswordRequest, LoginRequest, MessageResponse, RefreshTokenRequest, RegisterRequest, ResetPasswordRequest } from '@core/models/AuthResponse.model';
+import { AuthResponse, CurrentUser, ForgotPasswordRequest, LoginRequest, MessageResponse, RefreshTokenRequest, RegisterRequest, ResetPasswordRequest } from '@core/models/AuthResponse.model';
 import { Router } from '@angular/router';
 
 const STORAGE_KEY = 'mock-auth-session';
@@ -126,6 +126,10 @@ export class AuthService {
   // Current User
   currentUser() {
     return this.storage.user;
+  }
+
+  getCurrentUser(): Observable<APIResponseModel<CurrentUser>> {
+    return this.httpApi.get<CurrentUser>('auth/current-user');
   }
 
   // Authenticated

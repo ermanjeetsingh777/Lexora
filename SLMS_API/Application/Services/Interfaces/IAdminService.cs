@@ -14,6 +14,7 @@ public interface IAdminService
     Task DeleteUserAsync(string id, string? ipAddress, CancellationToken cancellationToken = default);
     Task<AdminUserResponse> AssignRolesAsync(string id, AdminAssignRolesRequest request, string callerUserId, string? ipAddress, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<InstitutionDropdownResponse>> GetUserScopeOptionsAsync(string callerUserId, CancellationToken cancellationToken = default);
+    Task<AdminUserAccessScopeResponse> GetUserAccessScopeAsync(string userId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<AdminRoleResponse>> GetRolesAsync(string callerUserId, CancellationToken cancellationToken = default);
     Task<AdminRoleResponse> CreateRoleAsync(AdminCreateRoleRequest request, string callerUserId, string? ipAddress, CancellationToken cancellationToken = default);

@@ -202,6 +202,14 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/admin/roles-list/roles-list.component').then((m) => m.RolesListComponent),
             },
 
+            // --- Profile ---
+            {
+                path: 'profile',
+                loadComponent: () => import('./features/profile/profile.component').then((m) => m.ProfileComponent),
+            },
+            { path: 'settings', redirectTo: 'profile', pathMatch: 'full' },
+            { path: 'settings/profile', redirectTo: 'profile', pathMatch: 'full' },
+
             // --- Support ---
             {
                 path: 'support',

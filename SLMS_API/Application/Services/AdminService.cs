@@ -651,6 +651,17 @@ public class AdminService : IAdminService
         return await BuildScopedInstitutionDropdownAsync(callerUserId, cancellationToken);
     }
 
+    public async Task<AdminUserAccessScopeResponse> GetUserAccessScopeAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return new AdminUserAccessScopeResponse { Summary = "None" };
+        }
+
+        var scopeMap = await LoadAccessScopesAsync([userId], cancellationToken);
+        return scopeMap.GetValueOrDefault(userId) ?? new AdminUserAccessScopeResponse { Summary = "None" };
+    }
+
     public async Task<string> BackupAsync(string? ipAddress, CancellationToken cancellationToken = default)
     {
         var connectionString = _configuration.GetConnectionString("DefaultConnection")

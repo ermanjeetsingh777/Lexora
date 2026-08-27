@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import {
   LucideArmchair, LucideBarChart3, LucideBell, LucideBookOpen, LucideBookUser,
   LucideBuilding2, LucideCalendarCheck, LucideCreditCard, LucideGraduationCap,
-  LucideLayoutDashboard, LucideLifeBuoy, LucideScanLine, LucideSettings, LucideUserCog, LucideUsers,
+  LucideLayoutDashboard, LucideLifeBuoy, LucideScanLine, LucideUser, LucideUserCog, LucideUsers,
 } from '@lucide/angular';
 import { SidebarService } from './sidebar.service';
 import { AuthService } from '@core/services/auth.service';
@@ -17,7 +17,7 @@ import { PermissionKey } from '@core/constants/permissions';
     RouterLink, RouterLinkActive,
     LucideLayoutDashboard, LucideBarChart3, LucideUsers, LucideGraduationCap, LucideBookUser,
     LucideArmchair, LucideCalendarCheck, LucideScanLine, LucideBuilding2, LucideBookOpen,
-    LucideCreditCard, LucideBell, LucideUserCog, LucideSettings, LucideLifeBuoy,
+    LucideCreditCard, LucideBell, LucideUserCog, LucideUser, LucideLifeBuoy,
   ],
   template: `
     @if (sidebar.isMobile() && sidebar.mobileOpen()) {
@@ -113,9 +113,9 @@ import { PermissionKey } from '@core/constants/permissions';
               @if (sidebar.showLabels()) { <span>Roles</span> }
             </a>
           }
-          <a routerLink="/settings" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideSettings class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Settings</span> }
+          <a routerLink="/profile" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+            <svg lucideUser class="h-4 w-4 shrink-0"></svg>
+            @if (sidebar.showLabels()) { <span>Profile</span> }
           </a>
           <a routerLink="/support" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
             <svg lucideLifeBuoy class="h-4 w-4 shrink-0"></svg>

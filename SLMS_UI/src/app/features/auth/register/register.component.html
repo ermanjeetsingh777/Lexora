@@ -105,14 +105,17 @@
             </div>
             }
         </div>
-        <label class="flex items-start gap-2 text-xs text-[var(--muted-foreground)]">
-            <input type="checkbox" [(ngModel)]="terms" name="terms" class="mt-0.5 rounded border-[var(--border)]"
+        <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="terms" name="terms"
+                class="mt-0.5 shrink-0 rounded border-[var(--border)]"
                 #termsCtrl="ngModel" required />
-            I agree to the
-            <a routerLink="/terms" class="text-[var(--primary)] hover:underline">terms of service</a>,
-            <a routerLink="/privacy-policy" class="text-[var(--primary)] hover:underline">privacy policy</a>, and
-            <a routerLink="/data-processing" class="text-[var(--primary)] hover:underline">data processing terms</a>
-            for institutional data processing.
+            <span class="text-xs leading-relaxed text-[var(--muted-foreground)]">
+                I agree to the
+                <a routerLink="/terms" class="text-[var(--primary)] hover:underline">terms of service</a>,
+                <a routerLink="/privacy-policy" class="text-[var(--primary)] hover:underline">privacy policy</a>, and
+                <a routerLink="/data-processing" class="text-[var(--primary)] hover:underline">data processing terms</a>
+                for institutional data processing.
+            </span>
         </label>
         @if(termsCtrl.invalid && registerForm.submitted){
         <div class="text-sm text-red-500">

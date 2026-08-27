@@ -1,0 +1,3 @@
+.profile-hero {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, transparent), color-mix(in srgb, var(--primary) 2%, transparent));
+}

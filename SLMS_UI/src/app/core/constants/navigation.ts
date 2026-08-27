@@ -53,7 +53,7 @@ export const SIDEBAR_NAV: NavGroup[] = [
     items: [
       { title: 'Users', route: '/users', icon: 'user-cog' },
       { title: 'Roles', route: '/roles', icon: 'shield' },
-      { title: 'Settings', route: '/settings', icon: 'settings' },
+      { title: 'Profile', route: '/profile', icon: 'user' },
       { title: 'Support', route: '/support', icon: 'life-buoy' },
     ],
   },

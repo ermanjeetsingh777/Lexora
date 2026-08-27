@@ -12,12 +12,14 @@ namespace SLMS_API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IProfileService _profileService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ICurrentUserService currentUserService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService, IProfileService profileService, ICurrentUserService currentUserService, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _profileService = profileService;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -168,6 +170,56 @@ public class AuthController : ControllerBase
         }
 
         return Ok(ApiResponse<CurrentUserResponse>.Ok(user));
+    }
+
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<UserProfileResponse>>> GetProfile(CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId ?? string.Empty;
+        var profile = await _profileService.GetProfileAsync(userId, cancellationToken);
+        if (profile is null)
+        {
+            return NotFound(ApiResponse<UserProfileResponse>.Fail("User not found."));
+        }
+
+        return Ok(ApiResponse<UserProfileResponse>.Ok(profile));
+    }
+
+    [HttpPatch("profile")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<UserProfileResponse>>> UpdateProfile(
+        [FromBody] UpdateProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = _currentUserService.UserId ?? string.Empty;
+            var profile = await _profileService.UpdateProfileAsync(userId, request, cancellationToken);
+            return Ok(ApiResponse<UserProfileResponse>.Ok(profile, "Profile updated."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<UserProfileResponse>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<MessageResponse>>> ChangePassword(
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = _currentUserService.UserId ?? string.Empty;
+            var result = await _profileService.ChangePasswordAsync(userId, request, _currentUserService.IpAddress, cancellationToken);
+            return Ok(ApiResponse<MessageResponse>.Ok(result, result.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<MessageResponse>.Fail(ex.Message));
+        }
     }
 
     [HttpPost("enable-2fa")]

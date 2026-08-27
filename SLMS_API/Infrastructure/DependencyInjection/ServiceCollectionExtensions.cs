@@ -94,6 +94,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPackageService, PackageService>();
         services.AddScoped<IUserPackageService, UserPackageService>();
         services.AddScoped<IPackageSubscriptionService, PackageSubscriptionService>();
+        services.AddScoped<IPackageEntitlementService, PackageEntitlementService>();
         services.AddScoped<IInstitutionService, InstitutionService>();
         services.AddScoped<IBranchService, BranchService>();
         services.AddScoped<ILibraryService, LibraryService>();

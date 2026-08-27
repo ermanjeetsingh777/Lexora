@@ -16,7 +16,7 @@
 
 
 
-  <div class="inst-detail-tab-nav">
+  <div class="inst-detail-tab-nav mb-4">
     <p-selectbutton
       [options]="tabs"
       [ngModel]="tab()"
@@ -131,11 +131,13 @@
           <p class="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
             Add your first branch to start tracking occupancy, members, and revenue.
           </p>
-          <a [routerLink]="['/institutions', institutionId(), 'addbranch']">
-            <app-button size="sm" class="mt-4">
-              <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
-            </app-button>
-          </a>
+          @if (canCreateBranch()) {
+            <a [routerLink]="['/institutions', institutionId(), 'addbranch']">
+              <app-button size="sm" class="mt-4">
+                <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
+              </app-button>
+            </a>
+          }
         </app-glass-card>
       } @else {
         <div class="space-y-4">
@@ -305,11 +307,13 @@
         </div>
         <h3 class="font-semibold">No branches yet</h3>
         <p class="text-sm text-muted-foreground mt-1">Branches let you organize libraries and members by physical location.</p>
-        <a [routerLink]="['/institutions', institutionId(), 'addbranch']">
-          <app-button size="sm" class="mt-4">
-            <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
-          </app-button>
-        </a>
+        @if (canCreateBranch()) {
+          <a [routerLink]="['/institutions', institutionId(), 'addbranch']">
+            <app-button size="sm" class="mt-4">
+              <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
+            </app-button>
+          </a>
+        }
       </app-glass-card>
     } @else {
       <div class="space-y-4">
@@ -361,11 +365,13 @@
           <app-glass-card class="inst-detail-branch-card lg:col-span-2 block">
             <app-section-header title="All branches" description="Live capacity and status">
               <div actions>
+              @if (canCreateBranch()) {
                 <a [routerLink]="['/institutions', institutionId(), 'addbranch']">
                   <app-button size="sm">
                     <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add branch
                   </app-button>
                 </a>
+              }
               </div>
             </app-section-header>
 
@@ -536,11 +542,13 @@
         </div>
         <h3 class="font-semibold">No libraries yet</h3>
         <p class="text-sm text-muted-foreground mt-1">Add libraries to your branches to start managing seats and zones.</p>
-        <a [routerLink]="['/institutions', institutionId(), 'addlibrary']">
-          <app-button size="sm" class="mt-4">
-            <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
-          </app-button>
-        </a>
+        @if (canCreateLibrary()) {
+          <a [routerLink]="['/institutions', institutionId(), 'addlibrary']">
+            <app-button size="sm" class="mt-4">
+              <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
+            </app-button>
+          </a>
+        }
       </app-glass-card>
     } @else {
       <div class="space-y-4">
@@ -602,11 +610,13 @@
         <app-glass-card class="inst-detail-branch-card block">
           <app-section-header title="All libraries" description="Live occupancy and status across branches">
             <div actions>
-              <a [routerLink]="['/institutions', institutionId(), 'addlibrary']">
-                <app-button size="sm">
-                  <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
-                </app-button>
-              </a>
+              @if (canCreateLibrary()) {
+                <a [routerLink]="['/institutions', institutionId(), 'addlibrary']">
+                  <app-button size="sm">
+                    <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
+                  </app-button>
+                </a>
+              }
             </div>
           </app-section-header>
 

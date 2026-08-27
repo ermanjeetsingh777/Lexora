@@ -1,5 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { SidebarService } from '../sidebar/sidebar.service';
 import { TopbarComponent } from '../topbar/topbar.component';
@@ -36,6 +37,11 @@ import { TopbarComponent } from '../topbar/topbar.component';
     </div>
   `,
 })
-export class AppShellComponent {
+export class AppShellComponent implements OnInit {
   protected readonly sidebar = inject(SidebarService);
+  private readonly organizationEntitlements = inject(OrganizationEntitlementService);
+
+  ngOnInit(): void {
+    this.organizationEntitlements.load().subscribe();
+  }
 }

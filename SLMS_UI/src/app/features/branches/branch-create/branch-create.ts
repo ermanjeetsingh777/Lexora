@@ -8,6 +8,7 @@ import { ToastService } from '@core/services/toast.service';
 import { InstitutionStatus, OnboardingSteps } from '@core/enums/OnbardingSteps';
 import { CommonService } from '@core/services/common.service';
 import { StorageService } from '@core/services/storage.service';
+import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { InstitutionDropdownResponse } from '@core/models/institution-dropdown.model';
 import { BranchService } from '../branch.service';
@@ -30,6 +31,7 @@ export class BranchCreate implements OnInit {
   private readonly commonService = inject(CommonService);
   private readonly storageService = inject(StorageService);
   private readonly branchService = inject(BranchService);
+  private readonly organizationEntitlements = inject(OrganizationEntitlementService);
 
   showPageHeader = input(true, {
     transform: (value: boolean | undefined) => value ?? true
@@ -74,6 +76,15 @@ export class BranchCreate implements OnInit {
   });
 
   ngOnInit() {
+    if (!this.isOnboarding()) {
+      this.organizationEntitlements.load().subscribe((entitlements) => {
+        if (!entitlements?.canCreateBranch) {
+          this.toast.error('Your package does not allow creating branches. Upgrade to Premium.');
+          this.cancel();
+        }
+      });
+    }
+
     if (this.fromInstitutionDetail && this.presetInstitutionId) {
       this.loadInstitutions(this.presetInstitutionId, true);
       return;
@@ -191,6 +202,7 @@ export class BranchCreate implements OnInit {
     };
     this.branchService.createBranches(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
+        this.organizationEntitlements.refresh().subscribe();
         if (this.isOnboarding()) {
           const loggedInUser = this.storageService.user();
           if (loggedInUser) {

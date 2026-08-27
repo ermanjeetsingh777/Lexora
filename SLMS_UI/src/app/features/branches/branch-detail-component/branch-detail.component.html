@@ -332,11 +332,13 @@
         </div>
         <h3 class="font-semibold">No libraries yet</h3>
         <p class="text-sm text-muted-foreground mt-1">Add libraries to organize seats and resources within this branch.</p>
-        <a [routerLink]="['/branches', d.id, 'addlibrary']">
-          <app-button size="sm" class="mt-4">
-            <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
-          </app-button>
-        </a>
+        @if (canCreateLibrary()) {
+          <a [routerLink]="['/branches', d.id, 'addlibrary']">
+            <app-button size="sm" class="mt-4">
+              <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
+            </app-button>
+          </a>
+        }
       </app-glass-card>
     } @else {
       <div class="space-y-4">
@@ -388,11 +390,13 @@
         <app-glass-card class="inst-detail-branch-card block">
           <app-section-header title="All libraries" description="Live occupancy and status">
             <div actions>
-              <a [routerLink]="['/branches', d.id, 'addlibrary']">
-                <app-button size="sm">
-                  <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
-                </app-button>
-              </a>
+              @if (canCreateLibrary()) {
+                <a [routerLink]="['/branches', d.id, 'addlibrary']">
+                  <app-button size="sm">
+                    <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> Add library
+                  </app-button>
+                </a>
+              }
             </div>
           </app-section-header>
 

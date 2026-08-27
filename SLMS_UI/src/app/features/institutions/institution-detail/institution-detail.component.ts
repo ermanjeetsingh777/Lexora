@@ -48,6 +48,7 @@ import {
   UpdateInstitutionRequest,
 } from '@core/models/institution-detail.models';
 import { InstitutionsService } from '../institutions.service';
+import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { ToastService } from '@core/services/toast.service';
 import { ChartModule } from 'primeng/chart';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -142,7 +143,11 @@ export class InstitutionDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly institutions = inject(InstitutionsService);
+  private readonly organizationEntitlements = inject(OrganizationEntitlementService);
   private readonly toast = inject(ToastService);
+
+  protected readonly canCreateBranch = this.organizationEntitlements.canCreateBranch;
+  protected readonly canCreateLibrary = this.organizationEntitlements.canCreateLibrary;
 
   protected readonly Math = Math;
 

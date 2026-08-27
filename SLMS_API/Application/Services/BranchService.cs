@@ -16,15 +16,18 @@ public class BranchService : IBranchService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuthService _authService;
+    private readonly IPackageEntitlementService _packageEntitlementService;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public BranchService(
         ApplicationDbContext dbContext,
         IAuthService authService,
+        IPackageEntitlementService packageEntitlementService,
         UserManager<ApplicationUser> userManager)
     {
         _dbContext = dbContext;
         _authService = authService;
+        _packageEntitlementService = packageEntitlementService;
         _userManager = userManager;
     }
 
@@ -564,6 +567,11 @@ public class BranchService : IBranchService
 
     public async Task<BranchResponse> CreateAsync(Guid institutionId, CreateBranchRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
+        await _packageEntitlementService.EnsureCanCreateBranchAsync(
+            userId.ToString(),
+            request.IsOnboarding,
+            cancellationToken);
+
         var institution = await _dbContext.Institutions.FirstOrDefaultAsync(x => x.Id == institutionId && !x.IsDeleted, cancellationToken)  ?? throw new InvalidOperationException("Institution not found.");
 
         var entity = new Branch

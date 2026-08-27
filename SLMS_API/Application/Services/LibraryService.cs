@@ -16,15 +16,18 @@ public class LibraryService : ILibraryService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuthService _authService;
+    private readonly IPackageEntitlementService _packageEntitlementService;
     private readonly IPlanService _planService;
 
     public LibraryService(
         ApplicationDbContext dbContext,
         IAuthService authService,
+        IPackageEntitlementService packageEntitlementService,
         IPlanService planService)
     {
         _dbContext = dbContext;
         _authService = authService;
+        _packageEntitlementService = packageEntitlementService;
         _planService = planService;
     }
 
@@ -636,6 +639,14 @@ public class LibraryService : ILibraryService
 
     public async Task<LibraryResponse> CreateAsync(Guid institutionId, Guid branchId, CreateLibraryRequest request, string? userId, CancellationToken cancellationToken = default)
     {
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            await _packageEntitlementService.EnsureCanCreateLibraryAsync(
+                userId,
+                request.IsOnboarding,
+                cancellationToken);
+        }
+
         var branch = await _dbContext.Branches.FirstOrDefaultAsync(x => x.InstitutionId == institutionId && x.Id == branchId && !x.IsDeleted, cancellationToken) ?? throw new InvalidOperationException("Branch not found.");
 
         if (request.Capacity is > 0)

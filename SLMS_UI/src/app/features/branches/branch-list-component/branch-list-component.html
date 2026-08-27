@@ -7,11 +7,13 @@
     <a routerLink="/institutions">
       <app-button size="sm" variant="outline">View institutions</app-button>
     </a>
-    <a routerLink="/branches/create">
-      <app-button size="sm">
-        <svg lucidePlus class="h-4 w-4 mr-1"></svg> New branch
-      </app-button>
-    </a>
+    @if (canCreateBranch()) {
+      <a routerLink="/branches/create">
+        <app-button size="sm">
+          <svg lucidePlus class="h-4 w-4 mr-1"></svg> New branch
+        </app-button>
+      </a>
+    }
   </div>
 </app-page-header>
 
@@ -194,7 +196,7 @@
           <p class="text-sm text-muted-foreground mt-1">Try adjusting your search or filters.</p>
           @if (query() || statusFilter() !== 'all' || hasClientFilters()) {
             <app-button size="sm" variant="outline" class="mt-4" (click)="clearAllFilters()">Clear filters</app-button>
-          } @else {
+          } @else if (canCreateBranch()) {
             <a routerLink="/branches/create" class="inline-block mt-4">
               <app-button size="sm">
                 <svg lucidePlus class="h-3.5 w-3.5 mr-1"></svg> New branch

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Auth.Requests;
 using SLMS_API.Application.Contracts.Auth.Responses;
 using SLMS_API.Application.Contracts.Common;
+using SLMS_API.Application.Contracts.Package.Response;
 using SLMS_API.Application.Services.Interfaces;
 
 namespace SLMS_API.Controllers;
@@ -13,13 +14,20 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IProfileService _profileService;
+    private readonly IPackageEntitlementService _packageEntitlementService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, IProfileService profileService, ICurrentUserService currentUserService, ILogger<AuthController> logger)
+    public AuthController(
+        IAuthService authService,
+        IProfileService profileService,
+        IPackageEntitlementService packageEntitlementService,
+        ICurrentUserService currentUserService,
+        ILogger<AuthController> logger)
     {
         _authService = authService;
         _profileService = profileService;
+        _packageEntitlementService = packageEntitlementService;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -157,6 +165,16 @@ public class AuthController : ControllerBase
         {
             return BadRequest(ApiResponse<MessageResponse>.Fail(ex.Message));
         }
+    }
+
+    [HttpGet("organization-entitlements")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<OrganizationEntitlementsResponse>>> GetOrganizationEntitlements(
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId ?? string.Empty;
+        var entitlements = await _packageEntitlementService.GetEntitlementsAsync(userId, cancellationToken);
+        return Ok(ApiResponse<OrganizationEntitlementsResponse>.Ok(entitlements));
     }
 
     [HttpGet("current-user")]

@@ -16,21 +16,29 @@ public class InstitutionService : IInstitutionService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuthService _authService;
+    private readonly IPackageEntitlementService _packageEntitlementService;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public InstitutionService(
         ApplicationDbContext dbContext,
         IAuthService authService,
+        IPackageEntitlementService packageEntitlementService,
         UserManager<ApplicationUser> userManager)
     {
         _dbContext = dbContext;
         _authService = authService;
+        _packageEntitlementService = packageEntitlementService;
         _userManager = userManager;
     }
 
 
     public async Task<InstitutionResponse> CreateAsync(CreateInstitutionRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
+        await _packageEntitlementService.EnsureCanCreateInstitutionAsync(
+            userId.ToString(),
+            request.IsOnboarding,
+            cancellationToken);
+
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
             var emailExists = await _dbContext.Institutions

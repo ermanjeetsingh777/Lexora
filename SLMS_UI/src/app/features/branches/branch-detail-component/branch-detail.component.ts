@@ -35,6 +35,7 @@ import {
   BranchDetailView,
 } from '@core/models/branch-detail.models';
 import { BranchService } from '../branch.service';
+import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { buttonVariants } from '@shared/components/button/button.variants';
 import {
@@ -147,6 +148,9 @@ export class BranchDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly branchesApi = inject(BranchService);
+  private readonly organizationEntitlements = inject(OrganizationEntitlementService);
+
+  protected readonly canCreateLibrary = this.organizationEntitlements.canCreateLibrary;
 
   protected readonly Math = Math;
 

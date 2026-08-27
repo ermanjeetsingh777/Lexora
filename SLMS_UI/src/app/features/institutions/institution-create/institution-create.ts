@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppIconComponent } from "@shared/components/app-icon/app-icon.component";
 import { CommonModule } from '@angular/common';
@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ToastService } from '@core/services/toast.service';
 import { CommonService } from '@core/services/common.service';
 import { StorageService } from '@core/services/storage.service';
+import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { InstitutionStatus, OnboardingSteps } from '@core/enums/OnbardingSteps';
 
 type CreateTabKey = 'profile' | 'branch' | 'activation';
@@ -23,10 +24,11 @@ type CreateTabKey = 'profile' | 'branch' | 'activation';
   styleUrl: './institution-create.css',
   providers: [InstitutionsService]
 })
-export class InstitutionCreate {
+export class InstitutionCreate implements OnInit {
   readonly router = inject(Router);
   readonly route = inject(ActivatedRoute);
   private readonly institutionsService = inject(InstitutionsService);
+  private readonly organizationEntitlements = inject(OrganizationEntitlementService);
   private readonly fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
@@ -52,6 +54,19 @@ export class InstitutionCreate {
     phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]]
   });
 
+  ngOnInit(): void {
+    if (this.isOnboarding()) {
+      return;
+    }
+
+    this.organizationEntitlements.load().subscribe((entitlements) => {
+      if (!entitlements?.canCreateInstitution) {
+        this.toast.error('Your package does not allow creating institutions. Upgrade to Premium.');
+        void this.router.navigate(['/institutions']);
+      }
+    });
+  }
+
   createAndContinue() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -74,6 +89,7 @@ export class InstitutionCreate {
 
     this.institutionsService.createInstitution(newInstitution).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
+        this.organizationEntitlements.refresh().subscribe();
         this.toast.success(this.commonService.onboardingMessages.institutionCreated);
         this.router.navigate([this.isOnboarding() ? '/onboarding/branch' : '/institutions']);
         if (this.isOnboarding()) {

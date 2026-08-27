@@ -9,6 +9,7 @@ import { BranchDropdownResponse, InstitutionDropdownResponse } from '@core/model
 import { CommonService } from '@core/services/common.service';
 import { StorageService } from '@core/services/storage.service';
 import { ToastService } from '@core/services/toast.service';
+import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { BranchService } from '@features/branches/branch.service';
 import { InstitutionsService } from '@features/institutions/institutions.service';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
@@ -34,6 +35,7 @@ export class CreateLibrary implements OnInit {
   private readonly commonService = inject(CommonService);
   private readonly storageService = inject(StorageService);
   private readonly libraryService = inject(LibraryService);
+  private readonly organizationEntitlements = inject(OrganizationEntitlementService);
 
   showPageHeader = input(true, {
     transform: (value: boolean | undefined) => value ?? true,
@@ -88,6 +90,15 @@ export class CreateLibrary implements OnInit {
   });
 
   ngOnInit() {
+    if (!this.isOnboarding()) {
+      this.organizationEntitlements.load().subscribe((entitlements) => {
+        if (!entitlements?.canCreateLibrary) {
+          this.toast.error('Your package does not allow creating libraries. Upgrade to Value or Premium.');
+          this.cancel();
+        }
+      });
+    }
+
     this.librariesForm.controls.institutionId.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((institutionId) => {
@@ -223,6 +234,7 @@ export class CreateLibrary implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
+          this.organizationEntitlements.refresh().subscribe();
           if (this.isOnboarding()) {
             const loggedInUser = this.storageService.user();
             if (loggedInUser) {

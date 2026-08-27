@@ -4,11 +4,13 @@
   description="Multi-tenant institutions, branches and libraries you manage."
 >
   <div actions class="flex gap-2">
-    <a routerLink="/institutions/create">
-      <app-button size="sm">
-        <svg lucidePlus class="h-4 w-4 mr-1"></svg> New institution
-      </app-button>
-    </a>
+    @if (canCreateInstitution()) {
+      <a routerLink="/institutions/create">
+        <app-button size="sm">
+          <svg lucidePlus class="h-4 w-4 mr-1"></svg> New institution
+        </app-button>
+      </a>
+    }
   </div>
 </app-page-header>
 

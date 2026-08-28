@@ -45,7 +45,7 @@
         <button type="button" (click)="openDialog('plan')" class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
           <svg lucideBadgeDollarSign class="h-4 w-4"></svg> {{m.planStatus === planStatus.Expired ? 'Renew' : 'Upgrade'}} plan
         </button>
-        @if (canChangePassword) {
+        @if (canChangePassword()) {
           <button type="button" (click)="openPasswordDialog()"
             class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
             <svg lucideKeyRound class="h-4 w-4"></svg> Change password
@@ -371,14 +371,8 @@
 
     <!-- Tab nav -->
     <div class="flex gap-1">
-      <p-selectbutton [options]="tabs" [ngModel]="activeTab()" (ngModelChange)="setTab($event)" optionLabel="label" size="small" optionValue="value"
+      <p-selectbutton [options]="tabs()" [ngModel]="activeTab()" (ngModelChange)="setTab($event)" optionLabel="label" size="small" optionValue="value"
         aria-labelledby="basic" />
-      <!-- @for (tab of tabs; track tab.id) {
-      <button type="button" (click)="setTab(tab.id)"
-        class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors" [class]="activeTab() === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'">{{ tab.label }}</button>
-      } -->
     </div>
 
     <!-- OVERVIEW TAB -->
@@ -896,6 +890,102 @@
       [branch]="m.branch"
       [library]="m.library"
       [shift]="m.shift" />
+    }
+
+    <!-- CHANGE PASSWORD TAB -->
+    @if (activeTab() === 'password') {
+    <app-glass-card class="block">
+      <div class="max-w-xl mx-auto py-2">
+        <div class="flex items-center gap-3 pb-4 mb-6 border-b">
+          <div class="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <svg lucideKeyRound class="h-5 w-5"></svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold">Change Login Password</h3>
+            <p class="text-xs text-muted-foreground mt-0.5">
+              Set a secure password for {{ m.name }} ({{ m.email || m.phone }}).
+            </p>
+          </div>
+        </div>
+
+        <form (ngSubmit)="confirmChangePassword()" class="space-y-4">
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">New Password</label>
+            <div class="relative">
+              <input
+                [type]="showNewPassword() ? 'text' : 'password'"
+                minlength="8"
+                required
+                placeholder="Enter new password (min. 8 characters)"
+                class="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 pr-10 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                [ngModel]="newPassword()"
+                (ngModelChange)="newPassword.set($event)"
+                name="newPasswordTab"
+              />
+              <button
+                type="button"
+                (click)="showNewPassword.set(!showNewPassword())"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                [attr.aria-label]="showNewPassword() ? 'Hide password' : 'Show password'"
+              >
+                @if (showNewPassword()) {
+                  <svg lucideEyeOff class="h-4 w-4"></svg>
+                } @else {
+                  <svg lucideEye class="h-4 w-4"></svg>
+                }
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">Confirm New Password</label>
+            <div class="relative">
+              <input
+                [type]="showConfirmPassword() ? 'text' : 'password'"
+                minlength="8"
+                required
+                placeholder="Re-enter new password"
+                class="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 pr-10 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                [ngModel]="confirmPassword()"
+                (ngModelChange)="confirmPassword.set($event)"
+                name="confirmPasswordTab"
+              />
+              <button
+                type="button"
+                (click)="showConfirmPassword.set(!showConfirmPassword())"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                [attr.aria-label]="showConfirmPassword() ? 'Hide password' : 'Show password'"
+              >
+                @if (showConfirmPassword()) {
+                  <svg lucideEyeOff class="h-4 w-4"></svg>
+                } @else {
+                  <svg lucideEye class="h-4 w-4"></svg>
+                }
+              </button>
+            </div>
+          </div>
+
+          <div class="rounded-md bg-muted/40 border p-3 text-xs text-muted-foreground space-y-1">
+            <div class="flex items-center gap-1.5 font-medium text-foreground">
+              <svg lucideShieldCheck class="h-3.5 w-3.5 text-primary"></svg>
+              Password Requirements
+            </div>
+            <p>• Must be at least 8 characters long</p>
+            <p>• Both password fields must match</p>
+          </div>
+
+          <div class="pt-2 flex items-center justify-end gap-2">
+            <app-button
+              type="submit"
+              [disabled]="dialogBusy() || !newPassword() || !confirmPassword()"
+            >
+              <svg lucideKeyRound class="h-4 w-4 mr-1.5"></svg>
+              {{ dialogBusy() ? 'Updating password…' : 'Update password' }}
+            </app-button>
+          </div>
+        </form>
+      </div>
+    </app-glass-card>
     }
 
   </div>

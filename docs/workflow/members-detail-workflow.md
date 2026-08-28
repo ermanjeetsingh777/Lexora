@@ -64,9 +64,12 @@ PageHeader (back, copy ID, actions)
 |--------|-------|--------|-----------------|
 | `overview` | Overview | Implemented | Insights, contacts, activity timeline, Aadhaar docs, **Attendance QR** |
 | `attendance` | Attendance | Implemented | KPIs, calendar, check-in log, heatmap |
+| `library-calendar` | Library Calendar | Implemented | `LibraryCalendarComponent` |
 | `books` | Books | Implemented | Loan KPIs + borrow history via `BookService` |
+| `ebooks` | E-Books | Implemented | `MemberDigitalBooksComponent` |
 | `plans` | Payments & Plans | Implemented | `MemberPaymentsComponent` |
 | `contacts` | Contacts | Implemented | `MemberContactComponent` |
+| `password` | Change Password | Implemented | In-tab password reset form with visibility toggle & requirements check |
 
 > `payments` exists in `TabId` type but is merged into the Plans tab in the UI.
 

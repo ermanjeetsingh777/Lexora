@@ -28,6 +28,10 @@ import {
   LucideRotateCcw,
   LucideFileSpreadsheet,
   LucideKeyRound,
+  LucideEye,
+  LucideEyeOff,
+  LucideShieldCheck,
+  LucideLock,
 } from '@lucide/angular';
 import { isMemberPortalUser } from '@core/constants/roles';
 import { PermissionKey } from '@core/constants/permissions';
@@ -78,7 +82,7 @@ function monthStartIsoDate(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-type TabId = 'overview' | 'attendance' | 'library-calendar' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks';
+type TabId = 'overview' | 'attendance' | 'library-calendar' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks' | 'password';
 
 const ATTENDANCE_LOG_PAGE_SIZE_OPTS = [5, 10, 15, 30] as const;
 const ACTIVITY_TIMELINE_PAGE_SIZE = 5;
@@ -110,6 +114,11 @@ interface HeatmapCell {
     MemberAttendanceCalendarComponent,
     LibraryCalendarComponent,
     AttendanceSeatPickerComponent,
+    LucideKeyRound,
+    LucideEye,
+    LucideEyeOff,
+    LucideShieldCheck,
+    LucideLock,
   ],
   templateUrl: './member-details-component.html',
   styleUrl: './member-details-component.css',
@@ -180,7 +189,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly actionsOpen = signal(false);
   readonly dialog = signal<null | 'branch' | 'seat' | 'shift' | 'plan' | 'attendance' | 'password'>(null);
   hexNumber = Math.floor(Math.random() * 360);
-  readonly tabs: { value: TabId; label: string }[] = [
+  readonly allTabs: { value: TabId; label: string }[] = [
     { value: 'overview', label: 'Overview' },
     { value: 'attendance', label: 'Attendance' },
     { value: 'library-calendar', label: 'Library Calendar' },
@@ -189,7 +198,25 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     { value: 'plans', label: 'Payments & Plans' },
     // { id: 'payments', label: 'Payments' },
     { value: 'contacts', label: 'Contacts' },
+    { value: 'password', label: 'Change Password' },
   ];
+
+  readonly canChangePassword = computed(
+    () =>
+      this.isMemberPortalView() ||
+      this.auth.hasRole('SuperAdmin') ||
+      this.auth.hasRole('OrganisationAdmin') ||
+      this.auth.hasPermission(PermissionKey.MembersUpdate),
+  );
+
+  readonly tabs = computed(() => {
+    return this.allTabs.filter((t) => {
+      if (t.value === 'password') {
+        return this.canChangePassword();
+      }
+      return true;
+    });
+  });
 
   readonly toShift = signal<Shift>('Morning');
   readonly selectedPlanId = signal<string>('');
@@ -222,7 +249,8 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly editRemarks = signal('');
   readonly newPassword = signal('');
   readonly confirmPassword = signal('');
-  readonly canChangePassword = this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin');
+  readonly showNewPassword = signal(false);
+  readonly showConfirmPassword = signal(false);
   readonly eventDot = EVENT_DOT;
   readonly ATTENDANCE_LOG_PAGE_SIZE_OPTS = ATTENDANCE_LOG_PAGE_SIZE_OPTS;
   readonly attendanceLogPage = signal(1);

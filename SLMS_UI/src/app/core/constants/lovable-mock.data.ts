@@ -395,7 +395,7 @@ function makeCustomization(seed: number): InstitutionCustomization {
 export const institutions: Institution[] = [
   {
     id: 'inst_001',
-    name: 'Meridian Institute',
+    name: 'Lexora Institute',
     type: 'College',
     city: 'Bengaluru',
     country: 'India',

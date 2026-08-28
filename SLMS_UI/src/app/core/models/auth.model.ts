@@ -43,7 +43,7 @@ export const SEED_USERS: SeededUser[] = [
     password: 'demo123',
     role: 'admin',
     avatar: 'https://api.dicebear.com/9.x/initials/svg?seed=Aarav+Sharma&backgroundType=gradientLinear',
-    institution: 'Meridian Institute',
+    institution: 'Lexora Institute',
     branch: 'Central Campus',
   },
   {
@@ -53,7 +53,7 @@ export const SEED_USERS: SeededUser[] = [
     password: 'demo123',
     role: 'staff',
     avatar: 'https://api.dicebear.com/9.x/initials/svg?seed=Saanvi+Iyer&backgroundType=gradientLinear',
-    institution: 'Meridian Institute',
+    institution: 'Lexora Institute',
     branch: 'North Campus',
   },
   {
@@ -63,7 +63,7 @@ export const SEED_USERS: SeededUser[] = [
     password: 'demo123',
     role: 'member',
     avatar: 'https://api.dicebear.com/9.x/initials/svg?seed=Kabir+Khan&backgroundType=gradientLinear',
-    institution: 'Meridian Institute',
+    institution: 'Lexora Institute',
     branch: 'Central Campus',
   },
 ];

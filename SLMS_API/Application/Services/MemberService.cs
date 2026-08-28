@@ -1793,10 +1793,8 @@ public class MemberService : IMemberService
         CancellationToken cancellationToken = default)
     {
         var callerId = await RequireCurrentUserIdAsync(cancellationToken);
-        if (!await CanChangeAccountPasswordAsync(callerId, cancellationToken))
-        {
-            throw new UnauthorizedAccessException("Only SuperAdmin or OrganisationAdmin can change member passwords.");
-        }
+        var callerIdString = callerId.ToString();
+        var isSuperOrOrgAdmin = await CanChangeAccountPasswordAsync(callerId, cancellationToken);
 
         var member = await _dbContext.Members
             .Include(m => m.User)
@@ -1804,11 +1802,20 @@ public class MemberService : IMemberService
             .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Member not found.");
 
-        var scope = await ResolveMemberAccessScopeAsync(callerId, cancellationToken);
-        var currentLibrary = member.MemberLibraries.FirstOrDefault(ml => ml.IsCurrent);
-        if (!CanAccessMemberLibrary(currentLibrary?.InstitutionId, currentLibrary?.BranchId, currentLibrary?.LibraryId, scope))
+        var isSelf = member.UserId == callerIdString;
+        if (!isSuperOrOrgAdmin && !isSelf)
         {
-            throw new InvalidOperationException("Member not found.");
+            throw new UnauthorizedAccessException("Only SuperAdmin, OrganisationAdmin or the member themselves can change passwords.");
+        }
+
+        if (!isSelf)
+        {
+            var scope = await ResolveMemberAccessScopeAsync(callerId, cancellationToken);
+            var currentLibrary = member.MemberLibraries.FirstOrDefault(ml => ml.IsCurrent);
+            if (!CanAccessMemberLibrary(currentLibrary?.InstitutionId, currentLibrary?.BranchId, currentLibrary?.LibraryId, scope))
+            {
+                throw new InvalidOperationException("Member not found.");
+            }
         }
 
         if (member.User is null)
@@ -1826,7 +1833,7 @@ public class MemberService : IMemberService
         await _auditLogService.WriteAsync(
             AuditEventTypes.PasswordReset,
             member.UserId,
-            $"Admin changed password for member {member.User.Email}",
+            isSelf ? $"Member changed their own password for {member.User.Email}" : $"Admin changed password for member {member.User.Email}",
             _currentUserService.IpAddress,
             cancellationToken);
     }

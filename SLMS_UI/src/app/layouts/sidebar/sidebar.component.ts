@@ -145,7 +145,7 @@ import { PermissionKey } from '@core/constants/permissions';
       </nav>
 
       <div class="border-t px-3 py-2 label-mono">
-        {{ sidebar.showLabels() ? '© Meridian Institute' : '©' }}
+        {{ sidebar.showLabels() ? '© Lexora Institute' : '©' }}
       </div>
     </aside>
   `,

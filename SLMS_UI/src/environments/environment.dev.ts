@@ -2,15 +2,15 @@ import { LexoraTeamMember } from '../app/core/models/lexora-team-member.model';
 
 export const environment = {
   production: false,
-  environmentName: 'local',
+  environmentName: 'dev',
   baseUrl: '',
-  apiUrl: 'https://localhost:7050/api/v1',
+  apiUrl: 'https://dev-api.lexora.app/api/v1',
   mockApi: false,
   appName: 'Lexora',
   appVersion: 'v1.0.0-beta',
-  appEdition: 'Beta Release',
-  email: 'institution@slms.com',
-  password: 'Demo@12345',
+  appEdition: 'Development',
+  email: '',
+  password: '',
   TOKEN_KEY: 'access_token',
   REFRESH_TOKEN_KEY: 'refresh_token',
   ACCESS_TOKEN_EXPIRES_KEY: 'access_token_expires',
@@ -18,7 +18,7 @@ export const environment = {
   USER_KEY: 'user',
   TENANT_KEY: 'tenant',
   STORAGE_KEY: 'slms_auth',
-  MOCK_OTP: '123456',
+  MOCK_OTP: '',
   lexoraTeam: [
     {
       name: 'Yogesh Yadav',

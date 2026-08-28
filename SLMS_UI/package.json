@@ -4,7 +4,17 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:local": "ng serve --configuration local",
+    "start:dev": "ng serve --configuration dev",
+    "start:qa": "ng serve --configuration qa",
+    "start:uat": "ng serve --configuration uat",
+    "start:prod": "ng serve --configuration production",
     "build": "ng build",
+    "build:local": "ng build --configuration local",
+    "build:dev": "ng build --configuration dev",
+    "build:qa": "ng build --configuration qa",
+    "build:uat": "ng build --configuration uat",
+    "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

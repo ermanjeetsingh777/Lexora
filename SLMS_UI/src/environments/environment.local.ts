@@ -8,7 +8,7 @@ export const environment = {
   mockApi: false,
   appName: 'Lexora',
   appVersion: 'v1.0.0-beta',
-  appEdition: 'Beta Release',
+  appEdition: 'Local Dev',
   email: 'institution@slms.com',
   password: 'Demo@12345',
   TOKEN_KEY: 'access_token',

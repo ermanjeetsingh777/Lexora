@@ -1,0 +1,57 @@
+name: Deploy SLMS UI to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: 'SLMS_UI/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: SLMS_UI
+        run: npm ci
+
+      - name: Build production application
+        working-directory: SLMS_UI
+        run: npm run build:prod
+
+      - name: Create 404.html for Angular SPA Routing
+        working-directory: SLMS_UI
+        run: cp dist/slms-ui/browser/index.html dist/slms-ui/browser/404.html
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'SLMS_UI/dist/slms-ui/browser'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

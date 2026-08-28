@@ -6,6 +6,8 @@ export const environment = {
   apiUrl: 'https://localhost:7050/api/v1',
   mockApi: false,
   appName: 'Lexora',
+  appVersion: 'v1.0.0-beta',
+  appEdition: 'Beta Release',
   email: 'institution@slms.com',
   password: 'Demo@12345',
   TOKEN_KEY: 'access_token',

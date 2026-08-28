@@ -8,6 +8,7 @@ import {
 import { SidebarService } from './sidebar.service';
 import { AuthService } from '@core/services/auth.service';
 import { PermissionKey } from '@core/constants/permissions';
+import { environment } from '@env/environment';
 
 /** Primary navigation rail. Ported 1:1 from `components/app-sidebar.tsx`. */
 @Component({
@@ -37,8 +38,8 @@ import { PermissionKey } from '@core/constants/permissions';
           </div>
           @if (sidebar.showLabels()) {
             <div class="leading-tight">
-              <div class="text-sm font-semibold tracking-tight">Lexora</div>
-              <div class="label-mono">v2.4 · Institutional</div>
+              <div class="text-sm font-semibold tracking-tight">{{ appName }}</div>
+              <div class="label-mono">{{ appVersion }} · {{ appEdition }}</div>
             </div>
           }
         </a>
@@ -153,6 +154,10 @@ import { PermissionKey } from '@core/constants/permissions';
 export class SidebarComponent {
   protected readonly sidebar = inject(SidebarService);
   private readonly auth = inject(AuthService);
+
+  protected readonly appName = environment.appName;
+  protected readonly appVersion = environment.appVersion;
+  protected readonly appEdition = environment.appEdition;
 
   protected canViewDashboard(): boolean {
     return this.auth.hasPermission(PermissionKey.DashboardView) || this.auth.hasPermission(PermissionKey.DashboardList);

@@ -52,7 +52,7 @@ import { environment } from '@env/environment';
           </div>
         </div>
 
-        <p class="relative text-primary-foreground/60">© 2026 {{ appName }} · v2.4</p>
+        <p class="relative text-primary-foreground/60">© 2026 {{ appName }} · {{ appVersion }} ({{ appEdition }})</p>
       </div>
 
       <div class="flex items-center justify-center p-6 md:p-10">
@@ -92,6 +92,8 @@ import { environment } from '@env/environment';
 })
 export class AuthLayoutComponent {
   readonly appName = environment.appName;
+  readonly appVersion = environment.appVersion;
+  readonly appEdition = environment.appEdition;
   readonly eyebrow = input('Authentication');
   readonly title = input.required<string>();
   readonly subtitle = input<string>();

@@ -32,6 +32,7 @@
           },
           "configurations": {
             "production": {
+              "serviceWorker": "ngsw-config.json",
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",
@@ -53,6 +54,7 @@
               "outputHashing": "all"
             },
             "uat": {
+              "serviceWorker": "ngsw-config.json",
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",

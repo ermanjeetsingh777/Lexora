@@ -3,10 +3,11 @@ import { RouterOutlet } from '@angular/router';
 import { PreloaderService } from '@core/services/preloader.service';
 import { environment } from '@env/environment';
 import { ToastHostComponent } from '@shared/components/toast/toast-host.component';
+import { PwaInstallBannerComponent } from '@shared/components/pwa-install-banner/pwa-install-banner.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastHostComponent],
+  imports: [RouterOutlet, ToastHostComponent, PwaInstallBannerComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

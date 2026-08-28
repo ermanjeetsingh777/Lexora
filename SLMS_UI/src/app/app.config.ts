@@ -1,5 +1,6 @@
-import { APP_INITIALIZER, ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { APP_INITIALIZER, ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
+import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -25,6 +26,10 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
       withComponentInputBinding()
     ),
-    providePrimeNG({ theme: { preset: Aura, } })
+    providePrimeNG({ theme: { preset: Aura, } }),
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
   ]
 };

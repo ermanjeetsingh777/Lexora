@@ -301,9 +301,9 @@ public class AdminService : IAdminService
             throw new UnauthorizedAccessException("User is not authenticated.");
         }
 
-        if (!await IsSuperAdminAsync(callerUserId, cancellationToken))
+        if (!await CanManageCustomRolesAsync(callerUserId, cancellationToken))
         {
-            throw new UnauthorizedAccessException("Only SuperAdmin can change user roles.");
+            throw new UnauthorizedAccessException("Only SuperAdmin or OrganisationAdmin can change user roles.");
         }
 
         var user = await _userManager.FindByIdAsync(id)

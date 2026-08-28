@@ -118,7 +118,14 @@ export class UsersListComponent implements OnInit {
   readonly canCreate = this.auth.hasPermission(PermissionKey.UsersCreate);
   readonly canUpdate = this.auth.hasPermission(PermissionKey.UsersUpdate);
   readonly canDelete = this.auth.hasPermission(PermissionKey.UsersDelete);
-  readonly canAssignRoles = this.auth.hasRole('SuperAdmin');
+  readonly canAssignRoles = computed(
+    () =>
+      this.auth.hasRole('SuperAdmin') ||
+      this.auth.hasRole('OrganisationAdmin') ||
+      this.auth.hasPermission(PermissionKey.RolesUpdate) ||
+      this.auth.hasPermission(PermissionKey.UsersCreate) ||
+      this.auth.hasPermission(PermissionKey.UsersUpdate),
+  );
 
   readonly staffRoleOptions = STAFF_ROLE_OPTIONS;
   readonly fmt = formatUserDate;
@@ -303,7 +310,7 @@ export class UsersListComponent implements OnInit {
         })
         .pipe(
           switchMap(() =>
-            this.canAssignRoles
+            this.canAssignRoles() && payload.roles.length
               ? this.admin.assignUserRoles(editing.id, { roles: payload.roles })
               : of(editing),
           ),
@@ -343,7 +350,7 @@ export class UsersListComponent implements OnInit {
       })
       .pipe(
         switchMap((user) => {
-          if (payload.roles.length && this.canAssignRoles) {
+          if (payload.roles.length && this.canAssignRoles()) {
             return this.admin.assignUserRoles(user.id, { roles: payload.roles });
           }
           return of(user);

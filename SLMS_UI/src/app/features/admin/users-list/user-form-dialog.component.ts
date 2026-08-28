@@ -1,6 +1,6 @@
 import { Component, computed, effect, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideX } from '@lucide/angular';
+import { LucideShield, LucideX } from '@lucide/angular';
 import { AdminRole, AdminUser } from '@core/models/admin.models';
 import {
   BranchDropdownResponse,
@@ -28,7 +28,7 @@ export interface UserFormSubmit {
 @Component({
   selector: 'app-user-form-dialog',
   standalone: true,
-  imports: [FormsModule, ButtonComponent, LucideX],
+  imports: [FormsModule, ButtonComponent, LucideX, LucideShield],
   templateUrl: './user-form-dialog.component.html',
   styleUrl: './user-form-dialog.component.css',
 })
@@ -57,6 +57,10 @@ export class UserFormDialogComponent {
   readonly staffRoleOptions = STAFF_ROLE_OPTIONS;
 
   readonly isEdit = () => !!this.user();
+
+  readonly selectedRoleDescription = computed(() =>
+    this.staffRoleOptions.find((r) => r.key === this.selectedRole())?.description ?? '',
+  );
 
   readonly selectedInstitutions = computed(() =>
     this.scopeOptions().filter((item) =>

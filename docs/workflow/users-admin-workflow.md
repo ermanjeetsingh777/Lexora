@@ -92,13 +92,13 @@ PageHeader (+ Add user button)
 **Create user flow:**
 
 1. Click **Add user** → `UserFormDialogComponent` opens.
-2. Fill full name, email, password (min 8 chars), active toggle, role checkboxes.
+2. Fill full name, email, password (min 8 chars), select staff Role from dropdown (Librarians, Branch Managers, Institution Admins, etc.), active status, and access scopes (institutions/branches/libraries).
 3. `POST /admin/users` → optional `POST /admin/users/{id}/roles`.
 4. Table refreshes with new user.
 
 **Edit user flow:**
 
-1. Row action **Edit** or drawer **Edit profile** → dialog with existing data (no password field).
+1. Row action **Edit** or drawer **Edit profile** → dialog with existing data (no password field), Role select dropdown, and access scope.
 2. `PUT /admin/users/{id}` → `POST /admin/users/{id}/roles` if roles changed.
 
 **Assign roles (drawer):**

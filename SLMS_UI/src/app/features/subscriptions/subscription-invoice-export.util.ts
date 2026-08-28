@@ -179,7 +179,7 @@ export function downloadSubscriptionInvoicePdf(
   doc.text(`Total paid: ${formatCurrency(item.amountPaid)}`, pageWidth - 40, footerY + 28, { align: 'right' });
   doc.setFontSize(9);
   doc.setTextColor(100);
-  doc.text('SmartLibrary — Institution SaaS Subscription', 40, footerY + 48);
+  doc.text('Lexora — Institution SaaS Subscription', 40, footerY + 48);
   doc.setTextColor(0);
 
   doc.save(`${buildFilename('subscription-invoice', item)}.pdf`);

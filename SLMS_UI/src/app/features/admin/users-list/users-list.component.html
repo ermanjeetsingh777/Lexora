@@ -484,7 +484,7 @@
   [overlayLeft]="overlayLeft()"
   [statusLocked]="editUser() ? isStatusChangeProtected(editUser()!, currentUserId()) : false"
   [scopeOptions]="scopeOptions()"
-  [canAssignRoles]="canAssignRoles"
+  [canAssignRoles]="canAssignRoles()"
   (submitted)="onFormSubmit($event)"
   (closed)="closeForm()"
 />

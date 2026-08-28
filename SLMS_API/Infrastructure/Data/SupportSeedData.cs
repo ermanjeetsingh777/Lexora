@@ -22,7 +22,7 @@ public static class SupportSeedData
             Title = "Setting up QR check-in on your kiosk",
             Category = "Hardware",
             Tags = "qr,hardware,attendance,kiosk",
-            Body = "Install the SmartLibrary Kiosk app on any tablet, sign in with a device token from Settings → API keys, and pair the kiosk to a branch.",
+            Body = "Install the Lexora Kiosk app on any tablet, sign in with a device token from Settings → API keys, and pair the kiosk to a branch.",
             ViewCount = 984,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-22),
         },

@@ -37,7 +37,7 @@ import { PermissionKey } from '@core/constants/permissions';
           </div>
           @if (sidebar.showLabels()) {
             <div class="leading-tight">
-              <div class="text-sm font-semibold tracking-tight">SmartLibrary</div>
+              <div class="text-sm font-semibold tracking-tight">Lexora</div>
               <div class="label-mono">v2.4 · Institutional</div>
             </div>
           }

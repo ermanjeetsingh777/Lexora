@@ -56,6 +56,27 @@
             </div>
           }
           <div class="space-y-1.5">
+            <label class="text-sm font-medium">Role <span class="text-destructive">*</span></label>
+            <select
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm disabled:opacity-50"
+              [disabled]="!canAssignRoles()"
+              [ngModel]="selectedRole()"
+              (ngModelChange)="selectedRole.set($event)"
+              name="roleSelect"
+              required
+            >
+              @if (!selectedRole()) {
+                <option value="" disabled>Select role</option>
+              }
+              @for (r of staffRoleOptions; track r.key) {
+                <option [value]="r.key">{{ r.label }} ({{ r.key }})</option>
+              }
+            </select>
+            @if (!canAssignRoles() && isEdit()) {
+              <p class="text-xs text-muted-foreground">Only SuperAdmin or OrganisationAdmin can change roles.</p>
+            }
+          </div>
+          <div class="space-y-1.5">
             <label class="text-sm font-medium">Status</label>
             <select
               class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm disabled:opacity-50"
@@ -72,6 +93,15 @@
             }
           </div>
         </div>
+
+        @if (selectedRoleDescription(); as desc) {
+          <div class="rounded-md bg-muted/30 border p-2.5 text-xs text-muted-foreground flex items-start gap-2">
+            <svg lucideShield class="h-4 w-4 text-primary shrink-0 mt-0.5"></svg>
+            <div>
+              <span class="font-medium text-foreground">{{ roleLabel(selectedRole()) }}</span>: {{ desc }}
+            </div>
+          </div>
+        }
 
         <div class="border-t pt-4 space-y-3">
           <div>
@@ -144,46 +174,6 @@
             </div>
           }
         </div>
-
-        @if (canAssignRoles()) {
-          <div class="border-t pt-4 space-y-2">
-            <label class="text-sm font-medium">Role</label>
-            <div class="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto">
-              @for (r of staffRoleOptions; track r.key) {
-                <label
-                  class="flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer transition"
-                  [class.border-primary]="selectedRole() === r.key"
-                  [class.bg-primary/5]="selectedRole() === r.key"
-                  [class.hover:bg-muted/40]="selectedRole() !== r.key"
-                >
-                  <input
-                    type="radio"
-                    class="mt-1 accent-primary"
-                    name="role"
-                    [value]="r.key"
-                    [checked]="selectedRole() === r.key"
-                    (change)="selectedRole.set(r.key)"
-                  />
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm font-medium">{{ r.label }}</span>
-                      <span class="font-mono text-[10px] text-muted-foreground">{{ r.key }}</span>
-                    </div>
-                    <p class="text-xs text-muted-foreground">{{ r.description }}</p>
-                  </div>
-                </label>
-              }
-            </div>
-          </div>
-        } @else if (isEdit() && selectedRole()) {
-          <div class="border-t pt-4 space-y-1.5">
-            <label class="text-sm font-medium">Role</label>
-            <p class="text-sm text-muted-foreground">
-              {{ roleLabel(selectedRole()) }}
-              <span class="text-xs">(only SuperAdmin can change roles)</span>
-            </p>
-          </div>
-        }
       </form>
 
       <div class="flex justify-end gap-2 border-t p-6 shrink-0">

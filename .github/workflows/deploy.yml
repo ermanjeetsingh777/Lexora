@@ -34,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: SLMS_UI
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build production application
         working-directory: SLMS_UI

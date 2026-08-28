@@ -2,12 +2,12 @@ import { FeatureSection } from '@core/models/FeatureModel';
 import { LandingFeature } from '@core/models/LandingFeature';
 
 export const FEATURE_HERO = {
-  src: '/assets/features/platform-modules-hero.png',
+  src: 'assets/features/platform-modules-hero.png',
   alt: 'Lexora platform modules — institutions, branches, libraries, members, and analytics',
 };
 
 export function featureModuleImage(moduleId: string): string {
-  return `/assets/features/${moduleId}.png`;
+  return `assets/features/${moduleId}.png`;
 }
 
 export const FEATURE_CATALOG: FeatureSection[] = [

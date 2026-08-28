@@ -58,11 +58,11 @@ export class LandingHomePage implements OnInit {
   }
 
   protected readonly landingAssets = {
-    hero3d: '/assets/landing/landing-hero-3d.png',
-    floatOccupancy: '/assets/landing/landing-float-occupancy.png',
-    floatAttendance: '/assets/landing/landing-float-attendance.png',
-    floatRevenue: '/assets/landing/landing-float-revenue.png',
-    workflowNetwork: '/assets/features/branch-management.png',
+    hero3d: 'assets/landing/landing-hero-3d.png',
+    floatOccupancy: 'assets/landing/landing-float-occupancy.png',
+    floatAttendance: 'assets/landing/landing-float-attendance.png',
+    floatRevenue: 'assets/landing/landing-float-revenue.png',
+    workflowNetwork: 'assets/features/branch-management.png',
   };
 
   protected heroRotateX = signal(0);

@@ -27,7 +27,7 @@ public class PackageSubscriptionsController : ControllerBase
     }
 
     [HttpGet("overview")]
-    // [Permission(PermissionKey.SubscriptionsView)]
+    [Permission(PermissionKey.SubscriptionsView)]
     public async Task<ActionResult<ApiResponse<PackageSubscriptionOverviewResponse>>> GetOverview(
         CancellationToken cancellationToken)
     {
@@ -42,7 +42,7 @@ public class PackageSubscriptionsController : ControllerBase
     }
 
     [HttpGet("quote")]
-    // [Permission(PermissionKey.SubscriptionsView)]
+    [Permission(PermissionKey.SubscriptionsView)]
     public async Task<ActionResult<ApiResponse<PackageSubscriptionQuoteResponse>>> GetQuote(
         [FromQuery] Guid subscriptionId,
         [FromQuery] Guid packageId,
@@ -65,7 +65,7 @@ public class PackageSubscriptionsController : ControllerBase
     }
 
     [HttpPost("renew")]
-    // [Permission(PermissionKey.SubscriptionsUpdate)]
+    [Permission(PermissionKey.SubscriptionsUpdate)]
     public async Task<ActionResult<ApiResponse<PackageSubscriptionItemResponse>>> Renew(
         [FromBody] RenewPackageSubscriptionRequest request,
         CancellationToken cancellationToken)
@@ -81,7 +81,7 @@ public class PackageSubscriptionsController : ControllerBase
     }
 
     [HttpPut("{subscriptionId:guid}")]
-    // [Permission(PermissionKey.SubscriptionsUpdate)]
+    [Permission(PermissionKey.SubscriptionsUpdate)]
     public async Task<ActionResult<ApiResponse<PackageSubscriptionItemResponse>>> Update(
         Guid subscriptionId,
         [FromBody] UpdatePackageSubscriptionRequest request,
@@ -98,7 +98,7 @@ public class PackageSubscriptionsController : ControllerBase
     }
 
     [HttpPost("subscribe")]
-    // [Permission(PermissionKey.SubscriptionsCreate)]
+    [Permission(PermissionKey.SubscriptionsCreate)]
     public async Task<ActionResult<ApiResponse<UserPackageResponse>>> Subscribe(
         [FromBody] SubscribePackageRequest request,
         CancellationToken cancellationToken)
@@ -114,7 +114,7 @@ public class PackageSubscriptionsController : ControllerBase
     }
 
     [HttpPost("upgrade")]
-    // [Permission(PermissionKey.SubscriptionsUpdate)]
+    [Permission(PermissionKey.SubscriptionsUpdate)]
     public async Task<ActionResult<ApiResponse<UserPackageResponse>>> Upgrade(
         [FromBody] UpgradePackageRequest request,
         CancellationToken cancellationToken)

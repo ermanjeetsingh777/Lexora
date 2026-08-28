@@ -60,10 +60,11 @@ import {
   isExceptionChanged,
   isExceptionNew,
   isExceptionPastLocked,
-  layoutSeats,
-  buildSeatTooltip,
-  seatActiveMember,
-  seatTileStyle,
+    layoutSeats,
+    buildSeatTooltip,
+    seatActiveMember,
+    seatLastCheckedOutMember,
+    seatTileStyle,
   summarizeExceptionChanges,
   todayLocalDateString,
   TABS,
@@ -143,6 +144,7 @@ export class LibraryDetailComponent implements OnInit {
   readonly seatLegend = [
     { label: 'Available', className: 'lib-seat--available' },
     { label: 'Occupied', className: 'lib-seat--occupied' },
+    { label: 'Checked out today', className: 'lib-seat--vacated' },
     { label: 'Reserved', className: 'lib-seat--reserved' },
     { label: 'Maintenance', className: 'lib-seat--maintenance' },
   ];
@@ -296,6 +298,7 @@ export class LibraryDetailComponent implements OnInit {
   readonly seatStatusClass = seatStatusClass;
   readonly buildSeatTooltip = buildSeatTooltip;
   readonly seatActiveMember = seatActiveMember;
+  readonly seatLastCheckedOutMember = seatLastCheckedOutMember;
   readonly seatTileStyle = seatTileStyle;
   readonly floorUtilisation = floorUtilisation;
   readonly sectionCapacityPercent = sectionCapacityPercent;

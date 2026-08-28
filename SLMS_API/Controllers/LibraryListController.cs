@@ -1,14 +1,18 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Queries;
 using SLMS_API.Application.Contracts.Organizations.Responses;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Common.Enums;
+using SLMS_API.Infrastructure.Authorization;
 
 namespace SLMS_API.Controllers;
 
 [ApiController]
 [Route("api/v1/libraries")]
+[Authorize]
 public class LibraryListController : ControllerBase
 {
     private readonly ILibraryService _libraryService;
@@ -29,6 +33,7 @@ public class LibraryListController : ControllerBase
     }
 
     [HttpGet("list")]
+    [Permission(PermissionKey.LibrariesList)]
     public async Task<ActionResult<ApiResponse<LibraryListViewResponse>>> GetListView(
         [FromQuery] LibraryListQuery query,
         CancellationToken cancellationToken)
@@ -43,6 +48,7 @@ public class LibraryListController : ControllerBase
     }
 
     [HttpGet("list/revenue")]
+    [Permission(PermissionKey.LibrariesView)]
     public async Task<ActionResult<ApiResponse<LibraryListRevenueSummaryResponse>>> GetListRevenueSummary(
         [FromQuery] LibraryListQuery query,
         CancellationToken cancellationToken)
@@ -57,6 +63,7 @@ public class LibraryListController : ControllerBase
     }
 
     [HttpGet("{libraryId:guid}")]
+    [Permission(PermissionKey.LibrariesView)]
     public async Task<ActionResult<ApiResponse<LibraryDetailViewResponse>>> GetDetailView(
         Guid libraryId,
         [FromQuery] int trendDays = 30,
@@ -108,6 +115,7 @@ public class LibraryListController : ControllerBase
     }
 
     [HttpGet("{libraryId:guid}/attendance-qr")]
+    [Permission(PermissionKey.LibrariesView)]
     public async Task<ActionResult<ApiResponse<ScannerQrCodeResponse>>> GetAttendanceQr(
         Guid libraryId,
         CancellationToken cancellationToken = default)

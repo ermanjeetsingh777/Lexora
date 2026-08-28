@@ -186,6 +186,19 @@ sequenceDiagram
 - Renew: `RenewPlanDialogComponent` → `POST members/{id}/renew`
 - Change plan: dialog → `POST members/{id}/plan-or-shift`
 - Plan options: `GET institutions/{i}/branches/{b}/libraries/{l}/plans`
+- **Receipt Sharing Quick Actions:**
+  - Individual table row buttons: Download PDF, WhatsApp (pre-filled phone), Email (pre-filled mailto).
+  - Batch actions on table header: "Download all", "WhatsApp", "Email".
+
+### 2.6 Member Portal & Self-Service Mode
+
+When viewed by a user logged in with the `Members` role:
+- `isMemberPortalView` becomes `true`.
+- Administrative buttons ("Edit profile", "Actions" dropdown, manual attendance "Edit") are hidden.
+- Members have self-service access to:
+  - **Attendance QR Code:** Retrieved via `GET /api/v1/attendance/scanner/members/{memberId}/qr` (self-service authorized).
+  - **Self Check-In / Check-Out:** `POST /api/v1/attendance/members/{memberId}/check-in` & `check-out`.
+  - **Enrolled Library Calendar & Plans:** Scoped query in API permits members to view plans and calendars for libraries where they hold an active membership.
 
 #### Contacts
 

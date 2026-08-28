@@ -41,6 +41,8 @@ import {
 } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { LibraryService } from '../library.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionKey } from '@core/constants/permissions';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 
 const STATUS_OPTS: LibraryStatusFilter[] = ['all', 'Active', 'Maintenance', 'Closed'];
@@ -92,9 +94,12 @@ const PAGE_SIZE_OPTS = [12, 24, 48] as const;
 export class LibraryListComponent implements OnInit {
   private readonly librariesApi = inject(LibraryService);
   private readonly organizationEntitlements = inject(OrganizationEntitlementService);
+  private readonly auth = inject(AuthService);
   private readonly search$ = new Subject<string>();
 
-  protected readonly canCreateLibrary = this.organizationEntitlements.canCreateLibrary;
+  protected readonly canCreateLibrary = computed(
+    () => this.organizationEntitlements.canCreateLibrary() && this.auth.hasPermission(PermissionKey.LibrariesCreate)
+  );
 
   protected readonly Math = Math;
   readonly STATUS_OPTS = STATUS_OPTS;

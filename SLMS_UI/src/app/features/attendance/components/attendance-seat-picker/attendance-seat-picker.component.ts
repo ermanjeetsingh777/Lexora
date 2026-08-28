@@ -1,6 +1,7 @@
 import { NgClass } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import type { AttendanceSeatOption } from '@core/models/attendanceModels';
+import { formatAttendanceDisplayTime } from '../../attendance-format.util';
 
 @Component({
   selector: 'app-attendance-seat-picker',
@@ -34,12 +35,17 @@ export class AttendanceSeatPickerComponent {
     if (selected) return 'seat-chip seat-chip--selected';
     if (!seat.isActive) return 'seat-chip seat-chip--maintenance';
     if (seat.isOccupied) return 'seat-chip seat-chip--occupied';
+    if (seat.lastVacatedBy) return 'seat-chip seat-chip--vacated';
     return 'seat-chip seat-chip--available';
   }
 
   seatTitle(seat: AttendanceSeatOption): string {
     if (!seat.isActive) return `${seat.seatNumber} — maintenance`;
     if (seat.isOccupied) return `${seat.seatNumber} — occupied${seat.occupiedBy ? ` (${seat.occupiedBy})` : ''}`;
+    if (seat.lastVacatedBy) {
+      const timeStr = formatAttendanceDisplayTime(seat.lastVacatedAtUtc);
+      return `${seat.seatNumber} — available (vacated by ${seat.lastVacatedBy}${timeStr !== '—' ? ' at ' + timeStr : ''})`;
+    }
     return `${seat.seatNumber} — available`;
   }
 }

@@ -46,7 +46,7 @@ public class BranchesController : ControllerBase
     }
 
     [HttpPost]
-    //[Permission(PermissionKey.BranchesList)]
+    [Permission(PermissionKey.BranchesCreate)]
     public async Task<ActionResult<ApiResponse<BranchResponse>>> Create(Guid institutionId, [FromBody] CreateBranchRequest request, CancellationToken cancellationToken)
     {
         try
@@ -68,7 +68,7 @@ public class BranchesController : ControllerBase
     }
 
     [HttpGet("{branchId:guid}")]
-    [Permission(PermissionKey.BranchesList)]
+    [Permission(PermissionKey.BranchesView)]
     public async Task<ActionResult<ApiResponse<BranchResponse>>> GetById(
         Guid institutionId,
         Guid branchId,
@@ -84,7 +84,7 @@ public class BranchesController : ControllerBase
     }
 
     [HttpPut("{branchId:guid}")]
-    [Permission(PermissionKey.BranchesList)]
+    [Permission(PermissionKey.BranchesUpdate)]
     public async Task<ActionResult<ApiResponse<BranchResponse>>> Update(
         Guid institutionId,
         Guid branchId,
@@ -103,7 +103,7 @@ public class BranchesController : ControllerBase
     }
 
     [HttpDelete("{branchId:guid}")]
-    [Permission(PermissionKey.BranchesList)]
+    [Permission(PermissionKey.BranchesDelete)]
     public async Task<ActionResult<ApiResponse<object>>> Delete(
         Guid institutionId,
         Guid branchId,
@@ -121,7 +121,7 @@ public class BranchesController : ControllerBase
     }
 
     [HttpGet("{branchId:guid}/analytics")]
-    [Permission(PermissionKey.BranchesList)]
+    [Permission(PermissionKey.BranchesView)]
     public async Task<ActionResult<ApiResponse<OrganizationAnalyticsResponse>>> GetAnalytics(
         Guid institutionId,
         Guid branchId,

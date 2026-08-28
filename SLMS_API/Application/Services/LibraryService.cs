@@ -336,10 +336,18 @@ public class LibraryService : ILibraryService
                 .Select(ul => ul.LibraryId)
                 .ToListAsync(cancellationToken);
 
+            var memberLibraryIds = await (
+                from m in _dbContext.Members
+                join ml in _dbContext.MemberLibraries on m.Id equals ml.MemberId
+                where m.UserId == userIdString && m.IsActive && ml.IsActive
+                select ml.LibraryId
+            ).ToListAsync(cancellationToken);
+
             librariesQuery = librariesQuery.Where(x =>
                 accessibleInstitutionIds.Contains(x.InstitutionId) ||
                 accessibleBranchIds.Contains(x.BranchId) ||
-                accessibleLibraryIds.Contains(x.Id));
+                accessibleLibraryIds.Contains(x.Id) ||
+                memberLibraryIds.Contains(x.Id));
         }
 
         return ApplyListFilters(librariesQuery, query);

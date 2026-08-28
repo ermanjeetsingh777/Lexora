@@ -564,6 +564,8 @@ public static class LibraryOverviewHelper
                     MembershipNo = session.MembershipNo,
                     CheckInTime = session.CheckInTime?.ToString("HH:mm"),
                     CheckOutTime = session.CheckOutTime?.ToString("HH:mm"),
+                    CheckInAtUtc = session.CheckInAtUtc,
+                    CheckOutAtUtc = session.CheckOutAtUtc,
                     IsActive = session.IsActive,
                 }).ToList(),
             });

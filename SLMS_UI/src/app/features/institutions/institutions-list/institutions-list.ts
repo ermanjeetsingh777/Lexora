@@ -23,6 +23,8 @@ import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { InstitutionListItem, InstitutionListView } from '@core/models/institution-detail.models';
 import { InstitutionsService } from '../institutions.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionKey } from '@core/constants/permissions';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { SidebarService } from '../../../layouts/sidebar/sidebar.service';
 import {
@@ -76,10 +78,13 @@ const TYPE_FILTERS: { value: TypeFilter; label: string; apiType?: string }[] = [
 export class InstitutionsListComponent implements OnInit {
   private readonly institutions = inject(InstitutionsService);
   private readonly organizationEntitlements = inject(OrganizationEntitlementService);
+  private readonly auth = inject(AuthService);
   private readonly sidebar = inject(SidebarService);
   private readonly search$ = new Subject<string>();
 
-  protected readonly canCreateInstitution = this.organizationEntitlements.canCreateInstitution;
+  protected readonly canCreateInstitution = computed(
+    () => this.organizationEntitlements.canCreateInstitution() && this.auth.hasPermission(PermissionKey.InstitutionsCreate)
+  );
 
   protected readonly Math = Math;
 

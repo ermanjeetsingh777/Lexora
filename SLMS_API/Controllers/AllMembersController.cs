@@ -31,7 +31,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpGet]
-        //[Permission(PermissionKey.MembersManage)]
+        [Permission(PermissionKey.MembersList)]
         public async Task<ActionResult<ApiResponse<IReadOnlyCollection<MemberListResponse>>>> GetAll(CancellationToken cancellationToken)
         {
             if (!Guid.TryParse(_currentUserService.UserId, out _))
@@ -56,6 +56,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpGet("summary")]
+        [Permission(PermissionKey.MembersView)]
         public async Task<ActionResult<ApiResponse<MembershipSummaryResponse>>> GetSummary(CancellationToken cancellationToken)
         {
             if (!Guid.TryParse(_currentUserService.UserId, out _))
@@ -119,6 +120,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPut("{memberId:guid}")]
+        [Permission(PermissionKey.MembersUpdate)]
         public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> Update(
             Guid memberId,
             [FromBody] UpdateMemberRequest request,
@@ -140,7 +142,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPost("{memberId:guid}/contacts")]
-        //[Permission(PermissionKey.MembersManage)]
+        [Permission(PermissionKey.MembersUpdate)]
         public async Task<ActionResult<ApiResponse<MemberContactResponse>>> AddContact( Guid memberId, [FromBody] CreateMemberContactRequest request, CancellationToken cancellationToken)
         {
             try
@@ -158,7 +160,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPost("{memberId:guid}/plan-or-shift")]
-        //[Permission(PermissionKey.MembersManage)]
+        [Permission(PermissionKey.MembersUpdate)]
         public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> ChangePlanOrShift(Guid memberId, [FromBody] ChangeMemberPlanShiftRequest request, CancellationToken cancellationToken)
         {
             try
@@ -174,6 +176,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPost("{memberId:guid}/renew")]
+        [Permission(PermissionKey.MembersUpdate)]
         public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> RenewMembership(Guid memberId, CancellationToken cancellationToken)
         {
             try
@@ -191,6 +194,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPost("{memberId:guid}/password")]
+        [Permission(PermissionKey.MembersUpdate)]
         public async Task<ActionResult<ApiResponse<MessageResponse>>> ChangePassword(
             Guid memberId,
             [FromBody] ChangeMemberPasswordRequest request,

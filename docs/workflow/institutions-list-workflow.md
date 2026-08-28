@@ -48,9 +48,11 @@ PageHeader (New institution → /institutions/create)
 └── Empty / loading / error states
 ```
 
-### 2.3 State
+### 2.3 State & Entitlements
 
 - **Signals:** `items`, `summary`, `loading`, search, type filter
+- **Creation Entitlement & Permission:**
+  - `canCreateInstitution` computed signal checks both `OrganizationEntitlementService.canCreateInstitution()` (Basic & Value tiers cannot add institutions; Premium & Trial can) and `AuthService.hasPermission(PermissionKey.InstitutionsCreate)`.
 - **Quick view:** Loads `GET institutions/{id}/quick-view` on card eye-click
 - **Trend charts:** SVG built client-side via `institutions-list.util.ts`
 

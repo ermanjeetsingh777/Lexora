@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Responses;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Common.Enums;
+using SLMS_API.Infrastructure.Authorization;
 
 namespace SLMS_API.Controllers;
 
 [ApiController]
 [Route("api/v1/institutions/{institutionId:guid}/members")]
+[Authorize]
 public class InstitutionMembersController : ControllerBase
 {
     private readonly IMemberService _memberService;
@@ -21,6 +25,7 @@ public class InstitutionMembersController : ControllerBase
     }
 
     [HttpGet]
+    [Permission(PermissionKey.MembersList)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<MemberListResponse>>>> GetMembers(
         Guid institutionId,
         CancellationToken cancellationToken)

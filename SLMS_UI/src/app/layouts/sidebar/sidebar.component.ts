@@ -45,59 +45,79 @@ import { PermissionKey } from '@core/constants/permissions';
       </div>
 
       <nav class="flex-1 overflow-y-auto py-2">
-        <div class="px-3 py-2">
-          @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Workspace</p> }
-          <a routerLink="/dashboard" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideLayoutDashboard class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Dashboard</span> }
-          </a> 
-        </div>
+        @if (canViewDashboard()) {
+          <div class="px-3 py-2">
+            @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Workspace</p> }
+            <a routerLink="/dashboard" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+              <svg lucideLayoutDashboard class="h-4 w-4 shrink-0"></svg>
+              @if (sidebar.showLabels()) { <span>Dashboard</span> }
+            </a> 
+          </div>
+        }
 
-        <div class="px-3 py-2">
-          @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Operations</p> }
-          <a routerLink="/members" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideUsers class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Members</span> }
-          </a>
-          <a routerLink="/attendance" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideCalendarCheck class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Attendance</span> }
-          </a>
-          @if (canUseScanner()) {
-            <a routerLink="/attendance/scanner" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-              <svg lucideScanLine class="h-4 w-4 shrink-0"></svg>
-              @if (sidebar.showLabels()) { <span>Scanner</span> }
+        @if (canViewMembers() || canViewAttendance() || canUseScanner()) {
+          <div class="px-3 py-2">
+            @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Operations</p> }
+            @if (canViewMembers()) {
+              <a routerLink="/members" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+                <svg lucideUsers class="h-4 w-4 shrink-0"></svg>
+                @if (sidebar.showLabels()) { <span>Members</span> }
+              </a>
+            }
+            @if (canViewAttendance()) {
+              <a routerLink="/attendance" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+                <svg lucideCalendarCheck class="h-4 w-4 shrink-0"></svg>
+                @if (sidebar.showLabels()) { <span>Attendance</span> }
+              </a>
+            }
+            @if (canUseScanner()) {
+              <a routerLink="/attendance/scanner" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+                <svg lucideScanLine class="h-4 w-4 shrink-0"></svg>
+                @if (sidebar.showLabels()) { <span>Scanner</span> }
+              </a>
+            }
+          </div>
+        }
+
+        @if (canViewInstitutions() || canViewBranches() || canViewLibraries() || canViewSubscriptions()) {
+          <div class="px-3 py-2">
+            @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Organization</p> }
+            @if (canViewInstitutions()) {
+              <a routerLink="/institutions" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+                <svg lucideBuilding2 class="h-4 w-4 shrink-0"></svg>
+                @if (sidebar.showLabels()) { <span>Institutions</span> }
+              </a>
+            }
+            @if (canViewBranches()) {
+              <a routerLink="/branches" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+                <svg lucideBuilding2 class="h-4 w-4 shrink-0"></svg>
+                @if (sidebar.showLabels()) { <span>Branches</span> }
+              </a>
+            }
+            @if (canViewLibraries()) {
+              <a routerLink="/libraries" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+                <svg lucideBookOpen class="h-4 w-4 shrink-0"></svg>
+                @if (sidebar.showLabels()) { <span>Libraries</span> }
+              </a>
+            }
+            @if (canViewSubscriptions()) {
+              <a routerLink="/subscriptions" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+                <svg lucideCreditCard class="h-4 w-4 shrink-0"></svg>
+                @if (sidebar.showLabels()) { <span>Subscriptions</span> }
+              </a>
+            }
+          </div> 
+        }
+
+        @if (canViewBooks()) {
+          <div class="px-3 py-2">
+            @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Library</p> }
+            <a routerLink="/books" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+              <svg lucideBookOpen class="h-4 w-4 shrink-0"></svg>
+              @if (sidebar.showLabels()) { <span>Books</span> }
             </a>
-          }
-        </div>
-
-        <div class="px-3 py-2">
-          @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Organization</p> }
-          <a routerLink="/institutions" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideBuilding2 class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Institutions</span> }
-          </a>
-          <a routerLink="/branches" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideBuilding2 class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Branches</span> }
-          </a>
-          <a routerLink="/libraries" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideBookOpen class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Libraries</span> }
-          </a>
-          <a routerLink="/subscriptions" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideCreditCard class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Subscriptions</span> }
-          </a>
-        </div> 
-
-        <div class="px-3 py-2">
-          @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Library</p> }
-          <a routerLink="/books" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
-            <svg lucideBookOpen class="h-4 w-4 shrink-0"></svg>
-            @if (sidebar.showLabels()) { <span>Books</span> }
-          </a>
-        </div>
+          </div>
+        }
 
         <div class="px-3 py-2">
           @if (sidebar.showLabels()) { <p class="label-mono px-2 pb-1">Admin</p> }
@@ -133,6 +153,38 @@ import { PermissionKey } from '@core/constants/permissions';
 export class SidebarComponent {
   protected readonly sidebar = inject(SidebarService);
   private readonly auth = inject(AuthService);
+
+  protected canViewDashboard(): boolean {
+    return this.auth.hasPermission(PermissionKey.DashboardView) || this.auth.hasPermission(PermissionKey.DashboardList);
+  }
+
+  protected canViewMembers(): boolean {
+    return this.auth.hasPermission(PermissionKey.MembersList) || this.auth.hasPermission(PermissionKey.MembersView);
+  }
+
+  protected canViewAttendance(): boolean {
+    return this.auth.hasPermission(PermissionKey.AttendanceView) || this.auth.hasPermission(PermissionKey.AttendanceList);
+  }
+
+  protected canViewInstitutions(): boolean {
+    return this.auth.hasPermission(PermissionKey.InstitutionsList) || this.auth.hasPermission(PermissionKey.InstitutionsView);
+  }
+
+  protected canViewBranches(): boolean {
+    return this.auth.hasPermission(PermissionKey.BranchesList) || this.auth.hasPermission(PermissionKey.BranchesView);
+  }
+
+  protected canViewLibraries(): boolean {
+    return this.auth.hasPermission(PermissionKey.LibrariesList) || this.auth.hasPermission(PermissionKey.LibrariesView);
+  }
+
+  protected canViewSubscriptions(): boolean {
+    return this.auth.hasPermission(PermissionKey.SubscriptionsView) || this.auth.hasPermission(PermissionKey.SubscriptionsList);
+  }
+
+  protected canViewBooks(): boolean {
+    return this.auth.hasPermission(PermissionKey.BooksList) || this.auth.hasPermission(PermissionKey.BooksView);
+  }
 
   protected canListUsers(): boolean {
     return this.auth.hasPermission(PermissionKey.UsersList);

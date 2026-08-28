@@ -41,7 +41,7 @@ flowchart LR
 | Tab | Features |
 |-----|----------|
 | Overview | KPIs, occupancy chart, activity feed |
-| Layout | Seat grid, sections, floor utilisation |
+| Layout | Seat grid, sections, floor utilisation, live occupancy & vacated seat tracking (with local time formatting & session histories) |
 | Hours | Weekly hours + exceptions; calendar component |
 | Plans | `LibraryPlansPanelComponent` — CRUD membership plans |
 | Members | `ScopedMembersPanelComponent` |
@@ -51,7 +51,21 @@ flowchart LR
 
 **Utilities:** `library-detail.util.ts`, `library-calendar/` subfolder
 
-### 2.3 Key child components
+### 2.3 Seat Layout & Real-time Occupancy Tracking
+
+- **Real-time Occupancy:** Seats show occupied status when an active session is in progress.
+- **Vacated (Checked-Out) Seat Tracking:**
+  - If a member occupied a seat and checked out today, the seat is marked with `.lib-seat--vacated` (distinct dashed styling and soft tint).
+  - Displays the last occupant's initials and checkout time (e.g., `Out 01:15 PM`).
+  - Seat count badge displays `✓` or the number of today's total sessions.
+- **Timezone & UTC Display Formatting:**
+  - Session check-in and check-out timestamps are stored in UTC and rendered in the user's local time using `formatAttendanceDisplayTime(session.checkInAtUtc, session.checkInTime)`.
+- **Interactive Tooltips:**
+  - Hovering/focusing on any seat reveals full multi-session history for the day:
+    - `● Active now: Member Name (MembershipNo) · InTime`
+    - `✓ Checked out: Member Name (MembershipNo) · InTime – OutTime`
+
+### 2.4 Key child components
 
 | Component | Path |
 |-----------|------|

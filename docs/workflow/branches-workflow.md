@@ -37,9 +37,11 @@ flowchart TB
 
 Nested under institution: `/institutions/:institutionId/branches/:branchId/*`
 
-### 2.2 Branch list
+### 2.2 Branch list & Entitlements
 
 - **Service:** `BranchService.getListView()` → `GET branches/list`
+- **Creation Entitlement & Permission:**
+  - `canCreateBranch` computed signal checks `OrganizationEntitlementService.canCreateBranch()` (Basic & Value tiers blocked; Premium & Trial permitted) and `AuthService.hasPermission(PermissionKey.BranchesCreate)`.
 - **Filters:** search (debounced), status, occupancy band — client-side after load
 - **View modes:** grid (default) | table
 - **Pagination:** 12 / 24 / 48 per page (client)
@@ -47,6 +49,8 @@ Nested under institution: `/institutions/:institutionId/branches/:branchId/*`
 ### 2.3 Branch detail
 
 - **Tabs:** overview, libraries, members, analytics (query `?tab=`)
+- **Library Creation in Branch:**
+  - `canCreateLibrary` checks `OrganizationEntitlementService.canCreateLibrary()` (Value, Premium, Trial permitted; Basic blocked) and `AuthService.hasPermission(PermissionKey.LibrariesCreate)`.
 - **Scoped members panel:** [scoped-members-workflow.md](./scoped-members-workflow.md)
 - **Utilities:** `branch-detail.util.ts`
 

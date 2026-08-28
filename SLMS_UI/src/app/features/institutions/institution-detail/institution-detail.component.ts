@@ -48,6 +48,8 @@ import {
   UpdateInstitutionRequest,
 } from '@core/models/institution-detail.models';
 import { InstitutionsService } from '../institutions.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionKey } from '@core/constants/permissions';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { ToastService } from '@core/services/toast.service';
 import { ChartModule } from 'primeng/chart';
@@ -144,10 +146,21 @@ export class InstitutionDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly institutions = inject(InstitutionsService);
   private readonly organizationEntitlements = inject(OrganizationEntitlementService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
-  protected readonly canCreateBranch = this.organizationEntitlements.canCreateBranch;
-  protected readonly canCreateLibrary = this.organizationEntitlements.canCreateLibrary;
+  protected readonly canCreateBranch = computed(
+    () => this.organizationEntitlements.canCreateBranch() && this.auth.hasPermission(PermissionKey.BranchesCreate)
+  );
+  protected readonly canCreateLibrary = computed(
+    () => this.organizationEntitlements.canCreateLibrary() && this.auth.hasPermission(PermissionKey.LibrariesCreate)
+  );
+  protected readonly canUpdateInstitution = computed(
+    () => this.auth.hasPermission(PermissionKey.InstitutionsUpdate)
+  );
+  protected readonly canDeleteInstitution = computed(
+    () => this.auth.hasPermission(PermissionKey.InstitutionsDelete)
+  );
 
   protected readonly Math = Math;
 

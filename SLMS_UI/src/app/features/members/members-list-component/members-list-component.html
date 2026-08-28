@@ -1,15 +1,17 @@
 <app-page-header eyebrow="People" title="Members" [description]="headerDescription()">
   <div actions class="flex items-center gap-2">
-    <a routerLink="/members/bulk-upload">
-      <app-button size="sm" variant="outline">
-        <svg lucideFileSpreadsheet class="h-4 w-4 mr-1"></svg> Bulk upload
-      </app-button>
-    </a>
-    <a routerLink="/members/create">
-      <app-button size="sm">
-        <svg lucidePlus class="h-4 w-4 mr-1"></svg> Add member
-      </app-button>
-    </a>
+    @if (canCreate) {
+      <a routerLink="/members/bulk-upload">
+        <app-button size="sm" variant="outline">
+          <svg lucideFileSpreadsheet class="h-4 w-4 mr-1"></svg> Bulk upload
+        </app-button>
+      </a>
+      <a routerLink="/members/create">
+        <app-button size="sm">
+          <svg lucidePlus class="h-4 w-4 mr-1"></svg> Add member
+        </app-button>
+      </a>
+    }
   </div>
 </app-page-header>
 
@@ -584,11 +586,13 @@
                       class="flex items-center gap-2 px-3 py-1.5 hover:bg-accent cursor-pointer">
                       <svg lucideEye class="h-4 w-4"></svg> View profile
                     </a>
-                    <button type="button" (click)="renewPlan(m); closeDropdown()"
-                      class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
-                      <svg lucideRotateCcw class="h-4 w-4"></svg>
-                      {{ m.life.state === 'No plan' ? 'Assign plan' : 'Renew plan' }}
-                    </button>
+                    @if (canUpdate) {
+                      <button type="button" (click)="renewPlan(m); closeDropdown()"
+                        class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
+                        <svg lucideRotateCcw class="h-4 w-4"></svg>
+                        {{ m.life.state === 'No plan' ? 'Assign plan' : 'Renew plan' }}
+                      </button>
+                    }
                     <button type="button" (click)="openQuick(m.id); closeDropdown()"
                       class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
                       <svg lucidePanelRightOpen class="h-4 w-4"></svg> Quick view
@@ -597,10 +601,12 @@
                       class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
                       <svg lucideCopy class="h-4 w-4"></svg> Copy ID
                     </button>
-                    <a [routerLink]="['/members', m.id]" (click)="closeDropdown()"
-                      class="flex items-center gap-2 px-3 py-1.5 hover:bg-accent cursor-pointer">
-                      <svg lucideEdit class="h-4 w-4"></svg> Edit
-                    </a>
+                    @if (canUpdate) {
+                      <a [routerLink]="['/members', m.id]" (click)="closeDropdown()"
+                        class="flex items-center gap-2 px-3 py-1.5 hover:bg-accent cursor-pointer">
+                        <svg lucideEdit class="h-4 w-4"></svg> Edit
+                      </a>
+                    }
                     @if (canChangePassword) {
                       <button type="button" (click)="openPasswordDialog(m)"
                         class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
@@ -706,7 +712,7 @@
         <div class="mt-3 flex items-center justify-between relative">
           <span class="text-xs text-muted-foreground pointer-events-none">Last visit {{ m.lastVisit }}</span>
           <div class="flex gap-1 relative z-10">
-            @if (m.life.needsAction && m.life.state !== 'New') {
+            @if (m.life.needsAction && m.life.state !== 'New' && canUpdate) {
             <app-button variant="outline" size="sm" class="h-7 text-xs" (click)="$event.preventDefault(); renewPlan(m)">
               <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
               {{ m.life.state === 'No plan' ? 'Assign' : 'Renew' }}

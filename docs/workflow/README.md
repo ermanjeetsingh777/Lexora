@@ -31,6 +31,7 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 | [members-bulk-upload-workflow.md](./members-bulk-upload-workflow.md) | M-06 Members | Excel/PDF template + bulk upload with live progress |
 | [members-detail-workflow.md](./members-detail-workflow.md) | M-06 Members | Profile, attendance, books, QR |
 | [scoped-members-workflow.md](./scoped-members-workflow.md) | M-06b Scoped members | Members tabs on detail pages, nested create/detail URLs |
+| [member-portal-workflow.md](./member-portal-workflow.md) | M-16 Member portal | Role-isolated self-service portal, QR, check-in, plans, receipts |
 
 ## Operations
 
@@ -46,6 +47,7 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 |-----|--------|---------|
 | [administration-workflow.md](./administration-workflow.md) | M-15 Admin | Roles, permissions seeding |
 | [users-admin-workflow.md](./users-admin-workflow.md) | M-15 Users | User directory and role assignment |
+| [package-entitlements-workflow.md](./package-entitlements-workflow.md) | M-17 Entitlements & RBAC | Tiered creation limits (Basic/Value/Premium) and PermissionKey claims |
 | [support-workflow.md](./support-workflow.md) | M-09 Support | Institution-scoped tickets, attachments, KB, status |
 | [subscriptions-workflow.md](./subscriptions-workflow.md) | M-10 SaaS subscriptions | Package renew/upgrade, institution scope |
 

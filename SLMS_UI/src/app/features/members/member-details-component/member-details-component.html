@@ -13,7 +13,7 @@
     <app-button variant="outline" size="sm" (click)="copyId(m.id)">
       <svg lucideCopy class="h-4 w-4 mr-1"></svg> Copy ID
     </app-button>
-    @if (!isMemberPortalView()) {
+    @if (!isMemberPortalView() && canUpdateMember()) {
       <a [routerLink]="editLink">
         <app-button variant="outline" size="sm">
           <svg lucidePencil class="h-4 w-4 mr-1"></svg> Edit profile
@@ -360,10 +360,12 @@
           History
         </app-button>
 
-        <app-button variant="ghost" (click)="openTodayAttendanceEdit()" [disabled]="!todayAttendance()?.checkInAtUtc">
-          <svg lucidePencil class="h-4 w-4 mr-1"></svg>
-          Edit
-        </app-button>
+        @if (!isMemberPortalView()) {
+          <app-button variant="ghost" (click)="openTodayAttendanceEdit()" [disabled]="!todayAttendance()?.checkInAtUtc">
+            <svg lucidePencil class="h-4 w-4 mr-1"></svg>
+            Edit
+          </app-button>
+        }
       </div>
     </div>
 

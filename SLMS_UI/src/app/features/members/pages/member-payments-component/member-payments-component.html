@@ -7,16 +7,17 @@
         </div>
         <div class="flex flex-wrap items-center gap-1.5">
             <button type="button" (click)="downloadAllPlans()"
-                class="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-accent">
+                class="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-accent transition-colors"
+                title="Download all payment receipts as single PDF">
                 <svg lucideDownload class="h-3.5 w-3.5"></svg> Download all
             </button>
             <button type="button" (click)="shareWhatsApp()" [disabled]="!hasPhone()"
-                class="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
+                class="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-accent disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 title="Share all plans on WhatsApp">
                 <svg lucideMessageCircle class="h-3.5 w-3.5"></svg> WhatsApp
             </button>
             <button type="button" (click)="shareEmail()" [disabled]="!hasEmail()"
-                class="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
+                class="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-accent disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 title="Share all plans via email">
                 <svg lucideMail class="h-3.5 w-3.5"></svg> Email
             </button>
@@ -30,23 +31,23 @@
                 <tr class="text-left border-y label-mono bg-muted/30">
                     <th class="px-4 py-2 font-medium">Date</th>
                     <th class="px-4 py-2 font-medium">Plan</th>
-                    <th class="px-2 py-2 font-medium">Status</th>
+                    <th class="px-3 py-2 font-medium">Status</th>
                     <th class="px-4 py-2 font-medium">Validity</th>
                     <th class="px-4 py-2 font-medium text-right">Amount</th>
                     <th class="px-4 py-2 font-medium text-right">Adjustment</th>
                     <th class="px-4 py-2 font-medium text-right">Paid</th>
-                    <th class="px-4 py-2 font-medium text-right w-28">Share</th>
+                    <th class="px-4 py-2 font-medium text-right w-36">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y">
                 @for (p of plans(); track p.id) {
-                <tr class="hover:bg-muted/40">
+                <tr class="hover:bg-muted/40 transition-colors">
                     <td class="px-4 py-2.5 tabular-nums">{{ p.createdAtUtc | appDate }}</td>
-                    <td class="px-2 py-2.5 font-mono text-xs">
+                    <td class="px-4 py-2.5 font-mono text-xs">
                         <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
                             [class]="commonService.planClasses(p.planName)">{{ p.planName }}</span>
                     </td>
-                    <td class="px-2 py-2.5">
+                    <td class="px-3 py-2.5">
                         <app-status-badge [status]="p.isActive ? p.status : 'Inactive'" />
                     </td>
                     <td class="px-4 py-2.5 font-mono text-xs">
@@ -58,30 +59,23 @@
                     <td class="px-4 py-2.5 text-right tabular-nums">₹{{ p.price.toLocaleString() }}</td>
                     <td class="px-4 py-2.5 text-right text-red-600 tabular-nums">₹{{ (p.adjustmentAmount || 0).toLocaleString() }}</td>
                     <td class="px-4 py-2.5 text-right text-green-600 tabular-nums">₹{{ (p.paidAmount || 0).toLocaleString() }}</td>
-                    <td class="px-2 py-2.5">
-                        <div class="relative flex items-center justify-end">
-                            <button type="button" (click)="toggleShareMenu(p.id, $event)"
-                                class="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground"
-                                title="Share or download">
-                                <svg lucideShare2 class="h-3.5 w-3.5"></svg>
+                    <td class="px-4 py-2.5">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <button type="button" (click)="downloadPlan(p)"
+                                class="inline-flex h-7 w-7 items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-primary text-muted-foreground transition-colors"
+                                title="Download PDF receipt">
+                                <svg lucideDownload class="h-3.5 w-3.5"></svg>
                             </button>
-                            @if (shareMenuOpen() === p.id) {
-                            <div class="fixed inset-0 z-30" (click)="closeShareMenu()"></div>
-                            <div class="absolute right-0 top-full z-40 mt-1 w-44 rounded-md border bg-popover shadow-md py-1 text-xs">
-                                <button type="button" (click)="downloadPlan(p)"
-                                    class="flex w-full items-center gap-2 px-3 py-2 hover:bg-accent text-left">
-                                    <svg lucideDownload class="h-3.5 w-3.5"></svg> Download PDF
-                                </button>
-                                <button type="button" (click)="shareWhatsApp(p)" [disabled]="!hasPhone()"
-                                    class="flex w-full items-center gap-2 px-3 py-2 hover:bg-accent text-left disabled:opacity-50 disabled:pointer-events-none">
-                                    <svg lucideMessageCircle class="h-3.5 w-3.5"></svg> WhatsApp
-                                </button>
-                                <button type="button" (click)="shareEmail(p)" [disabled]="!hasEmail()"
-                                    class="flex w-full items-center gap-2 px-3 py-2 hover:bg-accent text-left disabled:opacity-50 disabled:pointer-events-none">
-                                    <svg lucideMail class="h-3.5 w-3.5"></svg> Email
-                                </button>
-                            </div>
-                            }
+                            <button type="button" (click)="shareWhatsApp(p)" [disabled]="!hasPhone()"
+                                class="inline-flex h-7 w-7 items-center justify-center rounded-md border bg-background hover:bg-emerald-500/10 hover:text-emerald-600 text-muted-foreground transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                title="Share receipt via WhatsApp">
+                                <svg lucideMessageCircle class="h-3.5 w-3.5"></svg>
+                            </button>
+                            <button type="button" (click)="shareEmail(p)" [disabled]="!hasEmail()"
+                                class="inline-flex h-7 w-7 items-center justify-center rounded-md border bg-background hover:bg-blue-500/10 hover:text-blue-600 text-muted-foreground transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                title="Share receipt via Email">
+                                <svg lucideMail class="h-3.5 w-3.5"></svg>
+                            </button>
                         </div>
                     </td>
                 </tr>

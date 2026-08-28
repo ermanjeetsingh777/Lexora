@@ -1,13 +1,17 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Queries;
 using SLMS_API.Application.Contracts.Organizations.Responses;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Common.Enums;
+using SLMS_API.Infrastructure.Authorization;
 
 namespace SLMS_API.Controllers;
 
 [ApiController]
 [Route("api/v1/branches")]
+[Authorize]
 public class BranchListController : ControllerBase
 {
     private readonly IBranchService _branchService;
@@ -20,6 +24,7 @@ public class BranchListController : ControllerBase
     }
 
     [HttpGet("list")]
+    [Permission(PermissionKey.BranchesList)]
     public async Task<ActionResult<ApiResponse<BranchListViewResponse>>> GetListView(
         [FromQuery] BranchListQuery query,
         CancellationToken cancellationToken)
@@ -34,6 +39,7 @@ public class BranchListController : ControllerBase
     }
 
     [HttpGet("{branchId:guid}")]
+    [Permission(PermissionKey.BranchesView)]
     public async Task<ActionResult<ApiResponse<BranchDetailViewResponse>>> GetDetailView(
         Guid branchId,
         CancellationToken cancellationToken)

@@ -50,7 +50,7 @@ Navigation: sidebar **Libraries** → `/libraries` (`SLMS_UI/src/app/core/consta
 
 > **Detail:** See [library-detail-workflow.md](./library-detail-workflow.md) for tabs, hours, plans, and seat layout.
 
-### 2.2 Page layout
+### 2.2 Page layout & Entitlements
 
 ```
 PageHeader (View branches, New library)
@@ -67,6 +67,9 @@ PageHeader (View branches, New library)
     ├── Table — sortable-style columns with occupancy progress
     └── Pagination (12 / 24 / 48 per page)
 ```
+
+**Creation Entitlements & Permissions:**
+- `canCreateLibrary` computed signal checks `OrganizationEntitlementService.canCreateLibrary()` (Basic tier blocked; Value, Premium, and Trial permitted) and `AuthService.hasPermission(PermissionKey.LibrariesCreate)`.
 
 ### 2.3 Page load sequence
 

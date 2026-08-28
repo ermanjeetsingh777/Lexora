@@ -5,9 +5,11 @@
       <app-button variant="outline" size="sm" (click)="exportCsv()">
         <svg lucideDownload class="h-4 w-4 mr-1"></svg> Export
       </app-button>
-      <app-button size="sm" (click)="openCreate()">
-        <svg lucidePlus class="h-4 w-4 mr-1"></svg> Add book
-      </app-button>
+      @if (canCreate()) {
+        <app-button size="sm" (click)="openCreate()">
+          <svg lucidePlus class="h-4 w-4 mr-1"></svg> Add book
+        </app-button>
+      }
     </div>
   </app-page-header>
 

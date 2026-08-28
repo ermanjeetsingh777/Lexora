@@ -30,6 +30,7 @@ import {
   LucideKeyRound,
 } from '@lucide/angular';
 import { isMemberPortalUser } from '@core/constants/roles';
+import { PermissionKey } from '@core/constants/permissions';
 import { MemberPortalService } from '@core/services/member-portal.service';
 import { ToastService } from '@core/services/toast.service';
 import { WhatsAppService } from '@core/services/whatsapp.service';
@@ -130,6 +131,10 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   protected readonly isMemberPortalView = computed(
     () => this.auth.isMemberPortalUser() && this.memberPortal.memberId() === this.memberId,
+  );
+
+  protected readonly canUpdateMember = computed(
+    () => this.auth.hasPermission(PermissionKey.MembersUpdate),
   );
 
   get routeParams(): Record<string, string> {

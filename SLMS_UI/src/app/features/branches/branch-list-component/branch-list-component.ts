@@ -40,6 +40,8 @@ import {
 } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { BranchService } from '../branch.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionKey } from '@core/constants/permissions';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 
 const STATUS_OPTS: BranchStatusFilter[] = ['all', 'Active', 'Maintenance', 'Closed'];
@@ -90,9 +92,12 @@ const PAGE_SIZE_OPTS = [12, 24, 48] as const;
 export class BranchListComponent implements OnInit {
   private readonly branchesApi = inject(BranchService);
   private readonly organizationEntitlements = inject(OrganizationEntitlementService);
+  private readonly auth = inject(AuthService);
   private readonly search$ = new Subject<string>();
 
-  protected readonly canCreateBranch = this.organizationEntitlements.canCreateBranch;
+  protected readonly canCreateBranch = computed(
+    () => this.organizationEntitlements.canCreateBranch() && this.auth.hasPermission(PermissionKey.BranchesCreate)
+  );
 
   protected readonly Math = Math;
   readonly STATUS_OPTS = STATUS_OPTS;

@@ -27,6 +27,7 @@ import { StatusBadgeComponent } from '@shared/components/status-badge/status-bad
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
 import { ToastService } from '@core/services/toast.service';
 import { AuthService } from '@core/services/auth.service';
+import { PermissionKey } from '@core/constants/permissions';
 import { MemberService } from '../MemberService';
 import { MemberListResponse } from '@core/models/MemberRequest';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
@@ -128,6 +129,8 @@ export class MembersListComponent implements OnInit {
   readonly renewTarget = signal<RenewTarget | null>(null);
   readonly renewPlans = signal<PlanResponse[]>([]);
   readonly renewBusy = signal(false);
+  readonly canCreate = this.auth.hasPermission(PermissionKey.MembersCreate);
+  readonly canUpdate = this.auth.hasPermission(PermissionKey.MembersUpdate);
   readonly canChangePassword =
     this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin');
   readonly passwordTarget = signal<{ id: string; name: string } | null>(null);

@@ -50,16 +50,16 @@ SLMS_API/
 | `BranchListController` | `api/v1/branches` | [branches-workflow.md](../docs/workflow/branches-workflow.md) |
 | `LibrariesController` | `api/v1/institutions/.../libraries` | [library-detail-workflow.md](../docs/workflow/library-detail-workflow.md) |
 | `LibraryListController` | `api/v1/libraries` | [libraries-list-workflow.md](../docs/workflow/libraries-list-workflow.md) |
-| `AllMembersController` | `api/v1/members` | [members-list-workflow.md](../docs/workflow/members-list-workflow.md) |
+| `AllMembersController` | `api/v1/members` | [members-list-workflow.md](../docs/workflow/members-list-workflow.md), [member-portal-workflow.md](../docs/workflow/member-portal-workflow.md) |
 | `MembersController` | `api/v1/institutions/.../members` | [scoped-members-workflow.md](../docs/workflow/scoped-members-workflow.md), [members-bulk-upload-workflow.md](../docs/workflow/members-bulk-upload-workflow.md) |
 | `BooksController` | `api/v1/institutions/.../books` | [books-workflow.md](../docs/workflow/books-workflow.md) |
-| `AttendanceController` | `api/v1/attendance` | [attendance-module-workflow.md](../docs/workflow/attendance-module-workflow.md) |
+| `AttendanceController` | `api/v1/attendance` | [attendance-module-workflow.md](../docs/workflow/attendance-module-workflow.md), [member-portal-workflow.md](../docs/workflow/member-portal-workflow.md) |
 | `AttendanceKioskController` | `api/v1/attendance/kiosk` | [attendance-kiosk-workflow.md](../docs/workflow/attendance-kiosk-workflow.md) |
-| `AttendanceScannerController` | `api/v1/attendance/scanner` | [attendance-kiosk-workflow.md](../docs/workflow/attendance-kiosk-workflow.md) |
+| `AttendanceScannerController` | `api/v1/attendance/scanner` | [attendance-kiosk-workflow.md](../docs/workflow/attendance-kiosk-workflow.md), [member-portal-workflow.md](../docs/workflow/member-portal-workflow.md) |
 | `AdminController` | `api/v1/admin` | [administration-workflow.md](../docs/workflow/administration-workflow.md) |
 | `SupportController` | `api/v1/support` | [support-workflow.md](../docs/workflow/support-workflow.md) |
 | `DashboardController` | `api/v1/dashboard` | [dashboard-workflow.md](../docs/workflow/dashboard-workflow.md) |
-| `PackageSubscriptionsController` | `api/v1/package-subscriptions` | SaaS package billing (SuperAdmin sees all tenants) |
+| `PackageSubscriptionsController` | `api/v1/package-subscriptions` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md) (SaaS package billing & creation entitlements) |
 | `PlanController` | `api/v1/institutions/.../plans` | [library-detail-workflow.md](../docs/workflow/library-detail-workflow.md) |
 | `SubscriptionsController` | `api/v1/institutions/{id}/subscriptions` | Planned |
 | `SeatsController` | `api/v1/institutions/.../seats` | Planned |

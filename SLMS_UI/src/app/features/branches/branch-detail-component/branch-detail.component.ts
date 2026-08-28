@@ -35,6 +35,8 @@ import {
   BranchDetailView,
 } from '@core/models/branch-detail.models';
 import { BranchService } from '../branch.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionKey } from '@core/constants/permissions';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { buttonVariants } from '@shared/components/button/button.variants';
@@ -149,8 +151,17 @@ export class BranchDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly branchesApi = inject(BranchService);
   private readonly organizationEntitlements = inject(OrganizationEntitlementService);
+  private readonly auth = inject(AuthService);
 
-  protected readonly canCreateLibrary = this.organizationEntitlements.canCreateLibrary;
+  protected readonly canCreateLibrary = computed(
+    () => this.organizationEntitlements.canCreateLibrary() && this.auth.hasPermission(PermissionKey.LibrariesCreate)
+  );
+  protected readonly canUpdateBranch = computed(
+    () => this.auth.hasPermission(PermissionKey.BranchesUpdate)
+  );
+  protected readonly canDeleteBranch = computed(
+    () => this.auth.hasPermission(PermissionKey.BranchesDelete)
+  );
 
   protected readonly Math = Math;
 

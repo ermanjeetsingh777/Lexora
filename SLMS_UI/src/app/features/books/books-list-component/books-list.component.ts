@@ -20,6 +20,8 @@ import { StatusBadgeComponent } from '@shared/components/status-badge/status-bad
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
 import { InstitutionsService } from '@features/institutions/institutions.service';
 import { MemberService } from '@features/members/MemberService';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionKey } from '@core/constants/permissions';
 import { SidebarService } from '../../../layouts/sidebar/sidebar.service';
 import {
   bookCoverHue, bookInitials, bookStatusVariant, formatBookDate,
@@ -62,10 +64,14 @@ export class BooksListComponent implements OnInit {
   private readonly bookService = inject(BookService);
   private readonly institutionsService = inject(InstitutionsService);
   private readonly memberService = inject(MemberService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly whatsapp = inject(WhatsAppService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly sidebar = inject(SidebarService);
+
+  readonly canCreate = computed(() => this.auth.hasPermission(PermissionKey.BooksCreate));
+  readonly canUpdate = computed(() => this.auth.hasPermission(PermissionKey.BooksUpdate));
 
   readonly BookStockStatus = BookStockStatus;
   readonly BOOK_STATUS_LABELS = BOOK_STATUS_LABELS;

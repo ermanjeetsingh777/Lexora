@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import type { ChartData, ChartOptions } from 'chart.js';
+import { formatAttendanceDisplayTime } from '@features/attendance/attendance-format.util';
 import type {
   DayKey,
   DaySlot,
@@ -347,6 +348,33 @@ export function seatActiveMember(seat: LibrarySeat): { name: string; initials: s
   };
 }
 
+export function seatLastCheckedOutMember(seat: LibrarySeat): {
+  name: string;
+  initials: string;
+  firstName: string;
+  checkOutTime: string;
+} | null {
+  if (seatActiveMember(seat)) {
+    return null;
+  }
+  const pastSessions = (seat.todaySessions ?? []).filter((session) => !session.isActive);
+  if (pastSessions.length === 0) {
+    return null;
+  }
+  const last = pastSessions[pastSessions.length - 1];
+  const name = last.memberName?.trim();
+  if (!name) {
+    return null;
+  }
+  const outTime = formatAttendanceDisplayTime(last.checkOutAtUtc, last.checkOutTime);
+  return {
+    name,
+    initials: seatInitials(name),
+    firstName: seatFirstName(name),
+    checkOutTime: outTime !== '—' ? outTime : '',
+  };
+}
+
 export function seatMemberHue(name: string): number {
   let hash = 0;
   for (let i = 0; i < name.length; i += 1) {
@@ -357,10 +385,14 @@ export function seatMemberHue(name: string): number {
 
 export function seatTileStyle(seat: LibrarySeat): Record<string, string> {
   const member = seatActiveMember(seat);
-  if (!member || seat.status !== 'occupied') {
-    return {};
+  if (member && seat.status === 'occupied') {
+    return { '--seat-member-hue': `${seatMemberHue(member.name)}` };
   }
-  return { '--seat-member-hue': `${seatMemberHue(member.name)}` };
+  const vacated = seatLastCheckedOutMember(seat);
+  if (vacated) {
+    return { '--seat-member-hue': `${seatMemberHue(vacated.name)}` };
+  }
+  return {};
 }
 
 export function formatActivityTime(value: string): string {
@@ -381,36 +413,43 @@ export function buildSeatTooltip(seat: LibrarySeat): string {
   const sessions = seat.todaySessions ?? [];
 
   if (sessions.length > 0) {
-    lines.push(`Today: ${seat.todaySessionCount ?? sessions.length} member(s)`);
+    lines.push(`Today Sessions: ${seat.todaySessionCount ?? sessions.length}`);
     for (const session of sessions) {
       const memberLabel = session.membershipNo
         ? `${session.memberName} (${session.membershipNo})`
         : session.memberName;
       const timeLabel = formatSeatSessionTime(session);
       if (session.isActive) {
-        lines.push(`● Now: ${memberLabel}${timeLabel ? ` · ${timeLabel}` : ''}`);
+        lines.push(`● Active now: ${memberLabel}${timeLabel ? ` · ${timeLabel}` : ''}`);
       } else {
-        lines.push(`○ Done: ${memberLabel}${timeLabel ? ` · ${timeLabel}` : ''}`);
+        lines.push(`✓ Checked out: ${memberLabel}${timeLabel ? ` · ${timeLabel}` : ''}`);
       }
     }
     return lines.join('\n');
   }
 
   if (seat.memberName) {
-    lines.push(`● Now: ${seat.memberName}`);
+    lines.push(`● Current: ${seat.memberName}`);
   } else if (seat.status === 'available') {
     lines.push('Available');
+  } else if (seat.status === 'reserved') {
+    lines.push('Reserved');
+  } else if (seat.status === 'maintenance') {
+    lines.push('Under maintenance');
   }
 
   return lines.join('\n');
 }
 
-function formatSeatSessionTime(session: LibrarySeatSession): string {
-  if (session.checkInTime && session.checkOutTime) {
-    return `${session.checkInTime} – ${session.checkOutTime}`;
+export function formatSeatSessionTime(session: LibrarySeatSession): string {
+  const inTime = formatAttendanceDisplayTime(session.checkInAtUtc, session.checkInTime);
+  const outTime = formatAttendanceDisplayTime(session.checkOutAtUtc, session.checkOutTime);
+
+  if (inTime !== '—' && outTime !== '—') {
+    return `${inTime} – ${outTime}`;
   }
-  if (session.checkInTime) {
-    return `from ${session.checkInTime}`;
+  if (inTime !== '—') {
+    return `from ${inTime}`;
   }
   return '';
 }

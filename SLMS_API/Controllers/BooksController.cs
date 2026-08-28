@@ -5,6 +5,7 @@ using SLMS_API.Application.Contracts.Books.Responses;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Enums;
+using SLMS_API.Infrastructure.Authorization;
 
 namespace SLMS_API.Controllers;
 
@@ -23,6 +24,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet]
+    [Permission(PermissionKey.BooksList)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<BookListItemResponse>>>> GetBooks(
         Guid institutionId,
         Guid branchId,
@@ -44,6 +46,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet("stats")]
+    [Permission(PermissionKey.BooksView)]
     public async Task<ActionResult<ApiResponse<BookStatsResponse>>> GetStats(
         Guid institutionId,
         Guid branchId,
@@ -62,6 +65,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet("{bookId:guid}")]
+    [Permission(PermissionKey.BooksView)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> GetById(
         Guid institutionId,
         Guid branchId,
@@ -82,6 +86,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost]
+    [Permission(PermissionKey.BooksCreate)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> Create(
         Guid institutionId,
         Guid branchId,
@@ -103,6 +108,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPut("{bookId:guid}")]
+    [Permission(PermissionKey.BooksUpdate)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> Update(
         Guid institutionId,
         Guid branchId,
@@ -125,6 +131,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost("{bookId:guid}/stock/adjust")]
+    [Permission(PermissionKey.BooksUpdate)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> AdjustStock(
         Guid institutionId,
         Guid branchId,
@@ -147,6 +154,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost("{bookId:guid}/stock/{kind}")]
+    [Permission(PermissionKey.BooksUpdate)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> MarkCondition(
         Guid institutionId,
         Guid branchId,
@@ -169,6 +177,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost("{bookId:guid}/checkout")]
+    [Permission(PermissionKey.BooksUpdate)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> Checkout(
         Guid institutionId,
         Guid branchId,
@@ -191,6 +200,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost("{bookId:guid}/loans/{loanId:guid}/return")]
+    [Permission(PermissionKey.BooksUpdate)]
     public async Task<ActionResult<ApiResponse<BookReturnResponse>>> ReturnLoan(
         Guid institutionId,
         Guid branchId,
@@ -216,6 +226,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost("{bookId:guid}/loans/{loanId:guid}/reminder")]
+    [Permission(PermissionKey.BooksUpdate)]
     public async Task<ActionResult<ApiResponse<BookReminderResponse>>> SendReturnReminder(
         Guid institutionId,
         Guid branchId,
@@ -238,6 +249,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost("{bookId:guid}/pdf")]
+    [Permission(PermissionKey.BooksUpdate)]
     [RequestSizeLimit(26_214_400)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> UploadPdf(
         Guid institutionId,
@@ -261,6 +273,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet("{bookId:guid}/pdf")]
+    [Permission(PermissionKey.BooksView)]
     public async Task<IActionResult> DownloadPdf(
         Guid institutionId,
         Guid branchId,
@@ -282,6 +295,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpDelete("{bookId:guid}/pdf")]
+    [Permission(PermissionKey.BooksUpdate)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> RemovePdf(
         Guid institutionId,
         Guid branchId,

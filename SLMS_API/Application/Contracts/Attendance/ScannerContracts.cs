@@ -108,4 +108,6 @@ public class AttendanceSeatOptionResponse
     public bool IsActive { get; set; } = true;
     public bool IsOccupied { get; set; }
     public string? OccupiedBy { get; set; }
+    public string? LastVacatedBy { get; set; }
+    public DateTime? LastVacatedAtUtc { get; set; }
 }

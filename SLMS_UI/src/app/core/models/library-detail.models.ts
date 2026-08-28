@@ -118,6 +118,8 @@ export interface LibrarySeatSession {
   membershipNo?: string | null;
   checkInTime?: string | null;
   checkOutTime?: string | null;
+  checkInAtUtc?: string | Date | null;
+  checkOutAtUtc?: string | Date | null;
   isActive: boolean;
 }
 

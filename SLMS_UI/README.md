@@ -46,6 +46,8 @@ SLMS_UI/src/app/
 | `subscriptions/` | `/subscriptions` | [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md) |
 | `profile/` | `/profile` | [profile-workflow.md](../docs/workflow/profile-workflow.md) |
 | `admin/` | `/users`, `/roles` | [users-admin-workflow.md](../docs/workflow/users-admin-workflow.md) |
+| `members/` (portal) | `/members/:memberId` | [member-portal-workflow.md](../docs/workflow/member-portal-workflow.md) |
+| `core/guards` & `services/` | Global permissions & entitlements | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md) |
 | `support/` | `/support` | [support-workflow.md](../docs/workflow/support-workflow.md) |
 
 Full module index: [docs/modules/README.md](../docs/modules/README.md)

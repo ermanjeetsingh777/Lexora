@@ -31,7 +31,6 @@ namespace SLMS_API.Controllers
         }
 
         [HttpGet]
-        //[Permission(PermissionKey.PlansManage)]
         public async Task<ActionResult<ApiResponse<IReadOnlyCollection<PlanResponse>>>> GetAll(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken)
         {
             try
@@ -51,7 +50,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPost]
-        //[Permission(PermissionKey.PlansManage)]
+        [Permission(PermissionKey.LibrariesCreate)]
         public async Task<ActionResult<ApiResponse<PlanResponse>>> Create(Guid institutionId, Guid branchId, Guid libraryId, [FromBody] CreatePlanRequest request, CancellationToken cancellationToken)
         {
             try
@@ -75,7 +74,6 @@ namespace SLMS_API.Controllers
         }
 
         [HttpGet("{planId:guid}")]
-        //[Permission(PermissionKey.PlansManage)]
         public async Task<ActionResult<ApiResponse<PlanResponse>>> GetById(Guid institutionId, Guid branchId, Guid libraryId, Guid planId, CancellationToken cancellationToken)
         {
             var plan = await _planService.GetByIdAsync(
@@ -94,7 +92,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPut("{planId:guid}")]
-        //[Permission(PermissionKey.PlansManage)]
+        [Permission(PermissionKey.LibrariesUpdate)]
         public async Task<ActionResult<ApiResponse<PlanResponse>>> Update(Guid institutionId, Guid branchId, Guid libraryId, Guid planId, [FromBody] UpdatePlanRequest request, CancellationToken cancellationToken)
         {
             try
@@ -117,7 +115,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpDelete("{planId:guid}")]
-        //[Permission(PermissionKey.PlansManage)]
+        [Permission(PermissionKey.LibrariesDelete)]
         public async Task<ActionResult<ApiResponse<object>>> Delete(Guid institutionId, Guid branchId, Guid libraryId, Guid planId, CancellationToken cancellationToken)
         {
             try
@@ -141,7 +139,7 @@ namespace SLMS_API.Controllers
             }
         }
         [HttpPatch("{planId:guid}/activate")]
-        /* [Permission(PermissionKey.PlansManage)]*/
+        [Permission(PermissionKey.LibrariesUpdate)]
         public async Task<ActionResult<ApiResponse<PlanResponse>>> Activate(Guid institutionId, Guid branchId, Guid libraryId, Guid planId, CancellationToken cancellationToken)
         {
             try
@@ -163,7 +161,7 @@ namespace SLMS_API.Controllers
             }
         }
         [HttpPatch("{planId:guid}/deactivate")]
-        //[Permission(PermissionKey.PlansManage)]
+        [Permission(PermissionKey.LibrariesUpdate)]
         public async Task<ActionResult<ApiResponse<PlanResponse>>> Deactivate(Guid institutionId, Guid branchId, Guid libraryId, Guid planId, CancellationToken cancellationToken)
         {
             try
@@ -186,7 +184,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPost("bulk")]
-        //[Permission(PermissionKey.PlansManage)]
+        [Permission(PermissionKey.LibrariesCreate)]
         public async Task<ActionResult<ApiResponse<IReadOnlyCollection<PlanResponse>>>> BulkCreate(Guid institutionId, Guid branchId, Guid libraryId, [FromBody] IReadOnlyCollection<CreatePlanRequest> requests, CancellationToken cancellationToken)
         {
             try

@@ -15,7 +15,7 @@ namespace SLMS_API.Controllers;
 
 [ApiController]
 [Route("api/v1/institutions")]
-//[Authorize]
+[Authorize]
 public class InstitutionsController : ControllerBase
 {
     private readonly IInstitutionService _institutionService;
@@ -33,7 +33,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsList)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<InstitutionResponse>>>> GetAll(CancellationToken cancellationToken)
     {
         var institutions = await _institutionService.GetAllAsync(cancellationToken);
@@ -41,7 +41,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("list")]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsList)]
     public async Task<ActionResult<ApiResponse<InstitutionListViewResponse>>> GetListView(
         [FromQuery] InstitutionListQuery query,
         CancellationToken cancellationToken)
@@ -56,7 +56,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/overview")]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsView)]
     public async Task<ActionResult<ApiResponse<InstitutionOverviewResponse>>> GetOverview(Guid id, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(_currentUserService.UserId, out var userId))
@@ -74,6 +74,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/billing")]
+    [Permission(PermissionKey.InstitutionsView)]
     public async Task<ActionResult<ApiResponse<InstitutionBillingResponse>>> GetBilling(Guid id, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(_currentUserService.UserId, out var userId))
@@ -91,7 +92,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/branches-view")]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsView)]
     public async Task<ActionResult<ApiResponse<InstitutionBranchesViewResponse>>> GetBranchesView(
         Guid id,
         [FromQuery] InstitutionBranchListQuery query,
@@ -112,6 +113,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/libraries-view")]
+    [Permission(PermissionKey.InstitutionsView)]
     public async Task<ActionResult<ApiResponse<InstitutionLibrariesViewResponse>>> GetLibrariesView(
         Guid id,
         CancellationToken cancellationToken)
@@ -131,7 +133,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("my-institution")]
-    [Authorize]
+    [Permission(PermissionKey.InstitutionsView)]
     public async Task<ActionResult<ApiResponse<InstitutionCardResponse>>> GetInstitutionByUserId(CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_currentUserService.UserId))
@@ -151,7 +153,6 @@ public class InstitutionsController : ControllerBase
 
 
     [HttpGet("dropdown")]
-    /*ProducesResponseType(typeof(ApiResponse<List<InstitutionDropdownResponse>>), StatusCodes.Status200OK)]*/
     public async Task<ActionResult<ApiResponse<InstitutionDropdownResponse>>> GetDropdown(CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(_currentUserService.UserId, out var userId))
@@ -165,7 +166,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpPost]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsCreate)]
     public async Task<ActionResult<ApiResponse<InstitutionResponse>>> Create([FromBody] CreateInstitutionRequest request, CancellationToken cancellationToken)
     {
         try
@@ -186,7 +187,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsView)]
     public async Task<ActionResult<ApiResponse<InstitutionResponse>>> GetById(Guid id, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(_currentUserService.UserId, out var userId))
@@ -204,7 +205,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsUpdate)]
     public async Task<ActionResult<ApiResponse<InstitutionResponse>>> Update(
         Guid id,
         [FromBody] UpdateInstitutionRequest request,
@@ -232,7 +233,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsDelete)]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -251,6 +252,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/quick-view")]
+    [Permission(PermissionKey.InstitutionsView)]
     public async Task<ActionResult<ApiResponse<InstitutionQuickViewResponse>>> GetQuickView(
         Guid id,
         [FromQuery] InstitutionQuickViewQuery query,
@@ -271,7 +273,7 @@ public class InstitutionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/analytics")]
-    //[Permission(PermissionKey.InstitutionsManage)]
+    [Permission(PermissionKey.InstitutionsView)]
     public async Task<ActionResult<ApiResponse<OrganizationAnalyticsResponse>>> GetAnalytics(Guid id, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(_currentUserService.UserId, out var userId))

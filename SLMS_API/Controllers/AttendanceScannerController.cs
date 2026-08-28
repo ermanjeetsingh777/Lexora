@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 using SLMS_API.Infrastructure.Authorization;
 
@@ -18,6 +19,7 @@ public class AttendanceScannerController : ControllerBase
 {
     private readonly IAttendanceScannerService _scannerService;
     private readonly ILibraryService _libraryService;
+    private readonly IMemberService _memberService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AttendanceScannerController> _logger;
@@ -25,12 +27,14 @@ public class AttendanceScannerController : ControllerBase
     public AttendanceScannerController(
         IAttendanceScannerService scannerService,
         ILibraryService libraryService,
+        IMemberService memberService,
         ICurrentUserService currentUserService,
         IConfiguration configuration,
         ILogger<AttendanceScannerController> logger)
     {
         _scannerService = scannerService;
         _libraryService = libraryService;
+        _memberService = memberService;
         _currentUserService = currentUserService;
         _configuration = configuration;
         _logger = logger;
@@ -177,11 +181,29 @@ public class AttendanceScannerController : ControllerBase
     }
 
     [HttpGet("members/{memberId:guid}/qr")]
-    [Permission(PermissionKey.AttendanceScannerUse)]
     public async Task<ActionResult<ApiResponse<MemberQrCodeResponse>>> GetMemberQr(
         Guid memberId,
         CancellationToken cancellationToken)
     {
+        var scannerClaim = PermissionKey.AttendanceScannerUse.ToClaimValue();
+        var attendanceViewClaim = PermissionKey.AttendanceView.ToClaimValue();
+        var membersViewClaim = PermissionKey.MembersView.ToClaimValue();
+
+        var hasPermission = User.IsInRole(RoleDefinitions.SuperAdmin) ||
+                            User.Claims.Any(x => x.Type == "permission" &&
+                                (string.Equals(x.Value, scannerClaim, StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(x.Value, attendanceViewClaim, StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(x.Value, membersViewClaim, StringComparison.OrdinalIgnoreCase)));
+
+        if (!hasPermission)
+        {
+            var currentMemberId = await _memberService.GetCurrentMemberIdAsync(cancellationToken);
+            if (currentMemberId == null || currentMemberId.Value != memberId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<MemberQrCodeResponse>.Fail("You do not have permission to view this QR code."));
+            }
+        }
+
         try
         {
             var qr = await _scannerService.GetMemberQrCodeAsync(memberId, GetMemberKioskUrlBase(), cancellationToken);

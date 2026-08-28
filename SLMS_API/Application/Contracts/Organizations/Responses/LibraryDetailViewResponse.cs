@@ -83,6 +83,8 @@ public class LibrarySeatSessionResponse
     public string? MembershipNo { get; set; }
     public string? CheckInTime { get; set; }
     public string? CheckOutTime { get; set; }
+    public DateTime? CheckInAtUtc { get; set; }
+    public DateTime? CheckOutAtUtc { get; set; }
     public bool IsActive { get; set; }
 }
 

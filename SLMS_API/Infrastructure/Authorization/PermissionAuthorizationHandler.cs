@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 
 namespace SLMS_API.Infrastructure.Authorization;
@@ -14,7 +15,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
             .Where(x => x.Type == "permission")
             .Any(x => string.Equals(x.Value, required, StringComparison.OrdinalIgnoreCase));
 
-        if (hasPermission)
+        if (hasPermission || context.User.IsInRole(RoleDefinitions.SuperAdmin))
         {
             context.Succeed(requirement);
         }

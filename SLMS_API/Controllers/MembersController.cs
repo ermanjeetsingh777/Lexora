@@ -36,6 +36,7 @@ public class MembersController : ControllerBase
     //}
 
     [HttpGet("bulk/template")]
+    [Permission(PermissionKey.MembersCreate)]
     public async Task<IActionResult> DownloadBulkTemplate(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken)
     {
         try
@@ -50,6 +51,7 @@ public class MembersController : ControllerBase
     }
 
     [HttpPost("bulk")]
+    [Permission(PermissionKey.MembersCreate)]
     public async Task<ActionResult<ApiResponse<BulkMemberUploadResponse>>> BulkUpload(
         Guid institutionId,
         Guid branchId,
@@ -78,7 +80,7 @@ public class MembersController : ControllerBase
     }
 
     [HttpPost]
-    //[Permission(PermissionKey.MembersManage)]
+    [Permission(PermissionKey.MembersCreate)]
     public async Task<ActionResult<ApiResponse<MemberResponse>>> Create(Guid institutionId, Guid branchId, Guid libraryId, [FromBody] CreateMemberRequest request, CancellationToken cancellationToken)
     {
         
@@ -96,7 +98,7 @@ public class MembersController : ControllerBase
     }
 
     [HttpGet]
-    //[Permission(PermissionKey.MembersManage)]
+    [Permission(PermissionKey.MembersList)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<MemberListResponse>>>> GetLibraryMemberListAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken)
     {
         try

@@ -7,6 +7,7 @@ using SLMS_API.Application.Contracts.Organizations;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Services;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 using SLMS_API.Infrastructure.Authorization;
 
@@ -18,12 +19,18 @@ namespace SLMS_API.Controllers;
 public class AttendanceController : ControllerBase
 {
     private readonly IAttendanceService _attendanceService;
+    private readonly IMemberService _memberService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AttendanceController> _logger;
 
-    public AttendanceController(IAttendanceService attendanceService, ICurrentUserService currentUserService, ILogger<AttendanceController> logger)
+    public AttendanceController(
+        IAttendanceService attendanceService,
+        IMemberService memberService,
+        ICurrentUserService currentUserService,
+        ILogger<AttendanceController> logger)
     {
         _attendanceService = attendanceService;
+        _memberService = memberService;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -32,9 +39,21 @@ public class AttendanceController : ControllerBase
     /// Member Check-In
     /// </summary>
     [HttpPost("members/{memberId:guid}/check-in")]
-    //[Permission(PermissionKey.AttendanceManage)]
     public async Task<ActionResult<ApiResponse<AttendanceResponse>>> CheckIn(Guid memberId, [FromBody] CheckInRequest request, CancellationToken cancellationToken)
     {
+        var requiredClaim = PermissionKey.AttendanceCreate.ToClaimValue();
+        var hasPermission = User.IsInRole(RoleDefinitions.SuperAdmin) ||
+                            User.Claims.Any(x => x.Type == "permission" && string.Equals(x.Value, requiredClaim, StringComparison.OrdinalIgnoreCase));
+
+        if (!hasPermission)
+        {
+            var currentMemberId = await _memberService.GetCurrentMemberIdAsync(cancellationToken);
+            if (currentMemberId == null || currentMemberId.Value != memberId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<AttendanceResponse>.Fail("You do not have permission to check in for this member."));
+            }
+        }
+
         try
         {
             var attendance = await _attendanceService.CheckInAsync(memberId, request, _currentUserService.UserId, cancellationToken);
@@ -54,12 +73,24 @@ public class AttendanceController : ControllerBase
     /// Member Check-Out
     /// </summary>
     [HttpPost("members/{memberId:guid}/check-out")]
-    //[Permission(PermissionKey.AttendanceManage)]
     public async Task<ActionResult<ApiResponse<AttendanceResponse>>> CheckOut(Guid memberId, [FromBody] CheckOutRequest request, CancellationToken cancellationToken)
     {
+        var requiredClaim = PermissionKey.AttendanceUpdate.ToClaimValue();
+        var hasPermission = User.IsInRole(RoleDefinitions.SuperAdmin) ||
+                            User.Claims.Any(x => x.Type == "permission" && string.Equals(x.Value, requiredClaim, StringComparison.OrdinalIgnoreCase));
+
+        if (!hasPermission)
+        {
+            var currentMemberId = await _memberService.GetCurrentMemberIdAsync(cancellationToken);
+            if (currentMemberId == null || currentMemberId.Value != memberId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<AttendanceResponse>.Fail("You do not have permission to check out for this member."));
+            }
+        }
+
         try
         {
-            var attendance = await _attendanceService.CheckOutAsync(memberId, request, _currentUserService.UserId, cancellationToken);
+            var attendance = await _attendanceService.CheckOutAsync(memberId, request, _currentUserService.UserId ?? string.Empty, cancellationToken);
 
             return Ok(ApiResponse<AttendanceResponse>.Ok(attendance, "Member checked out successfully."));
         }
@@ -81,7 +112,7 @@ public class AttendanceController : ControllerBase
     /// Get member monthly attendance calendar.
     /// </summary>
     [HttpGet("members/{memberId:guid}/calendar")]
-    //[Permission(PermissionKey.AttendanceView)]
+    [Permission(PermissionKey.AttendanceView)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceResponse>>>> GetAttendanceCalendar(Guid memberId, [FromQuery] int month, [FromQuery] int year, CancellationToken cancellationToken)
     {
         try
@@ -118,6 +149,7 @@ public class AttendanceController : ControllerBase
     /// Get member attendance records for a date range (report/export).
     /// </summary>
     [HttpGet("members/{memberId:guid}/records")]
+    [Permission(PermissionKey.AttendanceView)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceResponse>>>> GetMemberRecords(
         Guid memberId,
         [FromQuery] DateOnly dateFrom,
@@ -146,6 +178,7 @@ public class AttendanceController : ControllerBase
     /// Get member attendance statistics for the last 90 days.
     /// </summary>
     [HttpGet("members/{memberId:guid}/statistics")]
+    [Permission(PermissionKey.AttendanceView)]
     public async Task<ActionResult<ApiResponse<AttendanceStatisticsResponse>>> GetAttendanceStatistics(
         Guid memberId,
         CancellationToken cancellationToken)
@@ -173,6 +206,7 @@ public class AttendanceController : ControllerBase
     /// Update an attendance record (check-in/out times, seat, remarks).
     /// </summary>
     [HttpPut("{attendanceId:guid}")]
+    [Permission(PermissionKey.AttendanceUpdate)]
     public async Task<ActionResult<ApiResponse<AttendanceResponse>>> Update(
         Guid attendanceId,
         [FromBody] UpdateAttendanceRequest request,
@@ -204,6 +238,7 @@ public class AttendanceController : ControllerBase
     /// Get seat availability for a library (blank / occupied).
     /// </summary>
     [HttpGet("libraries/{libraryId:guid}/seats")]
+    [Permission(PermissionKey.AttendanceView)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<AttendanceSeatOptionResponse>>>> GetLibrarySeats(
         Guid libraryId,
         CancellationToken cancellationToken)

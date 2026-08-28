@@ -29,12 +29,18 @@ public static class AttendanceSeatHelper
             ? dbSeats
             : BuildVirtualSeats(libraryId, library.Capacity ?? 0);
 
+        var todaySessions = await GetTodaySeatSessionsByNumberAsync(dbContext, libraryId, cancellationToken);
         var occupancy = await GetActiveSessionOccupancyAsync(dbContext, libraryId, cancellationToken);
 
         return sources
             .Select(source =>
             {
                 occupancy.TryGetValue(source.Number, out var occupant);
+                todaySessions.TryGetValue(source.Number, out var sessions);
+                var lastVacated = occupant == null && sessions != null && sessions.Count > 0
+                    ? sessions.LastOrDefault(s => !s.IsActive)
+                    : null;
+
                 return new AttendanceSeatOptionResponse
                 {
                     SeatId = source.Id,
@@ -42,6 +48,8 @@ public static class AttendanceSeatHelper
                     IsActive = source.IsActive,
                     IsOccupied = occupant != null,
                     OccupiedBy = occupant,
+                    LastVacatedBy = lastVacated?.MemberName,
+                    LastVacatedAtUtc = lastVacated?.CheckOutAtUtc,
                 };
             })
             .ToList();
@@ -158,6 +166,8 @@ public static class AttendanceSeatHelper
         string? MembershipNo,
         TimeOnly? CheckInTime,
         TimeOnly? CheckOutTime,
+        DateTime? CheckInAtUtc,
+        DateTime? CheckOutAtUtc,
         bool IsActive);
 
     public static async Task<Dictionary<string, List<SeatSessionInfo>>> GetTodaySeatSessionsByNumberAsync(
@@ -183,6 +193,7 @@ public static class AttendanceSeatHelper
                 attendance.SeatNo,
                 MemberName = member.FullName ?? "Member",
                 member.MembershipNo,
+                attendance.AttendanceDate,
                 attendance.CheckInTime,
                 attendance.CheckOutTime,
             }
@@ -197,6 +208,8 @@ public static class AttendanceSeatHelper
                     x.MembershipNo,
                     x.CheckInTime,
                     x.CheckOutTime,
+                    x.CheckInTime.HasValue ? x.AttendanceDate.ToDateTime(x.CheckInTime.Value, DateTimeKind.Utc) : null,
+                    x.CheckOutTime.HasValue ? x.AttendanceDate.ToDateTime(x.CheckOutTime.Value, DateTimeKind.Utc) : null,
                     x.CheckInTime.HasValue && !x.CheckOutTime.HasValue)).ToList(),
                 StringComparer.OrdinalIgnoreCase);
     }

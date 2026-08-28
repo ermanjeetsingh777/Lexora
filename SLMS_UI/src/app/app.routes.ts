@@ -80,11 +80,13 @@ export const routes: Routes = [
             // --- Members ---
             {
                 path: 'members',
+                canActivate: [permissionGuard],
+                data: { permissions: [PermissionKey.MembersList, PermissionKey.MembersView], requireAll: false },
                 children: [
                     { path: '', loadComponent: () => import('./features/members/members-list-component/members-list-component').then((m) => m.MembersListComponent) },
-                    { path: 'create', loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
-                    { path: 'bulk-upload', loadComponent: () => import('./features/members/bulk-upload-members-component/bulk-upload-members-component').then((m) => m.BulkUploadMembersComponent) },
-                    { path: ':memberId/edit', loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
+                    { path: 'create', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersCreate }, loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
+                    { path: 'bulk-upload', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersCreate }, loadComponent: () => import('./features/members/bulk-upload-members-component/bulk-upload-members-component').then((m) => m.BulkUploadMembersComponent) },
+                    { path: ':memberId/edit', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersUpdate }, loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
                     { path: ':memberId', loadComponent: () => import('./features/members/member-details-component/member-details-component').then((m) => m.MemberDetailsComponent) },
                 ],
             },
@@ -92,20 +94,22 @@ export const routes: Routes = [
             // --- Institutions ---
             {
                 path: 'institutions',
+                canActivate: [permissionGuard],
+                data: { permissions: [PermissionKey.InstitutionsList, PermissionKey.InstitutionsView], requireAll: false },
                 children: [
                     { path: '', loadComponent: () => import('./features/institutions/institutions-list/institutions-list').then((m) => m.InstitutionsListComponent) },
-                    { path: 'create', loadComponent: () => import('./features/institutions/institution-create/institution-create').then((m) => m.InstitutionCreate) },
-                    { path: ':institutionId/branches/:branchId/edit', loadComponent: () => import('./features/branches/branch-edit/branch-edit').then((m) => m.BranchEdit) },
-                    { path: ':institutionId/branches/:branchId/members/create', loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
-                    { path: ':institutionId/branches/:branchId/members/:memberId/edit', loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
+                    { path: 'create', canActivate: [permissionGuard], data: { permission: PermissionKey.InstitutionsCreate }, loadComponent: () => import('./features/institutions/institution-create/institution-create').then((m) => m.InstitutionCreate) },
+                    { path: ':institutionId/branches/:branchId/edit', canActivate: [permissionGuard], data: { permission: PermissionKey.BranchesUpdate }, loadComponent: () => import('./features/branches/branch-edit/branch-edit').then((m) => m.BranchEdit) },
+                    { path: ':institutionId/branches/:branchId/members/create', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersCreate }, loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
+                    { path: ':institutionId/branches/:branchId/members/:memberId/edit', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersUpdate }, loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
                     { path: ':institutionId/branches/:branchId/members/:memberId', loadComponent: () => import('./features/members/member-details-component/member-details-component').then((m) => m.MemberDetailsComponent) },
                     { path: ':institutionId/branches/:branchId/libraries/:libraryId', loadComponent: () => import('./features/libraries/library-detail-component/library-detail.component').then((m) => m.LibraryDetailComponent) },
                     { path: ':institutionId/branches/:branchId', loadComponent: () => import('./features/branches/branch-detail-component/branch-detail.component').then((m) => m.BranchDetailComponent) },
-                    { path: ':institutionId/members/create', loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
-                    { path: ':institutionId/members/:memberId/edit', loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
+                    { path: ':institutionId/members/create', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersCreate }, loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
+                    { path: ':institutionId/members/:memberId/edit', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersUpdate }, loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
                     { path: ':institutionId/members/:memberId', loadComponent: () => import('./features/members/member-details-component/member-details-component').then((m) => m.MemberDetailsComponent) },
-                    { path: ':institutionId/addbranch', loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
-                    { path: ':institutionId/addlibrary', loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
+                    { path: ':institutionId/addbranch', canActivate: [permissionGuard], data: { permission: PermissionKey.BranchesCreate }, loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
+                    { path: ':institutionId/addlibrary', canActivate: [permissionGuard], data: { permission: PermissionKey.LibrariesCreate }, loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
                     { path: ':institutionId', loadComponent: () => import('./features/institutions/institution-detail/institution-detail.component').then((m) => m.InstitutionDetailComponent) },
                 ],
             },
@@ -113,15 +117,17 @@ export const routes: Routes = [
             // --- Branches ---
             {
                 path: 'branches',
+                canActivate: [permissionGuard],
+                data: { permissions: [PermissionKey.BranchesList, PermissionKey.BranchesView], requireAll: false },
                 children: [
                     { path: '', loadComponent: () => import('./features/branches/branch-list-component/branch-list-component').then((m) => m.BranchListComponent) },
-                    { path: 'create', loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
-                    { path: ':branchId/edit', loadComponent: () => import('./features/branches/branch-edit/branch-edit').then((m) => m.BranchEdit) },
-                    { path: ':branchId/members/create', loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
-                    { path: ':branchId/members/:memberId/edit', loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
+                    { path: 'create', canActivate: [permissionGuard], data: { permission: PermissionKey.BranchesCreate }, loadComponent: () => import('./features/branches/branch-create/branch-create').then((m) => m.BranchCreate) },
+                    { path: ':branchId/edit', canActivate: [permissionGuard], data: { permission: PermissionKey.BranchesUpdate }, loadComponent: () => import('./features/branches/branch-edit/branch-edit').then((m) => m.BranchEdit) },
+                    { path: ':branchId/members/create', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersCreate }, loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
+                    { path: ':branchId/members/:memberId/edit', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersUpdate }, loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
                     { path: ':branchId/members/:memberId', loadComponent: () => import('./features/members/member-details-component/member-details-component').then((m) => m.MemberDetailsComponent) },
                     { path: ':branchId/libraries/:libraryId', loadComponent: () => import('./features/libraries/library-detail-component/library-detail.component').then((m) => m.LibraryDetailComponent) },
-                    { path: ':branchId/addlibrary', loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
+                    { path: ':branchId/addlibrary', canActivate: [permissionGuard], data: { permission: PermissionKey.LibrariesCreate }, loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
                     { path: ':branchId', loadComponent: () => import('./features/branches/branch-detail-component/branch-detail.component').then((m) => m.BranchDetailComponent) },
                 ],
             },
@@ -129,12 +135,14 @@ export const routes: Routes = [
             // --- Libraries ---
             {
                 path: 'libraries',
+                canActivate: [permissionGuard],
+                data: { permissions: [PermissionKey.LibrariesList, PermissionKey.LibrariesView], requireAll: false },
                 children: [
                     { path: '', loadComponent: () => import('./features/libraries/library-list-component/library-list-component').then((m) => m.LibraryListComponent) },
-                    { path: 'create', loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
-                    { path: ':libraryId/edit', loadComponent: () => import('./features/libraries/library-edit/library-edit').then((m) => m.LibraryEdit) },
-                    { path: ':libraryId/members/create', loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
-                    { path: ':libraryId/members/:memberId/edit', loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
+                    { path: 'create', canActivate: [permissionGuard], data: { permission: PermissionKey.LibrariesCreate }, loadComponent: () => import('./features/libraries/create-library/create-library').then((m) => m.CreateLibrary) },
+                    { path: ':libraryId/edit', canActivate: [permissionGuard], data: { permission: PermissionKey.LibrariesUpdate }, loadComponent: () => import('./features/libraries/library-edit/library-edit').then((m) => m.LibraryEdit) },
+                    { path: ':libraryId/members/create', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersCreate }, loadComponent: () => import('./features/members/create-member-component/create-member-component').then((m) => m.CreateMemberComponent) },
+                    { path: ':libraryId/members/:memberId/edit', canActivate: [permissionGuard], data: { permission: PermissionKey.MembersUpdate }, loadComponent: () => import('./features/members/edit-member-component/edit-member-component').then((m) => m.EditMemberComponent) },
                     { path: ':libraryId/members/:memberId', loadComponent: () => import('./features/members/member-details-component/member-details-component').then((m) => m.MemberDetailsComponent) },
                     { path: ':libraryId', loadComponent: () => import('./features/libraries/library-detail-component/library-detail.component').then((m) => m.LibraryDetailComponent) },
                 ],
@@ -185,6 +193,8 @@ export const routes: Routes = [
             // --- Books ---
             {
                 path: 'books',
+                canActivate: [permissionGuard],
+                data: { permissions: [PermissionKey.BooksList, PermissionKey.BooksView], requireAll: false },
                 loadComponent: () => import('./features/books/books-list-component/books-list.component').then((m) => m.BooksListComponent),
             },
 

@@ -22,6 +22,18 @@
   color: rgb(5 150 105);
 }
 
+.seat-chip--vacated {
+  background: rgb(2 132 199 / 0.12);
+  border-color: rgb(2 132 199 / 0.4);
+  border-style: dashed;
+  color: rgb(2 132 199);
+}
+
+.seat-chip--vacated:not(:disabled):hover {
+  transform: translateY(-1px);
+  background: rgb(2 132 199 / 0.2);
+}
+
 .seat-chip--available:not(:disabled):hover {
   transform: translateY(-1px);
   background: rgb(16 185 129 / 0.2);

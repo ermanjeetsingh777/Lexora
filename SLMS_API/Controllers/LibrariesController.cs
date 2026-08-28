@@ -30,6 +30,7 @@ public class LibrariesController : ControllerBase
     }
 
     [HttpGet("capacity-summary")]
+    [Permission(PermissionKey.LibrariesView)]
     public async Task<ActionResult<ApiResponse<BranchLibraryCapacitySummaryResponse>>> GetCapacitySummary(
         Guid institutionId,
         Guid branchId,
@@ -65,7 +66,7 @@ public class LibrariesController : ControllerBase
     }
 
     [HttpPost]
-    //[Permission(PermissionKey.LibrariesList)]
+    [Permission(PermissionKey.LibrariesCreate)]
     public async Task<ActionResult<ApiResponse<LibraryResponse>>> Create(Guid institutionId, Guid branchId, [FromBody] CreateLibraryRequest request, CancellationToken cancellationToken)
     {
         try
@@ -81,7 +82,7 @@ public class LibrariesController : ControllerBase
     }
 
     [HttpGet("{libraryId:guid}")]
-    [Permission(PermissionKey.LibrariesList)]
+    [Permission(PermissionKey.LibrariesView)]
     public async Task<ActionResult<ApiResponse<LibraryResponse>>> GetById(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken)
     {
         var library = await _libraryService.GetByIdAsync(institutionId, branchId, libraryId, cancellationToken);
@@ -94,6 +95,7 @@ public class LibrariesController : ControllerBase
     }
 
     [HttpPut("{libraryId:guid}/weekly-hours")]
+    [Permission(PermissionKey.LibrariesUpdate)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<LibraryDayHoursResponse>>>> UpdateWeeklyHours(
         Guid institutionId,
         Guid branchId,
@@ -119,6 +121,7 @@ public class LibrariesController : ControllerBase
     }
 
     [HttpPut("{libraryId:guid}/hours-exceptions")]
+    [Permission(PermissionKey.LibrariesUpdate)]
     public async Task<ActionResult<ApiResponse<IReadOnlyCollection<LibraryHoursExceptionResponse>>>> UpdateHoursExceptions(
         Guid institutionId,
         Guid branchId,
@@ -144,7 +147,7 @@ public class LibrariesController : ControllerBase
     }
 
     [HttpPut("{libraryId:guid}")]
-    [Permission(PermissionKey.LibrariesList)]
+    [Permission(PermissionKey.LibrariesUpdate)]
     public async Task<ActionResult<ApiResponse<LibraryResponse>>> Update(
         Guid institutionId,
         Guid branchId,
@@ -164,7 +167,7 @@ public class LibrariesController : ControllerBase
     }
 
     [HttpDelete("{libraryId:guid}")]
-    [Permission(PermissionKey.LibrariesList)]
+    [Permission(PermissionKey.LibrariesDelete)]
     public async Task<ActionResult<ApiResponse<object>>> Delete(
         Guid institutionId,
         Guid branchId,

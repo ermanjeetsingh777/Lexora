@@ -146,6 +146,8 @@ export interface AttendanceSeatOption {
     isActive: boolean;
     isOccupied: boolean;
     occupiedBy?: string | null;
+    lastVacatedBy?: string | null;
+    lastVacatedAtUtc?: string | Date | null;
 }
 
 export interface ScannerAttendanceRequest {

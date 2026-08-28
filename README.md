@@ -67,6 +67,8 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | M-13b | Attendance QR kiosk | [attendance-kiosk-workflow.md](docs/workflow/attendance-kiosk-workflow.md) |
 | M-15 | Administration | [administration-workflow.md](docs/workflow/administration-workflow.md) |
 | M-15 | Users & roles | [users-admin-workflow.md](docs/workflow/users-admin-workflow.md) |
+| M-16 | Member portal | [member-portal-workflow.md](docs/workflow/member-portal-workflow.md) |
+| M-17 | Package entitlements & RBAC | [package-entitlements-workflow.md](docs/workflow/package-entitlements-workflow.md) |
 
 ## Attendance QR kiosk (public, no login)
 

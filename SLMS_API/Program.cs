@@ -76,4 +76,21 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapGet("/", (IConfiguration config) =>
+{
+    var swaggerOn = config.GetValue<bool>("Swagger:Enabled", true);
+    if (swaggerOn)
+    {
+        return Results.Redirect("/swagger");
+    }
+
+    return Results.Ok(new
+    {
+        service = "Lexora Smart Library Management API",
+        status = "Healthy",
+        version = "v1.0.0-beta",
+        timestamp = DateTime.UtcNow
+    });
+});
+
 app.Run();

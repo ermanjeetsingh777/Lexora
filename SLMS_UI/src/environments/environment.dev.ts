@@ -5,6 +5,7 @@ export const environment = {
   environmentName: 'dev',
   baseUrl: '',
   apiUrl: 'https://dev-api.lexora.app/api/v1',
+  siteUrl: 'https://uniappx.in',
   mockApi: false,
   appName: 'Lexora',
   appVersion: 'v1.0.0-beta',

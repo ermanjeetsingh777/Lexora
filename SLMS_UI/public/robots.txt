@@ -1,0 +1,28 @@
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /prices
+Allow: /terms
+Allow: /policies
+Allow: /privacy-policy
+Allow: /cookie-policy
+Allow: /data-processing
+Allow: /acceptable-use
+Allow: /security-policy
+Allow: /refund-policy
+
+# Disallow private authenticated/dashboard routes from indexation
+Disallow: /dashboard/
+Disallow: /members/
+Disallow: /institutions/
+Disallow: /branches/
+Disallow: /libraries/
+Disallow: /attendance/
+Disallow: /subscriptions/
+Disallow: /books/
+Disallow: /admin/
+Disallow: /users/
+Disallow: /roles/
+Disallow: /kiosk/
+
+Sitemap: https://uniappx.in/sitemap.xml

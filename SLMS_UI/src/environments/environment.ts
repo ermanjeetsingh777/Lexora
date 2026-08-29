@@ -5,6 +5,7 @@ export const environment = {
   environmentName: 'local',
   baseUrl: '',
   apiUrl: 'https://localhost:7050/api/v1',
+  siteUrl: 'https://uniappx.in',
   mockApi: false,
   appName: 'Lexora',
   appVersion: 'v1.0.0-beta',

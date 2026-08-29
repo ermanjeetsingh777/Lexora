@@ -7,6 +7,7 @@ import { LexoraTeamMember } from '@core/models/lexora-team-member.model';
 import { PackageCatalogItem } from '@core/models/package-subscription.models';
 import { toLandingFeatures } from '@core/data/feature-catalog';
 import { PackageService } from '@core/services/package.service';
+import { SeoService } from '@core/services/seo.service';
 import { StorageService } from '@core/services/storage.service';
 import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
 import { environment } from '../../../environments/environment';
@@ -30,6 +31,7 @@ import {
 export class LandingHomePage implements OnInit {
   protected readonly storageService = inject(StorageService);
   private readonly packageService = inject(PackageService);
+  private readonly seo = inject(SeoService);
 
   protected readonly packages = signal<PackageCatalogItem[]>([]);
   protected readonly packagesLoading = signal(true);
@@ -87,7 +89,75 @@ export class LandingHomePage implements OnInit {
   }
 
   ngOnInit(): void {
+    this.initSeo();
     this.loadPackages();
+  }
+
+  private initSeo(): void {
+    this.seo.updateSeo({
+      title: 'Lexora - Smart Library & Seat Management Platform',
+      description:
+        'Run multi-branch libraries, real-time seat layouts, automated QR attendance, book catalog circulation, and member subscriptions with institutional precision.',
+      path: '/',
+      keywords: [
+        'smart library management system',
+        'library seat management',
+        'real-time library occupancy',
+        'library attendance qr code',
+        'multi branch library software',
+        'library management software india',
+        'student reading room management',
+        'lexora smart library',
+      ],
+      image: 'assets/landing/landing-hero-3d.png',
+      imageAlt: 'Lexora Smart Library and Multi-Branch Management Platform',
+      type: 'website',
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'Organization',
+            '@id': 'https://uniappx.in/#organization',
+            'name': 'Lexora',
+            'url': 'https://uniappx.in',
+            'logo': 'https://uniappx.in/icons/icon-512x512.png',
+            'description': 'Multi-tenant Smart Library & Seat Management Platform',
+            'email': 'support@lexora.app',
+          },
+          {
+            '@type': 'SoftwareApplication',
+            '@id': 'https://uniappx.in/#software',
+            'name': 'Lexora Smart Library Platform',
+            'applicationCategory': 'BusinessApplication',
+            'operatingSystem': 'Web, Android, iOS, Windows, macOS',
+            'url': 'https://uniappx.in',
+            'description':
+              'All-in-one smart library management SaaS with seat layouts, QR attendance, book circulation, and automated billing.',
+            'offers': {
+              '@type': 'AggregateOffer',
+              'priceCurrency': 'INR',
+              'lowPrice': '0',
+              'offerCount': '3',
+            },
+            'featureList': [
+              'Interactive Seat Matrix & Shift Allocation',
+              'Instant QR Check-in / Check-out Attendance',
+              'Multi-Branch & Multi-Institution Tenant Isolation',
+              'Book Cataloging & Physical Circulation Management',
+              'Self-Service Member Portal & Digital Receipts',
+              'Real-Time Occupancy Analytics & Revenue Reports',
+            ],
+          },
+          {
+            '@type': 'WebSite',
+            '@id': 'https://uniappx.in/#website',
+            'url': 'https://uniappx.in',
+            'name': 'Lexora',
+            'publisher': { '@id': 'https://uniappx.in/#organization' },
+          },
+        ],
+      },
+    });
   }
 
   protected loadPackages(): void {

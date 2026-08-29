@@ -255,7 +255,7 @@
             </div>
         </div>
 
-        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
             <div class="arch-layer-card">
                 <div class="arch-layer-card__icon arch-layer-card__icon--institution">
                     <app-icon name="building-2" [size]="16" />
@@ -284,7 +284,7 @@
                 <div class="arch-layer-card__title">Member</div>
                 <p class="arch-layer-card__text">One member mapped to exactly one library.</p>
             </div>
-            <div class="arch-layer-card">
+            <div class="arch-layer-card col-span-2 sm:col-span-1">
                 <div class="arch-layer-card__icon arch-layer-card__icon--attendance">
                     <app-icon name="calendar-check" [size]="16" />
                 </div>
@@ -293,18 +293,20 @@
             </div>
         </div>
 
-        <div class="my-8 border-t border-[var(--border)]"></div>
+        <div class="my-6 border-t border-[var(--border)] md:my-8"></div>
 
-        <div class="wf-flow-legend mt-6 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
-            <span class="wf-flow-legend__item wf-flow-legend__item--institution">Institution</span>
-            <span class="wf-flow-legend__arrow">→</span>
-            <span class="wf-flow-legend__item wf-flow-legend__item--branch">Branches</span>
-            <span class="wf-flow-legend__arrow">→</span>
-            <span class="wf-flow-legend__item wf-flow-legend__item--library">Libraries</span>
-            <span class="wf-flow-legend__arrow">→</span>
-            <span class="wf-flow-legend__item wf-flow-legend__item--member">Members</span>
-            <span class="wf-flow-legend__arrow">→</span>
-            <span class="wf-flow-legend__item wf-flow-legend__item--attendance">Attendance</span>
+        <div class="wf-flow-legend-wrapper">
+            <div class="wf-flow-legend flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)]">
+                <span class="wf-flow-legend__item wf-flow-legend__item--institution">Institution</span>
+                <span class="wf-flow-legend__arrow" aria-hidden="true">→</span>
+                <span class="wf-flow-legend__item wf-flow-legend__item--branch">Branches</span>
+                <span class="wf-flow-legend__arrow" aria-hidden="true">→</span>
+                <span class="wf-flow-legend__item wf-flow-legend__item--library">Libraries</span>
+                <span class="wf-flow-legend__arrow" aria-hidden="true">→</span>
+                <span class="wf-flow-legend__item wf-flow-legend__item--member">Members</span>
+                <span class="wf-flow-legend__arrow" aria-hidden="true">→</span>
+                <span class="wf-flow-legend__item wf-flow-legend__item--attendance">Attendance</span>
+            </div>
         </div>
 
         <div class="wf-tree mt-8">

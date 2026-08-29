@@ -10,6 +10,7 @@ import {
   LucideBookOpen,
   LucideBuilding2,
   LucideClock,
+  LucideDownload,
   LucideEye,
   LucideLayers,
   LucideMapPin,
@@ -23,6 +24,7 @@ import {
   LucideTrendingUp,
   LucideUsers,
 } from '@lucide/angular';
+import { exportLibraryQrPdf } from '../library-qr-pdf.util';
 import {
   DayKey,
   DaySlot,
@@ -111,12 +113,13 @@ import { collectRouteParams, libraryBackNav } from '@core/utils/entity-routes.ut
   LucideRefreshCw,
   LucideShare2,
   LucideShieldCheck,
-  LucideAlertCircle,
+    LucideAlertCircle,
     LucideAlertTriangle,
     LucideTrendingUp,
     LucideUsers,
     LucidePlus,
     LucideQrCode,
+    LucideDownload,
     LucideTrash2,
     LucideEye,
     LibraryCalendarComponent,
@@ -716,6 +719,31 @@ export class LibraryDetailComponent implements OnInit {
         this.attendanceQrLoading.set(false);
       },
     });
+  }
+
+  downloadAttendanceQrPdf(): void {
+    const qr = this.attendanceQr();
+    const d = this.detail();
+    if (!qr) {
+      this.toast.error('Attendance QR code is not loaded yet');
+      return;
+    }
+
+    try {
+      exportLibraryQrPdf({
+        libraryName: qr.libraryName || d?.name || 'Library',
+        institutionName: d?.institutionName,
+        branchName: d?.branchName,
+        scanUrl: qr.scanUrl,
+        qrCodeBase64: qr.qrCodeBase64,
+        capacity: d?.capacity,
+        contactEmail: d?.email,
+        contactPhone: d?.phone,
+      });
+      this.toast.success('Attendance QR PDF downloaded successfully');
+    } catch (err: any) {
+      this.toast.error('Failed to generate QR PDF: ' + (err?.message || 'Unknown error'));
+    }
   }
 
   private loadTimeFormat(): TimeFormat {

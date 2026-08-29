@@ -9,6 +9,7 @@ import { toLandingFeatures } from '@core/data/feature-catalog';
 import { PackageService } from '@core/services/package.service';
 import { SeoService } from '@core/services/seo.service';
 import { StorageService } from '@core/services/storage.service';
+import { QrScannerModalService } from '@core/services/qr-scanner-modal.service';
 import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
 import { environment } from '../../../environments/environment';
 import {
@@ -32,6 +33,7 @@ export class LandingHomePage implements OnInit {
   protected readonly storageService = inject(StorageService);
   private readonly packageService = inject(PackageService);
   private readonly seo = inject(SeoService);
+  private readonly qrScanner = inject(QrScannerModalService);
 
   protected readonly packages = signal<PackageCatalogItem[]>([]);
   protected readonly packagesLoading = signal(true);
@@ -49,6 +51,10 @@ export class LandingHomePage implements OnInit {
 
   protected features = signal<LandingFeature[]>(toLandingFeatures());
   protected readonly lexoraTeam: LexoraTeamMember[] = environment.lexoraTeam;
+
+  openCameraScanner(): void {
+    this.qrScanner.open();
+  }
 
   protected teamInitials(name: string): string {
     return name
@@ -160,7 +166,7 @@ export class LandingHomePage implements OnInit {
     });
   }
 
-  protected loadPackages(): void {
+  loadPackages(): void {
     this.packagesLoading.set(true);
     this.packagesError.set(null);
 
@@ -170,7 +176,7 @@ export class LandingHomePage implements OnInit {
         this.packagesLoading.set(false);
       },
       error: () => {
-        this.packagesError.set('Could not load pricing plans. Please try again.');
+        this.packagesError.set('Unable to load packages right now. Please try again later.');
         this.packagesLoading.set(false);
       },
     });

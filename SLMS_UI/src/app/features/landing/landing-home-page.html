@@ -37,6 +37,13 @@
                     routerLink="/login">
                     Login
                 </a>
+                <button
+                    type="button"
+                    (click)="openCameraScanner()"
+                    class="inline-flex items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-600 dark:text-amber-400 shadow-sm hover:bg-amber-500/20 transition-colors cursor-pointer">
+                    <app-icon name="camera" [size]="17" />
+                    <span>Scan Attendance QR</span>
+                </button>
             </div>
 
             <div class="grid gap-3 sm:grid-cols-3">

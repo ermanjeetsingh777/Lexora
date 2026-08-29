@@ -4,10 +4,11 @@ import { PreloaderService } from '@core/services/preloader.service';
 import { environment } from '@env/environment';
 import { ToastHostComponent } from '@shared/components/toast/toast-host.component';
 import { PwaInstallBannerComponent } from '@shared/components/pwa-install-banner/pwa-install-banner.component';
+import { QrCameraScannerModalComponent } from '@shared/components/qr-camera-scanner-modal/qr-camera-scanner-modal.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastHostComponent, PwaInstallBannerComponent],
+  imports: [RouterOutlet, ToastHostComponent, PwaInstallBannerComponent, QrCameraScannerModalComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

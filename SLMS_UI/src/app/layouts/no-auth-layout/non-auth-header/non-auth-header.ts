@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { StorageService } from '@core/services/storage.service';
+import { QrScannerModalService } from '@core/services/qr-scanner-modal.service';
 import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
 
 @Component({
@@ -15,6 +16,7 @@ export class NonAuthHeader {
   protected readonly storageService = inject(StorageService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly qrScanner = inject(QrScannerModalService);
 
   readonly mobileMenuOpen = signal(false);
 
@@ -35,5 +37,10 @@ export class NonAuthHeader {
 
   closeMobileMenu(): void {
     this.mobileMenuOpen.set(false);
+  }
+
+  openScanner(): void {
+    this.closeMobileMenu();
+    this.qrScanner.open();
   }
 }

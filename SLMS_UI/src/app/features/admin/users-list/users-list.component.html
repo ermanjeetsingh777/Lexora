@@ -3,7 +3,7 @@
   title="Users"
   description="Staff accounts with role-based permissions and scope mapping."
 >
-  @if (canCreate) {
+  @if (canCreate()) {
     <div actions>
       <app-button size="sm" (click)="openCreate()">
         <svg lucidePlus class="h-4 w-4 mr-1.5"></svg> Add user

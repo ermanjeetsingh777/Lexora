@@ -1,6 +1,6 @@
 <app-page-header eyebrow="People" title="Members" [description]="headerDescription()">
   <div actions class="flex items-center gap-2">
-    @if (canCreate) {
+    @if (canCreate()) {
       <a routerLink="/members/bulk-upload">
         <app-button size="sm" variant="outline">
           <svg lucideFileSpreadsheet class="h-4 w-4 mr-1"></svg> Bulk upload

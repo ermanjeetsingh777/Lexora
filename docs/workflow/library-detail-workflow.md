@@ -73,6 +73,12 @@ flowchart LR
 | `LibraryPlansPanelComponent` | `libraries/components/library-plans-panel/` |
 | `ScopedMembersPanelComponent` | `members/components/scoped-members-panel/` |
 
+### 2.5 Printable Library QR Code PDF Standee
+
+- **PDF Export Utility:** `SLMS_UI/src/app/features/libraries/library-qr-pdf.util.ts` (`exportLibraryQrPdf`).
+- **Feature:** Exports high-resolution library attendance QR code as a printable standee sheet with institution/branch branding, library address, contact details, and scanning instructions.
+- **Trigger:** "Download QR PDF" button in the library header and attendance tab.
+
 ---
 
 ## 3. .NET Workflow (SLMS_API)

@@ -20,26 +20,8 @@ namespace SLMS_API.Application.Services
         {
             return await _context.Packages
                 .Include(x => x.Features).AsNoTracking()
-                .Select(x => new PackageResponse
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Code = x.Code,
-                    Category = x.Category,
-                    Price = x.Price,
-                    DurationInDays = x.DurationInDays,
-                    Description = x.Description,
-                    IsActive = x.IsActive,
-                    IsPopular = x.IsPopular,
-                    CtaLabel = x.CtaLabel,
-                    Features = x.Features
-                        .Select(f => new PackageFeatureResponse
-                        {
-                            Id = f.Id,
-                            FeatureName = f.FeatureName,
-                            FeatureValue = f.FeatureValue
-                        }).ToList()
-                })
+                .OrderBy(x => x.Price)
+                .Select(x => MapToResponse(x))
                 .ToListAsync(cancellationToken);
         }
 
@@ -50,59 +32,21 @@ namespace SLMS_API.Application.Services
                 .AsNoTracking()
                 .Where(x => x.IsActive)
                 .OrderBy(x => x.Price)
-                .Select(x => new PackageResponse
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Code = x.Code,
-                    Category = x.Category,
-                    Price = x.Price,
-                    DurationInDays = x.DurationInDays,
-                    Description = x.Description,
-                    IsActive = x.IsActive,
-                    IsPopular = x.IsPopular,
-                    CtaLabel = x.CtaLabel,
-                    Features = x.Features
-                        .Select(f => new PackageFeatureResponse
-                        {
-                            Id = f.Id,
-                            FeatureName = f.FeatureName,
-                            FeatureValue = f.FeatureValue
-                        }).ToList()
-                })
+                .Select(x => MapToResponse(x))
                 .ToListAsync(cancellationToken);
         }
 
         public async Task<PackageResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var package = await _context.Packages
-                .Include(x => x.Features).
-                AsNoTracking()
+                .Include(x => x.Features)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
             if (package == null)
                 return null;
 
-            return new PackageResponse
-            {
-                Id = package.Id,
-                Name = package.Name,
-                Code = package.Code,
-                Category = package.Category,
-                Price = package.Price,
-                DurationInDays = package.DurationInDays,
-                Description = package.Description,
-                IsActive = package.IsActive,
-                IsPopular = package.IsPopular,
-                CtaLabel = package.CtaLabel,
-                Features = package.Features
-                    .Select(f => new PackageFeatureResponse
-                    {
-                        Id = f.Id,
-                        FeatureName = f.FeatureName,
-                        FeatureValue = f.FeatureValue
-                    }).ToList()
-            };
+            return MapToResponse(package);
         }
 
         public async Task<PackageResponse> CreateAsync(CreatePackageRequest request, string? userId, CancellationToken cancellationToken = default)
@@ -110,10 +54,20 @@ namespace SLMS_API.Application.Services
             var package = new Package
             {
                 Name = request.Name,
+                Code = string.IsNullOrWhiteSpace(request.Code) ? request.Name.Trim().Replace(" ", "_") : request.Code.Trim(),
+                Category = string.IsNullOrWhiteSpace(request.Category) ? "Standard" : request.Category.Trim(),
                 Price = request.Price,
-                DurationInDays = request.DurationInDays,
+                DurationInDays = request.DurationInDays > 0 ? request.DurationInDays : 365,
                 Description = request.Description,
-                IsActive = true
+                IsActive = request.IsActive,
+                IsPopular = request.IsPopular,
+                CtaLabel = request.CtaLabel,
+                MaxInstitutions = request.MaxInstitutions > 0 ? request.MaxInstitutions : 1,
+                MaxBranches = request.MaxBranches > 0 ? request.MaxBranches : 1,
+                MaxLibraries = request.MaxLibraries > 0 ? request.MaxLibraries : 1,
+                MaxUsers = request.MaxUsers > 0 ? request.MaxUsers : 2,
+                MaxMembers = request.MaxMembers > 0 ? request.MaxMembers : 200,
+                CreatedAtUtc = DateTime.UtcNow
             };
 
             foreach (var feature in request.Features)
@@ -128,26 +82,7 @@ namespace SLMS_API.Application.Services
             _context.Packages.Add(package);
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new PackageResponse
-            {
-                Id = package.Id,
-                Name = package.Name,
-                Code = package.Code,
-                Category = package.Category,
-                Price = package.Price,
-                DurationInDays = package.DurationInDays,
-                Description = package.Description,
-                IsActive = package.IsActive,
-                IsPopular = package.IsPopular,
-                CtaLabel = package.CtaLabel,
-                Features = package.Features
-                     .Select(f => new PackageFeatureResponse
-                     {
-                         Id = f.Id,
-                         FeatureName = f.FeatureName,
-                         FeatureValue = f.FeatureValue
-                     }).ToList()
-            };
+            return MapToResponse(package);
         }
 
         public async Task<PackageResponse> UpdateAsync(Guid id, UpdatePackageRequest request, string? userId, CancellationToken cancellationToken = default)
@@ -160,10 +95,20 @@ namespace SLMS_API.Application.Services
                 throw new KeyNotFoundException("Package not found.");
 
             package.Name = request.Name;
+            if (!string.IsNullOrWhiteSpace(request.Code)) package.Code = request.Code.Trim();
+            if (!string.IsNullOrWhiteSpace(request.Category)) package.Category = request.Category.Trim();
             package.Price = request.Price;
             package.DurationInDays = request.DurationInDays;
             package.Description = request.Description;
             package.IsActive = request.IsActive;
+            package.IsPopular = request.IsPopular;
+            package.CtaLabel = request.CtaLabel;
+            package.MaxInstitutions = request.MaxInstitutions;
+            package.MaxBranches = request.MaxBranches;
+            package.MaxLibraries = request.MaxLibraries;
+            package.MaxUsers = request.MaxUsers;
+            package.MaxMembers = request.MaxMembers;
+            package.UpdatedAtUtc = DateTime.UtcNow;
 
             _context.PackageFeatures.RemoveRange(package.Features);
 
@@ -177,6 +122,21 @@ namespace SLMS_API.Application.Services
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+            return MapToResponse(package);
+        }
+
+        public async Task DeleteAsync(Guid id, string? userId, CancellationToken cancellationToken = default)
+        {
+            var package = await _context.Packages.FindAsync([id], cancellationToken);
+            if (package == null)
+                throw new KeyNotFoundException("Package not found.");
+
+            _context.Packages.Remove(package);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        private static PackageResponse MapToResponse(Package package)
+        {
             return new PackageResponse
             {
                 Id = package.Id,
@@ -189,6 +149,11 @@ namespace SLMS_API.Application.Services
                 IsActive = package.IsActive,
                 IsPopular = package.IsPopular,
                 CtaLabel = package.CtaLabel,
+                MaxInstitutions = package.MaxInstitutions,
+                MaxBranches = package.MaxBranches,
+                MaxLibraries = package.MaxLibraries,
+                MaxUsers = package.MaxUsers,
+                MaxMembers = package.MaxMembers,
                 Features = package.Features
                     .Select(f => new PackageFeatureResponse
                     {
@@ -198,18 +163,5 @@ namespace SLMS_API.Application.Services
                     }).ToList()
             };
         }
-
-        public async Task DeleteAsync(Guid packageId, string? userId, CancellationToken cancellationToken = default)
-        {
-            var package = await _context.Packages.FindAsync([packageId], cancellationToken);
-
-            if (package == null)
-                throw new KeyNotFoundException("Package not found.");
-
-            _context.Packages.Remove(package);
-
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-
     }
 }

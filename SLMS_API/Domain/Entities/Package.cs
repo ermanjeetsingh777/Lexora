@@ -12,7 +12,17 @@
         public bool IsPopular { get; set; } = true;
         public bool IsActive { get; set; } = true;
         public string? CtaLabel { get; set; }
+
+        // Dynamic Quotas (SuperAdmin configurable)
+        public int MaxInstitutions { get; set; } = 1;
+        public int MaxBranches { get; set; } = 1;
+        public int MaxLibraries { get; set; } = 1;
+        public int MaxUsers { get; set; } = 2;
+        public int MaxMembers { get; set; } = 200;
+
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAtUtc { get; set; }
+
         public ICollection<PackageFeatures> Features { get; set; } = new List<PackageFeatures>();
         public ICollection<UserPackage> UserPackages { get; set; } = new List<UserPackage>();
     }

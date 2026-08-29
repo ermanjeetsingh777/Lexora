@@ -60,7 +60,7 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | M-08 | Libraries (list) | [libraries-list-workflow.md](docs/workflow/libraries-list-workflow.md) |
 | M-08 | Libraries (detail) | [library-detail-workflow.md](docs/workflow/library-detail-workflow.md) |
 | M-09 | Support | [support-workflow.md](docs/workflow/support-workflow.md) |
-| M-10 | SaaS subscriptions | [subscriptions-workflow.md](docs/workflow/subscriptions-workflow.md) |
+| M-10 | SaaS subscriptions & Add-ons | [subscriptions-workflow.md](docs/workflow/subscriptions-workflow.md) |
 | M-11 | Profile | [profile-workflow.md](docs/workflow/profile-workflow.md) |
 | M-12 | Books & circulation | [books-workflow.md](docs/workflow/books-workflow.md) |
 | M-13 | Attendance (staff) | [attendance-module-workflow.md](docs/workflow/attendance-module-workflow.md) |
@@ -68,7 +68,7 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | M-15 | Administration | [administration-workflow.md](docs/workflow/administration-workflow.md) |
 | M-15 | Users & roles | [users-admin-workflow.md](docs/workflow/users-admin-workflow.md) |
 | M-16 | Member portal | [member-portal-workflow.md](docs/workflow/member-portal-workflow.md) |
-| M-17 | Package entitlements & RBAC | [package-entitlements-workflow.md](docs/workflow/package-entitlements-workflow.md) |
+| M-17 | Package entitlements, Add-ons & RBAC | [package-entitlements-workflow.md](docs/workflow/package-entitlements-workflow.md) |
 
 ## Attendance QR kiosk (public, no login)
 

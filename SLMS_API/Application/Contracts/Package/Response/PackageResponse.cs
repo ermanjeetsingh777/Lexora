@@ -22,6 +22,13 @@
 
         public string? CtaLabel { get; set; }
 
+        // Dynamic Quotas
+        public int MaxInstitutions { get; set; } = 1;
+        public int MaxBranches { get; set; } = 1;
+        public int MaxLibraries { get; set; } = 1;
+        public int MaxUsers { get; set; } = 2;
+        public int MaxMembers { get; set; } = 200;
+
         public List<PackageFeatureResponse> Features { get; set; } = [];
     }
 }

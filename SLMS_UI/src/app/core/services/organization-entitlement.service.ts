@@ -13,6 +13,8 @@ export class OrganizationEntitlementService {
   readonly canCreateInstitution = computed(() => this.entitlements()?.canCreateInstitution ?? false);
   readonly canCreateBranch = computed(() => this.entitlements()?.canCreateBranch ?? false);
   readonly canCreateLibrary = computed(() => this.entitlements()?.canCreateLibrary ?? false);
+  readonly canCreateUser = computed(() => this.entitlements()?.canCreateUser ?? false);
+  readonly canCreateMember = computed(() => this.entitlements()?.canCreateMember ?? false);
 
   load(force = false): Observable<OrganizationEntitlements | null> {
     if (!force && this.entitlements()) {

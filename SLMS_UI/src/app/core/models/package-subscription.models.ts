@@ -17,7 +17,46 @@ export interface PackageCatalogItem {
   isActive: boolean;
   isPopular?: boolean;
   ctaLabel?: string | null;
+  maxInstitutions?: number;
+  maxBranches?: number;
+  maxLibraries?: number;
+  maxUsers?: number;
+  maxMembers?: number;
   features: PackageFeature[];
+}
+
+export interface AddonCatalogItem {
+  id: string;
+  name: string;
+  code: string;
+  resourceType: 'Institution' | 'Branch' | 'Library' | 'User' | 'Member' | string;
+  unitQuantity: number;
+  price: number;
+  durationInDays: number;
+  description?: string | null;
+  isActive: boolean;
+}
+
+export interface UserAddonItem {
+  id: string;
+  addonId: string;
+  addonName: string;
+  addonCode: string;
+  resourceType: string;
+  quantity: number;
+  totalExtraQuantity: number;
+  amountPaid: number;
+  startDateUtc: string;
+  endDateUtc: string;
+  paymentStatus: string;
+  isActive: boolean;
+}
+
+export interface PurchaseAddonRequest {
+  addonId: string;
+  quantity: number;
+  paymentMethod?: string;
+  transactionId?: string;
 }
 
 export interface PackageSubscriptionItem {
@@ -69,6 +108,8 @@ export interface PackageSubscriptionOverview {
   expired: PackageSubscriptionItem[];
   history: PackageSubscriptionHistoryItem[];
   availablePackages: PackageCatalogItem[];
+  availableAddons?: AddonCatalogItem[];
+  activeAddons?: UserAddonItem[];
 }
 
 export interface RenewPackageSubscriptionRequest {

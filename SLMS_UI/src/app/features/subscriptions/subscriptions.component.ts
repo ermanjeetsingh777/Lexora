@@ -2,16 +2,20 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  LucideAlertTriangle, LucideDownload, LucideHistory, LucideLoader2, LucideRefreshCw, LucideSparkles,
+  LucideAlertTriangle, LucideDownload, LucideHistory, LucideLoader2, LucidePlus, LucideRefreshCw, LucideSettings, LucideSparkles,
 } from '@lucide/angular';
 import {
+  AddonCatalogItem,
   PackageCatalogItem,
   PackageSubscriptionHistoryItem,
   PackageSubscriptionItem,
   PackageSubscriptionOverview,
   PackageSubscriptionQuote,
+  UserAddonItem,
 } from '@core/models/package-subscription.models';
 import { PackageSubscriptionService } from '@core/services/package-subscription.service';
+import { PackageService } from '@core/services/package.service';
+import { AddonService } from '@core/services/addon.service';
 import { ToastService } from '@core/services/toast.service';
 import {
   downloadSubscriptionHistoryPdf,
@@ -24,7 +28,7 @@ import { GlassCardComponent, PageHeaderComponent, SectionHeaderComponent } from 
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { PackageFeaturesListComponent } from './package-features-list.component';
 
-type DialogMode = 'renew' | 'upgrade' | 'update' | null;
+type DialogMode = 'renew' | 'upgrade' | 'update' | 'buy-addon' | 'edit-package' | 'edit-addon' | null;
 
 @Component({
   selector: 'app-subscriptions',
@@ -45,12 +49,16 @@ type DialogMode = 'renew' | 'upgrade' | 'update' | null;
     LucideSparkles,
     LucideLoader2,
     LucideDownload,
+    LucidePlus,
+    LucideSettings,
   ],
   templateUrl: './subscriptions.component.html',
   styleUrl: './subscriptions.component.css',
 })
 export class SubscriptionsComponent {
   private readonly subscriptionsApi = inject(PackageSubscriptionService);
+  private readonly packageService = inject(PackageService);
+  private readonly addonService = inject(AddonService);
   private readonly toast = inject(ToastService);
 
   readonly loading = signal(true);
@@ -63,6 +71,16 @@ export class SubscriptionsComponent {
   readonly autoRenew = signal(false);
   readonly quote = signal<PackageSubscriptionQuote | null>(null);
   readonly endDateInput = signal('');
+
+  // Addons state
+  readonly addons = signal<AddonCatalogItem[]>([]);
+  readonly myAddons = signal<UserAddonItem[]>([]);
+  readonly selectedAddon = signal<AddonCatalogItem | null>(null);
+  readonly addonPurchaseQuantity = signal(1);
+
+  // SuperAdmin edit state
+  readonly editingPackage = signal<PackageCatalogItem | null>(null);
+  readonly editingAddon = signal<Partial<AddonCatalogItem> | null>(null);
 
   readonly isSuperAdmin = computed(() => this.overview()?.isSuperAdmin ?? false);
   readonly current = computed(() => this.overview()?.currentSubscription ?? null);
@@ -92,10 +110,6 @@ export class SubscriptionsComponent {
     return this.plans().find((p) => p.id === id) ?? null;
   });
 
-  planById(packageId: string): PackageCatalogItem | undefined {
-    return this.plans().find((p) => p.id === packageId);
-  }
-
   constructor() {
     this.loadOverview();
   }
@@ -108,96 +122,113 @@ export class SubscriptionsComponent {
         this.loading.set(false);
       },
       error: () => {
+        this.toast.error('Could not load subscription overview.');
         this.loading.set(false);
-        this.toast.error('Unable to load subscriptions.');
       },
+    });
+
+    this.loadAddons();
+  }
+
+  loadAddons(): void {
+    this.addonService.getActiveAddons().subscribe({
+      next: (items) => this.addons.set(items),
+      error: () => {},
+    });
+
+    this.addonService.getMyAddons().subscribe({
+      next: (items) => this.myAddons.set(items),
+      error: () => {},
     });
   }
 
-  statusLabel(status: string): string {
-    if (status === 'ExpiringSoon') return 'Expiring soon';
-    if (status === 'Expired') return 'Expired';
-    return 'Active';
+  openRenew(item: PackageSubscriptionItem): void {
+    this.openDialog('renew', item, item.packageId);
   }
 
-  formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(value);
+  openUpgrade(item: PackageSubscriptionItem): void {
+    const nextPlan = this.plans().find((p) => p.price > item.packagePrice);
+    this.openDialog('upgrade', item, nextPlan?.id ?? '');
   }
 
-  planActionLabel(plan: PackageCatalogItem): string {
-    const sub = this.current();
-    if (!sub) return 'Select plan';
-    if (sub.packageId === plan.id) return 'Current plan';
-
-    if (sub.canUpgrade && plan.price > sub.packagePrice) return 'Upgrade';
-    if (sub.canRenew && plan.price >= sub.packagePrice) return plan.price > sub.packagePrice ? 'Renew & upgrade' : 'Renew';
-    return 'Unavailable';
+  openUpdate(item: PackageSubscriptionItem): void {
+    this.openDialog('update', item, item.packageId);
   }
 
-  canSelectPlan(plan: PackageCatalogItem): boolean {
-    const sub = this.current();
-    if (!sub) return true;
-    if (sub.packageId === plan.id) return false;
-    if (sub.canUpgrade && plan.price > sub.packagePrice) return true;
-    if (sub.canRenew && plan.price >= sub.packagePrice) return true;
-    return false;
+  openBuyAddon(addon: AddonCatalogItem): void {
+    this.selectedAddon.set(addon);
+    this.addonPurchaseQuantity.set(1);
+    this.dialogMode.set('buy-addon');
   }
 
-  openRenew(subscription: PackageSubscriptionItem): void {
-    if (!subscription.canRenew) return;
-    this.openDialog('renew', subscription, subscription.packageId);
+  openEditPackage(pkg: PackageCatalogItem): void {
+    this.editingPackage.set({ ...pkg });
+    this.dialogMode.set('edit-package');
   }
 
-  openUpgrade(subscription: PackageSubscriptionItem): void {
-    if (!subscription.canUpgrade) return;
-    const upgradePlan = this.plans().find((p) => p.price > subscription.packagePrice);
-    if (!upgradePlan) {
-      this.toast.error('No higher plan available to upgrade.');
-      return;
-    }
-    this.openDialog('upgrade', subscription, upgradePlan.id);
+  openCreateAddon(): void {
+    this.editingAddon.set({
+      name: '',
+      code: '',
+      resourceType: 'Library',
+      unitQuantity: 1,
+      price: 999,
+      durationInDays: 365,
+      description: '',
+      isActive: true,
+    });
+    this.dialogMode.set('edit-addon');
   }
 
-  openUpdate(subscription: PackageSubscriptionItem): void {
-    this.endDateInput.set(subscription.endDateUtc.slice(0, 10));
-    this.openDialog('update', subscription, subscription.packageId);
+  openEditAddon(addon: AddonCatalogItem): void {
+    this.editingAddon.set({ ...addon });
+    this.dialogMode.set('edit-addon');
   }
 
-  private openDialog(mode: DialogMode, subscription: PackageSubscriptionItem, packageId: string): void {
-    this.selectedSubscription.set(subscription);
-    this.selectedPackageId.set(packageId);
-    this.autoRenew.set(subscription.autoRenew);
+  openDialog(mode: DialogMode, item: PackageSubscriptionItem, preselectedPackageId?: string): void {
     this.dialogMode.set(mode);
-    this.loadQuote();
+    this.selectedSubscription.set(item);
+    this.autoRenew.set(item.autoRenew);
+    this.endDateInput.set(item.endDateUtc ? item.endDateUtc.slice(0, 10) : '');
+
+    const candidates = this.dialogPlans();
+    const resolvedId = preselectedPackageId && candidates.some((p) => p.id === preselectedPackageId)
+      ? preselectedPackageId
+      : candidates[0]?.id ?? '';
+
+    this.selectedPackageId.set(resolvedId);
+
+    if (resolvedId && (mode === 'upgrade' || mode === 'renew')) {
+      this.fetchQuote(item.id, resolvedId);
+    } else {
+      this.quote.set(null);
+    }
   }
 
-  onPackageChange(packageId: string): void {
-    this.selectedPackageId.set(packageId);
-    this.loadQuote();
+  closeDialog(): void {
+    this.dialogMode.set(null);
+    this.selectedSubscription.set(null);
+    this.selectedPackageId.set('');
+    this.quote.set(null);
+    this.selectedAddon.set(null);
+    this.editingPackage.set(null);
+    this.editingAddon.set(null);
   }
 
-  loadQuote(): void {
-    const subscription = this.selectedSubscription();
-    const packageId = this.selectedPackageId();
+  onPlanChange(newPlanId: string): void {
+    this.selectedPackageId.set(newPlanId);
+    const sub = this.selectedSubscription();
     const mode = this.dialogMode();
-    if (!subscription || !packageId || !mode) {
-      this.quote.set(null);
-      return;
+    if (sub && (mode === 'upgrade' || mode === 'renew')) {
+      this.fetchQuote(sub.id, newPlanId);
     }
+  }
 
-    if (mode === 'update' && packageId === subscription.packageId) {
-      this.quote.set(null);
-      return;
-    }
-
+  private fetchQuote(subscriptionId: string, newPackageId: string): void {
     this.quoteLoading.set(true);
-    this.subscriptionsApi.getQuote(subscription.id, packageId, mode === 'upgrade').subscribe({
-      next: (data) => {
-        this.quote.set(data);
+    this.subscriptionsApi.getQuote(subscriptionId, newPackageId).subscribe({
+      next: (q) => {
+        this.quote.set(q);
         this.quoteLoading.set(false);
       },
       error: () => {
@@ -207,17 +238,87 @@ export class SubscriptionsComponent {
     });
   }
 
-  closeDialog(): void {
-    this.dialogMode.set(null);
-    this.selectedSubscription.set(null);
-    this.quote.set(null);
-  }
-
-  confirmDialog(): void {
+  confirmAction(): void {
     const mode = this.dialogMode();
+
+    if (mode === 'buy-addon') {
+      const addon = this.selectedAddon();
+      if (!addon) return;
+      this.saving.set(true);
+      this.addonService.purchaseAddon({
+        addonId: addon.id,
+        quantity: this.addonPurchaseQuantity(),
+        paymentMethod: 'Online',
+      }).subscribe({
+        next: () => {
+          this.toast.success(`Successfully added capacity for ${addon.name}!`);
+          this.closeDialog();
+          this.loadAddons();
+          this.saving.set(false);
+        },
+        error: (err) => {
+          this.toast.error(err?.error?.message ?? 'Addon purchase failed.');
+          this.saving.set(false);
+        },
+      });
+      return;
+    }
+
+    if (mode === 'edit-package') {
+      const pkg = this.editingPackage();
+      if (!pkg) return;
+      this.saving.set(true);
+      this.packageService.updatePackage(pkg.id, pkg).subscribe({
+        next: () => {
+          this.toast.success('Package limits and price updated successfully.');
+          this.closeDialog();
+          this.loadOverview();
+          this.saving.set(false);
+        },
+        error: (err) => {
+          this.toast.error(err?.error?.message ?? 'Failed to update package.');
+          this.saving.set(false);
+        },
+      });
+      return;
+    }
+
+    if (mode === 'edit-addon') {
+      const addon = this.editingAddon();
+      if (!addon) return;
+      this.saving.set(true);
+      if (addon.id) {
+        this.addonService.updateAddon(addon.id, addon).subscribe({
+          next: () => {
+            this.toast.success('Addon updated successfully.');
+            this.closeDialog();
+            this.loadAddons();
+            this.saving.set(false);
+          },
+          error: (err) => {
+            this.toast.error(err?.error?.message ?? 'Failed to update addon.');
+            this.saving.set(false);
+          },
+        });
+      } else {
+        this.addonService.createAddon(addon).subscribe({
+          next: () => {
+            this.toast.success('Addon created successfully.');
+            this.closeDialog();
+            this.loadAddons();
+            this.saving.set(false);
+          },
+          error: (err) => {
+            this.toast.error(err?.error?.message ?? 'Failed to create addon.');
+            this.saving.set(false);
+          },
+        });
+      }
+      return;
+    }
+
     const subscription = this.selectedSubscription();
-    const pricing = this.quote();
-    if (!mode || !subscription) return;
+    if (!subscription || !mode) return;
 
     this.saving.set(true);
 
@@ -226,17 +327,15 @@ export class SubscriptionsComponent {
         subscriptionId: subscription.id,
         packageId: this.selectedPackageId(),
         autoRenew: this.autoRenew(),
-        amountPaid: pricing?.amountPaid,
-        adjustmentAmount: pricing?.adjustmentAmount,
       }).subscribe({
         next: () => {
-          this.toast.success('Subscription renewed successfully.');
+          this.toast.success('Plan renewed successfully.');
           this.closeDialog();
           this.loadOverview();
           this.saving.set(false);
         },
         error: (err) => {
-          this.toast.error(err?.error?.message ?? 'Renew failed.');
+          this.toast.error(err?.error?.message ?? 'Renewal failed.');
           this.saving.set(false);
         },
       });
@@ -266,8 +365,6 @@ export class SubscriptionsComponent {
     this.subscriptionsApi.update(subscription.id, {
       packageId: this.selectedPackageId() !== subscription.packageId ? this.selectedPackageId() : undefined,
       endDateUtc: this.endDateInput() ? new Date(this.endDateInput()).toISOString() : undefined,
-      amountPaid: pricing?.amountPaid,
-      adjustmentAmount: pricing?.adjustmentAmount,
       autoRenew: this.autoRenew(),
     }).subscribe({
       next: () => {
@@ -311,11 +408,43 @@ export class SubscriptionsComponent {
     }
   }
 
+  planActionLabel(plan: PackageCatalogItem): string {
+    const currentSub = this.current();
+    if (!currentSub) return 'Subscribe now';
+    if (plan.id === currentSub.packageId) {
+      return currentSub.canRenew ? 'Renew plan' : 'Current plan';
+    }
+    if (plan.price > currentSub.packagePrice) {
+      return currentSub.canUpgrade ? 'Upgrade to plan' : 'Unavailable';
+    }
+    return currentSub.canRenew ? 'Switch & Renew' : 'Unavailable';
+  }
+
+  canSelectPlan(plan: PackageCatalogItem): boolean {
+    const currentSub = this.current();
+    if (!currentSub) return true;
+    if (plan.id === currentSub.packageId) return currentSub.canRenew;
+    if (plan.price > currentSub.packagePrice) return currentSub.canUpgrade;
+    return currentSub.canRenew;
+  }
+
+  statusLabel(status: string): string {
+    if (status === 'ExpiringSoon') return 'Expiring soon';
+    return status;
+  }
+
+  formatCurrency(value: number): string {
+    return `₹${value.toLocaleString('en-IN')}`;
+  }
+
   dialogTitle(): string {
     const mode = this.dialogMode();
     if (mode === 'renew') return 'Renew subscription';
     if (mode === 'upgrade') return 'Upgrade plan';
     if (mode === 'update') return 'Update subscription';
+    if (mode === 'buy-addon') return 'Add Extra Capacity (Add-on)';
+    if (mode === 'edit-package') return 'SuperAdmin: Edit Package Quotas & Price';
+    if (mode === 'edit-addon') return this.editingAddon()?.id ? 'SuperAdmin: Edit Add-on' : 'SuperAdmin: New Add-on';
     return '';
   }
 

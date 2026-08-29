@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using SLMS_API.Application.Contracts.Addon;
 using SLMS_API.Application.Contracts.Package.Response;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Constants;
+using SLMS_API.Common.Enums;
 using SLMS_API.Domain.Entities;
 using SLMS_API.Infrastructure.Data;
 
@@ -10,13 +12,6 @@ namespace SLMS_API.Application.Services;
 
 public class PackageEntitlementService : IPackageEntitlementService
 {
-    private enum OrganizationPackageTier
-    {
-        Basic,
-        Value,
-        Premium
-    }
-
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
 
@@ -33,162 +28,302 @@ public class PackageEntitlementService : IPackageEntitlementService
         if (await IsSuperAdminAsync(userId, cancellationToken))
         {
             var superCounts = await GetCountsAsync(userId, cancellationToken);
-            return BuildResponse(
-                packageCode: null,
-                packageName: null,
-                tier: OrganizationPackageTier.Premium,
-                counts: superCounts,
-                isSuperAdmin: true);
+            return new OrganizationEntitlementsResponse
+            {
+                PackageCode = "SuperAdmin",
+                PackageName = "SuperAdmin Unlimited",
+                PackageTier = "Premium",
+                IsSuperAdmin = true,
+                InstitutionCount = superCounts.Institutions,
+                MaxInstitutions = 9999,
+                CanCreateInstitution = true,
+                BranchCount = superCounts.Branches,
+                MaxBranches = 9999,
+                CanCreateBranch = true,
+                LibraryCount = superCounts.Libraries,
+                MaxLibraries = 9999,
+                CanCreateLibrary = true,
+                UserCount = superCounts.Users,
+                MaxUsers = 9999,
+                CanCreateUser = true,
+                MemberCount = superCounts.Members,
+                MaxMembers = 999999,
+                CanCreateMember = true,
+                ActiveAddons = []
+            };
         }
 
-        var (code, name, tier) = await ResolvePackageAsync(userId, cancellationToken);
+        var (pkg, activeAddons) = await ResolvePackageAndAddonsAsync(userId, cancellationToken);
+        var limits = CalculateTotalLimits(pkg, activeAddons);
         var counts = await GetCountsAsync(userId, cancellationToken);
-        return BuildResponse(code, name, tier, counts, isSuperAdmin: false);
-    }
 
-    public Task EnsureCanCreateInstitutionAsync(
-        string userId,
-        bool isOnboarding,
-        CancellationToken cancellationToken = default)
-        => EnsureCanCreateAsync(
-            userId,
-            isOnboarding,
-            OrganizationResource.Institution,
-            cancellationToken);
-
-    public Task EnsureCanCreateBranchAsync(
-        string userId,
-        bool isOnboarding,
-        CancellationToken cancellationToken = default)
-        => EnsureCanCreateAsync(
-            userId,
-            isOnboarding,
-            OrganizationResource.Branch,
-            cancellationToken);
-
-    public Task EnsureCanCreateLibraryAsync(
-        string userId,
-        bool isOnboarding,
-        CancellationToken cancellationToken = default)
-        => EnsureCanCreateAsync(
-            userId,
-            isOnboarding,
-            OrganizationResource.Library,
-            cancellationToken);
-
-    private async Task EnsureCanCreateAsync(
-        string userId,
-        bool isOnboarding,
-        OrganizationResource resource,
-        CancellationToken cancellationToken)
-    {
-        if (await IsSuperAdminAsync(userId, cancellationToken))
-        {
-            return;
-        }
-
-        var counts = await GetCountsAsync(userId, cancellationToken);
-        if (isOnboarding && GetCount(counts, resource) == 0)
-        {
-            return;
-        }
-
-        var (_, _, tier) = await ResolvePackageAsync(userId, cancellationToken);
-        if (CanCreate(tier, resource))
-        {
-            return;
-        }
-
-        throw new InvalidOperationException(GetUpgradeMessage(resource, tier));
-    }
-
-    private static bool CanCreate(OrganizationPackageTier tier, OrganizationResource resource) =>
-        resource switch
-        {
-            OrganizationResource.Institution => tier == OrganizationPackageTier.Premium,
-            OrganizationResource.Branch => tier == OrganizationPackageTier.Premium,
-            OrganizationResource.Library => tier is OrganizationPackageTier.Value or OrganizationPackageTier.Premium,
-            _ => false
-        };
-
-    private static string GetUpgradeMessage(OrganizationResource resource, OrganizationPackageTier tier) =>
-        resource switch
-        {
-            OrganizationResource.Institution =>
-                "Your current package does not allow creating additional institutions. Upgrade to Premium for unlimited institutions.",
-            OrganizationResource.Branch =>
-                "Your current package does not allow creating additional branches. Upgrade to Premium for unlimited branches.",
-            OrganizationResource.Library when tier == OrganizationPackageTier.Basic =>
-                "Your Basic package includes one library only. Upgrade to Value for unlimited libraries or Premium for unlimited institutions, branches, and libraries.",
-            OrganizationResource.Library =>
-                "Your current package does not allow creating additional libraries. Upgrade to Value or Premium.",
-            _ => "Your current package does not allow this action."
-        };
-
-    private static OrganizationEntitlementsResponse BuildResponse(
-        string? packageCode,
-        string? packageName,
-        OrganizationPackageTier tier,
-        OrganizationCounts counts,
-        bool isSuperAdmin)
-    {
         return new OrganizationEntitlementsResponse
         {
-            PackageCode = packageCode,
-            PackageName = packageName,
-            PackageTier = tier.ToString(),
+            PackageCode = pkg.Code,
+            PackageName = pkg.Name,
+            PackageTier = pkg.Code,
+            IsSuperAdmin = false,
             InstitutionCount = counts.Institutions,
+            MaxInstitutions = limits.MaxInstitutions,
+            CanCreateInstitution = counts.Institutions < limits.MaxInstitutions,
             BranchCount = counts.Branches,
+            MaxBranches = limits.MaxBranches,
+            CanCreateBranch = counts.Branches < limits.MaxBranches,
             LibraryCount = counts.Libraries,
-            IsSuperAdmin = isSuperAdmin,
-            CanCreateInstitution = isSuperAdmin || CanCreate(tier, OrganizationResource.Institution),
-            CanCreateBranch = isSuperAdmin || CanCreate(tier, OrganizationResource.Branch),
-            CanCreateLibrary = isSuperAdmin || CanCreate(tier, OrganizationResource.Library),
+            MaxLibraries = limits.MaxLibraries,
+            CanCreateLibrary = counts.Libraries < limits.MaxLibraries,
+            UserCount = counts.Users,
+            MaxUsers = limits.MaxUsers,
+            CanCreateUser = counts.Users < limits.MaxUsers,
+            MemberCount = counts.Members,
+            MaxMembers = limits.MaxMembers,
+            CanCreateMember = counts.Members < limits.MaxMembers,
+            ActiveAddons = activeAddons.Select(a => new UserAddonResponse
+            {
+                Id = a.Id,
+                AddonId = a.AddonId,
+                AddonName = a.Addon?.Name ?? "Addon",
+                AddonCode = a.Addon?.Code ?? "",
+                ResourceType = a.Addon?.ResourceType ?? "",
+                Quantity = a.Quantity,
+                TotalExtraQuantity = a.TotalExtraQuantity,
+                AmountPaid = a.AmountPaid,
+                StartDateUtc = a.StartDateUtc,
+                EndDateUtc = a.EndDateUtc,
+                PaymentStatus = a.PaymentStatus,
+                IsActive = a.IsActive
+            }).ToList()
         };
     }
 
-    private async Task<(string? Code, string? Name, OrganizationPackageTier Tier)> ResolvePackageAsync(
+    public async Task EnsureCanCreateInstitutionAsync(
+        string userId,
+        bool isOnboarding,
+        CancellationToken cancellationToken = default)
+    {
+        if (await IsSuperAdminAsync(userId, cancellationToken)) return;
+
+        var counts = await GetCountsAsync(userId, cancellationToken);
+        if (isOnboarding && counts.Institutions == 0) return;
+
+        var (pkg, activeAddons) = await ResolvePackageAndAddonsAsync(userId, cancellationToken);
+        var limits = CalculateTotalLimits(pkg, activeAddons);
+
+        if (counts.Institutions >= limits.MaxInstitutions)
+        {
+            throw new InvalidOperationException(
+                $"Your {pkg.Name} package allows up to {limits.MaxInstitutions} active institution(s) (current: {counts.Institutions}). " +
+                "Please upgrade your package or purchase an Institution Add-on.");
+        }
+    }
+
+    public async Task EnsureCanCreateBranchAsync(
+        string userId,
+        bool isOnboarding,
+        CancellationToken cancellationToken = default)
+    {
+        if (await IsSuperAdminAsync(userId, cancellationToken)) return;
+
+        var counts = await GetCountsAsync(userId, cancellationToken);
+        if (isOnboarding && counts.Branches == 0) return;
+
+        var (pkg, activeAddons) = await ResolvePackageAndAddonsAsync(userId, cancellationToken);
+        var limits = CalculateTotalLimits(pkg, activeAddons);
+
+        if (counts.Branches >= limits.MaxBranches)
+        {
+            throw new InvalidOperationException(
+                $"Your {pkg.Name} package allows up to {limits.MaxBranches} active branch(es) (current: {counts.Branches}). " +
+                "Please upgrade your package or purchase a Branch Add-on.");
+        }
+    }
+
+    public async Task EnsureCanCreateLibraryAsync(
+        string userId,
+        bool isOnboarding,
+        CancellationToken cancellationToken = default)
+    {
+        if (await IsSuperAdminAsync(userId, cancellationToken)) return;
+
+        var counts = await GetCountsAsync(userId, cancellationToken);
+        if (isOnboarding && counts.Libraries == 0) return;
+
+        var (pkg, activeAddons) = await ResolvePackageAndAddonsAsync(userId, cancellationToken);
+        var limits = CalculateTotalLimits(pkg, activeAddons);
+
+        if (counts.Libraries >= limits.MaxLibraries)
+        {
+            throw new InvalidOperationException(
+                $"Your {pkg.Name} package allows up to {limits.MaxLibraries} active library/libraries (current: {counts.Libraries}). " +
+                "Please upgrade your package or purchase a Library Add-on.");
+        }
+    }
+
+    public async Task EnsureCanCreateUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (await IsSuperAdminAsync(userId, cancellationToken)) return;
+
+        var counts = await GetCountsAsync(userId, cancellationToken);
+        var (pkg, activeAddons) = await ResolvePackageAndAddonsAsync(userId, cancellationToken);
+        var limits = CalculateTotalLimits(pkg, activeAddons);
+
+        if (counts.Users >= limits.MaxUsers)
+        {
+            throw new InvalidOperationException(
+                $"Your {pkg.Name} package allows up to {limits.MaxUsers} active staff user(s) (current: {counts.Users}). " +
+                "Please upgrade your package or purchase an Additional User Add-on.");
+        }
+    }
+
+    public async Task EnsureCanCreateMemberAsync(
+        string userId,
+        int countToAdd = 1,
+        CancellationToken cancellationToken = default)
+    {
+        if (await IsSuperAdminAsync(userId, cancellationToken)) return;
+
+        var counts = await GetCountsAsync(userId, cancellationToken);
+        var (pkg, activeAddons) = await ResolvePackageAndAddonsAsync(userId, cancellationToken);
+        var limits = CalculateTotalLimits(pkg, activeAddons);
+
+        if (counts.Members + countToAdd > limits.MaxMembers)
+        {
+            throw new InvalidOperationException(
+                $"Your {pkg.Name} package allows up to {limits.MaxMembers} active member(s) (current active: {counts.Members}, attempting to add: {countToAdd}). " +
+                "Please upgrade your package or purchase a Member Capacity Add-on.");
+        }
+    }
+
+    private static PackageLimits CalculateTotalLimits(Package package, List<UserPackageAddon> addons)
+    {
+        var extraInstitutions = addons
+            .Where(a => string.Equals(a.Addon?.ResourceType, "Institution", StringComparison.OrdinalIgnoreCase))
+            .Sum(a => a.TotalExtraQuantity);
+
+        var extraBranches = addons
+            .Where(a => string.Equals(a.Addon?.ResourceType, "Branch", StringComparison.OrdinalIgnoreCase))
+            .Sum(a => a.TotalExtraQuantity);
+
+        var extraLibraries = addons
+            .Where(a => string.Equals(a.Addon?.ResourceType, "Library", StringComparison.OrdinalIgnoreCase))
+            .Sum(a => a.TotalExtraQuantity);
+
+        var extraUsers = addons
+            .Where(a => string.Equals(a.Addon?.ResourceType, "User", StringComparison.OrdinalIgnoreCase))
+            .Sum(a => a.TotalExtraQuantity);
+
+        var extraMembers = addons
+            .Where(a => string.Equals(a.Addon?.ResourceType, "Member", StringComparison.OrdinalIgnoreCase))
+            .Sum(a => a.TotalExtraQuantity);
+
+        return new PackageLimits(
+            MaxInstitutions: package.MaxInstitutions + extraInstitutions,
+            MaxBranches: package.MaxBranches + extraBranches,
+            MaxLibraries: package.MaxLibraries + extraLibraries,
+            MaxUsers: package.MaxUsers + extraUsers,
+            MaxMembers: package.MaxMembers + extraMembers
+        );
+    }
+
+    private async Task<(Package Package, List<UserPackageAddon> ActiveAddons)> ResolvePackageAndAddonsAsync(
         string userId,
         CancellationToken cancellationToken)
     {
         var userPackage = await _db.UserPackages
             .Include(x => x.Package)
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.UserId == userId && x.IsCurrentPackage, cancellationToken);
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.IsCurrentPackage && x.IsActive, cancellationToken);
 
-        if (userPackage?.Package is null || userPackage.EndDateUtc <= DateTime.UtcNow)
+        Package package;
+        if (userPackage?.Package is not null && userPackage.EndDateUtc > DateTime.UtcNow)
         {
-            return (PackageCodes.Basic, "Basic", OrganizationPackageTier.Basic);
+            package = userPackage.Package;
+        }
+        else
+        {
+            // Default to Basic Package from DB
+            var basic = await _db.Packages.AsNoTracking().FirstOrDefaultAsync(p => p.Code == PackageCodes.Basic, cancellationToken);
+            package = basic ?? new Package
+            {
+                Name = "Basic",
+                Code = PackageCodes.Basic,
+                MaxInstitutions = 1,
+                MaxBranches = 1,
+                MaxLibraries = 1,
+                MaxUsers = 2,
+                MaxMembers = 200
+            };
         }
 
-        var code = userPackage.Package.Code;
-        var tier = MapTier(code);
-        return (code, userPackage.Package.Name, tier);
-    }
+        var activeAddons = await _db.UserPackageAddons
+            .Include(x => x.Addon)
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && x.IsActive && x.EndDateUtc > DateTime.UtcNow)
+            .ToListAsync(cancellationToken);
 
-    private static OrganizationPackageTier MapTier(string? packageCode) =>
-        packageCode switch
-        {
-            PackageCodes.Premium or PackageCodes.Trial => OrganizationPackageTier.Premium,
-            PackageCodes.Value => OrganizationPackageTier.Value,
-            _ => OrganizationPackageTier.Basic
-        };
+        return (package, activeAddons);
+    }
 
     private async Task<OrganizationCounts> GetCountsAsync(string userId, CancellationToken cancellationToken)
     {
-        var institutions = await _db.UserInstitutions
+        // 1. Active Institutions linked to user
+        var userInstIds = await _db.UserInstitutions
             .AsNoTracking()
-            .CountAsync(x => x.UserId == userId && x.IsActive, cancellationToken);
+            .Where(x => x.UserId == userId && x.IsActive)
+            .Select(x => x.InstitutionId)
+            .ToListAsync(cancellationToken);
 
-        var branches = await _db.UserBranches
+        var institutionsCount = userInstIds.Count;
+
+        // 2. Active Branches linked to user
+        var userBranchIds = await _db.UserBranches
             .AsNoTracking()
-            .CountAsync(x => x.UserId == userId && x.IsActive, cancellationToken);
+            .Where(x => x.UserId == userId && x.IsActive)
+            .Select(x => x.BranchId)
+            .ToListAsync(cancellationToken);
 
-        var libraries = await _db.UserLibraries
+        var branchesCount = userBranchIds.Count;
+
+        // 3. Active Libraries linked to user
+        var userLibIds = await _db.UserLibraries
             .AsNoTracking()
-            .CountAsync(x => x.UserId == userId && x.IsActive, cancellationToken);
+            .Where(x => x.UserId == userId && x.IsActive)
+            .Select(x => x.LibraryId)
+            .ToListAsync(cancellationToken);
 
-        return new OrganizationCounts(institutions, branches, libraries);
+        var librariesCount = userLibIds.Count;
+
+        // 4. Active Staff Users (Exclude Member users, only count IsActive == true)
+        int usersCount = 0;
+        if (userInstIds.Count > 0)
+        {
+            usersCount = await _db.UserInstitutions
+                .AsNoTracking()
+                .Where(ui => userInstIds.Contains(ui.InstitutionId) && ui.IsActive && ui.User.IsActive && ui.User.UserType != UserType.Member)
+                .Select(ui => ui.UserId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+        }
+        else
+        {
+            usersCount = 1; // Current user
+        }
+
+        // 5. Active Members (IsActive == true, IsDeleted == false)
+        int membersCount = 0;
+        if (userLibIds.Count > 0)
+        {
+            membersCount = await _db.MemberLibraries
+                .AsNoTracking()
+                .Where(ml => userLibIds.Contains(ml.LibraryId) && ml.IsActive && ml.Member.IsActive && !ml.Member.IsDeleted)
+                .Select(ml => ml.MemberId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+        }
+
+        return new OrganizationCounts(institutionsCount, branchesCount, librariesCount, usersCount, membersCount);
     }
 
     private async Task<bool> IsSuperAdminAsync(string userId, CancellationToken cancellationToken)
@@ -197,21 +332,19 @@ public class PackageEntitlementService : IPackageEntitlementService
         return user is not null && await _userManager.IsInRoleAsync(user, RoleDefinitions.SuperAdmin);
     }
 
-    private static int GetCount(OrganizationCounts counts, OrganizationResource resource) =>
-        resource switch
-        {
-            OrganizationResource.Institution => counts.Institutions,
-            OrganizationResource.Branch => counts.Branches,
-            OrganizationResource.Library => counts.Libraries,
-            _ => 0
-        };
+    private sealed record PackageLimits(
+        int MaxInstitutions,
+        int MaxBranches,
+        int MaxLibraries,
+        int MaxUsers,
+        int MaxMembers
+    );
 
-    private enum OrganizationResource
-    {
-        Institution,
-        Branch,
-        Library
-    }
-
-    private sealed record OrganizationCounts(int Institutions, int Branches, int Libraries);
+    private sealed record OrganizationCounts(
+        int Institutions,
+        int Branches,
+        int Libraries,
+        int Users,
+        int Members
+    );
 }

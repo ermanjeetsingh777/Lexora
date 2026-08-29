@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using SLMS_API.Application.Validation.Auth;
 using SLMS_API.Application.Options;
@@ -32,6 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<ApplicationDbContext>(options =>
         {
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
+            options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
 
         services
@@ -92,6 +94,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();
         services.AddScoped<IPackageService, PackageService>();
+        services.AddScoped<IAddonService, AddonService>();
         services.AddScoped<IUserPackageService, UserPackageService>();
         services.AddScoped<IPackageSubscriptionService, PackageSubscriptionService>();
         services.AddScoped<IPackageEntitlementService, PackageEntitlementService>();

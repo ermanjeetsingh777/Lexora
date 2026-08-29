@@ -59,10 +59,29 @@ See [AGENTS.md](./AGENTS.md) for Angular/TypeScript standards (signals, standalo
 ## Build & test
 
 ```bash
-ng build          # Production build → dist/
-ng test           # Unit tests (Vitest)
-ng e2e            # E2E (framework not bundled — configure as needed)
+# Development
+npm start                # Local dev server (environment.local.ts)
+npm run start:dev        # Dev remote server
+npm run start:qa         # QA server
+npm run start:uat        # UAT server
+npm run start:prod       # Production server
+
+# Production Builds
+npm run build:prod       # Production build with Service Worker → dist/slms-ui/browser
+npm run build:uat        # UAT build
+npm run build:qa         # QA build
+npm run build:dev        # Dev build
+npm run build:local      # Local build
+
+# Testing
+ng test                  # Unit tests (Vitest)
 ```
+
+## Progressive Web App (PWA) & Branding
+
+- Service Worker precaching and install prompt banner (`PwaService`, `PwaInstallBannerComponent`).
+- Scalable vector assets and multi-resolution favicons (`/assets/logo/`, `public/favicon.ico`).
+- Generated asset script: `node scripts/generate-icons.js`.
 
 ## Documentation
 

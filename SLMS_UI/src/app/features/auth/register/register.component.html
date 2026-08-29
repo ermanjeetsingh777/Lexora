@@ -3,7 +3,7 @@
     [hasFooter]="true">
     <form #registerForm="ngForm" class="space-y-4" (ngSubmit)="submit()" novalidate>
         <div class="space-y-1.5">
-            <label appLabel for="name">Organization Name  <span class="text-red-500">*</span></label>
+            <label appLabel for="name">Organization Name <span class="text-red-500">*</span></label>
             <input appInput id="name" name="name" [(ngModel)]="name" #nameCtrl="ngModel" required minlength="3"
                 maxlength="50" />
             @if(nameCtrl.invalid && (nameCtrl.touched || registerForm.submitted)){
@@ -38,6 +38,8 @@
             </div>
             }
         </div>
+
+        <!-- Subscription Package Selection -->
         <div class="space-y-1.5">
             <label class="ui-label" for="packageId">Subscription package <span class="text-red-500">*</span></label>
             <select
@@ -57,17 +59,102 @@
                 <p class="text-xs text-[var(--muted-foreground)]">Loading packages…</p>
             } @else if (packages().length === 0) {
                 <p class="text-xs text-red-500">No packages available. Contact support.</p>
-            } @else {
-                @for (pkg of packages(); track pkg.id) {
-                    @if (pkg.id === packageId && pkg.description) {
-                        <p class="text-xs text-[var(--muted-foreground)]">{{ pkg.description }}</p>
-                    }
-                }
+            } @else if (selectedPackage()) {
+                <!-- Package Quota Summary Cards -->
+                <div class="mt-2.5 rounded-xl border border-[var(--border)] bg-[var(--muted)]/20 p-3">
+                    <div class="flex items-center justify-between text-xs font-semibold text-[var(--foreground)] mb-1.5">
+                        <span>{{ selectedPackage()?.name }} Inclusions</span>
+                        <span class="text-[var(--primary)] font-bold">
+                            {{ selectedPackage()?.price ? '₹' + (selectedPackage()?.price || 0).toLocaleString('en-IN') + '/yr' : 'Free Trial' }}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs text-[var(--muted-foreground)]">
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            <span>{{ selectedPackage()?.maxInstitutions || 1 }} Institution(s)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            <span>{{ selectedPackage()?.maxBranches || 1 }} Branch(es)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            <span>{{ selectedPackage()?.maxLibraries || 1 }} Library</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            <span>{{ selectedPackage()?.maxUsers || 2 }} Staff Users</span>
+                        </div>
+                        <div class="col-span-2 flex items-center gap-1.5">
+                            <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            <span class="font-medium text-[var(--foreground)]">Up to {{ selectedPackage()?.maxMembers || 200 }} Active Members</span>
+                        </div>
+                    </div>
+                </div>
             }
             @if (packageCtrl.invalid && (packageCtrl.touched || registerForm.submitted)) {
                 <div class="text-sm text-red-500">Please select a subscription package.</div>
             }
         </div>
+
+        <!-- Optional Add-ons Section -->
+        @if (addons().length > 0) {
+            <div class="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-3.5 space-y-3">
+                <div class="flex items-center justify-between cursor-pointer select-none" (click)="showAddons.set(!showAddons())">
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 font-bold text-xs">+</span>
+                        <div>
+                            <p class="text-xs font-semibold text-[var(--foreground)]">Optional Capacity Add-ons</p>
+                            <p class="text-[11px] text-[var(--muted-foreground)]">Add extra libraries, staff users, or member quota</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-[var(--primary)] font-medium">
+                        {{ showAddons() ? 'Hide Add-ons' : 'Customize (' + (addonsTotal() > 0 ? '₹' + addonsTotal().toLocaleString('en-IN') : 'None') + ')' }}
+                    </span>
+                </div>
+
+                @if (showAddons()) {
+                    <div class="space-y-2 pt-2 border-t border-[var(--border)]">
+                        @for (addon of addons(); track addon.id) {
+                            <div class="flex items-center justify-between rounded-lg border border-[var(--border)] p-2.5 bg-[var(--background)] transition-all hover:border-[var(--primary)]/50">
+                                <div class="flex-1 pr-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-medium text-xs text-[var(--foreground)]">{{ addon.name }}</span>
+                                        <span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded">
+                                            +{{ addon.unitQuantity }} {{ addon.resourceType }}
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-[var(--muted-foreground)] line-clamp-1 mt-0.5">{{ addon.description }}</p>
+                                    <p class="text-xs font-bold text-[var(--primary)] mt-1">₹{{ addon.price.toLocaleString('en-IN') }} / yr</p>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    @if (isAddonSelected(addon.id)) {
+                                        <div class="flex items-center border border-[var(--border)] rounded-md bg-[var(--muted)]/30">
+                                            <button type="button" class="px-2 py-0.5 text-xs hover:bg-[var(--muted)] rounded-l" (click)="updateAddonQuantity(addon.id, -1)">-</button>
+                                            <span class="px-2 text-xs font-semibold">{{ getAddonQuantity(addon.id) }}</span>
+                                            <button type="button" class="px-2 py-0.5 text-xs hover:bg-[var(--muted)] rounded-r" (click)="updateAddonQuantity(addon.id, 1)">+</button>
+                                        </div>
+                                    } @else {
+                                        <button type="button" class="px-2.5 py-1 text-xs font-medium rounded-md border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white transition-colors" (click)="toggleAddon(addon.id)">
+                                            + Add
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (addonsTotal() > 0) {
+                    <div class="flex items-center justify-between pt-2 border-t border-[var(--border)] text-xs">
+                        <span class="text-[var(--muted-foreground)]">Package + Selected Add-ons:</span>
+                        <span class="font-bold text-[var(--foreground)] text-sm">₹{{ grandTotal().toLocaleString('en-IN') }} / yr</span>
+                    </div>
+                }
+            </div>
+        }
+
         <div class="space-y-1.5">
             <label class="ui-label" for="password">Password <span class="text-red-500">*</span></label>
             <input id="password" class="ui-input" type="password" [(ngModel)]="password" name="password"
@@ -87,8 +174,8 @@
                 }
             </div>
             }
-
         </div>
+
         <div class="space-y-1.5">
             <label class="ui-label" for="confirm">Confirm password <span class="text-red-500">*</span></label>
             <input id="confirm" class="ui-input" type="password" [(ngModel)]="confirmPassword" name="confirm"
@@ -105,6 +192,7 @@
             </div>
             }
         </div>
+
         <label class="flex items-start gap-2.5 cursor-pointer">
             <input type="checkbox" [(ngModel)]="terms" name="terms"
                 class="mt-0.5 shrink-0 rounded border-[var(--border)]"
@@ -122,9 +210,10 @@
             You must accept the terms.
         </div>
         }
+
         <button type="submit" class="ui-btn-primary w-full cursorPointer"
             [disabled]="busy() || packagesLoading() || packages().length === 0 || registerForm.invalid || password() !== confirmPassword()">
-            {{ busy() ? 'Creating workspace…' : 'Create account' }}
+            {{ busy() ? 'Creating workspace…' : ('Create account' + (grandTotal() > 0 ? ' (₹' + grandTotal().toLocaleString('en-IN') + ')' : '')) }}
         </button>
     </form>
 

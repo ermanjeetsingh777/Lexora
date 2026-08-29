@@ -27,6 +27,7 @@ import { StatusBadgeComponent } from '@shared/components/status-badge/status-bad
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
 import { ToastService } from '@core/services/toast.service';
 import { AuthService } from '@core/services/auth.service';
+import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { PermissionKey } from '@core/constants/permissions';
 import { MemberService } from '../MemberService';
 import { MemberListResponse } from '@core/models/MemberRequest';
@@ -101,6 +102,7 @@ export class MembersListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly memberService = inject(MemberService);
   private readonly auth = inject(AuthService);
+  private readonly entitlements = inject(OrganizationEntitlementService);
   private readonly exportService = inject(AttendanceExportService);
   readonly commonService = inject(CommonService);
 
@@ -129,7 +131,9 @@ export class MembersListComponent implements OnInit {
   readonly renewTarget = signal<RenewTarget | null>(null);
   readonly renewPlans = signal<PlanResponse[]>([]);
   readonly renewBusy = signal(false);
-  readonly canCreate = this.auth.hasPermission(PermissionKey.MembersCreate);
+  readonly canCreate = computed(
+    () => this.auth.hasPermission(PermissionKey.MembersCreate) && (this.entitlements.canCreateMember() || this.auth.hasRole('SuperAdmin'))
+  );
   readonly canUpdate = this.auth.hasPermission(PermissionKey.MembersUpdate);
   readonly canChangePassword =
     this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin');

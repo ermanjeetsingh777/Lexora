@@ -42,6 +42,7 @@ flowchart TB
 | **BR-15.3** Role permissions synced from definitions | `RolePermissionDefinitions` + `SeedRolePermissionsAsync` |
 | **BR-15.4** Admin routes gated by numeric permissions | `permissionGuard` + `[Permission]` on API |
 | **BR-15.5** Audit trail on user/role changes | `IAuditLogService` in `AdminService` |
+| **BR-15.6** Package Staff User Quota Limit | `EnsureCanCreateUserAsync` enforces active staff user count against base package + active add-ons |
 
 ### Functional requirements
 

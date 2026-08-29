@@ -1,21 +1,23 @@
-# Package Entitlements & RBAC Authorization — Implementation Workflow
+# Package Entitlements, Add-ons & RBAC Authorization — Implementation Workflow
 
-End-to-end workflow for **M-17 Package Entitlements & RBAC Authorization** across **SLMS_UI** (Angular) and **SLMS_API** (.NET).
+End-to-end workflow for **M-17 Package Entitlements, Capacity Add-ons & RBAC Authorization** across **SLMS_UI** (Angular) and **SLMS_API** (.NET).
 
-**Module ID:** M-17 · **Scope:** Global Entitlements & Permissions
+**Module ID:** M-17 · **Scope:** Global Entitlements, Quotas, Add-ons & Permissions
 
 ---
 
 ## 1. Overview
 
-Lexora implements a dual-layer access control model:
-1. **Subscription Package Entitlements:** Controls structural resource creation limits based on the organization's subscription tier (`Basic`, `Value`, `Premium` / `Trial`).
-2. **Role-Based Access Control (RBAC):** Controls granular functional capabilities using `PermissionKey` claims assigned to user roles. `SuperAdmin` bypasses permission checks globally.
+Lexora implements a dynamic capacity & dual-layer access control model:
+1. **Subscription Package Entitlements & Capacity Quotas:** Controls quantitative resource creation limits based on the organization's base subscription tier (`Basic`, `Value`, `Premium` / `Trial`) plus any active **Capacity Add-ons** (`Addon`).
+2. **Active State Scoping:** Limits only apply to **Active** records (`IsActive == true` and `IsDeleted == false`). Inactive members and users do not count against the entitlement quota.
+3. **SuperAdmin Dynamic Controls:** SuperAdmin can update prices, duration, and quota limits (`MaxInstitutions`, `MaxBranches`, `MaxLibraries`, `MaxUsers`, `MaxMembers`) for packages and add-ons at runtime without recompilation.
+4. **Role-Based Access Control (RBAC):** Controls granular functional capabilities using `PermissionKey` claims assigned to user roles. `SuperAdmin` bypasses permission checks globally.
 
 ```mermaid
 flowchart TD
-  Req[User attempts to Create Resource / Action] --> EntitlementCheck{Package Tier Entitled?}
-  EntitlementCheck -- No --> BlockEntitlement[Reject: Upgrade Package / Hide Button]
+  Req[User attempts to Create Resource / Action] --> EntitlementCheck{Active Count < Dynamic Limit (Base Package + Addons)?}
+  EntitlementCheck -- No --> BlockEntitlement[Reject: Purchase Add-on or Upgrade Package / Hide Button]
   EntitlementCheck -- Yes --> PermCheck{Has PermissionKey Claim or SuperAdmin?}
   PermCheck -- No --> BlockPerm[403 Forbidden / Hide Action]
   PermCheck -- Yes --> Allow[Execute API / Show Action]
@@ -23,16 +25,26 @@ flowchart TD
 
 ---
 
-## 2. Subscription Package Rules
+## 2. Subscription Package & Add-on Rules
 
-Package codes are defined in `SLMS_API/Common/Constants/PackageCodes.cs`:
+### 2.1 Default Package Quotas (Configurable by SuperAdmin)
 
-| Package Code | Package Name | Can Add Institution | Can Add Branch | Can Add Library |
-|--------------|--------------|---------------------|----------------|-----------------|
-| `BASIC` | Basic Plan | ❌ No | ❌ No | ❌ No |
-| `VALUE` | Value Plan | ❌ No | ❌ No | ✅ Yes (Unlimited) |
-| `PREMIUM` | Premium Plan | ✅ Yes (Unlimited) | ✅ Yes (Unlimited) | ✅ Yes (Unlimited) |
-| `TRIAL` | Free Trial | ✅ Yes (Unlimited) | ✅ Yes (Unlimited) | ✅ Yes (Unlimited) |
+| Package Code | Package Name | Max Institutions | Max Branches | Max Libraries | Max Staff Users | Max Active Members |
+|--------------|--------------|------------------|--------------|---------------|-----------------|--------------------|
+| `BASIC` | Basic Plan | 1 | 1 | 1 | 2 | 200 |
+| `VALUE` | Value Plan | 2 | 2 | 2 | 4 | 400 |
+| `PREMIUM` | Premium Plan | 5 | 5 | 5 | 10 | 1000 |
+| `TRIAL` | Free Trial | 1 | 1 | 1 | 2 | 50 |
+
+### 2.2 Capacity Add-ons (`Addon` Entity)
+
+Organizations can expand quotas without upgrading the whole plan by purchasing add-ons:
+- **Additional Library** (`ADDON_LIBRARY`): +1 Library
+- **100 Active Members Pack** (`ADDON_MEMBERS_100`): +100 Active Members
+- **200 Active Members Pack** (`ADDON_MEMBERS_200`): +200 Active Members
+- **Additional Staff User** (`ADDON_USER`): +1 Staff User
+- **Additional Branch** (`ADDON_BRANCH`): +1 Branch
+- **Additional Institution** (`ADDON_INSTITUTION`): +1 Institution
 
 ---
 
@@ -44,82 +56,49 @@ Package codes are defined in `SLMS_API/Common/Constants/PackageCodes.cs`:
 **Implementation:** `SLMS_API/Application/Services/PackageEntitlementService.cs`  
 **DTO:** `SLMS_API/Application/Contracts/Package/Response/OrganizationEntitlementsResponse.cs`
 
-- Computes whether the current organization can create institutions, branches, or libraries based on active package subscriptions.
-- Endpoint: `GET /api/v1/package-subscriptions/entitlements`
+- Calculates total allowed limits: `package.Max{Resource} + sum(active_addons.TotalExtraQuantity)`.
+- Counts only **Active** resources linked to the user's scope.
+- Provides verification methods:
+  - `EnsureCanCreateInstitutionAsync(userId, isOnboarding)`
+  - `EnsureCanCreateBranchAsync(userId, isOnboarding)`
+  - `EnsureCanCreateLibraryAsync(userId, isOnboarding)`
+  - `EnsureCanCreateUserAsync(userId)`
+  - `EnsureCanCreateMemberAsync(userId, countToAdd)`
 
-### 3.2 Endpoint Creation Enforcement
+### 3.2 Add-ons Controller & Service
 
-Package entitlement checks are enforced directly in controller creation actions:
-- `InstitutionsController.Create`: Throws exception / returns fail if `!entitlements.CanCreateInstitution`.
-- `BranchesController.Create`: Throws exception / returns fail if `!entitlements.CanCreateBranch`.
-- `LibrariesController.Create`: Throws exception / returns fail if `!entitlements.CanCreateLibrary`.
+**Controller:** `SLMS_API/Controllers/AddonsController.cs`  
+**Service:** `SLMS_API/Application/Services/AddonService.cs`  
+- `GET /api/v1/addons`: Public/Active list of capacity add-ons
+- `GET /api/v1/addons/all`: SuperAdmin management list
+- `POST /api/v1/addons`: SuperAdmin create add-on
+- `PUT /api/v1/addons/{id}`: SuperAdmin update add-on
+- `POST /api/v1/addons/purchase`: User purchases an add-on; immediately updates user's entitlement limits
+- `GET /api/v1/addons/my-addons`: User's active capacity add-ons
 
-### 3.3 Granular RBAC & `[Permission]` Attributes
+### 3.3 Packages Controller (SuperAdmin Management)
 
-**Handler:** `SLMS_API/Infrastructure/Authorization/PermissionAuthorizationHandler.cs`  
-**Policy Provider:** `SLMS_API/Infrastructure/Authorization/PermissionPolicyProvider.cs`
-
-- All controllers are secured with `[Permission(PermissionKey.Xxx)]`.
-- `SuperAdmin` role automatically satisfies all permission requirements.
-- Core controllers secured:
-  - `InstitutionsController`, `BranchesController`, `BranchListController`
-  - `LibrariesController`, `LibraryListController`
-  - `AllMembersController`, `MembersController`, `InstitutionMembersController`, `BranchMembersController`
-  - `BooksController`, `AttendanceController`, `PlanController`, `PackageSubscriptionsController`, `AttendanceScannerController`
-
----
-
-## 4. Angular Workflow (SLMS_UI)
-
-### 4.1 Entitlement Service & Signals
-
-**Service:** `SLMS_UI/src/app/core/services/organization-entitlement.service.ts`  
-**Model:** `SLMS_UI/src/app/core/models/organization-entitlement.models.ts`
-
-- Fetches entitlements upon app initialization / authentication.
-- Provides reactive signals:
-  - `canCreateInstitution()`
-  - `canCreateBranch()`
-  - `canCreateLibrary()`
-
-### 4.2 Combined UI Visibility Checks
-
-UI components combine package entitlement with `AuthService.hasPermission()`:
-
-```typescript
-// Institutions List
-protected readonly canCreateInstitution = computed(
-  () => this.organizationEntitlements.canCreateInstitution() && this.auth.hasPermission(PermissionKey.InstitutionsCreate)
-);
-
-// Branches List / Detail
-protected readonly canCreateBranch = computed(
-  () => this.organizationEntitlements.canCreateBranch() && this.auth.hasPermission(PermissionKey.BranchesCreate)
-);
-
-// Libraries List / Detail
-protected readonly canCreateLibrary = computed(
-  () => this.organizationEntitlements.canCreateLibrary() && this.auth.hasPermission(PermissionKey.LibrariesCreate)
-);
-```
-
-### 4.3 Route Protection with `permissionGuard`
-
-**File:** `SLMS_UI/src/app/app.routes.ts`  
-Routes are guarded using `permissionGuard` with appropriate `PermissionKey` definitions:
-- `/institutions` → `PermissionKey.InstitutionsList`
-- `/branches` → `PermissionKey.BranchesList`
-- `/libraries` → `PermissionKey.LibrariesList`
-- `/members` → `PermissionKey.MembersList`
-- `/books` → `PermissionKey.BooksList`
-- `/attendance` → `PermissionKey.AttendanceView`
+**Controller:** `SLMS_API/Controllers/PackagesController.cs`  
+**Service:** `SLMS_API/Application/Services/PackageService.cs`  
+- `GET /api/v1/packages`: Public list of active packages
+- `GET /api/v1/packages/all`: SuperAdmin list with full quota breakdowns
+- `POST /api/v1/packages` & `PUT /api/v1/packages/{id}`: SuperAdmin create/update packages, quotas, and pricing
 
 ---
 
-## 5. Testing & Verification Checklist
+## 4. Angular UI Workflow (SLMS_UI)
 
-- [x] Basic package users cannot see or execute "Add Institution", "Add Branch", or "Add Library".
-- [x] Value package users can see and execute "Add Library", but not institution or branch creation.
-- [x] Premium / Trial package users have full creation capabilities across the hierarchy.
-- [x] API endpoints return descriptive errors if creation is attempted without package entitlement.
-- [x] SuperAdmin role retains full access regardless of assigned permission claims.
+### 4.1 Entitlement Service & Models
+
+- `OrganizationEntitlementService`: Central signal-based entitlement store with `canCreateInstitution`, `canCreateBranch`, `canCreateLibrary`, `canCreateUser`, `canCreateMember`.
+- Computed permission checks in `UsersListComponent` and `MembersListComponent` combine `hasPermission` with `canCreateUser()` / `canCreateMember()`.
+
+### 4.2 Registration with Optional Add-ons
+
+- `RegisterComponent` loads active packages and active add-ons.
+- Displays live package quota cards (Institutions, Branches, Libraries, Users, Members).
+- Allows users to customize and add capacity add-ons during initial registration with live total pricing calculations.
+
+### 4.3 Subscriptions & Quotas Management Screen
+
+- `SubscriptionsComponent` displays current plan, active add-ons, full package grid with quota details, capacity add-on catalog with 1-click purchase, and SuperAdmin dialogs to dynamically edit package and add-on prices and quotas.

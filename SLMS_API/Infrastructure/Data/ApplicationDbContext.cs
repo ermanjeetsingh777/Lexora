@@ -20,6 +20,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Package> Packages => Set<Package>();
     public DbSet<PackageFeatures> PackageFeatures => Set<PackageFeatures>();
     public DbSet<UserPackage> UserPackages => Set<UserPackage>();
+    public DbSet<Addon> Addons => Set<Addon>();
+    public DbSet<UserPackageAddon> UserPackageAddons => Set<UserPackageAddon>();
     public DbSet<Institution> Institutions => Set<Institution>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<Library> Libraries => Set<Library>();

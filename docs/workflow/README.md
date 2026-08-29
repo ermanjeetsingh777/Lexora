@@ -47,9 +47,9 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 |-----|--------|---------|
 | [administration-workflow.md](./administration-workflow.md) | M-15 Admin | Roles, permissions seeding |
 | [users-admin-workflow.md](./users-admin-workflow.md) | M-15 Users | User directory and role assignment |
-| [package-entitlements-workflow.md](./package-entitlements-workflow.md) | M-17 Entitlements & RBAC | Tiered creation limits (Basic/Value/Premium) and PermissionKey claims |
+| [package-entitlements-workflow.md](./package-entitlements-workflow.md) | M-17 Entitlements, Add-ons & RBAC | Tiered dynamic limits (Basic/Value/Premium), Capacity Add-ons, active-only counts, SuperAdmin runtime management, and PermissionKey claims |
 | [support-workflow.md](./support-workflow.md) | M-09 Support | Institution-scoped tickets, attachments, KB, status |
-| [subscriptions-workflow.md](./subscriptions-workflow.md) | M-10 SaaS subscriptions | Package renew/upgrade, institution scope |
+| [subscriptions-workflow.md](./subscriptions-workflow.md) | M-10 SaaS subscriptions & Add-ons | Package quotas, capacity add-on purchase, renewals, upgrades, PDF billing history |
 
 ## Requirements (source)
 

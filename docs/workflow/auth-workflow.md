@@ -73,6 +73,18 @@ Override credentials via `Identity:SuperAdmin*` and `Demo:Admin*` in `appsetting
 
 ---
 
+### 2.4 Registration flow with Packages & Capacity Add-ons
+
+1. User opens `/register` (optionally with `?packageId=...` from pricing page).
+2. Active subscription packages loaded via `PackageService.getActivePackages()`.
+3. Inclusions summary card dynamically shows selected plan's resource limits (Institutions, Branches, Libraries, Staff Users, Active Members).
+4. Capacity Add-ons accordion allows users to attach extra libraries, staff user seats, or member capacity packs during sign-up with live total pricing.
+5. `AuthService.register()` sends `RegisterRequest` with `packageId` and `selectedAddons`.
+6. API creates user, subscribes base package, attaches selected add-ons, and sets initial `OrganisationAdmin` role.
+7. Redirects to `/onboarding/institution`.
+
+---
+
 ## 3. .NET Workflow (SLMS_API)
 
 **Controller:** `SLMS_API/Controllers/AuthController.cs`  

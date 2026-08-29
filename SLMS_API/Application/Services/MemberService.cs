@@ -30,6 +30,7 @@ public class MemberService : IMemberService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IAuditLogService _auditLogService;
     private readonly IConfiguration _configuration;
+    private readonly IPackageEntitlementService _packageEntitlementService;
     private readonly IWebHostEnvironment _environment;
 
     public MemberService(ApplicationDbContext dbContext,
@@ -37,16 +38,19 @@ public class MemberService : IMemberService
         RoleManager<IdentityRole> roleManager,
         IAuthService authService,
         IConfiguration configuration,
-         IAuditLogService auditLogService,
+        IAuditLogService auditLogService,
         ICurrentUserService currentUserService,
+        IPackageEntitlementService packageEntitlementService,
         IWebHostEnvironment environment)
     {
         _dbContext = dbContext;
         _authService = authService;
         _currentUserService = currentUserService;
         _userManager = userManager;
+        _roleManager = roleManager;
         _configuration = configuration;
         _auditLogService = auditLogService;
+        _packageEntitlementService = packageEntitlementService;
         _environment = environment;
     }
 
@@ -57,6 +61,8 @@ public class MemberService : IMemberService
         {
             throw new UnauthorizedAccessException("User is not authenticated.");
         }
+
+        await _packageEntitlementService.EnsureCanCreateMemberAsync(_currentUserService.UserId, 1, cancellationToken);
 
         // Validate duplicate email
         if (await _userManager.FindByEmailAsync(request.Email) is not null)
@@ -239,6 +245,8 @@ public class MemberService : IMemberService
         {
             throw new InvalidOperationException("No member rows found in the uploaded file.");
         }
+
+        await _packageEntitlementService.EnsureCanCreateMemberAsync(_currentUserService.UserId, rows.Count, cancellationToken);
 
         var plans = await _dbContext.Plans.AsNoTracking()
             .Where(x => x.LibraryId == libraryId && x.IsActive)

@@ -30,6 +30,7 @@ public class AuthService : IAuthService
     private readonly IPermissionResolver _permissionResolver;
     private readonly ILogger<AuthService> _logger;
     private readonly IUserPackageService _userPackageService;
+    private readonly IAddonService _addonService;
     private readonly IEmailSender _emailSender;
     private readonly AppOptions _appOptions;
 
@@ -43,6 +44,7 @@ public class AuthService : IAuthService
         IPermissionResolver permissionResolver,
         IPackageService packageService,
         IUserPackageService userPackageService,
+        IAddonService addonService,
         IEmailSender emailSender,
         IOptions<AppOptions> appOptions,
         ILogger<AuthService> logger)
@@ -57,6 +59,7 @@ public class AuthService : IAuthService
         _logger = logger;
         _packageService = packageService;
         _userPackageService = userPackageService;
+        _addonService = addonService;
         _emailSender = emailSender;
         _appOptions = appOptions.Value;
     }
@@ -104,6 +107,27 @@ public class AuthService : IAuthService
         if (userPackageResult == null)
         {
             throw new InvalidOperationException("Unable to subscribe the selected package.");
+        }
+
+        if (request.SelectedAddons is not null && request.SelectedAddons.Count > 0)
+        {
+            foreach (var addonItem in request.SelectedAddons.Where(a => a.Quantity > 0))
+            {
+                try
+                {
+                    await _addonService.PurchaseAddonAsync(new Application.Contracts.Addon.PurchaseAddonRequest
+                    {
+                        AddonId = addonItem.AddonId,
+                        Quantity = addonItem.Quantity,
+                        PaymentMethod = "Online",
+                        TransactionId = "REG-" + Guid.NewGuid().ToString("N")[..8].ToUpper()
+                    }, user.Id, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to attach addon {AddonId} during registration for user {UserId}", addonItem.AddonId, user.Id);
+                }
+            }
         }
 
         await EnsureRoleExistsAsync(RoleDefinitions.OrganisationAdmin, cancellationToken);

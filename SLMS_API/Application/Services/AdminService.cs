@@ -22,6 +22,7 @@ public class AdminService : IAdminService
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
     private readonly IConfiguration _configuration;
+    private readonly IPackageEntitlementService _packageEntitlementService;
     private readonly ILogger<AdminService> _logger;
 
     public AdminService(
@@ -30,6 +31,7 @@ public class AdminService : IAdminService
         ApplicationDbContext dbContext,
         IAuditLogService auditLogService,
         IConfiguration configuration,
+        IPackageEntitlementService packageEntitlementService,
         ILogger<AdminService> logger)
     {
         _userManager = userManager;
@@ -37,6 +39,7 @@ public class AdminService : IAdminService
         _dbContext = dbContext;
         _auditLogService = auditLogService;
         _configuration = configuration;
+        _packageEntitlementService = packageEntitlementService;
         _logger = logger;
     }
 
@@ -133,6 +136,8 @@ public class AdminService : IAdminService
         {
             throw new UnauthorizedAccessException("User is not authenticated.");
         }
+
+        await _packageEntitlementService.EnsureCanCreateUserAsync(callerUserId, cancellationToken);
 
         var existing = await _userManager.FindByEmailAsync(request.Email);
         if (existing is not null)

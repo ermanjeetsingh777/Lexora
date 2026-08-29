@@ -1,8 +1,9 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideCheck, LucideLoader2, LucideX } from '@lucide/angular';
-import { PackageCatalogItem } from '@core/models/package-subscription.models';
+import { AddonCatalogItem, PackageCatalogItem } from '@core/models/package-subscription.models';
 import { PackageService } from '@core/services/package.service';
+import { AddonService } from '@core/services/addon.service';
 import { SeoService } from '@core/services/seo.service';
 import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
 import {
@@ -24,9 +25,11 @@ import {
 })
 export class Prices implements OnInit {
   private readonly packageService = inject(PackageService);
+  private readonly addonService = inject(AddonService);
   private readonly seo = inject(SeoService);
 
   readonly packages = signal<PackageCatalogItem[]>([]);
+  readonly addons = signal<AddonCatalogItem[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
@@ -88,43 +91,21 @@ export class Prices implements OnInit {
     this.error.set(null);
 
     this.packageService.getActivePackages().subscribe({
-      next: (packages) => {
-        this.packages.set(packages);
+      next: (items) => {
+        this.packages.set(items);
         this.loading.set(false);
-
-        if (packages.length > 0) {
-          this.seo.setStructuredData({
-            '@context': 'https://schema.org',
-            '@type': 'Product',
-            'name': 'Lexora Smart Library Subscription',
-            'description':
-              'Cloud-hosted library management platform subscription with seat layouts, automated QR attendance, and multi-tenant management.',
-            'brand': {
-              '@type': 'Brand',
-              'name': 'Lexora',
-            },
-            'offers': {
-              '@type': 'AggregateOffer',
-              'priceCurrency': 'INR',
-              'lowPrice': String(Math.min(...packages.map((p) => p.price ?? 0))),
-              'highPrice': String(Math.max(...packages.map((p) => p.price ?? 0))),
-              'offerCount': String(packages.length),
-              'offers': packages.map((pkg) => ({
-                '@type': 'Offer',
-                'name': pkg.name,
-                'description': pkg.description || `${pkg.name} plan for libraries`,
-                'price': String(pkg.price ?? 0),
-                'priceCurrency': 'INR',
-                'availability': 'https://schema.org/InStock',
-              })),
-            },
-          });
-        }
       },
       error: () => {
-        this.error.set('Could not load pricing plans. Please try again.');
+        this.error.set('Failed to load packages. Please try again.');
         this.loading.set(false);
       },
+    });
+
+    this.addonService.getActiveAddons().subscribe({
+      next: (addons) => {
+        this.addons.set(addons);
+      },
+      error: () => {},
     });
   }
 }

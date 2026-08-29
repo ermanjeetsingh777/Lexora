@@ -30,6 +30,11 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface RegisterAddonItem {
+  addonId: string;
+  quantity: number;
+}
+
 export interface RegisterRequest {
   email: string;
   password: string;
@@ -37,6 +42,7 @@ export interface RegisterRequest {
   name: string;
   packageId: string;
   userType: UserTypes;
+  selectedAddons?: RegisterAddonItem[];
 }
 
 export interface RefreshTokenRequest {

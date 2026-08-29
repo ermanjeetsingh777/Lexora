@@ -33,6 +33,7 @@ import { InstitutionDropdownResponse } from '@core/models/institution-dropdown.m
 import { ToastService } from '@core/services/toast.service';
 import { PermissionKey } from '@core/constants/permissions';
 import { AuthService } from '@core/services/auth.service';
+import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { getPermissionsForRoles } from '@core/constants/role-permissions';
 import { SidebarService } from '../../../layouts/sidebar/sidebar.service';
 import { PERMISSION_CATALOG } from '../roles-list/roles-list.util';
@@ -92,6 +93,7 @@ export class UsersListComponent implements OnInit {
   private readonly admin = inject(AdminService);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
+  private readonly entitlements = inject(OrganizationEntitlementService);
   private readonly sidebar = inject(SidebarService);
 
   readonly loading = signal(true);
@@ -115,7 +117,9 @@ export class UsersListComponent implements OnInit {
   readonly drawerTab = signal<UserDrawerTab>('overview');
 
   readonly canList = this.auth.hasPermission(PermissionKey.UsersList);
-  readonly canCreate = this.auth.hasPermission(PermissionKey.UsersCreate);
+  readonly canCreate = computed(
+    () => this.auth.hasPermission(PermissionKey.UsersCreate) && (this.entitlements.canCreateUser() || this.auth.hasRole('SuperAdmin'))
+  );
   readonly canUpdate = this.auth.hasPermission(PermissionKey.UsersUpdate);
   readonly canDelete = this.auth.hasPermission(PermissionKey.UsersDelete);
   readonly canAssignRoles = computed(

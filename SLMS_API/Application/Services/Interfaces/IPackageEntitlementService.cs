@@ -22,4 +22,13 @@ public interface IPackageEntitlementService
         string userId,
         bool isOnboarding,
         CancellationToken cancellationToken = default);
+
+    Task EnsureCanCreateUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
+    Task EnsureCanCreateMemberAsync(
+        string userId,
+        int countToAdd = 1,
+        CancellationToken cancellationToken = default);
 }

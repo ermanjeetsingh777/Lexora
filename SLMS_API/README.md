@@ -59,7 +59,9 @@ SLMS_API/
 | `AdminController` | `api/v1/admin` | [administration-workflow.md](../docs/workflow/administration-workflow.md) |
 | `SupportController` | `api/v1/support` | [support-workflow.md](../docs/workflow/support-workflow.md) |
 | `DashboardController` | `api/v1/dashboard` | [dashboard-workflow.md](../docs/workflow/dashboard-workflow.md) |
-| `PackageSubscriptionsController` | `api/v1/package-subscriptions` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md) (SaaS package billing & creation entitlements) |
+| `PackagesController` | `api/v1/packages` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md) (Catalog, SuperAdmin dynamic quota management) |
+| `AddonsController` | `api/v1/addons` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md), [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md) (Capacity add-on purchase & SuperAdmin management) |
+| `PackageSubscriptionsController` | `api/v1/package-subscriptions` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md), [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md) (SaaS package billing & creation entitlements) |
 | `PlanController` | `api/v1/institutions/.../plans` | [library-detail-workflow.md](../docs/workflow/library-detail-workflow.md) |
 | `SubscriptionsController` | `api/v1/institutions/{id}/subscriptions` | Planned |
 | `SeatsController` | `api/v1/institutions/.../seats` | Planned |

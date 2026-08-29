@@ -71,10 +71,34 @@ SLMS_API/
 - Workflow docs: [docs/workflow/README.md](../docs/workflow/README.md)
 - Requirements: [docs/requirements/](../docs/requirements/)
 
-## Configuration
+## Configuration & Environments
 
-- `appsettings.json` — connection strings, JWT, demo options, Identity (SuperAdmin seed credentials)
-- `appsettings.Development.json` — local overrides
+- `appsettings.json` — Base fallback configuration (connection strings, JWT defaults, Identity seed credentials)
+- `appsettings.Local.json` — Local developer workstation configuration (`ASPNETCORE_ENVIRONMENT=Local`)
+- `appsettings.Development.json` — ASP.NET Core default Development configuration (`ASPNETCORE_ENVIRONMENT=Development`)
+- `appsettings.Dev.json` — Dev remote deployment environment (`ASPNETCORE_ENVIRONMENT=Dev`)
+- `appsettings.QA.json` — QA / Testing deployment environment (`ASPNETCORE_ENVIRONMENT=QA`)
+- `appsettings.UAT.json` — UAT / Pre-production staging environment (`ASPNETCORE_ENVIRONMENT=UAT`)
+- `appsettings.Production.json` — Production deployment environment (`ASPNETCORE_ENVIRONMENT=Production`)
+
+### Running API in a specific environment
+
+```bash
+# Run with Local environment
+dotnet run --project SLMS_API --launch-profile "Local (HTTPS)"
+
+# Run with Dev environment
+dotnet run --project SLMS_API --launch-profile "Dev"
+
+# Run with QA environment
+dotnet run --project SLMS_API --launch-profile "QA"
+
+# Run with UAT environment
+dotnet run --project SLMS_API --launch-profile "UAT"
+
+# Run with Production environment
+dotnet run --project SLMS_API --launch-profile "Production"
+```
 
 ### Seed data (startup)
 

@@ -4,7 +4,7 @@ export const environment = {
   production: true,
   environmentName: 'prod',
   baseUrl: '',
-  apiUrl: 'https://api.lexora.app/api/v1',
+  apiUrl: 'https://apiuniappx.runasp.net/api/v1',
   siteUrl: 'https://uniappx.in',
   mockApi: false,
   appName: 'Lexora',

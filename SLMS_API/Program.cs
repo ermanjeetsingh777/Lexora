@@ -51,7 +51,14 @@ if (args.Contains("--seed-superadmin", StringComparer.OrdinalIgnoreCase))
 await DbSeeder.MigrateAndSeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+var isSwaggerEnabled = app.Configuration.GetValue<bool>("Swagger:Enabled",
+    app.Environment.IsDevelopment() ||
+    app.Environment.IsEnvironment("Local") ||
+    app.Environment.IsEnvironment("Dev") ||
+    app.Environment.IsEnvironment("QA") ||
+    app.Environment.IsEnvironment("UAT"));
+
+if (isSwaggerEnabled)
 {
     app.UseSwaggerWithUi();
 }

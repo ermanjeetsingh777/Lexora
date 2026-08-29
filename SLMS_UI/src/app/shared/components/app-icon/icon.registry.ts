@@ -51,6 +51,7 @@ import {
   LogOut,
   Mail,
   MapPin,
+  Menu,
   MessageSquareText,
   Moon,
   PanelLeft,
@@ -60,10 +61,13 @@ import {
   Save,
   Search,
   Settings,
+  Share,
   Shield,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Sun,
+  Tag,
   TriangleAlert,
   User,
   UserCheck,
@@ -73,6 +77,7 @@ import {
   UserRoundCog,
   Users,
   UsersRound,
+  X,
   type IconNode,
 } from 'lucide';
 
@@ -167,4 +172,10 @@ export const ICON_REGISTRY: Record<string, IconNode> = {
   'history' : History,
   'save' : Save, // Lucide doesn't have a save icon, so we reuse check
   'refresh-cw': RefreshCw, // Lucide doesn't have a refresh-cw icon, so we reuse refresh-cw
+  menu: Menu,
+  x: X,
+  close: X,
+  tag: Tag,
+  share: Share,
+  smartphone: Smartphone,
 };

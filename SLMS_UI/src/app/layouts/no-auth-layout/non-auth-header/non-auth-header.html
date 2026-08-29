@@ -1,44 +1,146 @@
-<header class="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 md:px-6">
-    <a class="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-[var(--muted)]/50 transition-colors" routerLink="/">
-        <div class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-primary text-white">
-            <app-icon name="book-open" [size]="18" />
+<header class="sticky top-0 z-40 w-full border-b border-[var(--border)]/70 bg-[var(--background)]/85 backdrop-blur-md">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 md:px-6">
+        <!-- Logo -->
+        <a class="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-[var(--muted)]/50"
+            routerLink="/"
+            (click)="closeMobileMenu()">
+            <div class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-primary text-white shadow-sm">
+                <app-icon name="book-open" [size]="18" />
+            </div>
+            <span class="text-base font-semibold tracking-tight text-[var(--foreground)]">Lexora</span>
+        </a>
+
+        <!-- Desktop Navigation -->
+        <nav class="hidden items-center gap-1 md:flex">
+            <a class="nav-link rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]"
+                routerLink="/features"
+                routerLinkActive="nav-link--active">
+                Features
+            </a>
+            <a class="nav-link rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]"
+                routerLink="/prices"
+                routerLinkActive="nav-link--active">
+                Pricing
+            </a>
+            <a class="nav-link rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]"
+                routerLink="/policies"
+                routerLinkActive="nav-link--active">
+                Policies
+            </a>
+        </nav>
+
+        <!-- Desktop & Mobile Right Actions -->
+        <div class="flex items-center gap-2">
+            @if (storageService.isAuthenticated()) {
+                <a class="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all hover:bg-[var(--primary)]/90"
+                    routerLink="/dashboard">
+                    <app-icon name="layout-dashboard" [size]="16" />
+                    <span>Dashboard</span>
+                </a>
+            } @else {
+                <!-- Register (visible on sm+ or in mobile menu) -->
+                <a class="hidden sm:inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-colors hover:bg-[var(--muted)]/40"
+                    routerLink="/register">
+                    <app-icon name="user-plus" [size]="15" />
+                    <span>Register</span>
+                </a>
+
+                <!-- Login (always quick access) -->
+                <a class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--primary)] px-3.5 py-2 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all hover:bg-[var(--primary)]/90"
+                    routerLink="/login">
+                    <span>Login</span>
+                </a>
+            }
+
+            <!-- Mobile Hamburger Toggle Button -->
+            <button
+                type="button"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)]/60 text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]/50 md:hidden"
+                (click)="toggleMobileMenu()"
+                [attr.aria-expanded]="mobileMenuOpen()"
+                aria-label="Toggle navigation menu">
+                @if (mobileMenuOpen()) {
+                    <app-icon name="x" [size]="18" />
+                } @else {
+                    <app-icon name="menu" [size]="18" />
+                }
+            </button>
         </div>
-        <span class="text-sm font-semibold tracking-tight">Lexora</span>
-    </a>
-
-    <nav class="hidden items-center gap-2 md:flex">
-        <a class="rounded-md px-3 py-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-            routerLink="/features">
-            Features
-        </a>
-        <a class="rounded-md px-3 py-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-            routerLink="/prices">
-            Pricing
-        </a>
-        <a class="rounded-md px-3 py-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-            routerLink="/policies">
-            Policies
-        </a>
-    </nav>
-
-    <div class="flex items-center gap-2">
-        @if(storageService.isAuthenticated())
-        {
-            <a class="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)] shadow hover:bg-[var(--primary)]/90 transition-colors"
-                routerLink="/dashboard">
-                Dashboard
-            </a>
-        }@else
-        {
-            <a class="hidden sm:inline-flex items-center justify-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]/30 transition-colors"
-                routerLink="/register">
-                Register
-            </a>
-
-            <a class="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)] shadow hover:bg-[var(--primary)]/90 transition-colors"
-                routerLink="/login">
-                Login
-            </a>
-        }
     </div>
+
+    <!-- Mobile Navigation Drawer / Dropdown -->
+    @if (mobileMenuOpen()) {
+        <div class="border-t border-[var(--border)]/70 bg-[var(--background)]/98 px-4 py-4 shadow-xl backdrop-blur-xl md:hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <nav class="flex flex-col gap-1.5">
+                <a class="mobile-nav-link flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]/60"
+                    routerLink="/features"
+                    routerLinkActive="mobile-nav-link--active"
+                    (click)="closeMobileMenu()">
+                    <div class="mobile-nav-icon mobile-nav-icon--features">
+                        <app-icon name="sparkles" [size]="16" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-semibold">Features</div>
+                        <div class="text-xs text-[var(--muted-foreground)]">Explore modules & smart capabilities</div>
+                    </div>
+                    <app-icon name="arrow-right" [size]="14" class="text-[var(--muted-foreground)] opacity-60" />
+                </a>
+
+                <a class="mobile-nav-link flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]/60"
+                    routerLink="/prices"
+                    routerLinkActive="mobile-nav-link--active"
+                    (click)="closeMobileMenu()">
+                    <div class="mobile-nav-icon mobile-nav-icon--pricing">
+                        <app-icon name="tag" [size]="16" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-semibold">Pricing</div>
+                        <div class="text-xs text-[var(--muted-foreground)]">Compare packages & flexible plans</div>
+                    </div>
+                    <app-icon name="arrow-right" [size]="14" class="text-[var(--muted-foreground)] opacity-60" />
+                </a>
+
+                <a class="mobile-nav-link flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]/60"
+                    routerLink="/policies"
+                    routerLinkActive="mobile-nav-link--active"
+                    (click)="closeMobileMenu()">
+                    <div class="mobile-nav-icon mobile-nav-icon--policies">
+                        <app-icon name="shield-check" [size]="16" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-semibold">Policies & Terms</div>
+                        <div class="text-xs text-[var(--muted-foreground)]">Privacy, terms, and compliance</div>
+                    </div>
+                    <app-icon name="arrow-right" [size]="14" class="text-[var(--muted-foreground)] opacity-60" />
+                </a>
+            </nav>
+
+            <div class="my-3 border-t border-[var(--border)]"></div>
+
+            <!-- Mobile Drawer Auth Buttons -->
+            <div class="flex flex-col gap-2 pt-1">
+                @if (storageService.isAuthenticated()) {
+                    <a class="flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] shadow transition-colors hover:bg-[var(--primary)]/90"
+                        routerLink="/dashboard"
+                        (click)="closeMobileMenu()">
+                        <app-icon name="layout-dashboard" [size]="16" />
+                        <span>Go to Dashboard</span>
+                    </a>
+                } @else {
+                    <a class="flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] shadow transition-colors hover:bg-[var(--primary)]/90"
+                        routerLink="/register"
+                        (click)="closeMobileMenu()">
+                        <app-icon name="user-plus" [size]="16" />
+                        <span>Create Account / Register</span>
+                    </a>
+
+                    <a class="flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-colors hover:bg-[var(--muted)]/50"
+                        routerLink="/login"
+                        (click)="closeMobileMenu()">
+                        <span>Sign In / Login</span>
+                    </a>
+                }
+            </div>
+        </div>
+    }
 </header>

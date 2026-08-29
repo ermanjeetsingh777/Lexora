@@ -1,0 +1,45 @@
+.nav-link {
+  position: relative;
+}
+
+.nav-link--active {
+  color: var(--foreground) !important;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.mobile-nav-link {
+  border: 1px solid transparent;
+}
+
+.mobile-nav-link:hover {
+  border-color: color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.mobile-nav-link--active {
+  background: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.mobile-nav-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  flex-shrink: 0;
+}
+
+.mobile-nav-icon--features {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+
+.mobile-nav-icon--pricing {
+  background: color-mix(in srgb, #10b981 14%, transparent);
+  color: #10b981;
+}
+
+.mobile-nav-icon--policies {
+  background: color-mix(in srgb, #6366f1 14%, transparent);
+  color: #6366f1;
+}

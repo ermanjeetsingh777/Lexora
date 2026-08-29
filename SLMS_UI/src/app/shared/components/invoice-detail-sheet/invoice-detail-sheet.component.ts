@@ -1,4 +1,4 @@
-import { CurrencyPipe, TitleCasePipe } from '@angular/common';
+import { TitleCasePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { InvoiceDocument } from '@core/models/invoice-document.model';
 import { ButtonComponent } from '@shared/components/button/button.component';
@@ -16,7 +16,6 @@ import { LucideDownload, LucidePrinter, LucideX } from '@lucide/angular';
   selector: 'app-invoice-detail-sheet',
   standalone: true,
   imports: [
-    CurrencyPipe,
     TitleCasePipe,
     ButtonComponent,
     StatusBadgeComponent,

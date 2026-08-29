@@ -2,7 +2,7 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
-import { LucideBell, LucideLogOut, LucideMoon, LucideSearch, LucideSun, LucideUser } from '@lucide/angular';
+import { LucideLogOut, LucideUser } from '@lucide/angular';
 import { AuthService } from '@core/services/auth.service';
 import { MemberPortalService } from '@core/services/member-portal.service';
 import { StorageService } from '@core/services/storage.service';
@@ -14,7 +14,7 @@ import { InputDirective } from '@shared/components/input/input.directive';
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink, InputDirective, LucideBell, LucideMoon, LucideSun, LucideSearch, LucideLogOut, LucideUser],
+  imports: [RouterLink, InputDirective, LucideLogOut, LucideUser],
   template: `
     <header class="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 backdrop-blur px-3 md:px-4">
       @if (!memberPortalMode()) {

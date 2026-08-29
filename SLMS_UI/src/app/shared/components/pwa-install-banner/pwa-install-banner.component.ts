@@ -1,12 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideDownload, LucideRefreshCw, LucideShare, LucideSmartphone, LucideX } from '@lucide/angular';
+import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
 import { PwaService } from '@core/services/pwa.service';
 
 @Component({
   selector: 'app-pwa-install-banner',
   standalone: true,
-  imports: [CommonModule, LucideSmartphone, LucideDownload, LucideX, LucideRefreshCw, LucideShare],
+  imports: [CommonModule, AppIconComponent],
   template: `
     <!-- New Version Available Toast -->
     @if (pwa.hasUpdate()) {
@@ -15,7 +15,7 @@ import { PwaService } from '@core/services/pwa.service';
       >
         <div class="flex items-center gap-3">
           <div class="h-9 w-9 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">
-            <svg lucideRefreshCw class="h-5 w-5 animate-spin"></svg>
+            <app-icon name="refresh-cw" [size]="18" class="animate-spin" />
           </div>
           <div>
             <h4 class="text-xs font-semibold text-foreground">Update Available</h4>
@@ -56,7 +56,7 @@ import { PwaService } from '@core/services/pwa.service';
             class="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted grid place-items-center transition-colors -mr-1 -mt-1"
             aria-label="Close"
           >
-            <svg lucideX class="h-4 w-4"></svg>
+            <app-icon name="x" [size]="16" />
           </button>
         </div>
 
@@ -73,8 +73,8 @@ import { PwaService } from '@core/services/pwa.service';
             (click)="install()"
             class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground shadow hover:bg-primary/90 transition-all active:scale-95"
           >
-            <svg lucideDownload class="h-3.5 w-3.5"></svg>
-            Install app
+            <app-icon name="download" [size]="14" />
+            <span>Install app</span>
           </button>
         </div>
       </div>
@@ -101,14 +101,14 @@ import { PwaService } from '@core/services/pwa.service';
             class="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted grid place-items-center"
             aria-label="Close"
           >
-            <svg lucideX class="h-3.5 w-3.5"></svg>
+            <app-icon name="x" [size]="14" />
           </button>
         </div>
 
         <div class="mt-3 text-xs text-muted-foreground space-y-1.5 bg-muted/40 rounded-lg p-2.5 border">
           <div class="flex items-center gap-2">
             <span class="font-bold text-foreground">1.</span>
-            <span>Tap the <strong>Share</strong> button <svg lucideShare class="h-3.5 w-3.5 inline text-primary mx-0.5"></svg> in Safari.</span>
+            <span>Tap the <strong>Share</strong> button <app-icon name="share" [size]="14" class="inline text-primary mx-0.5 align-middle" /> in Safari.</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="font-bold text-foreground">2.</span>

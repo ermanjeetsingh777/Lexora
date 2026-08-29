@@ -1,13 +1,10 @@
 <header class="sticky top-0 z-40 w-full border-b border-[var(--border)]/70 bg-[var(--background)]/85 backdrop-blur-md">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 md:px-6">
         <!-- Logo -->
-        <a class="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-[var(--muted)]/50"
+        <a class="flex items-center rounded-xl p-1 transition-colors hover:bg-[var(--muted)]/50"
             routerLink="/"
             (click)="closeMobileMenu()">
-            <div class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-primary text-white shadow-sm">
-                <app-icon name="book-open" [size]="18" />
-            </div>
-            <span class="text-base font-semibold tracking-tight text-[var(--foreground)]">Lexora</span>
+            <app-logo [size]="34" [theme]="'auto'" />
         </a>
 
         <!-- Desktop Navigation -->

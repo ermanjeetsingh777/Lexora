@@ -5,10 +5,11 @@ import { filter } from 'rxjs';
 import { StorageService } from '@core/services/storage.service';
 import { QrScannerModalService } from '@core/services/qr-scanner-modal.service';
 import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
+import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component';
 
 @Component({
   selector: 'app-non-auth-header',
-  imports: [AppIconComponent, RouterLink, RouterLinkActive],
+  imports: [AppIconComponent, AppLogoComponent, RouterLink, RouterLinkActive],
   templateUrl: './non-auth-header.html',
   styleUrl: './non-auth-header.css',
 })

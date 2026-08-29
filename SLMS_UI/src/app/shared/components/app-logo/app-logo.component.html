@@ -1,0 +1,193 @@
+@if (linkTo()) {
+  <a [routerLink]="linkTo()" class="lexora-logo-container group inline-flex {{ layout() === 'stacked' ? 'flex-col items-center text-center gap-2.5' : 'items-center gap-3' }} transition-all hover:opacity-95 {{ customClass() }}">
+    <ng-container *ngTemplateOutlet="logoContent" />
+  </a>
+} @else {
+  <div class="lexora-logo-container group inline-flex {{ layout() === 'stacked' ? 'flex-col items-center text-center gap-2.5' : 'items-center gap-3' }} {{ customClass() }}">
+    <ng-container *ngTemplateOutlet="logoContent" />
+  </div>
+}
+
+<ng-template #logoContent>
+  <!-- Vector SVG Mark Emblem with Precise Open Book Base -->
+  <div
+    class="lexora-logo-emblem shrink-0 grid place-items-center rounded-xl bg-transparent transition-all duration-300 group-hover:scale-105"
+    [style.width.px]="pixelSize()"
+    [style.height.px]="pixelSize()">
+    <svg
+      viewBox="0 0 500 420"
+      class="w-full h-full drop-shadow-sm"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cmp_bk_orange" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#EA580C" />
+          <stop offset="40%" stop-color="#F97316" />
+          <stop offset="85%" stop-color="#FB923C" />
+          <stop offset="100%" stop-color="#FDE047" />
+        </linearGradient>
+
+        <linearGradient id="cmp_bk_green" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#15803D" />
+          <stop offset="40%" stop-color="#22C55E" />
+          <stop offset="85%" stop-color="#4ADE80" />
+          <stop offset="100%" stop-color="#BBF7D0" />
+        </linearGradient>
+
+        <linearGradient id="cmp_bk_cyan" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#0284C7" />
+          <stop offset="40%" stop-color="#0EA5E9" />
+          <stop offset="85%" stop-color="#38BDF8" />
+          <stop offset="100%" stop-color="#BAE6FD" />
+        </linearGradient>
+
+        <linearGradient id="cmp_l_body" x1="200" y1="40" x2="260" y2="280" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#0B2545" />
+          <stop offset="35%" stop-color="#071B34" />
+          <stop offset="100%" stop-color="#030E1F" />
+        </linearGradient>
+
+        <linearGradient id="cmp_l_top_curve" x1="200" y1="30" x2="270" y2="80" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#00B4D8" />
+          <stop offset="40%" stop-color="#0077B6" />
+          <stop offset="100%" stop-color="#03045E" />
+        </linearGradient>
+
+        <linearGradient id="cmp_l_swoop_glow" x1="240" y1="280" x2="330" y2="180" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#0077B6" />
+          <stop offset="45%" stop-color="#00B4D8" />
+          <stop offset="80%" stop-color="#48CAE4" />
+          <stop offset="100%" stop-color="#90E0EF" />
+        </linearGradient>
+
+        <linearGradient id="cmp_l_swoop_top_rim" x1="240" y1="260" x2="330" y2="180" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#48CAE4" />
+          <stop offset="50%" stop-color="#90E0EF" />
+          <stop offset="100%" stop-color="#FFFFFF" />
+        </linearGradient>
+
+        <linearGradient id="cmp_cube_orange" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#F59E0B" />
+          <stop offset="100%" stop-color="#D97706" />
+        </linearGradient>
+
+        <linearGradient id="cmp_cube_cyan" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#38BDF8" />
+          <stop offset="100%" stop-color="#0284C7" />
+        </linearGradient>
+      </defs>
+
+      <!-- Base Open Book Solid Wings -->
+      <path d="M 250 330 C 185 330 115 305 60 270 C 55 285 110 325 240 348 C 245 349 248 352 250 354 Z" fill="#051937" />
+      <path d="M 250 330 C 315 330 385 305 440 270 C 445 285 390 325 260 348 C 255 349 252 352 250 354 Z" fill="#051937" />
+
+      <!-- Left Open Book Fanned Ribbons -->
+      <path d="M 250 328 C 185 328 115 303 65 268 C 115 292 185 316 250 318 Z" fill="#003566" />
+      <path d="M 250 316 C 185 314 125 290 75 258 C 125 280 185 304 250 306 Z" fill="#0077B6" />
+      <path d="M 250 304 C 190 300 135 278 88 248 C 135 268 190 292 250 294 Z" fill="#00B4D8" />
+      <path d="M 250 292 C 195 286 148 266 102 238 C 148 256 195 278 250 282 Z" fill="#90E0EF" />
+
+      <!-- Right Open Book Fanned Ribbons -->
+      <path d="M 250 328 C 315 328 385 303 435 268 C 385 292 315 316 250 318 Z" fill="#003566" />
+      <path d="M 250 316 C 315 314 375 290 425 258 C 375 280 315 304 250 306 Z" fill="#0077B6" />
+      <path d="M 250 304 C 310 300 365 278 412 248 C 365 268 310 292 250 294 Z" fill="#00B4D8" />
+      <path d="M 250 292 C 305 286 352 266 398 238 C 352 256 305 278 250 282 Z" fill="#90E0EF" />
+
+      <!-- Center Spine Semi-Circle Pedestal -->
+      <path d="M 238 348 C 238 360 262 360 262 348 C 255 352 245 352 238 348 Z" fill="#001845" />
+
+      <!-- 3 Standing Books -->
+      <!-- Orange -->
+      <g>
+        <path d="M 124 200 L 138 194 L 143 201 L 129 207 Z" fill="#FED7AA" />
+        <path d="M 138 194 L 143 201 L 143 250 L 138 244 Z" fill="#C2410C" opacity="0.6" />
+        <path d="M 124 200 L 138 204 L 138 256 L 124 250 Z" fill="url(#cmp_bk_orange)" />
+        <rect x="127" y="210" width="8" height="2.5" rx="0.8" fill="#FFFFFF" />
+        <rect x="127" y="238" width="8" height="2.5" rx="0.8" fill="#FFFFFF" />
+      </g>
+
+      <!-- Green -->
+      <g>
+        <path d="M 148 168 L 163 162 L 168 170 L 153 176 Z" fill="#BBF7D0" />
+        <path d="M 163 162 L 168 170 L 168 260 L 163 252 Z" fill="#15803D" opacity="0.6" />
+        <path d="M 148 168 L 163 173 L 163 264 L 148 258 Z" fill="url(#cmp_bk_green)" />
+        <rect x="151.5" y="180" width="8.5" height="3" rx="0.8" fill="#FFFFFF" />
+        <rect x="151.5" y="244" width="8.5" height="3" rx="0.8" fill="#FFFFFF" />
+      </g>
+
+      <!-- Cyan -->
+      <g>
+        <path d="M 172 136 L 188 130 L 194 138 L 178 144 Z" fill="#BAE6FD" />
+        <path d="M 188 130 L 194 138 L 194 270 L 188 262 Z" fill="#0369A1" opacity="0.6" />
+        <path d="M 172 136 L 188 141 L 188 274 L 172 268 Z" fill="url(#cmp_bk_cyan)" />
+        <rect x="176" y="152" width="9" height="3" rx="0.8" fill="#FFFFFF" />
+        <rect x="176" y="252" width="9" height="3" rx="0.8" fill="#FFFFFF" />
+      </g>
+
+      <!-- 'L' Pillar Body -->
+      <g>
+        <path d="M 206 48 C 206 28 232 20 258 20 C 272 20 282 28 282 48 L 282 284 L 206 284 Z" fill="url(#cmp_l_body)" />
+        <path d="M 194 48 C 194 22 226 16 262 16 C 278 16 284 26 284 38 C 284 46 270 38 250 38 C 218 38 202 46 194 48 Z" fill="url(#cmp_l_top_curve)" />
+        <path d="M 194 48 C 200 40 220 32 248 32 L 248 48 C 224 48 204 52 194 48 Z" fill="#00B4D8" />
+        <path d="M 206 48 L 214 48 L 214 284 L 206 284 Z" fill="#0077B6" />
+        <path d="M 276 48 L 284 48 L 284 240 L 276 240 Z" fill="#00B4D8" />
+        <path d="M 216 42 L 238 42 L 238 108 L 227 98 L 216 108 Z" fill="#FFFFFF" />
+      </g>
+
+      <!-- 'L' Swoop Foot -->
+      <g>
+        <path d="M 244 284 C 242 242 258 206 284 196 C 298 190 316 186 332 198 C 320 216 300 240 276 262 Z" fill="#020914" />
+        <path d="M 242 260 C 252 238 274 216 302 206 C 328 196 348 170 350 144 C 354 130 346 122 336 126 C 322 132 310 156 300 180 C 284 212 264 242 242 258 Z" fill="url(#cmp_l_swoop_glow)" />
+        <path d="M 336 126 C 346 122 354 130 350 144 C 348 162 328 184 304 198 C 278 212 254 238 242 260 L 243 252 C 257 230 282 206 308 190 C 330 176 346 154 348 138 C 350 130 344 124 336 126 Z" fill="url(#cmp_l_swoop_top_rim)" />
+      </g>
+
+      <!-- Digital Cubes -->
+      <g>
+        <rect x="344" y="82" width="16" height="16" rx="3.5" fill="url(#cmp_cube_orange)" />
+        <rect x="322" y="98" width="13" height="13" rx="2.5" fill="url(#cmp_cube_cyan)" />
+        <rect x="306" y="122" width="13" height="13" rx="2.5" fill="url(#cmp_cube_cyan)" />
+        <rect x="340" y="118" width="13" height="13" rx="2.5" fill="url(#cmp_cube_cyan)" />
+        <rect x="324" y="142" width="12" height="12" rx="2" fill="url(#cmp_cube_cyan)" />
+      </g>
+    </svg>
+  </div>
+
+  <!-- Word Combination (LEXORA Exact Typography & Subtitle) -->
+  @if (showText() && layout() !== 'mark-only') {
+    <div class="lexora-logo-text flex flex-col justify-center leading-tight {{ layout() === 'stacked' ? 'items-center text-center' : '' }}">
+      <!-- Main Brand Word: LEXORA with signature 'X' & stylized 'A' -->
+      <div class="flex items-baseline font-black select-none {{ fontSizeClass() }}">
+        <span
+          [class.text-white]="theme() === 'dark'"
+          [class.text-[#041E42]]="theme() === 'light' || theme() === 'auto'">
+          LE
+        </span>
+        <span class="inline-block px-[1.5px] font-black bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-700 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(14,165,233,0.5)]">
+          X
+        </span>
+        <span
+          [class.text-white]="theme() === 'dark'"
+          [class.text-[#041E42]]="theme() === 'light' || theme() === 'auto'">
+          OR
+        </span>
+        <span
+          [class.text-white]="theme() === 'dark'"
+          [class.text-[#041E42]]="theme() === 'light' || theme() === 'auto'">
+          A
+        </span>
+      </div>
+
+      <!-- Subtitle Tagline -->
+      @if (showSubtitle()) {
+        <div
+          class="font-bold uppercase tracking-widest select-none flex items-center gap-1.5 mt-0.5 {{ subtitleSizeClass() }}"
+          [class.text-slate-300]="theme() === 'dark'"
+          [class.text-[#041E42]]="theme() === 'light' || theme() === 'auto'">
+          <span>SMART</span>
+          <span class="text-[#0096C7] font-extrabold">LIBRARY</span>
+          <span>MANAGEMENT SYSTEM</span>
+        </div>
+      }
+    </div>
+  }
+</ng-template>

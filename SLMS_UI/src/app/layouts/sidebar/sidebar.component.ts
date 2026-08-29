@@ -9,13 +9,14 @@ import { SidebarService } from './sidebar.service';
 import { AuthService } from '@core/services/auth.service';
 import { PermissionKey } from '@core/constants/permissions';
 import { environment } from '@env/environment';
+import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component';
 
 /** Primary navigation rail. Ported 1:1 from `components/app-sidebar.tsx`. */
 @Component({
   selector: 'app-sidebar',
   standalone: true,
   imports: [
-    RouterLink, RouterLinkActive,
+    RouterLink, RouterLinkActive, AppLogoComponent,
     LucideLayoutDashboard, LucideBarChart3, LucideUsers, LucideGraduationCap, LucideBookUser,
     LucideArmchair, LucideCalendarCheck, LucideScanLine, LucideBuilding2, LucideBookOpen,
     LucideCreditCard, LucideBell, LucideUserCog, LucideUser, LucideLifeBuoy,
@@ -31,15 +32,12 @@ import { environment } from '@env/environment';
       [class.lg:w-64]="sidebar.isDesktop() && !sidebar.collapsed()"
     >
       <div class="border-b">
-        <a routerLink="/dashboard" class="flex items-center gap-2 px-3 py-3" (click)="sidebar.closeMobile()">
-          <div class="relative h-8 w-8 shrink-0 rounded-md bg-gradient-primary grid place-items-center text-primary-foreground font-mono font-bold">
-            SL
-            <span class="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-success ring-2 ring-sidebar"></span>
-          </div>
+        <a routerLink="/dashboard" class="flex items-center gap-2.5 px-3 py-3" (click)="sidebar.closeMobile()">
+          <app-logo [size]="32" [showText]="false" [theme]="'auto'" />
           @if (sidebar.showLabels()) {
-            <div class="leading-tight">
+            <div class="leading-tight min-w-0">
               <div class="text-sm font-semibold tracking-tight">{{ appName }}</div>
-              <div class="label-mono">{{ appVersion }} · {{ appEdition }}</div>
+              <div class="label-mono truncate">{{ appVersion }} · {{ appEdition }}</div>
             </div>
           }
         </a>

@@ -1,34 +1,21 @@
 import { Component, input } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { environment } from '@env/environment';
+import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component';
 
 @Component({
   selector: 'app-auth-layout',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, RouterOutlet, AppLogoComponent],
   template: `
     <div class="grid min-h-screen lg:grid-cols-2">
       <div class="relative hidden lg:flex flex-col justify-between overflow-hidden bg-primary text-primary-foreground p-10">
         <div class="absolute inset-0 blueprint-grid opacity-25"></div>
         <div class="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/20 to-black/40"></div>
 
-        <!-- <div class="relative">
-          <a routerLink="/" class="flex items-center gap-2">
-            <div class="h-9 w-9 rounded-md bg-primary-foreground/10 border border-primary-foreground/20 grid place-items-center font-mono font-bold">SL</div>
-            <span class="text-sm font-semibold tracking-tight">{{ appName }}</span>
-          </a>
-        </div> -->
-
         <div class="relative">
-          <a routerLink="/" class="flex items-center gap-3">
-            <div
-              class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 border border-white/20">
-              <i class="pi pi-book text-xl"></i>
-            </div>
-
-            <div>
-              <h1 class="text-lg font-semibold">{{ appName }}</h1>
-            </div>
+          <a routerLink="/" class="inline-flex items-center gap-3">
+            <app-logo [size]="40" [theme]="'dark'" [showSubtitle]="true" />
           </a>
         </div>
 

@@ -3,10 +3,11 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { LucideLogOut } from '@lucide/angular';
 import { environment } from '@env/environment';
+import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component';
 
 @Component({
   selector: 'app-onboarding-shell',
-  imports: [RouterOutlet, RouterLink, LucideLogOut],
+  imports: [RouterOutlet, RouterLink, LucideLogOut, AppLogoComponent],
   templateUrl: './onboarding-shell.html',
   styleUrl: './onboarding-shell.css',
 })

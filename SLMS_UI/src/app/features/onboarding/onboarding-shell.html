@@ -4,10 +4,7 @@
         <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
             <a class="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[var(--muted)]/50 transition-colors"
                 routerLink="/">
-                <div class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-primary text-white">
-                    <i class="pi pi-book text-base"></i>
-                </div>
-                <span class="text-sm font-semibold tracking-tight">{{ appName }}</span>
+                <app-logo [size]="32" [theme]="'auto'" />
             </a>
 
             <button type="button"

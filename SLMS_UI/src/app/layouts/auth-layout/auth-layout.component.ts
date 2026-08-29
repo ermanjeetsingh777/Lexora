@@ -45,16 +45,11 @@ import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component
       <div class="flex items-center justify-center p-6 md:p-10">
         <div class="animate-fade-up w-full max-w-md space-y-6">
         <!-- Mobile Logo -->
-          <div class="flex lg:hidden items-center justify-center gap-3">
-            <div
-              class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white shadow-lg">
-              <i class="pi pi-book text-xl"></i>
-            </div>
-
-            <div>
-              <h2 class="text-xl font-bold">{{ appName }}</h2>
-            </div>
-          </div>
+        <div class="flex lg:hidden items-center justify-center mb-2">
+          <a routerLink="/" class="inline-flex items-center">
+            <app-logo [size]="40" [theme]="'auto'" [showSubtitle]="true" />
+          </a>
+        </div>
           <div class="space-y-2">
             <p class="label-mono">{{eyebrow()}}</p>
             <h1 class="text-2xl font-semibold tracking-tight">{{ title() }}</h1>

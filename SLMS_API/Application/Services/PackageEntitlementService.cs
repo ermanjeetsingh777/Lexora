@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SLMS_API.Application.Contracts.Addon;
 using SLMS_API.Application.Contracts.Package.Response;
 using SLMS_API.Application.Services.Interfaces;
@@ -14,86 +15,121 @@ public class PackageEntitlementService : IPackageEntitlementService
 {
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<PackageEntitlementService> _logger;
 
-    public PackageEntitlementService(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+    public PackageEntitlementService(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        ILogger<PackageEntitlementService> logger)
     {
         _db = db;
         _userManager = userManager;
+        _logger = logger;
     }
 
     public async Task<OrganizationEntitlementsResponse> GetEntitlementsAsync(
         string userId,
         CancellationToken cancellationToken = default)
     {
-        if (await IsSuperAdminAsync(userId, cancellationToken))
+        try
         {
-            var superCounts = await GetCountsAsync(userId, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(userId) && await IsSuperAdminAsync(userId, cancellationToken))
+            {
+                var superCounts = await GetCountsAsync(userId, cancellationToken);
+                return new OrganizationEntitlementsResponse
+                {
+                    PackageCode = "SuperAdmin",
+                    PackageName = "SuperAdmin Unlimited",
+                    PackageTier = "Premium",
+                    IsSuperAdmin = true,
+                    InstitutionCount = superCounts.Institutions,
+                    MaxInstitutions = 9999,
+                    CanCreateInstitution = true,
+                    BranchCount = superCounts.Branches,
+                    MaxBranches = 9999,
+                    CanCreateBranch = true,
+                    LibraryCount = superCounts.Libraries,
+                    MaxLibraries = 9999,
+                    CanCreateLibrary = true,
+                    UserCount = superCounts.Users,
+                    MaxUsers = 9999,
+                    CanCreateUser = true,
+                    MemberCount = superCounts.Members,
+                    MaxMembers = 999999,
+                    CanCreateMember = true,
+                    ActiveAddons = []
+                };
+            }
+
+            var (pkg, activeAddons) = await ResolvePackageAndAddonsAsync(userId, cancellationToken);
+            var limits = CalculateTotalLimits(pkg, activeAddons);
+            var counts = await GetCountsAsync(userId, cancellationToken);
+
             return new OrganizationEntitlementsResponse
             {
-                PackageCode = "SuperAdmin",
-                PackageName = "SuperAdmin Unlimited",
-                PackageTier = "Premium",
-                IsSuperAdmin = true,
-                InstitutionCount = superCounts.Institutions,
-                MaxInstitutions = 9999,
+                PackageCode = pkg.Code,
+                PackageName = pkg.Name,
+                PackageTier = pkg.Code,
+                IsSuperAdmin = false,
+                InstitutionCount = counts.Institutions,
+                MaxInstitutions = limits.MaxInstitutions,
+                CanCreateInstitution = counts.Institutions < limits.MaxInstitutions,
+                BranchCount = counts.Branches,
+                MaxBranches = limits.MaxBranches,
+                CanCreateBranch = counts.Branches < limits.MaxBranches,
+                LibraryCount = counts.Libraries,
+                MaxLibraries = limits.MaxLibraries,
+                CanCreateLibrary = counts.Libraries < limits.MaxLibraries,
+                UserCount = counts.Users,
+                MaxUsers = limits.MaxUsers,
+                CanCreateUser = counts.Users < limits.MaxUsers,
+                MemberCount = counts.Members,
+                MaxMembers = limits.MaxMembers,
+                CanCreateMember = counts.Members < limits.MaxMembers,
+                ActiveAddons = activeAddons.Select(a => new UserAddonResponse
+                {
+                    Id = a.Id,
+                    AddonId = a.AddonId,
+                    AddonName = a.Addon?.Name ?? "Addon",
+                    AddonCode = a.Addon?.Code ?? "",
+                    ResourceType = a.Addon?.ResourceType ?? "",
+                    Quantity = a.Quantity,
+                    TotalExtraQuantity = a.TotalExtraQuantity,
+                    AmountPaid = a.AmountPaid,
+                    StartDateUtc = a.StartDateUtc,
+                    EndDateUtc = a.EndDateUtc,
+                    PaymentStatus = a.PaymentStatus,
+                    IsActive = a.IsActive
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting entitlements for user '{UserId}'. Falling back to safe Basic defaults.", userId);
+            return new OrganizationEntitlementsResponse
+            {
+                PackageCode = PackageCodes.Basic,
+                PackageName = "Basic",
+                PackageTier = PackageCodes.Basic,
+                IsSuperAdmin = false,
+                InstitutionCount = 0,
+                MaxInstitutions = 1,
                 CanCreateInstitution = true,
-                BranchCount = superCounts.Branches,
-                MaxBranches = 9999,
+                BranchCount = 0,
+                MaxBranches = 1,
                 CanCreateBranch = true,
-                LibraryCount = superCounts.Libraries,
-                MaxLibraries = 9999,
+                LibraryCount = 0,
+                MaxLibraries = 1,
                 CanCreateLibrary = true,
-                UserCount = superCounts.Users,
-                MaxUsers = 9999,
+                UserCount = 1,
+                MaxUsers = 2,
                 CanCreateUser = true,
-                MemberCount = superCounts.Members,
-                MaxMembers = 999999,
+                MemberCount = 0,
+                MaxMembers = 200,
                 CanCreateMember = true,
                 ActiveAddons = []
             };
         }
-
-        var (pkg, activeAddons) = await ResolvePackageAndAddonsAsync(userId, cancellationToken);
-        var limits = CalculateTotalLimits(pkg, activeAddons);
-        var counts = await GetCountsAsync(userId, cancellationToken);
-
-        return new OrganizationEntitlementsResponse
-        {
-            PackageCode = pkg.Code,
-            PackageName = pkg.Name,
-            PackageTier = pkg.Code,
-            IsSuperAdmin = false,
-            InstitutionCount = counts.Institutions,
-            MaxInstitutions = limits.MaxInstitutions,
-            CanCreateInstitution = counts.Institutions < limits.MaxInstitutions,
-            BranchCount = counts.Branches,
-            MaxBranches = limits.MaxBranches,
-            CanCreateBranch = counts.Branches < limits.MaxBranches,
-            LibraryCount = counts.Libraries,
-            MaxLibraries = limits.MaxLibraries,
-            CanCreateLibrary = counts.Libraries < limits.MaxLibraries,
-            UserCount = counts.Users,
-            MaxUsers = limits.MaxUsers,
-            CanCreateUser = counts.Users < limits.MaxUsers,
-            MemberCount = counts.Members,
-            MaxMembers = limits.MaxMembers,
-            CanCreateMember = counts.Members < limits.MaxMembers,
-            ActiveAddons = activeAddons.Select(a => new UserAddonResponse
-            {
-                Id = a.Id,
-                AddonId = a.AddonId,
-                AddonName = a.Addon?.Name ?? "Addon",
-                AddonCode = a.Addon?.Code ?? "",
-                ResourceType = a.Addon?.ResourceType ?? "",
-                Quantity = a.Quantity,
-                TotalExtraQuantity = a.TotalExtraQuantity,
-                AmountPaid = a.AmountPaid,
-                StartDateUtc = a.StartDateUtc,
-                EndDateUtc = a.EndDateUtc,
-                PaymentStatus = a.PaymentStatus,
-                IsActive = a.IsActive
-            }).ToList()
-        };
     }
 
     public async Task EnsureCanCreateInstitutionAsync(
@@ -328,6 +364,7 @@ public class PackageEntitlementService : IPackageEntitlementService
 
     private async Task<bool> IsSuperAdminAsync(string userId, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(userId)) return false;
         var user = await _userManager.FindByIdAsync(userId);
         return user is not null && await _userManager.IsInRoleAsync(user, RoleDefinitions.SuperAdmin);
     }

@@ -386,8 +386,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
 
         builder.Entity<UserPackage>(entity =>
         {
+            entity.Property(x => x.ApprovalStatus).HasMaxLength(50).HasDefaultValue("Approved");
+            entity.Property(x => x.AdminRemarks).HasMaxLength(1000);
+            entity.Property(x => x.RequestType).HasMaxLength(50);
+            entity.Property(x => x.Note).HasMaxLength(1000);
             entity.Property(x => x.AmountPaid).HasPrecision(18, 2);
             entity.Property(x => x.AdjustmentAmount).HasPrecision(18, 2);
+            entity.Property(x => x.FinalApprovedAmount).HasPrecision(18, 2);
         });
 
 

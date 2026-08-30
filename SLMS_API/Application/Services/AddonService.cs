@@ -103,12 +103,21 @@ namespace SLMS_API.Application.Services
             if (addon == null || !addon.IsActive)
                 throw new InvalidOperationException("Addon is not available for purchase.");
 
+            // Check if user is on a Trial plan
+            var currentPackage = await _context.UserPackages
+                .Include(x => x.Package)
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.IsCurrentPackage && x.IsActive, cancellationToken);
+
+            if (currentPackage?.Package != null &&
+                (string.Equals(currentPackage.Package.Code, PackageCodes.Trial, StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(currentPackage.Package.Name, "Trial", StringComparison.OrdinalIgnoreCase) ||
+                 currentPackage.Package.Price <= 0))
+            {
+                throw new InvalidOperationException("Add-ons cannot be added to a Free Trial. Please upgrade to Basic, Value, or Premium to purchase add-ons.");
+            }
+
             var quantity = Math.Max(1, request.Quantity);
             var now = DateTime.UtcNow;
-
-            // Find current active user package if any
-            var currentPackage = await _context.UserPackages
-                .FirstOrDefaultAsync(x => x.UserId == userId && x.IsCurrentPackage && x.IsActive, cancellationToken);
 
             var endDate = currentPackage != null && currentPackage.EndDateUtc > now
                 ? currentPackage.EndDateUtc

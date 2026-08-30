@@ -35,22 +35,22 @@ export function featureLabel(feature: PackageFeature): string {
 
 export function featureModule(featureName: string): string {
   const name = featureName.toLowerCase();
-  if (name.includes('member') || name.includes('fees') || name.includes('late')) {
-    return 'Members & billing';
-  }
-  if (name.includes('branch') || name.includes('library') || name.includes('libraries')) {
+  if (name.includes('institution') || name.includes('branch') || name.includes('library') || name.includes('libraries')) {
     return 'Branches & libraries';
+  }
+  if (name.includes('member') || name.includes('fees') || name.includes('late') || name.includes('seat') || name.includes('shift')) {
+    return 'Members & billing';
   }
   if (name.includes('book') || name.includes('reservation')) {
     return 'Books & circulation';
   }
-  if (name.includes('mail') || name.includes('notification')) {
+  if (name.includes('mail') || name.includes('notification') || name.includes('whatsapp')) {
     return 'Notifications';
   }
-  if (name.includes('analytics') || name.includes('report')) {
+  if (name.includes('analytics') || name.includes('report') || name.includes('dashboard')) {
     return 'Analytics & reports';
   }
-  if (name.includes('support') || name.includes('trial')) {
+  if (name.includes('support') || name.includes('trial') || name.includes('add-on') || name.includes('addon')) {
     return 'Support & onboarding';
   }
   return 'Platform';

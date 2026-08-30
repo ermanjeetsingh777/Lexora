@@ -87,6 +87,7 @@ export interface PackageSubscriptionItem {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhone?: string | null;
   institutionId?: string | null;
   institutionName?: string | null;
   packageId: string;
@@ -95,6 +96,7 @@ export interface PackageSubscriptionItem {
   packageCategory?: string | null;
   packagePrice: number;
   amountPaid: number;
+  finalApprovedAmount?: number | null;
   adjustmentAmount: number;
   durationInDays: number;
   startDateUtc: string;
@@ -104,6 +106,13 @@ export interface PackageSubscriptionItem {
   isActive: boolean;
   paymentStatus: string;
   status: PackageSubscriptionStatus;
+  approvalStatus?: 'Pending' | 'Approved' | 'Rejected' | string;
+  adminRemarks?: string | null;
+  approvedAtUtc?: string | null;
+  rejectedAtUtc?: string | null;
+  approvedBy?: string | null;
+  requestType?: string | null;
+  note?: string | null;
   daysRemaining: number;
   canRenew: boolean;
   canUpgrade: boolean;
@@ -126,6 +135,7 @@ export interface PackageSubscriptionOverview {
   isSuperAdmin: boolean;
   summary: PackageSubscriptionSummary;
   currentSubscription?: PackageSubscriptionItem | null;
+  pendingRequest?: PackageSubscriptionItem | null;
   activeSubscriptions: PackageSubscriptionItem[];
   expiringSoon: PackageSubscriptionItem[];
   expired: PackageSubscriptionItem[];
@@ -142,6 +152,8 @@ export interface RenewPackageSubscriptionRequest {
   amountPaid?: number;
   adjustmentAmount?: number;
   paymentStatus?: string;
+  note?: string;
+  transactionId?: string;
 }
 
 export interface UpdatePackageSubscriptionRequest {
@@ -162,6 +174,17 @@ export interface UpgradePackageRequest {
   subscriptionId?: string;
   newPackageId: string;
   autoRenew: boolean;
+  note?: string;
+  transactionId?: string;
+}
+
+export interface ApproveSubscriptionRequest {
+  finalApprovedAmount?: number | null;
+  adminRemarks?: string | null;
+}
+
+export interface RejectSubscriptionRequest {
+  adminRemarks?: string | null;
 }
 
 export interface UserPackageSummary {
@@ -175,6 +198,8 @@ export interface UserPackageSummary {
   autoRenew: boolean;
   isCurrentPackage: boolean;
   paymentStatus: string;
+  approvalStatus?: string;
+  requestType?: string;
 }
 
 export interface PackageSubscriptionQuote {

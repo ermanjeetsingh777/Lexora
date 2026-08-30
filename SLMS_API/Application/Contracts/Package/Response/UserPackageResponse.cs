@@ -20,6 +20,16 @@
 
         public bool AutoRenew { get; set; }
 
+        public bool IsActive { get; set; }
+
         public string PaymentStatus { get; set; } = string.Empty;
+
+        public string ApprovalStatus { get; set; } = "Approved";
+
+        public string? AdminRemarks { get; set; }
+
+        public string? RequestType { get; set; }
+
+        public decimal? FinalApprovedAmount { get; set; }
     }
 }

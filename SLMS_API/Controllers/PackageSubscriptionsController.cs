@@ -5,6 +5,7 @@ using SLMS_API.Application.Contracts.Package.Request;
 using SLMS_API.Application.Contracts.Package.Response;
 using SLMS_API.Application.Contracts.PackageSubscription;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 using SLMS_API.Infrastructure.Authorization;
 
@@ -77,7 +78,10 @@ public class PackageSubscriptionsController : ControllerBase
         }
 
         var renewed = await _packageSubscriptionService.RenewAsync(userId, request, cancellationToken);
-        return Ok(ApiResponse<PackageSubscriptionItemResponse>.Ok(renewed, "Subscription renewed successfully."));
+        var msg = renewed.ApprovalStatus == "Approved"
+            ? "Subscription renewed successfully."
+            : "Renew request submitted successfully. Awaiting SuperAdmin verification and approval.";
+        return Ok(ApiResponse<PackageSubscriptionItemResponse>.Ok(renewed, msg));
     }
 
     [HttpPut("{subscriptionId:guid}")]
@@ -126,6 +130,67 @@ public class PackageSubscriptionsController : ControllerBase
         }
 
         var upgraded = await _packageSubscriptionService.UpgradeAsync(userId, request, cancellationToken);
-        return Ok(ApiResponse<UserPackageResponse>.Ok(upgraded, "Subscription upgraded successfully."));
+        var msg = upgraded.ApprovalStatus == "Approved"
+            ? "Subscription upgraded successfully."
+            : "Upgrade request submitted successfully. Awaiting SuperAdmin verification and approval.";
+        return Ok(ApiResponse<UserPackageResponse>.Ok(upgraded, msg));
+    }
+
+    [HttpGet("requests")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<PackageSubscriptionItemResponse>>>> GetSubscriptionRequests(
+        [FromQuery] string? status,
+        CancellationToken cancellationToken)
+    {
+        var requests = await _packageSubscriptionService.GetAllSubscriptionRequestsAsync(status, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyCollection<PackageSubscriptionItemResponse>>.Ok(requests));
+    }
+
+    [HttpPost("requests/{id:guid}/approve")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<PackageSubscriptionItemResponse>>> ApproveSubscriptionRequest(
+        Guid id,
+        [FromBody] ApproveSubscriptionRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var approverUserId = _currentUserService.UserId ?? "superadmin";
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var response = await _packageSubscriptionService.ApproveSubscriptionRequestAsync(id, request, approverUserId, ipAddress, cancellationToken);
+            return Ok(ApiResponse<PackageSubscriptionItemResponse>.Ok(response, "Subscription request approved and activated successfully."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<PackageSubscriptionItemResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<PackageSubscriptionItemResponse>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPost("requests/{id:guid}/reject")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<PackageSubscriptionItemResponse>>> RejectSubscriptionRequest(
+        Guid id,
+        [FromBody] RejectSubscriptionRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var approverUserId = _currentUserService.UserId ?? "superadmin";
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var response = await _packageSubscriptionService.RejectSubscriptionRequestAsync(id, request, approverUserId, ipAddress, cancellationToken);
+            return Ok(ApiResponse<PackageSubscriptionItemResponse>.Ok(response, "Subscription request rejected."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<PackageSubscriptionItemResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<PackageSubscriptionItemResponse>.Fail(ex.Message));
+        }
     }
 }

@@ -13,23 +13,28 @@ namespace SLMS_API.Application.Services;
 
 public class PackageSubscriptionService : IPackageSubscriptionService
 {
-    private const int ExpiringSoonDays = 7;
-
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPackageService _packageService;
     private readonly IUserPackageService _userPackageService;
+    private readonly IAuditLogService _auditLogService;
+    private readonly int _expiringSoonDays;
 
     public PackageSubscriptionService(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         IPackageService packageService,
-        IUserPackageService userPackageService)
+        IUserPackageService userPackageService,
+        IAuditLogService auditLogService,
+        IConfiguration configuration)
     {
         _db = db;
         _userManager = userManager;
         _packageService = packageService;
         _userPackageService = userPackageService;
+        _auditLogService = auditLogService;
+        var configDays = configuration.GetValue<int>("Subscription:ExpiringSoonDays", 14);
+        _expiringSoonDays = configDays > 0 ? configDays : 14;
     }
 
     public async Task<PackageSubscriptionOverviewResponse> GetOverviewAsync(
@@ -67,7 +72,7 @@ public class PackageSubscriptionService : IPackageSubscriptionService
             .ToList();
 
         var now = DateTime.UtcNow;
-        var expiringThreshold = now.AddDays(ExpiringSoonDays);
+        var expiringThreshold = now.AddDays(_expiringSoonDays);
 
         var expiringSoon = currentSubscriptions
             .Where(x => x.EndDateUtc > now && x.EndDateUtc <= expiringThreshold)
@@ -118,6 +123,7 @@ public class PackageSubscriptionService : IPackageSubscriptionService
             .ToList();
 
         var ownCurrent = currentSubscriptions.FirstOrDefault(x => x.UserId == userId);
+        var pendingRequest = mapped.FirstOrDefault(x => x.UserId == userId && x.ApprovalStatus == "Pending");
 
         return new PackageSubscriptionOverviewResponse
         {
@@ -130,6 +136,7 @@ public class PackageSubscriptionService : IPackageSubscriptionService
                 TotalRevenue = mapped.Sum(x => x.AmountPaid),
             },
             CurrentSubscription = ownCurrent,
+            PendingRequest = pendingRequest,
             ActiveSubscriptions = isSuperAdmin
                 ? currentSubscriptions.OrderByDescending(x => x.CreatedAtUtc).ToList()
                 : ownCurrent is null ? [] : [ownCurrent],
@@ -157,6 +164,15 @@ public class PackageSubscriptionService : IPackageSubscriptionService
         if (!isSuperAdmin && current.UserId != actorUserId)
         {
             throw new UnauthorizedAccessException("You can only quote your own subscription.");
+        }
+
+        var isCurrentTrial = string.Equals(current.Package?.Code, PackageCodes.Trial, StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(current.Package?.Name, "Trial", StringComparison.OrdinalIgnoreCase) ||
+                             (current.Package != null && current.Package.Price <= 0);
+
+        if (isCurrentTrial)
+        {
+            forUpgrade = true;
         }
 
         var targetPackage = await _db.Packages
@@ -214,10 +230,10 @@ public class PackageSubscriptionService : IPackageSubscriptionService
             throw new UnauthorizedAccessException("You can only renew your own subscription.");
         }
 
-        var status = ComputeStatus(current.EndDateUtc, DateTime.UtcNow);
-        if (status == "Active")
+        var status = ComputeStatus(current.EndDateUtc, DateTime.UtcNow, _expiringSoonDays);
+        if (status == "Active" && !isSuperAdmin)
         {
-            throw new InvalidOperationException("Renew is only available when the subscription is expiring within 7 days or has expired.");
+            throw new InvalidOperationException($"Renew is only available when the subscription is expiring within {_expiringSoonDays} days or has expired.");
         }
 
         var packageId = request.PackageId ?? current.PackageId;
@@ -229,36 +245,79 @@ public class PackageSubscriptionService : IPackageSubscriptionService
 
         var pricing = PackageSubscriptionPricing.Calculate(current, package, DateTime.UtcNow);
 
-        current.IsCurrentPackage = false;
-        current.UpdatedAtUtc = DateTime.UtcNow;
-
         var start = current.EndDateUtc > DateTime.UtcNow
             ? current.EndDateUtc
             : DateTime.UtcNow;
 
-        var renewed = new UserPackage
+        if (isSuperAdmin)
         {
-            UserId = current.UserId,
-            PackageId = package.Id,
-            StartDateUtc = start,
-            EndDateUtc = start.AddDays(package.DurationInDays),
-            AmountPaid = request.AmountPaid ?? pricing.AmountPaid,
-            AdjustmentAmount = request.AdjustmentAmount ?? pricing.AdjustmentAmount,
-            AutoRenew = request.AutoRenew ?? current.AutoRenew,
-            IsActive = true,
-            IsCurrentPackage = true,
-            PaymentStatus = request.PaymentStatus ?? "Paid",
-            CreatedAtUtc = DateTime.UtcNow,
-        };
+            // SuperAdmin action: auto-approve immediately
+            current.IsCurrentPackage = false;
+            current.UpdatedAtUtc = DateTime.UtcNow;
 
-        _db.UserPackages.Add(renewed);
-        await _db.SaveChangesAsync(cancellationToken);
+            var renewed = new UserPackage
+            {
+                UserId = current.UserId,
+                PackageId = package.Id,
+                StartDateUtc = start,
+                EndDateUtc = start.AddDays(package.DurationInDays),
+                AmountPaid = request.AmountPaid ?? pricing.AmountPaid,
+                AdjustmentAmount = request.AdjustmentAmount ?? pricing.AdjustmentAmount,
+                AutoRenew = request.AutoRenew ?? current.AutoRenew,
+                IsActive = true,
+                IsCurrentPackage = true,
+                ApprovalStatus = "Approved",
+                ApprovedAtUtc = DateTime.UtcNow,
+                ApprovedByUserId = actorUserId,
+                PaymentStatus = request.PaymentStatus ?? "Paid",
+                RequestType = "Renew",
+                Note = request.Note,
+                TransactionId = request.TransactionId,
+                PreviousPackageId = current.PackageId,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
 
-        renewed.Package = package;
-        renewed.User = current.User;
+            _db.UserPackages.Add(renewed);
+            await _db.SaveChangesAsync(cancellationToken);
 
-        var institutionMap = await LoadInstitutionMapAsync([renewed.UserId], cancellationToken);
-        return MapItem(renewed, institutionMap);
+            renewed.Package = package;
+            renewed.User = current.User;
+
+            var institutionMap = await LoadInstitutionMapAsync([renewed.UserId], cancellationToken);
+            return MapItem(renewed, institutionMap);
+        }
+        else
+        {
+            // Regular user: submit renew request for SuperAdmin approval
+            var pendingRenew = new UserPackage
+            {
+                UserId = current.UserId,
+                PackageId = package.Id,
+                StartDateUtc = start,
+                EndDateUtc = start.AddDays(package.DurationInDays),
+                AmountPaid = pricing.AmountPaid,
+                AdjustmentAmount = pricing.AdjustmentAmount,
+                AutoRenew = request.AutoRenew ?? current.AutoRenew,
+                IsActive = false,
+                IsCurrentPackage = false,
+                ApprovalStatus = "Pending",
+                PaymentStatus = "PendingApproval",
+                RequestType = "Renew",
+                Note = request.Note,
+                TransactionId = request.TransactionId,
+                PreviousPackageId = current.PackageId,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+
+            _db.UserPackages.Add(pendingRenew);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            pendingRenew.Package = package;
+            pendingRenew.User = current.User;
+
+            var institutionMap = await LoadInstitutionMapAsync([pendingRenew.UserId], cancellationToken);
+            return MapItem(pendingRenew, institutionMap);
+        }
     }
 
     public async Task<PackageSubscriptionItemResponse> UpdateAsync(
@@ -371,8 +430,12 @@ public class PackageSubscriptionService : IPackageSubscriptionService
             throw new UnauthorizedAccessException("You can only upgrade your own subscription.");
         }
 
-        var status = ComputeStatus(currentPackage.EndDateUtc, DateTime.UtcNow);
-        if (status is not "Active")
+        var isTrial = string.Equals(currentPackage.Package.Code, PackageCodes.Trial, StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(currentPackage.Package.Name, "Trial", StringComparison.OrdinalIgnoreCase) ||
+                      currentPackage.Package.Price <= 0;
+
+        var status = ComputeStatus(currentPackage.EndDateUtc, DateTime.UtcNow, _expiringSoonDays);
+        if (status is not "Active" && !isTrial)
         {
             throw new InvalidOperationException("Upgrade is only available for active subscriptions. Please renew instead.");
         }
@@ -385,42 +448,241 @@ public class PackageSubscriptionService : IPackageSubscriptionService
 
         var pricing = PackageSubscriptionPricing.Calculate(currentPackage, newPackage, DateTime.UtcNow);
 
-        currentPackage.IsCurrentPackage = false;
-        currentPackage.UpdatedAtUtc = DateTime.UtcNow;
-
-        var upgradedPackage = new UserPackage
+        if (isSuperAdmin)
         {
-            UserId = currentPackage.UserId,
-            PackageId = newPackage.Id,
-            StartDateUtc = DateTime.UtcNow,
-            EndDateUtc = DateTime.UtcNow.AddDays(newPackage.DurationInDays),
-            AutoRenew = request.AutoRenew,
-            AmountPaid = pricing.AmountPaid,
-            AdjustmentAmount = pricing.AdjustmentAmount,
-            PaymentStatus = "Paid",
-            IsActive = true,
-            IsCurrentPackage = true,
-            CreatedAtUtc = DateTime.UtcNow,
-        };
+            currentPackage.IsCurrentPackage = false;
+            currentPackage.UpdatedAtUtc = DateTime.UtcNow;
 
-        _db.UserPackages.Add(upgradedPackage);
+            var upgradedPackage = new UserPackage
+            {
+                UserId = currentPackage.UserId,
+                PackageId = newPackage.Id,
+                StartDateUtc = DateTime.UtcNow,
+                EndDateUtc = DateTime.UtcNow.AddDays(newPackage.DurationInDays),
+                AutoRenew = request.AutoRenew,
+                AmountPaid = pricing.AmountPaid,
+                AdjustmentAmount = pricing.AdjustmentAmount,
+                PaymentStatus = "Paid",
+                IsActive = true,
+                IsCurrentPackage = true,
+                ApprovalStatus = "Approved",
+                ApprovedAtUtc = DateTime.UtcNow,
+                ApprovedByUserId = actorUserId,
+                RequestType = "Upgrade",
+                Note = request.Note,
+                TransactionId = request.TransactionId,
+                PreviousPackageId = currentPackage.PackageId,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+
+            _db.UserPackages.Add(upgradedPackage);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            upgradedPackage.Package = newPackage;
+
+            return new UserPackageResponse
+            {
+                Id = upgradedPackage.Id,
+                UserId = upgradedPackage.UserId,
+                PackageId = upgradedPackage.PackageId,
+                PackageName = newPackage.Name,
+                Price = upgradedPackage.AmountPaid,
+                StartDateUtc = upgradedPackage.StartDateUtc,
+                EndDateUtc = upgradedPackage.EndDateUtc,
+                AutoRenew = upgradedPackage.AutoRenew,
+                IsCurrentPackage = upgradedPackage.IsCurrentPackage,
+                IsActive = upgradedPackage.IsActive,
+                PaymentStatus = upgradedPackage.PaymentStatus,
+                ApprovalStatus = "Approved",
+                RequestType = "Upgrade",
+            };
+        }
+        else
+        {
+            // Regular user: submit upgrade request for SuperAdmin approval
+            var pendingUpgrade = new UserPackage
+            {
+                UserId = currentPackage.UserId,
+                PackageId = newPackage.Id,
+                StartDateUtc = DateTime.UtcNow,
+                EndDateUtc = DateTime.UtcNow.AddDays(newPackage.DurationInDays),
+                AutoRenew = request.AutoRenew,
+                AmountPaid = pricing.AmountPaid,
+                AdjustmentAmount = pricing.AdjustmentAmount,
+                PaymentStatus = "PendingApproval",
+                IsActive = false,
+                IsCurrentPackage = false,
+                ApprovalStatus = "Pending",
+                RequestType = "Upgrade",
+                Note = request.Note,
+                TransactionId = request.TransactionId,
+                PreviousPackageId = currentPackage.PackageId,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+
+            _db.UserPackages.Add(pendingUpgrade);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            pendingUpgrade.Package = newPackage;
+
+            return new UserPackageResponse
+            {
+                Id = pendingUpgrade.Id,
+                UserId = pendingUpgrade.UserId,
+                PackageId = pendingUpgrade.PackageId,
+                PackageName = newPackage.Name,
+                Price = pendingUpgrade.AmountPaid,
+                StartDateUtc = pendingUpgrade.StartDateUtc,
+                EndDateUtc = pendingUpgrade.EndDateUtc,
+                AutoRenew = pendingUpgrade.AutoRenew,
+                IsCurrentPackage = false,
+                IsActive = false,
+                PaymentStatus = pendingUpgrade.PaymentStatus,
+                ApprovalStatus = "Pending",
+                RequestType = "Upgrade",
+            };
+        }
+    }
+
+    public async Task<IReadOnlyCollection<PackageSubscriptionItemResponse>> GetAllSubscriptionRequestsAsync(
+        string? status,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<UserPackage> query = _db.UserPackages
+            .Include(x => x.Package)
+                .ThenInclude(p => p.Features)
+            .Include(x => x.User)
+            .AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(x => x.ApprovalStatus == status);
+        }
+        else
+        {
+            query = query.Where(x => x.RequestType == "Renew" || x.RequestType == "Upgrade" || x.ApprovalStatus != "Approved" || !x.IsCurrentPackage);
+        }
+
+        var list = await query.OrderByDescending(x => x.CreatedAtUtc).ToListAsync(cancellationToken);
+        var institutionMap = await LoadInstitutionMapAsync(list.Select(x => x.UserId).Distinct().ToList(), cancellationToken);
+
+        return list.Select(x => MapItem(x, institutionMap)).ToList();
+    }
+
+    public async Task<PackageSubscriptionItemResponse> ApproveSubscriptionRequestAsync(
+        Guid id,
+        ApproveSubscriptionRequest request,
+        string approverUserId,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        var userPackage = await _db.UserPackages
+            .Include(x => x.Package)
+                .ThenInclude(p => p.Features)
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException("Subscription request not found.");
+
+        if (userPackage.ApprovalStatus == "Approved")
+        {
+            throw new InvalidOperationException("Subscription request is already approved.");
+        }
+
+        // Deactivate previous current packages for this user
+        var currentPackages = await _db.UserPackages
+            .Where(x => x.UserId == userPackage.UserId && x.IsCurrentPackage && x.Id != userPackage.Id)
+            .ToListAsync(cancellationToken);
+
+        var prevPkg = currentPackages.FirstOrDefault();
+
+        foreach (var cur in currentPackages)
+        {
+            cur.IsCurrentPackage = false;
+            cur.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        DateTime start;
+        if (userPackage.RequestType == "Renew" && prevPkg != null && prevPkg.EndDateUtc > DateTime.UtcNow)
+        {
+            start = prevPkg.EndDateUtc;
+        }
+        else
+        {
+            start = DateTime.UtcNow;
+        }
+
+        userPackage.StartDateUtc = start;
+        userPackage.EndDateUtc = start.AddDays(userPackage.Package.DurationInDays);
+        userPackage.IsActive = true;
+        userPackage.IsCurrentPackage = true;
+        userPackage.ApprovalStatus = "Approved";
+        userPackage.PaymentStatus = "Paid";
+        userPackage.ApprovedAtUtc = DateTime.UtcNow;
+        userPackage.ApprovedByUserId = approverUserId;
+        userPackage.AdminRemarks = request.AdminRemarks;
+        if (request.FinalApprovedAmount.HasValue)
+        {
+            userPackage.FinalApprovedAmount = request.FinalApprovedAmount.Value;
+            userPackage.AmountPaid = request.FinalApprovedAmount.Value;
+        }
+        else
+        {
+            userPackage.FinalApprovedAmount = userPackage.AmountPaid;
+        }
+
+        userPackage.UpdatedAtUtc = DateTime.UtcNow;
+
         await _db.SaveChangesAsync(cancellationToken);
 
-        upgradedPackage.Package = newPackage;
+        await _auditLogService.WriteAsync(
+            AuditEventTypes.SubscriptionApproval,
+            approverUserId,
+            $"Subscription request for package '{userPackage.Package.Name}' ({userPackage.RequestType}) approved for user '{userPackage.User?.Email ?? userPackage.UserId}'. Amount: {userPackage.FinalApprovedAmount}.",
+            ipAddress,
+            cancellationToken);
 
-        return new UserPackageResponse
+        var institutionMap = await LoadInstitutionMapAsync([userPackage.UserId], cancellationToken);
+        return MapItem(userPackage, institutionMap);
+    }
+
+    public async Task<PackageSubscriptionItemResponse> RejectSubscriptionRequestAsync(
+        Guid id,
+        RejectSubscriptionRequest request,
+        string approverUserId,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        var userPackage = await _db.UserPackages
+            .Include(x => x.Package)
+                .ThenInclude(p => p.Features)
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException("Subscription request not found.");
+
+        if (userPackage.ApprovalStatus == "Approved")
         {
-            Id = upgradedPackage.Id,
-            UserId = upgradedPackage.UserId,
-            PackageId = upgradedPackage.PackageId,
-            PackageName = newPackage.Name,
-            Price = upgradedPackage.AmountPaid,
-            StartDateUtc = upgradedPackage.StartDateUtc,
-            EndDateUtc = upgradedPackage.EndDateUtc,
-            AutoRenew = upgradedPackage.AutoRenew,
-            IsCurrentPackage = upgradedPackage.IsCurrentPackage,
-            PaymentStatus = upgradedPackage.PaymentStatus,
-        };
+            throw new InvalidOperationException("Approved subscription request cannot be rejected.");
+        }
+
+        userPackage.ApprovalStatus = "Rejected";
+        userPackage.IsActive = false;
+        userPackage.IsCurrentPackage = false;
+        userPackage.RejectedAtUtc = DateTime.UtcNow;
+        userPackage.ApprovedByUserId = approverUserId;
+        userPackage.AdminRemarks = request.AdminRemarks;
+        userPackage.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.WriteAsync(
+            AuditEventTypes.SubscriptionApproval,
+            approverUserId,
+            $"Subscription request for package '{userPackage.Package.Name}' ({userPackage.RequestType}) rejected for user '{userPackage.User?.Email ?? userPackage.UserId}'. Reason: {request.AdminRemarks}.",
+            ipAddress,
+            cancellationToken);
+
+        var institutionMap = await LoadInstitutionMapAsync([userPackage.UserId], cancellationToken);
+        return MapItem(userPackage, institutionMap);
     }
 
     private async Task<bool> IsSuperAdminAsync(string userId, CancellationToken cancellationToken)
@@ -458,13 +720,13 @@ public class PackageSubscriptionService : IPackageSubscriptionService
                 });
     }
 
-    private static PackageSubscriptionItemResponse MapItem(
+    private PackageSubscriptionItemResponse MapItem(
         UserPackage userPackage,
         IReadOnlyDictionary<string, (Guid InstitutionId, string Name)> institutionMap)
     {
         var now = DateTime.UtcNow;
         var daysRemaining = (int)Math.Ceiling((userPackage.EndDateUtc - now).TotalDays);
-        var status = ComputeStatus(userPackage.EndDateUtc, now);
+        var status = ComputeStatus(userPackage.EndDateUtc, now, _expiringSoonDays);
         Guid? institutionId = null;
         string? institutionName = null;
         if (institutionMap.TryGetValue(userPackage.UserId, out var institution))
@@ -473,12 +735,17 @@ public class PackageSubscriptionService : IPackageSubscriptionService
             institutionName = institution.Name;
         }
 
+        var isTrial = string.Equals(userPackage.Package.Code, PackageCodes.Trial, StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(userPackage.Package.Name, "Trial", StringComparison.OrdinalIgnoreCase) ||
+                      userPackage.Package.Price <= 0;
+
         return new PackageSubscriptionItemResponse
         {
             Id = userPackage.Id,
             UserId = userPackage.UserId,
             UserName = userPackage.User?.FullName ?? userPackage.User?.Email ?? userPackage.UserId,
             UserEmail = userPackage.User?.Email ?? string.Empty,
+            UserPhone = userPackage.User?.PhoneNumber,
             InstitutionId = institutionId,
             InstitutionName = institutionName,
             PackageId = userPackage.PackageId,
@@ -496,9 +763,17 @@ public class PackageSubscriptionService : IPackageSubscriptionService
             IsActive = userPackage.IsActive,
             PaymentStatus = userPackage.PaymentStatus,
             Status = status,
+            ApprovalStatus = userPackage.ApprovalStatus ?? "Approved",
+            AdminRemarks = userPackage.AdminRemarks,
+            FinalApprovedAmount = userPackage.FinalApprovedAmount,
+            ApprovedAtUtc = userPackage.ApprovedAtUtc,
+            RejectedAtUtc = userPackage.RejectedAtUtc,
+            ApprovedBy = userPackage.ApprovedByUserId,
+            RequestType = userPackage.RequestType,
+            Note = userPackage.Note,
             DaysRemaining = daysRemaining,
-            CanRenew = userPackage.IsCurrentPackage && status is "Expired" or "ExpiringSoon",
-            CanUpgrade = userPackage.IsCurrentPackage && status == "Active",
+            CanRenew = !isTrial && userPackage.IsCurrentPackage && status is "Expired" or "ExpiringSoon",
+            CanUpgrade = userPackage.IsCurrentPackage && (status == "Active" || isTrial),
             CreatedAtUtc = userPackage.CreatedAtUtc,
             Features = userPackage.Package.Features
                 .Select(f => new PackageFeatureResponse
@@ -513,11 +788,29 @@ public class PackageSubscriptionService : IPackageSubscriptionService
 
     private static void EnsureValidPackageSelection(UserPackage current, Package target, bool forUpgrade)
     {
-        var currentPrice = current.Package.Price;
+        var isCurrentTrial = string.Equals(current.Package?.Code, PackageCodes.Trial, StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(current.Package?.Name, "Trial", StringComparison.OrdinalIgnoreCase) ||
+                             (current.Package != null && current.Package.Price <= 0);
+
+        var isTargetTrial = string.Equals(target.Code, PackageCodes.Trial, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(target.Name, "Trial", StringComparison.OrdinalIgnoreCase) ||
+                            target.Price <= 0;
+
+        if (isTargetTrial)
+        {
+            throw new InvalidOperationException("Trial plan cannot be chosen for renew or upgrade.");
+        }
+
+        if (!forUpgrade && isCurrentTrial)
+        {
+            throw new InvalidOperationException("Trial plan cannot be renewed. Please upgrade to a paid plan.");
+        }
+
+        var currentPrice = current.Package?.Price ?? 0;
 
         if (forUpgrade)
         {
-            if (target.Price <= currentPrice)
+            if (target.Price <= currentPrice && !isCurrentTrial)
             {
                 throw new InvalidOperationException("Upgrade requires a higher-priced plan.");
             }
@@ -531,14 +824,14 @@ public class PackageSubscriptionService : IPackageSubscriptionService
         }
     }
 
-    private static string ComputeStatus(DateTime endDateUtc, DateTime now)
+    private static string ComputeStatus(DateTime endDateUtc, DateTime now, int expiringSoonDays)
     {
         if (endDateUtc <= now)
         {
             return "Expired";
         }
 
-        if (endDateUtc <= now.AddDays(ExpiringSoonDays))
+        if (endDateUtc <= now.AddDays(expiringSoonDays))
         {
             return "ExpiringSoon";
         }

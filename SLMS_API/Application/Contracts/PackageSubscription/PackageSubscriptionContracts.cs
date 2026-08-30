@@ -10,6 +10,8 @@ public class PackageSubscriptionOverviewResponse
 
     public PackageSubscriptionItemResponse? CurrentSubscription { get; set; }
 
+    public PackageSubscriptionItemResponse? PendingRequest { get; set; }
+
     public IReadOnlyList<PackageSubscriptionItemResponse> ActiveSubscriptions { get; set; } = [];
 
     public IReadOnlyList<PackageSubscriptionItemResponse> ExpiringSoon { get; set; } = [];
@@ -76,6 +78,24 @@ public class PackageSubscriptionItemResponse
 
     public string Status { get; set; } = string.Empty;
 
+    public string ApprovalStatus { get; set; } = "Approved";
+
+    public string? AdminRemarks { get; set; }
+
+    public decimal? FinalApprovedAmount { get; set; }
+
+    public DateTime? ApprovedAtUtc { get; set; }
+
+    public DateTime? RejectedAtUtc { get; set; }
+
+    public string? ApprovedBy { get; set; }
+
+    public string? RequestType { get; set; }
+
+    public string? Note { get; set; }
+
+    public string? UserPhone { get; set; }
+
     public int DaysRemaining { get; set; }
 
     public bool CanRenew { get; set; }
@@ -105,6 +125,22 @@ public class RenewPackageSubscriptionRequest
     public decimal? AdjustmentAmount { get; set; }
 
     public string? PaymentStatus { get; set; }
+
+    public string? Note { get; set; }
+
+    public string? TransactionId { get; set; }
+}
+
+public class ApproveSubscriptionRequest
+{
+    public decimal? FinalApprovedAmount { get; set; }
+
+    public string? AdminRemarks { get; set; }
+}
+
+public class RejectSubscriptionRequest
+{
+    public string? AdminRemarks { get; set; }
 }
 
 public class UpdatePackageSubscriptionRequest

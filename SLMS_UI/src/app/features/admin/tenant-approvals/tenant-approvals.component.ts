@@ -3,6 +3,7 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '@core/services/admin.service';
 import { AddonService } from '@core/services/addon.service';
+import { PackageSubscriptionService } from '@core/services/package-subscription.service';
 import { ToastService } from '@core/services/toast.service';
 import {
   ApproveTenantRegistrationRequest,
@@ -11,7 +12,10 @@ import {
 } from '@core/models/tenant-registration.models';
 import {
   ApproveAddonRequest,
+  ApproveSubscriptionRequest,
+  PackageSubscriptionItem,
   RejectAddonRequest,
+  RejectSubscriptionRequest,
   UserAddonItem,
 } from '@core/models/package-subscription.models';
 import {
@@ -79,13 +83,14 @@ import {
 export class TenantApprovalsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly addonService = inject(AddonService);
+  private readonly subscriptionService = inject(PackageSubscriptionService);
   private readonly toast = inject(ToastService);
 
   readonly isLoading = signal(true);
   readonly isSubmitting = signal(false);
 
-  // Top-level Section Switcher: 'tenants' | 'addons'
-  readonly activeSection = signal<'tenants' | 'addons'>('tenants');
+  // Top-level Section Switcher: 'tenants' | 'addons' | 'plans'
+  readonly activeSection = signal<'tenants' | 'addons' | 'plans'>('tenants');
 
   // Tenant Registrations State
   readonly registrations = signal<TenantRegistrationItem[]>([]);
@@ -117,6 +122,18 @@ export class TenantApprovalsComponent implements OnInit {
   readonly isEditingAddonOutreach = signal(false);
   readonly customAddonOutreachText = signal('');
 
+  // Plan Renew & Upgrade Requests State
+  readonly planRequests = signal<PackageSubscriptionItem[]>([]);
+  readonly planTab = signal<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  readonly selectedPlanRequest = signal<PackageSubscriptionItem | null>(null);
+  readonly planModalOpen = signal(false);
+  readonly formPlanFinalAmount = signal<number | null>(null);
+  readonly formPlanRemarks = signal<string>('');
+  readonly planRejectReason = signal<string>('');
+  readonly activePlanOutreachTemplate = signal<'payment' | 'discount' | 'reminder'>('payment');
+  readonly isEditingPlanOutreach = signal(false);
+  readonly customPlanOutreachText = signal('');
+
   // Computed counts for Tenants
   readonly totalCount = computed(() => this.registrations().length);
   readonly pendingCount = computed(() =>
@@ -139,6 +156,18 @@ export class TenantApprovalsComponent implements OnInit {
   );
   readonly rejectedAddonCount = computed(() =>
     this.addonRequests().filter((a) => a.approvalStatus?.toLowerCase() === 'rejected').length
+  );
+
+  // Computed counts for Plans
+  readonly totalPlanCount = computed(() => this.planRequests().length);
+  readonly pendingPlanCount = computed(() =>
+    this.planRequests().filter((p) => p.approvalStatus?.toLowerCase() === 'pending').length
+  );
+  readonly approvedPlanCount = computed(() =>
+    this.planRequests().filter((p) => p.approvalStatus?.toLowerCase() === 'approved').length
+  );
+  readonly rejectedPlanCount = computed(() =>
+    this.planRequests().filter((p) => p.approvalStatus?.toLowerCase() === 'rejected').length
   );
 
   // Filtered Tenant list
@@ -190,6 +219,29 @@ export class TenantApprovalsComponent implements OnInit {
     return list;
   });
 
+  // Filtered Plan Requests list
+  readonly filteredPlanRequests = computed(() => {
+    let list = this.planRequests();
+    const tab = this.planTab();
+    if (tab !== 'all') {
+      list = list.filter((p) => p.approvalStatus?.toLowerCase() === tab);
+    }
+
+    const query = this.searchQuery().trim().toLowerCase();
+    if (query) {
+      list = list.filter(
+        (p) =>
+          (p.userName && p.userName.toLowerCase().includes(query)) ||
+          (p.userEmail && p.userEmail.toLowerCase().includes(query)) ||
+          (p.institutionName && p.institutionName.toLowerCase().includes(query)) ||
+          (p.packageName && p.packageName.toLowerCase().includes(query)) ||
+          (p.requestType && p.requestType.toLowerCase().includes(query))
+      );
+    }
+
+    return list;
+  });
+
   ngOnInit(): void {
     this.loadAllData();
   }
@@ -197,9 +249,10 @@ export class TenantApprovalsComponent implements OnInit {
   loadAllData(): void {
     this.loadRegistrations();
     this.loadAddonRequests();
+    this.loadPlanRequests();
   }
 
-  setSection(section: 'tenants' | 'addons'): void {
+  setSection(section: 'tenants' | 'addons' | 'plans'): void {
     this.activeSection.set(section);
   }
 
@@ -226,12 +279,25 @@ export class TenantApprovalsComponent implements OnInit {
     });
   }
 
+  loadPlanRequests(): void {
+    this.subscriptionService.getAllSubscriptionRequests().subscribe({
+      next: (data) => {
+        this.planRequests.set(data);
+      },
+      error: () => {},
+    });
+  }
+
   setTab(tab: 'all' | 'pending' | 'approved' | 'rejected'): void {
     this.activeTab.set(tab);
   }
 
   setAddonTab(tab: 'all' | 'pending' | 'approved' | 'rejected'): void {
     this.addonTab.set(tab);
+  }
+
+  setPlanTab(tab: 'all' | 'pending' | 'approved' | 'rejected'): void {
+    this.planTab.set(tab);
   }
 
   isPending(item?: TenantRegistrationItem | null): boolean {
@@ -562,5 +628,152 @@ export class TenantApprovalsComponent implements OnInit {
   private updateLocalAddonItem(updated: UserAddonItem): void {
     const list = this.addonRequests().map((a) => (a.id === updated.id ? updated : a));
     this.addonRequests.set(list);
+  }
+
+  // Plan Request Helpers & Actions
+  isPlanItemPending(item?: PackageSubscriptionItem | null): boolean {
+    if (!item) return false;
+    return !item.approvalStatus || item.approvalStatus.toLowerCase() === 'pending';
+  }
+
+  isPlanItemApproved(item?: PackageSubscriptionItem | null): boolean {
+    if (!item) return false;
+    return item.approvalStatus?.toLowerCase() === 'approved';
+  }
+
+  isPlanItemRejected(item?: PackageSubscriptionItem | null): boolean {
+    if (!item) return false;
+    return item.approvalStatus?.toLowerCase() === 'rejected';
+  }
+
+  setPlanOutreachTemplate(template: 'payment' | 'discount' | 'reminder'): void {
+    this.activePlanOutreachTemplate.set(template);
+    const item = this.selectedPlanRequest();
+    if (item) {
+      this.customPlanOutreachText.set(this.getPlanOutreachMessage(item, template));
+    }
+    this.isEditingPlanOutreach.set(false);
+  }
+
+  getPlanOutreachMessage(item?: PackageSubscriptionItem | null, template?: 'payment' | 'discount' | 'reminder'): string {
+    if (!item) return '';
+    const tmpl = template || this.activePlanOutreachTemplate();
+    const userName = item.userName || item.userEmail || 'Admin';
+    const orgName = item.institutionName || 'your organization';
+    const planName = item.packageName || 'Package';
+    const type = item.requestType || 'Plan';
+    const amount = (item.finalApprovedAmount ?? item.amountPaid);
+
+    if (tmpl === 'payment') {
+      return `Hello ${userName},\n\nGreetings from *Lexora Support*! 👋\n\nWe received your request to *${type}* to the *${planName}* plan for *${orgName}*.\n\n📌 *Payable Amount:* ₹${amount}\n\nTo complete your subscription activation, *please share your payment confirmation screenshot / UTR slip* here.\n\nThank you,\n*Lexora Support Team*`;
+    } else if (tmpl === 'discount') {
+      return `Hello ${userName},\n\nRegarding your *${type}* request for *${orgName}*, your approved amount for *${planName}* is *₹${amount}*.\n\nKindly send the payment confirmation screenshot for instant activation.\n\nBest regards,\n*Lexora Support Team*`;
+    } else {
+      return `Hello ${userName},\n\nFollow-up regarding your pending *${type}* request for *${planName}* (*${orgName}*).\n\nPlease send your payment screenshot to activate uninterrupted access.\n\n*Lexora Support Team*`;
+    }
+  }
+
+  getCurrentPlanOutreachText(item?: PackageSubscriptionItem | null): string {
+    if (this.customPlanOutreachText()) {
+      return this.customPlanOutreachText();
+    }
+    return this.getPlanOutreachMessage(item);
+  }
+
+  getWhatsAppPlanLaunchUrl(item?: PackageSubscriptionItem | null): string {
+    if (!item) return '';
+    const phone = this.cleanPhoneNumber(item.userPhone || '');
+    if (!phone) return '';
+    const msg = this.getCurrentPlanOutreachText(item);
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  }
+
+  getMailtoPlanUrl(item?: PackageSubscriptionItem | null): string {
+    if (!item || !item.userEmail) return '';
+    const orgName = item.institutionName || 'your organization';
+    const planName = item.packageName || 'Package';
+    const type = item.requestType || 'Plan';
+    const amount = (item.finalApprovedAmount ?? item.amountPaid);
+    const subject = encodeURIComponent(`Lexora ${type} Request Verification: ${planName} - ${orgName}`);
+    const body = encodeURIComponent(this.getCurrentPlanOutreachText(item));
+    return `mailto:${item.userEmail}?subject=${subject}&body=${body}`;
+  }
+
+  openPlanReviewModal(item: PackageSubscriptionItem): void {
+    this.selectedPlanRequest.set(item);
+    this.formPlanFinalAmount.set(item.finalApprovedAmount ?? item.amountPaid);
+    this.formPlanRemarks.set(item.adminRemarks || '');
+    this.planRejectReason.set('');
+    this.activePlanOutreachTemplate.set('payment');
+    this.isEditingPlanOutreach.set(false);
+    this.customPlanOutreachText.set(this.getPlanOutreachMessage(item, 'payment'));
+    this.planModalOpen.set(true);
+  }
+
+  closePlanModal(): void {
+    this.planModalOpen.set(false);
+    this.selectedPlanRequest.set(null);
+  }
+
+  setQuickPlanRemark(remark: string): void {
+    this.formPlanRemarks.set(remark);
+  }
+
+  approvePlanRequest(): void {
+    const item = this.selectedPlanRequest();
+    if (!item) return;
+
+    this.isSubmitting.set(true);
+    const payload: ApproveSubscriptionRequest = {
+      finalApprovedAmount: this.formPlanFinalAmount() ?? item.amountPaid,
+      adminRemarks: this.formPlanRemarks().trim() || undefined,
+    };
+
+    this.subscriptionService.approveSubscriptionRequest(item.id, payload).subscribe({
+      next: (updated) => {
+        this.isSubmitting.set(false);
+        this.toast.success(`Plan request approved & activated for ${updated.userName || updated.userEmail}!`);
+        this.updateLocalPlanItem(updated);
+        this.closePlanModal();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.message || 'Failed to approve plan request.');
+      },
+    });
+  }
+
+  rejectPlanRequest(): void {
+    const item = this.selectedPlanRequest();
+    if (!item) return;
+
+    const reason = this.formPlanRemarks().trim() || this.planRejectReason().trim();
+    if (!reason) {
+      this.toast.error('Please enter a rejection reason / remarks.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    const payload: RejectSubscriptionRequest = {
+      adminRemarks: reason,
+    };
+
+    this.subscriptionService.rejectSubscriptionRequest(item.id, payload).subscribe({
+      next: (updated) => {
+        this.isSubmitting.set(false);
+        this.toast.info(`Plan request rejected for ${updated.userName || updated.userEmail}`);
+        this.updateLocalPlanItem(updated);
+        this.closePlanModal();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.message || 'Failed to reject plan request.');
+      },
+    });
+  }
+
+  private updateLocalPlanItem(updated: PackageSubscriptionItem): void {
+    const list = this.planRequests().map((p) => (p.id === updated.id ? updated : p));
+    this.planRequests.set(list);
   }
 }

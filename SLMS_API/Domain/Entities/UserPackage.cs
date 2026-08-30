@@ -36,6 +36,29 @@ namespace SLMS_API.Domain.Entities
         [MaxLength(50)]
         public string? PaymentMethod { get; set; }
 
+        // SuperAdmin Approval Workflow
+        [MaxLength(50)]
+        public string ApprovalStatus { get; set; } = "Approved"; // "Pending", "Approved", "Rejected"
+
+        [MaxLength(1000)]
+        public string? AdminRemarks { get; set; }
+
+        public decimal? FinalApprovedAmount { get; set; }
+
+        public DateTime? ApprovedAtUtc { get; set; }
+
+        public DateTime? RejectedAtUtc { get; set; }
+
+        public string? ApprovedByUserId { get; set; }
+
+        [MaxLength(50)]
+        public string? RequestType { get; set; } // "Renew", "Upgrade", "Initial"
+
+        [MaxLength(1000)]
+        public string? Note { get; set; }
+
+        public Guid? PreviousPackageId { get; set; }
+
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAtUtc { get; set; }

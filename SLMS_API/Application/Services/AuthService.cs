@@ -82,6 +82,17 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("A user with this email already exists.");
         }
 
+        // Validate Package
+        var package = await _packageService.GetByIdAsync(request.PackageId, cancellationToken);
+        if (package is null || !package.IsActive)
+        {
+            throw new InvalidOperationException("The selected package does not exist or is not available.");
+        }
+
+        var isTrial = string.Equals(package.Code, PackageCodes.Trial, StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(package.Name, "Trial", StringComparison.OrdinalIgnoreCase) ||
+                      package.Price <= 0;
+
         var user = new ApplicationUser
         {
             FullName = request.Name,
@@ -89,7 +100,10 @@ public class AuthService : IAuthService
             Email = request.Email,
             EmailConfirmed = true,
             OnboardingStep = OnboardingStep.Registered,
-            ApprovalStatus = "Pending",
+            ApprovalStatus = isTrial ? "Approved" : "Pending",
+            AdminRemarks = isTrial ? "Auto-approved for 14-day Free Trial" : null,
+            FinalApprovedAmount = isTrial ? 0.00m : null,
+            ApprovedAtUtc = isTrial ? DateTime.UtcNow : null,
             UserType = request.UserType,
             IsActive = true
         };
@@ -98,13 +112,6 @@ public class AuthService : IAuthService
         if (!result.Succeeded)
         {
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
-        }
-
-        // Create UserPackage
-        var package = await _packageService.GetByIdAsync(request.PackageId, cancellationToken);
-        if (package is null || !package.IsActive)
-        {
-            throw new InvalidOperationException("The selected package does not exist or is not available.");
         }
 
         var subscribePackageRequest = new SubscribePackageRequest
@@ -120,7 +127,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Unable to subscribe the selected package.");
         }
 
-        if (request.SelectedAddons is not null && request.SelectedAddons.Count > 0)
+        if (!isTrial && request.SelectedAddons is not null && request.SelectedAddons.Count > 0)
         {
             foreach (var addonItem in request.SelectedAddons.Where(a => a.Quantity > 0))
             {
@@ -492,19 +499,32 @@ public class AuthService : IAuthService
             return false;
         }
 
-        user.OnboardingStep = onboardingStep;
         if (onboardingStep == OnboardingStep.PendingApproval)
         {
-            user.ApprovalStatus = "Pending";
+            if (string.Equals(user.ApprovalStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                user.OnboardingStep = OnboardingStep.Completed;
+            }
+            else
+            {
+                user.OnboardingStep = OnboardingStep.PendingApproval;
+                user.ApprovalStatus = "Pending";
+            }
         }
         else if (onboardingStep == OnboardingStep.Completed)
         {
+            user.OnboardingStep = OnboardingStep.Completed;
             user.ApprovalStatus = "Approved";
             user.IsActive = true;
         }
         else if (onboardingStep == OnboardingStep.Rejected)
         {
+            user.OnboardingStep = OnboardingStep.Rejected;
             user.ApprovalStatus = "Rejected";
+        }
+        else
+        {
+            user.OnboardingStep = onboardingStep;
         }
 
         user.UpdatedAtUtc = DateTime.UtcNow;

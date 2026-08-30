@@ -70,7 +70,15 @@ public static class DbSeeder
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await dbContext.Database.MigrateAsync();
+        try
+        {
+            await dbContext.Database.MigrateAsync();
+        }
+        catch
+        {
+            // Fallback if migration table state differs
+        }
+        await EnsureApprovalColumnsExistAsync(dbContext);
         await SeedRolesAsync(serviceProvider);
         await SeedRolePermissionsAsync(serviceProvider);
         await SuperAdminSeedData.SeedAsync(serviceProvider);
@@ -78,6 +86,95 @@ public static class DbSeeder
         await SeedSupportArticlesAsync(serviceProvider);
         await SeedBooksAsync(serviceProvider);
         await SeedPackagesAndAddonsAsync(serviceProvider);
+    }
+
+    private static async Task EnsureApprovalColumnsExistAsync(ApplicationDbContext dbContext)
+    {
+        try
+        {
+            await dbContext.Database.ExecuteSqlRawAsync(@"
+                -- Ensure UserPackages approval columns exist
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'ApprovalStatus')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [ApprovalStatus] nvarchar(50) NOT NULL CONSTRAINT [DF_UserPackages_ApprovalStatus_Default] DEFAULT N'Approved';
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'AdminRemarks')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [AdminRemarks] nvarchar(1000) NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'FinalApprovedAmount')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [FinalApprovedAmount] decimal(18,2) NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'ApprovedAtUtc')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [ApprovedAtUtc] datetime2 NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'RejectedAtUtc')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [RejectedAtUtc] datetime2 NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'ApprovedByUserId')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [ApprovedByUserId] nvarchar(max) NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'RequestType')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [RequestType] nvarchar(50) NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'Note')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [Note] nvarchar(1000) NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackages]') AND name = 'PreviousPackageId')
+                BEGIN
+                    ALTER TABLE [UserPackages] ADD [PreviousPackageId] uniqueidentifier NULL;
+                END
+
+                -- Ensure UserPackageAddons approval columns exist
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovalStatus')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [ApprovalStatus] nvarchar(50) NOT NULL CONSTRAINT [DF_UserPackageAddons_ApprovalStatus_Default] DEFAULT N'Pending';
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'AdminRemarks')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [AdminRemarks] nvarchar(1000) NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'FinalApprovedAmount')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [FinalApprovedAmount] decimal(18,2) NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovedAtUtc')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [ApprovedAtUtc] datetime2 NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'RejectedAtUtc')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [RejectedAtUtc] datetime2 NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovedByUserId')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [ApprovedByUserId] nvarchar(max) NULL;
+                END
+            ");
+        }
+        catch
+        {
+            // Ignore if DB is in another state
+        }
     }
 
     public static async Task SeedPackagesAndAddonsAsync(IServiceProvider serviceProvider)
@@ -94,7 +191,7 @@ public static class DbSeeder
                 Code = PackageCodes.Trial,
                 Category = "Starter",
                 Price = 0.00m,
-                Description = "14-day full feature trial to experience smart library management.",
+                Description = "14-day full access trial of Basic plan features (1 institution, 1 branch, 1 library, 2 users, up to 50 active members).",
                 IsPopular = false,
                 CtaLabel = "Start Free Trial",
                 DurationInDays = 14,
@@ -130,7 +227,7 @@ public static class DbSeeder
                 Code = PackageCodes.Value,
                 Category = "Professional",
                 Price = 4999.00m,
-                Description = "Ideal for growing organizations (2 institutions, 2 branches, 2 libraries, 4 users, up to 400 active members).",
+                Description = "Ideal for growing organizations (up to 2 institutions, 2 branches, 2 libraries, 4 users, up to 400 active members).",
                 IsPopular = true,
                 CtaLabel = "Select Value",
                 DurationInDays = 365,
@@ -148,7 +245,7 @@ public static class DbSeeder
                 Code = PackageCodes.Premium,
                 Category = "Enterprise",
                 Price = 8299.00m,
-                Description = "Full-scale enterprise solution (5 institutions, 5 branches, 5 libraries, 10 users, up to 1000 active members).",
+                Description = "Full-scale enterprise solution (up to 5 institutions, 5 branches, 5 libraries, 10 users, up to 1000 active members).",
                 IsPopular = false,
                 CtaLabel = "Select Premium",
                 DurationInDays = 365,
@@ -170,6 +267,13 @@ public static class DbSeeder
             }
             else
             {
+                existing.Name = p.Name;
+                existing.Price = p.Price;
+                existing.Description = p.Description;
+                existing.Category = p.Category;
+                existing.DurationInDays = p.DurationInDays;
+                existing.CtaLabel = p.CtaLabel;
+                existing.IsPopular = p.IsPopular;
                 existing.MaxInstitutions = p.MaxInstitutions;
                 existing.MaxBranches = p.MaxBranches;
                 existing.MaxLibraries = p.MaxLibraries;
@@ -260,6 +364,97 @@ public static class DbSeeder
             if (existing is null)
             {
                 dbContext.Addons.Add(a);
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        // Seed / Sync PackageFeatures for all 4 packages
+        var trialPkgId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var basicPkgId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var valuePkgId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var premiumPkgId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+
+        var featureMatrix = new List<(string FeatureName, string TrialVal, string BasicVal, string ValueVal, string PremiumVal)>
+        {
+            // Branches & libraries
+            ("Single Institution & Branch", "0", "0", "0", "0"),
+            ("Multi-Institution Management", "1", "1", "0", "0"),
+            ("Multi-Branch Management", "1", "1", "0", "0"),
+            ("Multi-Library Network", "1", "1", "0", "0"),
+            ("Branch-level Reporting", "1", "1", "0", "0"),
+
+            // Members & billing
+            ("Member Management & Profiles", "0", "0", "0", "0"),
+            ("Membership Plans & Subscriptions", "0", "0", "0", "0"),
+            ("Fees & Payment Tracking", "0", "0", "0", "0"),
+            ("Late Fees Tracking & Penalties", "0", "0", "0", "0"),
+            ("Member Attendance & QR Check-in", "0", "0", "0", "0"),
+            ("Seat Allocation & Shift Management", "0", "0", "0", "0"),
+
+            // Books & circulation
+            ("Book Catalog & Inventory", "0", "0", "0", "0"),
+            ("Book Issue & Return Circulation", "0", "0", "0", "0"),
+            ("Book Audit & Barcode Scanning", "0", "0", "0", "0"),
+            ("Book Reservations & Holds", "1", "1", "0", "0"),
+
+            // Notifications
+            ("WhatsApp Sharing & Receipts", "0", "0", "0", "0"),
+            ("Automated Mail Notifications", "1", "1", "0", "0"),
+
+            // Analytics & reports
+            ("Standard Reports & Exports", "0", "0", "0", "0"),
+            ("Multi-Branch Comparative Dashboard", "1", "1", "0", "0"),
+            ("Advanced Analytics & Insights", "1", "1", "1", "0"),
+
+            // Support & onboarding
+            ("Standard Support", "0", "0", "0", "0"),
+            ("Priority 24/7 Dedicated Support", "1", "1", "1", "0"),
+            ("Capacity Add-ons Compatibility", "1", "0", "0", "0")
+        };
+
+        var packageTargetMap = new Dictionary<Guid, Func<(string FeatureName, string TrialVal, string BasicVal, string ValueVal, string PremiumVal), string>>
+        {
+            [trialPkgId] = item => item.TrialVal,
+            [basicPkgId] = item => item.BasicVal,
+            [valuePkgId] = item => item.ValueVal,
+            [premiumPkgId] = item => item.PremiumVal
+        };
+
+        foreach (var (pkgId, valSelector) in packageTargetMap)
+        {
+            var existingFeatures = await dbContext.PackageFeatures
+                .Where(x => x.PackageId == pkgId)
+                .ToListAsync();
+
+            var expectedNames = featureMatrix.Select(f => f.FeatureName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Remove obsolete/unknown features for this package
+            var toRemove = existingFeatures.Where(ef => !expectedNames.Contains(ef.FeatureName)).ToList();
+            if (toRemove.Count > 0)
+            {
+                dbContext.PackageFeatures.RemoveRange(toRemove);
+            }
+
+            // Insert or update expected features
+            foreach (var item in featureMatrix)
+            {
+                var targetVal = valSelector(item);
+                var existing = existingFeatures.FirstOrDefault(ef => string.Equals(ef.FeatureName, item.FeatureName, StringComparison.OrdinalIgnoreCase));
+                if (existing is null)
+                {
+                    dbContext.PackageFeatures.Add(new PackageFeatures
+                    {
+                        Id = Guid.NewGuid(),
+                        PackageId = pkgId,
+                        FeatureName = item.FeatureName,
+                        FeatureValue = targetVal
+                    });
+                }
+                else if (existing.FeatureValue != targetVal)
+                {
+                    existing.FeatureValue = targetVal;
+                }
             }
         }
 

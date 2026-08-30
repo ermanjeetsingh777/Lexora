@@ -41,15 +41,22 @@
 
         <!-- Subscription Package Selection -->
         <div class="space-y-1.5">
-            <label class="ui-label" for="packageId">Subscription package <span class="text-red-500">*</span></label>
+            <div class="flex items-center justify-between">
+                <label class="ui-label mb-0" for="packageId">Subscription package <span class="text-red-500">*</span></label>
+                @if (isPackageLocked()) {
+                    <button type="button" (click)="isPackageLocked.set(false)" class="text-xs text-[var(--primary)] hover:underline font-medium">
+                        Change Plan
+                    </button>
+                }
+            </div>
             <select
                 id="packageId"
-                class="ui-input"
+                class="ui-input disabled:opacity-75 disabled:cursor-not-allowed disabled:bg-muted/40"
                 name="packageId"
                 [(ngModel)]="packageId"
                 #packageCtrl="ngModel"
                 required
-                [disabled]="packagesLoading() || busy()">
+                [disabled]="packagesLoading() || busy() || isPackageLocked()">
                 <option value="" disabled>Select a package</option>
                 @for (pkg of packages(); track pkg.id) {
                     <option [value]="pkg.id">{{ packageLabel(pkg) }}</option>
@@ -97,8 +104,8 @@
             }
         </div>
 
-        <!-- Optional Add-ons Section -->
-        @if (addons().length > 0) {
+        <!-- Optional Add-ons Section (Hidden for Free Trial) -->
+        @if (!isTrialSelected() && addons().length > 0) {
             <div class="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-3.5 space-y-3">
                 <div class="flex items-center justify-between cursor-pointer select-none" (click)="showAddons.set(!showAddons())">
                     <div class="flex items-center gap-2">

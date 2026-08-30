@@ -1,9 +1,11 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import {
+  ApproveSubscriptionRequest,
   PackageSubscriptionItem,
   PackageSubscriptionOverview,
   PackageSubscriptionQuote,
+  RejectSubscriptionRequest,
   RenewPackageSubscriptionRequest,
   SubscribePackageRequest,
   UpdatePackageSubscriptionRequest,
@@ -51,6 +53,26 @@ export class PackageSubscriptionService {
   upgrade(request: UpgradePackageRequest): Observable<UserPackageSummary> {
     return this.api
       .post<UserPackageSummary>('package-subscriptions/upgrade', request)
+      .pipe(map((r) => r.data!));
+  }
+
+  getAllSubscriptionRequests(status?: string): Observable<PackageSubscriptionItem[]> {
+    return this.api
+      .get<PackageSubscriptionItem[]>('package-subscriptions/requests', {
+        params: status ? { status } : undefined,
+      })
+      .pipe(map((r) => r.data ?? []));
+  }
+
+  approveSubscriptionRequest(id: string, payload: ApproveSubscriptionRequest): Observable<PackageSubscriptionItem> {
+    return this.api
+      .post<PackageSubscriptionItem>(`package-subscriptions/requests/${id}/approve`, payload)
+      .pipe(map((r) => r.data!));
+  }
+
+  rejectSubscriptionRequest(id: string, payload: RejectSubscriptionRequest): Observable<PackageSubscriptionItem> {
+    return this.api
+      .post<PackageSubscriptionItem>(`package-subscriptions/requests/${id}/reject`, payload)
       .pipe(map((r) => r.data!));
   }
 }

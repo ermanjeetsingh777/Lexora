@@ -44,14 +44,33 @@ export class RegisterComponent implements OnInit {
   readonly packagesLoading = signal(true);
   readonly selectedAddonQuantities = signal<Record<string, number>>({});
   readonly showAddons = signal(false);
+  readonly isPackageLocked = signal(false);
 
-  packageId = '';
+  readonly selectedPackageId = signal<string>('');
+
+  get packageId(): string {
+    return this.selectedPackageId();
+  }
+
+  set packageId(val: string) {
+    this.selectedPackageId.set(val);
+  }
 
   readonly selectedPackage = computed(() => {
-    return this.packages().find((p) => p.id === this.packageId) ?? null;
+    const id = this.selectedPackageId();
+    return this.packages().find((p) => p.id === id) ?? null;
+  });
+
+  readonly isTrialSelected = computed(() => {
+    const pkg = this.selectedPackage();
+    if (!pkg) return false;
+    return pkg.price <= 0 ||
+           (pkg.code?.toLowerCase() === 'trial') ||
+           (pkg.name?.toLowerCase() === 'trial');
   });
 
   readonly addonsTotal = computed(() => {
+    if (this.isTrialSelected()) return 0;
     const quantities = this.selectedAddonQuantities();
     return this.addons().reduce((acc, addon) => {
       const qty = quantities[addon.id] || 0;
@@ -74,10 +93,12 @@ export class RegisterComponent implements OnInit {
         const matched = packages.find((pkg) => pkg.id === preselectedPackageId);
         if (matched) {
           this.packageId = matched.id;
+          this.isPackageLocked.set(true);
         } else if (packages.length > 0) {
           // Default to Basic or first package
           const basic = packages.find((p) => p.code === 'Basic') ?? packages[0];
           this.packageId = basic.id;
+          this.isPackageLocked.set(false);
         }
         this.packagesLoading.set(false);
       },

@@ -10,5 +10,9 @@ namespace SLMS_API.Application.Contracts.Package.Request
         public Guid NewPackageId { get; set; }
 
         public bool AutoRenew { get; set; }
+
+        public string? Note { get; set; }
+
+        public string? TransactionId { get; set; }
     }
 }

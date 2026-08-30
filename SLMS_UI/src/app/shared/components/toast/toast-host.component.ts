@@ -17,6 +17,9 @@ import { ToastService } from '@core/services/toast.service';
           [class.bg-red-100]="t.type === 'error'"
           [class.border-red-500]="t.type === 'error'"
 
+          [class.bg-amber-100]="t.type === 'warning'"
+          [class.border-amber-500]="t.type === 'warning'"
+
           [class.bg-blue-100]="t.type === 'info'"
           [class.border-blue-500]="t.type === 'info'"
           role="status"
@@ -25,6 +28,7 @@ import { ToastService } from '@core/services/toast.service';
             class="mr-2 inline-block h-1.5 w-1.5 rounded-full"
             [class.bg-green-600]="t.type === 'success'"
             [class.bg-red-600]="t.type === 'error'"
+            [class.bg-amber-600]="t.type === 'warning'"
             [class.bg-blue-600]="t.type === 'info'"
           ></span>
           {{ t.message }}

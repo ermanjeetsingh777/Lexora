@@ -22,4 +22,10 @@ public interface IPackageSubscriptionService
     Task<UserPackageResponse> SubscribeAsync(string userId, SubscribePackageRequest request, CancellationToken cancellationToken = default);
 
     Task<UserPackageResponse> UpgradeAsync(string actorUserId, UpgradePackageRequest request, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<PackageSubscriptionItemResponse>> GetAllSubscriptionRequestsAsync(string? status, CancellationToken cancellationToken = default);
+
+    Task<PackageSubscriptionItemResponse> ApproveSubscriptionRequestAsync(Guid id, ApproveSubscriptionRequest request, string approverUserId, string? ipAddress, CancellationToken cancellationToken = default);
+
+    Task<PackageSubscriptionItemResponse> RejectSubscriptionRequestAsync(Guid id, RejectSubscriptionRequest request, string approverUserId, string? ipAddress, CancellationToken cancellationToken = default);
 }

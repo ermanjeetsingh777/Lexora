@@ -104,6 +104,7 @@ export class SubscriptionsComponent {
   readonly selectedAddon = signal<AddonCatalogItem | null>(null);
   readonly addonPurchaseQuantity = signal(1);
   readonly addonPurchaseNote = signal('');
+  readonly planChangeNote = signal('');
 
   // SuperAdmin edit state
   readonly editingPackage = signal<PackageCatalogItem | null>(null);
@@ -111,6 +112,13 @@ export class SubscriptionsComponent {
 
   readonly isSuperAdmin = computed(() => this.overview()?.isSuperAdmin ?? false);
   readonly current = computed(() => this.overview()?.currentSubscription ?? null);
+  readonly pendingPlanRequest = computed(() => this.overview()?.pendingRequest ?? null);
+  readonly isCurrentTrial = computed(() => {
+    const cur = this.current();
+    if (!cur) return false;
+    return cur.packagePrice <= 0 ||
+           (cur.packageName?.toLowerCase().includes('trial') ?? false);
+  });
   readonly expiringSoon = computed(() => this.overview()?.expiringSoon ?? []);
   readonly expired = computed(() => this.overview()?.expired ?? []);
   readonly history = computed(() => this.overview()?.history ?? []);
@@ -120,16 +128,20 @@ export class SubscriptionsComponent {
   readonly dialogPlans = computed(() => {
     const mode = this.dialogMode();
     const sub = this.selectedSubscription();
-    if (!mode || !sub) return this.plans();
+    // Exclude Trial package from renew and upgrade dialogs
+    const paidPlans = this.plans().filter(
+      (p) => p.price > 0 && p.code?.toLowerCase() !== 'trial' && p.name?.toLowerCase() !== 'trial'
+    );
+    if (!mode || !sub) return paidPlans;
 
     const currentPrice = sub.packagePrice;
     if (mode === 'upgrade') {
-      return this.plans().filter((p) => p.price > currentPrice);
+      return paidPlans.filter((p) => p.price > currentPrice);
     }
     if (mode === 'renew') {
-      return this.plans().filter((p) => p.price >= currentPrice);
+      return paidPlans.filter((p) => p.price >= currentPrice);
     }
-    return this.plans();
+    return paidPlans;
   });
 
   readonly selectedPlan = computed(() => {
@@ -147,6 +159,17 @@ export class SubscriptionsComponent {
       next: (data) => {
         this.overview.set(data);
         this.loading.set(false);
+
+        const currentSub = data.currentSubscription;
+        if (currentSub) {
+          if (currentSub.status === 'ExpiringSoon' || currentSub.daysRemaining > 0 && currentSub.canRenew) {
+            this.toast.warning(`Your ${currentSub.packageName} subscription is expiring in ${currentSub.daysRemaining} day(s). Please renew or upgrade to continue uninterrupted access.`);
+          } else if (currentSub.status === 'Expired' || currentSub.daysRemaining <= 0) {
+            this.toast.error(`Your ${currentSub.packageName} subscription has expired. Please renew or upgrade to restore access.`);
+          }
+        } else if (data.isSuperAdmin && data.summary?.expiringSoonCount > 0) {
+          this.toast.warning(`${data.summary.expiringSoonCount} subscription package(s) are expiring soon.`);
+        }
       },
       error: () => {
         this.toast.error('Could not load subscription overview.');
@@ -170,12 +193,26 @@ export class SubscriptionsComponent {
   }
 
   openRenew(item: PackageSubscriptionItem): void {
+    if (this.isTrialItem(item)) {
+      this.openUpgrade(item);
+      return;
+    }
     this.openDialog('renew', item, item.packageId);
   }
 
   openUpgrade(item: PackageSubscriptionItem): void {
-    const nextPlan = this.plans().find((p) => p.price > item.packagePrice);
-    this.openDialog('upgrade', item, nextPlan?.id ?? '');
+    const paidPlans = this.plans().filter(
+      (p) => p.price > 0 && p.code?.toLowerCase() !== 'trial' && p.name?.toLowerCase() !== 'trial' && p.price > item.packagePrice
+    );
+    const targetPlan = paidPlans[0] ?? this.plans().find((p) => p.price > 0 && p.code?.toLowerCase() !== 'trial' && p.name?.toLowerCase() !== 'trial');
+    this.openDialog('upgrade', item, targetPlan?.id ?? '');
+  }
+
+  isTrialItem(item: PackageSubscriptionItem | null): boolean {
+    if (!item) return false;
+    return item.packagePrice <= 0 ||
+           item.packageCode?.toLowerCase() === 'trial' ||
+           item.packageName?.toLowerCase() === 'trial';
   }
 
   openUpdate(item: PackageSubscriptionItem): void {
@@ -214,10 +251,14 @@ export class SubscriptionsComponent {
   }
 
   openDialog(mode: DialogMode, item: PackageSubscriptionItem, preselectedPackageId?: string): void {
-    this.dialogMode.set(mode);
+    const isTrial = this.isTrialItem(item);
+    const resolvedMode = (mode === 'renew' && isTrial) ? 'upgrade' : mode;
+
+    this.dialogMode.set(resolvedMode);
     this.selectedSubscription.set(item);
     this.autoRenew.set(item.autoRenew);
     this.endDateInput.set(item.endDateUtc ? item.endDateUtc.slice(0, 10) : '');
+    this.planChangeNote.set('');
 
     const candidates = this.dialogPlans();
     const resolvedId = preselectedPackageId && candidates.some((p) => p.id === preselectedPackageId)
@@ -226,7 +267,7 @@ export class SubscriptionsComponent {
 
     this.selectedPackageId.set(resolvedId);
 
-    if (resolvedId && (mode === 'upgrade' || mode === 'renew')) {
+    if (resolvedId && (resolvedMode === 'upgrade' || resolvedMode === 'renew')) {
       this.fetchQuote(item.id, resolvedId);
     } else {
       this.quote.set(null);
@@ -241,6 +282,7 @@ export class SubscriptionsComponent {
     this.selectedAddon.set(null);
     this.editingPackage.set(null);
     this.editingAddon.set(null);
+    this.planChangeNote.set('');
   }
 
   onPlanChange(newPlanId: string): void {
@@ -254,7 +296,10 @@ export class SubscriptionsComponent {
 
   private fetchQuote(subscriptionId: string, newPackageId: string): void {
     this.quoteLoading.set(true);
-    this.subscriptionsApi.getQuote(subscriptionId, newPackageId).subscribe({
+    const mode = this.dialogMode();
+    const isUpgrade = mode === 'upgrade' || this.isTrialItem(this.selectedSubscription());
+
+    this.subscriptionsApi.getQuote(subscriptionId, newPackageId, isUpgrade).subscribe({
       next: (q) => {
         this.quote.set(q);
         this.quoteLoading.set(false);
@@ -351,14 +396,19 @@ export class SubscriptionsComponent {
 
     this.saving.set(true);
 
-    if (mode === 'renew') {
+    if (mode === 'renew' && !this.isTrialItem(subscription)) {
       this.subscriptionsApi.renew({
         subscriptionId: subscription.id,
         packageId: this.selectedPackageId(),
         autoRenew: this.autoRenew(),
+        note: this.planChangeNote().trim() || undefined,
       }).subscribe({
-        next: () => {
-          this.toast.success('Plan renewed successfully.');
+        next: (res) => {
+          if (res.approvalStatus === 'Approved') {
+            this.toast.success('Plan renewed successfully.');
+          } else {
+            this.toast.success('Renew request submitted! Sent to SuperAdmin for verification & approval.');
+          }
           this.closeDialog();
           this.loadOverview();
           this.saving.set(false);
@@ -371,14 +421,19 @@ export class SubscriptionsComponent {
       return;
     }
 
-    if (mode === 'upgrade') {
+    if (mode === 'upgrade' || (mode === 'renew' && this.isTrialItem(subscription))) {
       this.subscriptionsApi.upgrade({
         subscriptionId: subscription.id,
         newPackageId: this.selectedPackageId(),
         autoRenew: this.autoRenew(),
+        note: this.planChangeNote().trim() || undefined,
       }).subscribe({
-        next: () => {
-          this.toast.success('Plan upgraded successfully.');
+        next: (res) => {
+          if (res.approvalStatus === 'Approved') {
+            this.toast.success('Plan upgraded successfully.');
+          } else {
+            this.toast.success('Upgrade request submitted! Sent to SuperAdmin for verification & approval.');
+          }
           this.closeDialog();
           this.loadOverview();
           this.saving.set(false);
@@ -410,6 +465,12 @@ export class SubscriptionsComponent {
   }
 
   selectPlan(plan: PackageCatalogItem): void {
+    const isTrial = plan.price <= 0 || plan.code?.toLowerCase() === 'trial' || plan.name?.toLowerCase() === 'trial';
+    if (isTrial) {
+      this.toast.info('Trial plan is only for new registrations.');
+      return;
+    }
+
     const currentSub = this.current();
     if (!currentSub) {
       this.saving.set(true);
@@ -438,10 +499,14 @@ export class SubscriptionsComponent {
   }
 
   planActionLabel(plan: PackageCatalogItem): string {
+    const isTrial = plan.price <= 0 || plan.code?.toLowerCase() === 'trial' || plan.name?.toLowerCase() === 'trial';
     const currentSub = this.current();
-    if (!currentSub) return 'Subscribe now';
+    if (!currentSub) return isTrial ? 'Start free trial' : 'Subscribe now';
     if (plan.id === currentSub.packageId) {
       return currentSub.canRenew ? 'Renew plan' : 'Current plan';
+    }
+    if (isTrial) {
+      return 'Trial completed';
     }
     if (plan.price > currentSub.packagePrice) {
       return currentSub.canUpgrade ? 'Upgrade to plan' : 'Unavailable';
@@ -450,8 +515,10 @@ export class SubscriptionsComponent {
   }
 
   canSelectPlan(plan: PackageCatalogItem): boolean {
+    const isTrial = plan.price <= 0 || plan.code?.toLowerCase() === 'trial' || plan.name?.toLowerCase() === 'trial';
     const currentSub = this.current();
-    if (!currentSub) return true;
+    if (!currentSub) return !isTrial;
+    if (isTrial) return false;
     if (plan.id === currentSub.packageId) return currentSub.canRenew;
     if (plan.price > currentSub.packagePrice) return currentSub.canUpgrade;
     return currentSub.canRenew;
@@ -472,6 +539,17 @@ export class SubscriptionsComponent {
 
   isAddonRejected(addon: UserAddonItem): boolean {
     return addon.approvalStatus?.toLowerCase() === 'rejected';
+  }
+
+  getWhatsAppPlanSlipUrl(sub: PackageSubscriptionItem): string {
+    const env = (environment as unknown as { superAdminContact?: { whatsApp?: string; phone?: string } }).superAdminContact;
+    const cleanWa = (env?.whatsApp || env?.phone || '9992823909').replace(/\D/g, '');
+    const phone = cleanWa.length === 10 ? '91' + cleanWa : cleanWa;
+    const org = sub.institutionName || 'My Organization';
+    const amount = sub.finalApprovedAmount ?? sub.amountPaid;
+    const type = sub.requestType || 'Plan Change';
+    const msg = `Hello Lexora Admin,\n\nI have submitted a ${type} request for *${org}*:\n\n📦 *Package:* ${sub.packageName}\n💰 *Payable Amount:* ₹${amount}\n\n📎 *I have attached my payment confirmation screenshot / transaction receipt here.* Please verify and activate our plan.\n\nThank you!`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   }
 
   getWhatsAppAddonSlipUrl(addon: UserAddonItem): string {

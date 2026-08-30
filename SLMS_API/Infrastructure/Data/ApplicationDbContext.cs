@@ -127,6 +127,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(x => x.ApprovalStatus).HasMaxLength(50).HasDefaultValue("Pending");
+            entity.Property(x => x.AdminRemarks).HasMaxLength(1000);
+            entity.Property(x => x.FinalApprovedAmount).HasPrecision(18, 2);
+        });
+
         builder.Entity<Institution>(entity =>
         {
             entity.HasKey(x => x.Id);

@@ -13,6 +13,9 @@ public class UserProfileResponse
     public bool TwoFactorEnabled { get; set; }
     public UserType UserType { get; set; }
     public OnboardingStep OnboardingStep { get; set; }
+    public string ApprovalStatus { get; set; } = "Pending";
+    public string? AdminRemarks { get; set; }
+    public decimal? FinalApprovedAmount { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
     public IReadOnlyCollection<string> Roles { get; set; } = [];

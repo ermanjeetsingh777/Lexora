@@ -723,7 +723,7 @@ public class LibraryService : ILibraryService
 
         if (request.IsOnboarding)
         {
-            await _authService.UpdateOnboardingStepAsync(userId.ToString(), OnboardingStep.Completed, cancellationToken);
+            await _authService.UpdateOnboardingStepAsync(userId.ToString(), OnboardingStep.PendingApproval, cancellationToken);
         }
 
         return ToResponse(library);

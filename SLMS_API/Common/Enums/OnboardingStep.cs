@@ -6,6 +6,7 @@ public enum OnboardingStep
     Institute = 2,
     Branch = 3,
     Library = 4,
-    Completed = 5
+    Completed = 5,
+    PendingApproval = 6,
+    Rejected = 7
 }
-

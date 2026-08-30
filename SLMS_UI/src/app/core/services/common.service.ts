@@ -29,8 +29,16 @@ export class CommonService {
             message: ''
         },
         [OnboardingSteps.Library]: {
-            route: "",
-            message: ''
+            route: '/onboarding/library',
+            message: 'Complete your library setup.'
+        },
+        [OnboardingSteps.PendingApproval]: {
+            route: '/pending-approval',
+            message: 'Your registration is awaiting SuperAdmin confirmation.'
+        },
+        [OnboardingSteps.Rejected]: {
+            route: '/pending-approval',
+            message: 'Your registration status has been updated.'
         }
     };
 
@@ -43,7 +51,7 @@ export class CommonService {
     readonly onboardingMessages = {
         institutionCreated: 'Institution created successfully! Now add the first branch for this institution.',
         branchCreated: 'Branch created successfully! Now add the first library for this branch.',
-        libraryCreated: 'Library created successfully! Your organization setup is complete.',
+        libraryCreated: 'Library created successfully! Your organization setup is complete and submitted for SuperAdmin approval.',
     };
 
     planClasses(plan: string | null | undefined): string {

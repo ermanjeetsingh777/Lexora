@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SLMS_API.Application.Contracts.Admin;
 using SLMS_API.Application.Contracts.Admin.Requests;
 using SLMS_API.Application.Contracts.Admin.Responses;
 using SLMS_API.Application.Contracts.Auth.Responses;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 using SLMS_API.Infrastructure.Authorization;
 
@@ -385,4 +387,101 @@ public class AdminController : ControllerBase
         var health = await _adminService.GetSystemHealthAsync(cancellationToken);
         return Ok(ApiResponse<object>.Ok(health));
     }
+
+    #region Tenant Registration Approvals (SuperAdmin)
+
+    [HttpGet("registrations")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<TenantRegistrationResponse>>>> GetRegistrations(
+        [FromQuery] string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var registrations = await _adminService.GetTenantRegistrationsAsync(status, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyCollection<TenantRegistrationResponse>>.Ok(registrations));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve tenant registrations");
+            return BadRequest(ApiResponse<IReadOnlyCollection<TenantRegistrationResponse>>.Fail(ex.Message));
+        }
+    }
+
+    [HttpGet("registrations/{userId}")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<TenantRegistrationResponse>>> GetRegistrationById(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var registration = await _adminService.GetTenantRegistrationByIdAsync(userId, cancellationToken);
+        if (registration == null)
+        {
+            return NotFound(ApiResponse<TenantRegistrationResponse>.Fail("Registration request not found."));
+        }
+
+        return Ok(ApiResponse<TenantRegistrationResponse>.Ok(registration));
+    }
+
+    [HttpPost("registrations/{userId}/approve")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<TenantRegistrationResponse>>> ApproveRegistration(
+        string userId,
+        [FromBody] ApproveTenantRegistrationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var approverUserId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(approverUserId))
+        {
+            return Unauthorized(ApiResponse<TenantRegistrationResponse>.Fail("User is not authenticated."));
+        }
+
+        try
+        {
+            var result = await _adminService.ApproveTenantRegistrationAsync(
+                userId,
+                request,
+                approverUserId,
+                _currentUserService.IpAddress,
+                cancellationToken);
+
+            return Ok(ApiResponse<TenantRegistrationResponse>.Ok(result, "Tenant registration approved successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<TenantRegistrationResponse>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPost("registrations/{userId}/reject")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<TenantRegistrationResponse>>> RejectRegistration(
+        string userId,
+        [FromBody] RejectTenantRegistrationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var approverUserId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(approverUserId))
+        {
+            return Unauthorized(ApiResponse<TenantRegistrationResponse>.Fail("User is not authenticated."));
+        }
+
+        try
+        {
+            var result = await _adminService.RejectTenantRegistrationAsync(
+                userId,
+                request,
+                approverUserId,
+                _currentUserService.IpAddress,
+                cancellationToken);
+
+            return Ok(ApiResponse<TenantRegistrationResponse>.Ok(result, "Tenant registration rejected."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<TenantRegistrationResponse>.Fail(ex.Message));
+        }
+    }
+
+    #endregion
 }

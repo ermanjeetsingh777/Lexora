@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using SLMS_API.Application.Contracts.Admin;
 using SLMS_API.Application.Contracts.Auth.Requests;
 using SLMS_API.Application.Contracts.Auth.Responses;
 using SLMS_API.Application.Contracts.Package.Request;
@@ -9,6 +12,7 @@ using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 using SLMS_API.Domain.Entities;
+using SLMS_API.Infrastructure.Data;
 using SLMS_API.Infrastructure.Repositories.Interfaces;
 using System.Net;
 using System.Numerics;
@@ -22,6 +26,8 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly ApplicationDbContext _dbContext;
+    private readonly IConfiguration _configuration;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IOtpCodeRepository _otpCodeRepository;
@@ -37,6 +43,8 @@ public class AuthService : IAuthService
     public AuthService(
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
+        ApplicationDbContext dbContext,
+        IConfiguration configuration,
         IJwtTokenService jwtTokenService,
         IRefreshTokenRepository refreshTokenRepository,
         IOtpCodeRepository otpCodeRepository,
@@ -51,6 +59,8 @@ public class AuthService : IAuthService
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _dbContext = dbContext;
+        _configuration = configuration;
         _jwtTokenService = jwtTokenService;
         _refreshTokenRepository = refreshTokenRepository;
         _otpCodeRepository = otpCodeRepository;
@@ -79,6 +89,7 @@ public class AuthService : IAuthService
             Email = request.Email,
             EmailConfirmed = true,
             OnboardingStep = OnboardingStep.Registered,
+            ApprovalStatus = "Pending",
             UserType = request.UserType,
             IsActive = true
         };
@@ -391,6 +402,9 @@ public class AuthService : IAuthService
             IsActive = user.IsActive,
             UserType = user.UserType,
             OnboardingStep = user.OnboardingStep,
+            ApprovalStatus = user.ApprovalStatus ?? (user.OnboardingStep == OnboardingStep.Completed ? "Approved" : "Pending"),
+            AdminRemarks = user.AdminRemarks,
+            FinalApprovedAmount = user.FinalApprovedAmount,
             TwoFactorEnabled = user.TwoFactorEnabled,
             Roles = roles.ToArray(),
             Permissions = await _permissionResolver.GetPermissionsForRolesAsync(roles, cancellationToken)
@@ -473,16 +487,113 @@ public class AuthService : IAuthService
 
         if (user is null)
             return false;
-        if (user.OnboardingStep == OnboardingStep.Completed)
+        if (user.OnboardingStep == OnboardingStep.Completed && onboardingStep != OnboardingStep.Completed)
         {
             return false;
         }
+
         user.OnboardingStep = onboardingStep;
+        if (onboardingStep == OnboardingStep.PendingApproval)
+        {
+            user.ApprovalStatus = "Pending";
+        }
+        else if (onboardingStep == OnboardingStep.Completed)
+        {
+            user.ApprovalStatus = "Approved";
+            user.IsActive = true;
+        }
+        else if (onboardingStep == OnboardingStep.Rejected)
+        {
+            user.ApprovalStatus = "Rejected";
+        }
+
         user.UpdatedAtUtc = DateTime.UtcNow;
 
         var result = await _userManager.UpdateAsync(user);
 
         return result.Succeeded;
+    }
+
+    public async Task<TenantRegistrationStatusResponse> GetRegistrationStatusAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException("User not found.");
+
+        var userPackage = await _dbContext.UserPackages
+            .Include(x => x.Package)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+
+        var userAddons = await _dbContext.UserPackageAddons
+            .Include(x => x.Addon)
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        var userInstitution = await _dbContext.UserInstitutions
+            .Include(ui => ui.Institution)
+            .FirstOrDefaultAsync(ui => ui.UserId == userId && ui.IsActive && !ui.Institution.IsDeleted, cancellationToken);
+
+        var institution = userInstitution?.Institution;
+
+        var branch = institution != null
+            ? await _dbContext.Branches.FirstOrDefaultAsync(x => x.InstitutionId == institution.Id && !x.IsDeleted, cancellationToken)
+            : null;
+
+        var library = branch != null
+            ? await _dbContext.Libraries.FirstOrDefaultAsync(x => x.BranchId == branch.Id && !x.IsDeleted, cancellationToken)
+            : null;
+
+        var pkgPrice = userPackage?.AmountPaid ?? userPackage?.Package?.Price ?? 0;
+        var addonTotal = userAddons.Sum(a => a.AmountPaid);
+        var totalCalculated = pkgPrice + addonTotal;
+
+        var supportEmail = _configuration["SuperAdminSupport:Email"] ?? "er.yogeshrao@gmail.com";
+        var supportPhone = _configuration["SuperAdminSupport:Phone"] ?? "+91 9992823909";
+        var supportSecondaryPhone = _configuration["SuperAdminSupport:SecondaryPhone"] ?? "+91 9468118737";
+        var supportWhatsApp = _configuration["SuperAdminSupport:WhatsApp"] ?? "+91 9992823909";
+        var supportAvailability = _configuration["SuperAdminSupport:Availability"] ?? "Instant Verification & Activation Support (9:00 AM - 9:00 PM IST)";
+        var cleanWa = new string(supportWhatsApp.Where(char.IsDigit).ToArray());
+
+        return new TenantRegistrationStatusResponse
+        {
+            UserId = user.Id,
+            FullName = user.FullName ?? user.UserName ?? "User",
+            Email = user.Email ?? "",
+            OnboardingStep = user.OnboardingStep,
+            ApprovalStatus = user.ApprovalStatus ?? (user.OnboardingStep == OnboardingStep.Completed ? "Approved" : "Pending"),
+            AdminRemarks = user.AdminRemarks,
+            FinalApprovedAmount = user.FinalApprovedAmount,
+            TotalCalculatedAmount = totalCalculated,
+            RegisteredAtUtc = user.CreatedAtUtc,
+            PackageName = userPackage?.Package?.Name ?? "Selected Plan",
+            PackageTier = userPackage?.Package?.Code ?? "Basic",
+            PackagePrice = pkgPrice,
+            Addons = userAddons.Select(a => new TenantRegistrationAddonItem
+            {
+                AddonId = a.AddonId,
+                AddonName = a.Addon?.Name ?? "Capacity Addon",
+                AddonCode = a.Addon?.Code ?? "",
+                ResourceType = a.Addon?.ResourceType ?? "",
+                Quantity = a.Quantity,
+                UnitQuantity = a.Addon?.UnitQuantity ?? 1,
+                TotalExtraQuantity = a.TotalExtraQuantity,
+                AmountPaid = a.AmountPaid,
+                IsActive = a.IsActive
+            }).ToList(),
+            InstitutionName = institution?.Name,
+            BranchName = branch?.Name,
+            LibraryName = library?.Name,
+            SuperAdminContact = new SuperAdminContactInfo
+            {
+                Email = supportEmail,
+                Phone = supportPhone,
+                SecondaryPhone = supportSecondaryPhone,
+                WhatsApp = supportWhatsApp,
+                WhatsAppUrl = !string.IsNullOrWhiteSpace(cleanWa) ? $"https://wa.me/{cleanWa}" : "https://wa.me/919992823909",
+                Availability = supportAvailability
+            }
+        };
     }
     private static AuthResponse MapAuthResponse(Contracts.Auth.TokenResult tokens, CurrentUserResponse userInfo) =>
         new()

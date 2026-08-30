@@ -8,6 +8,7 @@ import { StorageService } from './storage.service';
 import { ApiService } from './api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { AuthResponse, CurrentUser, ForgotPasswordRequest, LoginRequest, MessageResponse, RefreshTokenRequest, RegisterRequest, ResetPasswordRequest } from '@core/models/AuthResponse.model';
+import { TenantRegistrationStatusResponse } from '@core/models/tenant-registration.models';
 import { Router } from '@angular/router';
 import { MemberPortalService } from './member-portal.service';
 
@@ -57,6 +58,10 @@ export class AuthService {
 
   resetPassword(request: ResetPasswordRequest): Observable<APIResponseModel<MessageResponse>> {
     return this.httpApi.post<MessageResponse>('auth/reset-password', request);
+  }
+
+  getRegistrationStatus(): Observable<APIResponseModel<TenantRegistrationStatusResponse>> {
+    return this.httpApi.get<TenantRegistrationStatusResponse>('auth/registration-status');
   }
 
   restoreSession(): void {

@@ -13,9 +13,11 @@ public class CurrentUserResponse
     public bool TwoFactorEnabled { get; set; }
     public UserType UserType { get; set; }
     public OnboardingStep OnboardingStep { get; set; }
+    public string ApprovalStatus { get; set; } = "Pending";
+    public string? AdminRemarks { get; set; }
+    public decimal? FinalApprovedAmount { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
     public IReadOnlyCollection<string> Roles { get; set; } = [];
     public IReadOnlyCollection<PermissionKey> Permissions { get; set; } = [];
-    //public ICollection<UserPackage> UserPackage { get; set; } = new List<UserPackage>();
 }

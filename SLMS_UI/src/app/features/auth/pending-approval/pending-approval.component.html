@@ -1,0 +1,384 @@
+<div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans selection:bg-indigo-500 selection:text-white">
+  <!-- Background Glow & Grid -->
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.18),rgba(255,255,255,0))] pointer-events-none"></div>
+  <div class="absolute -top-40 -right-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <!-- Header Navigation -->
+  <header class="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between border-b border-slate-800/60">
+    <div class="flex items-center gap-3">
+      <app-logo layout="horizontal" [size]="36"></app-logo>
+    </div>
+
+    <div class="flex items-center gap-2 sm:gap-3">
+      <button
+        type="button"
+        (click)="refreshStatus()"
+        [disabled]="isRefreshing()"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-300 bg-slate-900 border border-slate-700/80 hover:bg-slate-800 hover:text-white transition-all shadow-sm disabled:opacity-50"
+      >
+        <svg lucideRefreshCw [class]="isRefreshing() ? 'w-3.5 h-3.5 animate-spin text-indigo-400' : 'w-3.5 h-3.5 text-slate-400'"></svg>
+        <span>{{ isRefreshing() ? 'Checking...' : 'Refresh Status' }}</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="logout()"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-rose-300 bg-rose-950/40 border border-rose-800/40 hover:bg-rose-900/50 hover:text-rose-200 transition-all"
+      >
+        <svg lucideLogOut class="w-3.5 h-3.5"></svg>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="relative z-10 flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center">
+    
+    @if (isLoading()) {
+      <div class="flex flex-col items-center justify-center py-20 text-center">
+        <div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+        <p class="text-slate-400 text-sm">Loading your account status...</p>
+      </div>
+    } @else {
+      <!-- Status Card -->
+      <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl overflow-hidden mb-6">
+        
+        <!-- Status Header Banner -->
+        <div class="p-6 sm:p-8 text-center border-b border-slate-800/80 relative">
+          
+          @if (statusData()?.approvalStatus?.toLowerCase() === 'rejected') {
+            <!-- Rejected Badge -->
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs sm:text-sm font-medium mb-4">
+              <svg lucideXCircle class="w-4 h-4 text-rose-400"></svg>
+              <span>Application Declined</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">
+              Registration Under Further Review
+            </h1>
+            <p class="text-slate-400 text-sm max-w-lg mx-auto">
+              Your registration could not be automatically approved. Please check the administrator remarks below and contact our team for assistance.
+            </p>
+          } @else {
+            <!-- Pending Badge -->
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs sm:text-sm font-medium mb-4">
+              <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <span>Awaiting SuperAdmin Confirmation</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">
+              Your Setup Is Complete & Under Review
+            </h1>
+            <p class="text-slate-400 text-sm max-w-xl mx-auto">
+              Thank you for registering with Lexora. Your organization, branch, and library structure have been securely recorded. Our SuperAdmin team is reviewing your subscription request.
+            </p>
+          }
+        </div>
+
+        <!-- SuperAdmin Comments / Remarks (If Present) -->
+        @if (statusData()?.adminRemarks) {
+          <div class="p-4 sm:p-5 mx-6 my-4 rounded-xl border"
+               [ngClass]="statusData()?.approvalStatus?.toLowerCase() === 'rejected' ? 'bg-rose-950/30 border-rose-800/40 text-rose-200' : 'bg-indigo-950/30 border-indigo-800/40 text-indigo-200'">
+            <div class="flex items-start gap-3">
+              @if (statusData()?.approvalStatus?.toLowerCase() === 'rejected') {
+                <svg lucideShieldAlert class="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-400"></svg>
+              } @else {
+                <svg lucideShieldCheck class="w-5 h-5 flex-shrink-0 mt-0.5 text-indigo-400"></svg>
+              }
+              <div>
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  Administrator Remarks / Note
+                </h4>
+                <p class="text-sm font-medium leading-relaxed">
+                  "{{ statusData()?.adminRemarks }}"
+                </p>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- SuperAdmin Contact Section (Urgent / Instant Activation Box) -->
+        <div class="p-6 sm:p-8 bg-gradient-to-b from-indigo-950/30 via-slate-900/80 to-slate-950 border-t border-slate-800 space-y-5">
+          
+          <!-- Hotline Header -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <div class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                <svg lucideHeadphones class="w-4 h-4"></svg>
+                <span>Instant Verification & Activation Hotline</span>
+              </div>
+              <h3 class="text-lg sm:text-xl font-bold text-white tracking-tight">
+                Inform SuperAdmin & Share Payment Confirmation
+              </h3>
+              <p class="text-xs sm:text-sm text-slate-400 max-w-xl">
+                Choose a pre-formatted WhatsApp message below to inform the SuperAdmin, share your payment screenshot, and get your account activated immediately.
+              </p>
+            </div>
+
+            <!-- Quick Direct Call & Email Badges -->
+            <div class="flex flex-wrap items-center gap-2">
+              @if (contactInfo().phone) {
+                <a
+                  [href]="'tel:' + contactInfo().phone"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 bg-slate-800/90 border border-slate-700 hover:bg-slate-700 hover:text-white transition-all shadow-sm"
+                  title="Call Primary Support Line"
+                >
+                  <svg lucidePhone class="w-3.5 h-3.5 text-indigo-400"></svg>
+                  <span>Call Primary</span>
+                </a>
+              }
+              @if (contactInfo().secondaryPhone) {
+                <a
+                  [href]="'tel:' + contactInfo().secondaryPhone"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 bg-slate-800/90 border border-slate-700 hover:bg-slate-700 hover:text-white transition-all shadow-sm"
+                  title="Call Secondary Support Line"
+                >
+                  <svg lucidePhone class="w-3.5 h-3.5 text-indigo-400"></svg>
+                  <span>Call Secondary</span>
+                </a>
+              }
+              @if (contactInfo().email) {
+                <a
+                  [href]="'mailto:' + contactInfo().email + '?subject=Lexora%20Registration%20Approval%20Request%20-%20' + (statusData()?.email || '')"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-amber-300 bg-amber-950/30 border border-amber-800/40 hover:bg-amber-900/40 transition-all shadow-sm"
+                  title="Send Email to SuperAdmin"
+                >
+                  <svg lucideMail class="w-3.5 h-3.5 text-amber-400"></svg>
+                  <span>Email Admin</span>
+                </a>
+              }
+            </div>
+          </div>
+
+          <!-- Interactive WhatsApp Outreach Box -->
+          <div class="rounded-xl border border-emerald-500/30 bg-slate-900/90 p-4 sm:p-5 space-y-4 shadow-xl">
+            
+            <!-- Template Selection Buttons Row -->
+            <div class="flex flex-wrap items-center justify-between gap-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  (click)="setTemplate('slip')"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                  [ngClass]="activeTemplate() === 'slip'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40 font-semibold ring-2 ring-emerald-400/40'
+                    : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700'"
+                >
+                  <svg lucideMessageSquare class="w-3.5 h-3.5 text-emerald-400"></svg>
+                  <span>Share Payment Slip</span>
+                </button>
+
+                <button
+                  type="button"
+                  (click)="setTemplate('status')"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                  [ngClass]="activeTemplate() === 'status'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40 font-semibold ring-2 ring-emerald-400/40'
+                    : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700'"
+                >
+                  <svg lucideClock class="w-3.5 h-3.5 text-amber-400"></svg>
+                  <span>Check Approval Status</span>
+                </button>
+
+                <button
+                  type="button"
+                  (click)="setTemplate('discount')"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                  [ngClass]="activeTemplate() === 'discount'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40 font-semibold ring-2 ring-emerald-400/40'
+                    : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700'"
+                >
+                  <svg lucideSparkles class="w-3.5 h-3.5 text-indigo-400"></svg>
+                  <span>Discuss Pricing</span>
+                </button>
+              </div>
+
+              <!-- Toggle Edit Message Button -->
+              <button
+                type="button"
+                (click)="isEditingMessage.set(!isEditingMessage())"
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors inline-flex items-center gap-1.5"
+              >
+                <svg lucideEdit3 class="w-3.5 h-3.5"></svg>
+                <span>{{ isEditingMessage() ? 'Done Editing' : 'Customize Message' }}</span>
+              </button>
+            </div>
+
+            <!-- Message Preview / Edit Area -->
+            <div class="rounded-xl bg-slate-950/80 border border-slate-800 p-4 space-y-2">
+              <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                <span class="flex items-center gap-1.5 text-emerald-400">
+                  <svg lucideMessageCircle class="w-3.5 h-3.5"></svg>
+                  <span>WhatsApp Message Preview</span>
+                </span>
+                <span class="text-slate-400">
+                  Recipient: <strong class="text-slate-200">{{ contactInfo().phone }}</strong>
+                </span>
+              </div>
+
+              @if (isEditingMessage()) {
+                <textarea
+                  [ngModel]="customMessage()"
+                  (ngModelChange)="customMessage.set($event)"
+                  rows="5"
+                  class="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none font-mono"
+                  placeholder="Type custom message to SuperAdmin..."
+                ></textarea>
+              } @else {
+                <div class="text-xs text-slate-200 whitespace-pre-line leading-relaxed bg-slate-900/60 p-3.5 rounded-lg border border-slate-800/80 font-sans">
+                  {{ getCurrentWhatsAppMessage() }}
+                </div>
+              }
+            </div>
+
+            <!-- Bottom Actions Row -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+              <div class="text-xs text-slate-400 text-center sm:text-left">
+                WhatsApp opens with your pre-filled message ready to send.
+              </div>
+
+              <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                <!-- Copy Text Button -->
+                <button
+                  type="button"
+                  (click)="copyText(getCurrentWhatsAppMessage(), 'Message')"
+                  class="px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
+                >
+                  @if (copiedField() === 'Message') {
+                    <svg lucideCheck class="w-4 h-4 text-emerald-400"></svg>
+                    <span class="text-emerald-400 font-semibold">Copied!</span>
+                  } @else {
+                    <svg lucideCopy class="w-4 h-4"></svg>
+                    <span>Copy Text</span>
+                  }
+                </button>
+
+                <!-- Send on WhatsApp Button -->
+                <a
+                  [href]="getWhatsAppLaunchUrl()"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-900/40 hover:shadow-emerald-900/60 transition-all inline-flex items-center justify-center gap-2 flex-1 sm:flex-initial"
+                >
+                  <svg lucideMessageCircle class="w-4 h-4"></svg>
+                  <span>Chat on WhatsApp</span>
+                  <svg lucideExternalLink class="w-3.5 h-3.5 opacity-80"></svg>
+                </a>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Contact Details Strip -->
+          <div class="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-400 text-center sm:text-left">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2">
+              <svg lucidePhone class="w-3.5 h-3.5 text-slate-500 mt-0.5"></svg>
+              <div>
+                <span>Phone: </span>
+                <a [href]="'tel:' + contactInfo().phone" class="text-slate-200 hover:text-indigo-400 font-semibold underline underline-offset-2">{{ contactInfo().phone }}</a>
+                @if (contactInfo().secondaryPhone) {
+                  <span class="text-slate-500">, </span>
+                  <a [href]="'tel:' + contactInfo().secondaryPhone" class="text-slate-200 hover:text-indigo-400 font-semibold underline underline-offset-2">{{ contactInfo().secondaryPhone }}</a>
+                }
+              </div>
+            </div>
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+              <svg lucideMail class="w-3.5 h-3.5 text-slate-500"></svg>
+              <span>Email: <a [href]="'mailto:' + contactInfo().email" class="text-slate-200 hover:text-indigo-400 font-semibold underline underline-offset-2">{{ contactInfo().email }}</a></span>
+            </div>
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+              <svg lucideClock class="w-3.5 h-3.5 text-slate-500"></svg>
+              <span>{{ contactInfo().availability || 'Instant Verification (9:00 AM - 9:00 PM IST)' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Registration Summary Details Section -->
+        <div class="p-6 sm:p-8 bg-slate-950/60 border-t border-slate-800/80">
+          <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <svg lucideLayers class="w-4 h-4 text-indigo-400"></svg>
+            <span>Submitted Setup & Billing Summary</span>
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <!-- Organization Info Box -->
+            <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2">
+              <div class="text-xs text-slate-500 font-medium">Organization Structure</div>
+              <div class="text-sm font-semibold text-white flex items-center gap-1.5">
+                <svg lucideBuilding2 class="w-4 h-4 text-indigo-400"></svg>
+                <span>{{ statusData()?.institutionName || 'Institution Created' }}</span>
+              </div>
+              <div class="text-xs text-slate-400 space-y-1 pl-5">
+                @if (statusData()?.branchName) {
+                  <div>Branch: <span class="text-slate-300 font-medium">{{ statusData()?.branchName }}</span></div>
+                }
+                @if (statusData()?.libraryName) {
+                  <div>Library: <span class="text-slate-300 font-medium">{{ statusData()?.libraryName }}</span></div>
+                }
+              </div>
+            </div>
+
+            <!-- Package & Pricing Box -->
+            <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2">
+              <div class="text-xs text-slate-500 font-medium">Selected Plan & Add-ons</div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-indigo-300">{{ statusData()?.packageName }}</span>
+                <span class="text-sm font-bold text-white">{{ statusData()?.packagePrice | currency:'INR':'symbol':'1.0-0' }}</span>
+              </div>
+
+              <!-- Addons List (if any) -->
+              @if (statusData()?.addons && (statusData()?.addons?.length ?? 0) > 0) {
+                <div class="pt-2 border-t border-slate-800/60 space-y-1 text-xs">
+                  @for (addon of statusData()?.addons; track addon.addonId) {
+                    <div class="flex justify-between text-slate-400">
+                      <span>{{ addon.addonName }} (x{{ addon.quantity }})</span>
+                      <span class="text-slate-300 font-medium">+{{ addon.amountPaid | currency:'INR':'symbol':'1.0-0' }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Total Amount Strip -->
+              <div class="pt-2 border-t border-slate-700/80 flex items-center justify-between text-sm">
+                <span class="font-semibold text-slate-300">
+                  {{ statusData()?.finalApprovedAmount ? 'Approved Final Amount:' : 'Total Calculated Amount:' }}
+                </span>
+                <span class="text-base font-bold text-emerald-400">
+                  {{ (statusData()?.finalApprovedAmount ?? statusData()?.totalCalculatedAmount) | currency:'INR':'symbol':'1.0-0' }}
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Footer Strip -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
+        <button
+          type="button"
+          (click)="refreshStatus()"
+          [disabled]="isRefreshing()"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-900/40 hover:shadow-indigo-900/60 transition-all disabled:opacity-50"
+        >
+          <svg lucideRefreshCw [class]="isRefreshing() ? 'w-4 h-4 animate-spin' : 'w-4 h-4'"></svg>
+          <span>{{ isRefreshing() ? 'Checking Status...' : 'Check Approval Status' }}</span>
+        </button>
+
+        <p class="text-xs text-slate-500">
+          Auto-updates when approved. You can also click "Check Approval Status" at any time.
+        </p>
+      </div>
+    }
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 text-center text-xs text-slate-500 border-t border-slate-800/40">
+    <span>&copy; {{ statusData()?.registeredAtUtc | date:'yyyy' }} Lexora Library Network Platform. All rights reserved.</span>
+  </footer>
+</div>

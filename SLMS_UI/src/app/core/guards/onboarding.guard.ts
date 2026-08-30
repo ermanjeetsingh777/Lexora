@@ -20,6 +20,9 @@ function requiredOnboardingRoute(
             return '/onboarding/library';
         case OnboardingSteps.Library:
             return '/onboarding/library';
+        case OnboardingSteps.PendingApproval:
+        case OnboardingSteps.Rejected:
+            return '/pending-approval';
         default:
             return '/onboarding/institution';
     }

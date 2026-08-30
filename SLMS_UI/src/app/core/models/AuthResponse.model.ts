@@ -18,6 +18,9 @@ export interface CurrentUser {
     isActive: boolean;
     twoFactorEnabled: boolean;
     onboardingStep: OnboardingSteps;
+    approvalStatus?: string;
+    adminRemarks?: string;
+    finalApprovedAmount?: number;
     usertype : UserTypes;
     createdAtUtc: string;
     updatedAtUtc: string;

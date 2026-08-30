@@ -12,6 +12,11 @@ import {
   AdminUser,
   PermissionItem,
 } from '@core/models/admin.models';
+import {
+  ApproveTenantRegistrationRequest,
+  RejectTenantRegistrationRequest,
+  TenantRegistrationItem,
+} from '@core/models/tenant-registration.models';
 import { PermissionKey } from '@core/constants/permissions';
 import { InstitutionDropdownResponse } from '@core/models/institution-dropdown.model';
 
@@ -105,5 +110,31 @@ export class AdminService {
     return this.api
       .get<InstitutionDropdownResponse[]>(`${this.base}/users/scope-options`)
       .pipe(map((r) => r.data ?? []));
+  }
+
+  // Tenant Registration Approvals (SuperAdmin)
+  getTenantRegistrations(status?: string): Observable<TenantRegistrationItem[]> {
+    const params = status && status !== 'all' ? { status } : undefined;
+    return this.api
+      .get<TenantRegistrationItem[]>(`${this.base}/registrations`, { params })
+      .pipe(map((r) => r.data ?? []));
+  }
+
+  getTenantRegistrationById(userId: string): Observable<TenantRegistrationItem> {
+    return this.api
+      .get<TenantRegistrationItem>(`${this.base}/registrations/${userId}`)
+      .pipe(map((r) => r.data!));
+  }
+
+  approveTenantRegistration(userId: string, request: ApproveTenantRegistrationRequest): Observable<TenantRegistrationItem> {
+    return this.api
+      .post<TenantRegistrationItem>(`${this.base}/registrations/${userId}/approve`, request)
+      .pipe(map((r) => r.data!));
+  }
+
+  rejectTenantRegistration(userId: string, request: RejectTenantRegistrationRequest): Observable<TenantRegistrationItem> {
+    return this.api
+      .post<TenantRegistrationItem>(`${this.base}/registrations/${userId}/reject`, request)
+      .pipe(map((r) => r.data!));
   }
 }

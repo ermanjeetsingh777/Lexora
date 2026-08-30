@@ -238,7 +238,8 @@ export class CreateLibrary implements OnInit {
           if (this.isOnboarding()) {
             const loggedInUser = this.storageService.user();
             if (loggedInUser) {
-              loggedInUser.onboardingStep = OnboardingSteps.Completed;
+              loggedInUser.onboardingStep = OnboardingSteps.PendingApproval;
+              loggedInUser.approvalStatus = 'Pending';
               this.storageService.setUser(loggedInUser);
             }
           }
@@ -246,7 +247,7 @@ export class CreateLibrary implements OnInit {
           this.toast.success(this.commonService.onboardingMessages.libraryCreated);
 
           if (this.isOnboarding()) {
-            this.router.navigate(['/dashboard']);
+            this.router.navigate(['/pending-approval']);
           } else if (this.fromBranchDetail && this.presetBranchId) {
             this.router.navigate(['/branches', this.presetBranchId], { queryParams: { tab: 'libraries' } });
           } else if (this.fromInstitutionDetail && this.presetInstitutionId) {

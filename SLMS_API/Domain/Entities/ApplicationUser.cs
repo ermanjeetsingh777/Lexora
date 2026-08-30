@@ -12,6 +12,15 @@ public class ApplicationUser : IdentityUser
     public UserType UserType { get; set; } = UserType.Member;
     // Current onboarding step
     public OnboardingStep OnboardingStep { get; set; } = OnboardingStep.Registered;
+
+    // SuperAdmin Tenant Approval Workflow
+    public string ApprovalStatus { get; set; } = "Pending"; // "Pending", "Approved", "Rejected"
+    public string? AdminRemarks { get; set; }
+    public decimal? FinalApprovedAmount { get; set; }
+    public DateTime? ApprovedAtUtc { get; set; }
+    public DateTime? RejectedAtUtc { get; set; }
+    public string? ApprovedByUserId { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
     public Member? Member { get; set; }

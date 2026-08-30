@@ -8,4 +8,6 @@ public static class AuditEventTypes
     public const string RoleAssignment = "RoleAssignment";
     public const string PermissionAssignment = "PermissionAssignment";
     public const string PasswordReset = "PasswordReset";
+    public const string UserUpdate = "UserUpdate";
+    public const string RegistrationApproval = "RegistrationApproval";
 }

@@ -37,6 +37,11 @@ export const routes: Routes = [
         path: 'unauthorized',
         loadComponent: () => import('./features/auth/unauthorized/unauthorized.component').then((m) => m.UnauthorizedComponent),
     },
+    {
+        path: 'pending-approval',
+        canActivate: [onboardingGuard],
+        loadComponent: () => import('./features/auth/pending-approval/pending-approval.component').then((m) => m.PendingApprovalComponent),
+    },
     // Public attendance kiosk (no login)
     {
         path: 'kiosk/attendance/library',
@@ -213,6 +218,15 @@ export const routes: Routes = [
                 data: { permission: PermissionKey.RolesList },
                 loadComponent: () => import('./features/admin/roles-list/roles-list.component').then((m) => m.RolesListComponent),
             },
+
+            // --- Tenant Registration Approvals (SuperAdmin) ---
+            {
+                path: 'admin/approvals',
+                canActivate: [permissionGuard],
+                data: { permission: PermissionKey.UsersList },
+                loadComponent: () => import('./features/admin/tenant-approvals/tenant-approvals.component').then((m) => m.TenantApprovalsComponent),
+            },
+            { path: 'approvals', redirectTo: 'admin/approvals', pathMatch: 'full' },
 
             // --- Profile ---
             {

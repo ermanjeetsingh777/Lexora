@@ -1,3 +1,4 @@
+using SLMS_API.Application.Contracts.Admin;
 using SLMS_API.Application.Contracts.Admin.Requests;
 using SLMS_API.Application.Contracts.Admin.Responses;
 using SLMS_API.Application.Contracts.Organizations.Requests;
@@ -27,5 +28,10 @@ public interface IAdminService
 
     Task<string> BackupAsync(string? ipAddress, CancellationToken cancellationToken = default);
     Task<object> GetSystemHealthAsync(CancellationToken cancellationToken = default);
-}
 
+    // Tenant Registration Approval Methods
+    Task<IReadOnlyCollection<TenantRegistrationResponse>> GetTenantRegistrationsAsync(string? statusFilter, CancellationToken cancellationToken = default);
+    Task<TenantRegistrationResponse?> GetTenantRegistrationByIdAsync(string userId, CancellationToken cancellationToken = default);
+    Task<TenantRegistrationResponse> ApproveTenantRegistrationAsync(string userId, ApproveTenantRegistrationRequest request, string approverUserId, string? ipAddress, CancellationToken cancellationToken = default);
+    Task<TenantRegistrationResponse> RejectTenantRegistrationAsync(string userId, RejectTenantRegistrationRequest request, string approverUserId, string? ipAddress, CancellationToken cancellationToken = default);
+}

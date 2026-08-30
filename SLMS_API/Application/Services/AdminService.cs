@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using SLMS_API.Application.Contracts.Admin;
 using SLMS_API.Application.Contracts.Admin.Requests;
 using SLMS_API.Application.Contracts.Admin.Responses;
 using SLMS_API.Application.Contracts.Organizations.Requests;
@@ -1516,6 +1517,334 @@ public class AdminService : IAdminService
             })
             .OrderBy(i => i.Key)
             .ToList();
+    }
+
+    public async Task<IReadOnlyCollection<TenantRegistrationResponse>> GetTenantRegistrationsAsync(string? statusFilter, CancellationToken cancellationToken = default)
+    {
+        var usersQuery = _userManager.Users
+            .Where(u => u.UserType != UserType.Member && u.Email != "superadmin@slms.com");
+
+        if (!string.IsNullOrWhiteSpace(statusFilter) && !statusFilter.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            var normalizedStatus = statusFilter.Trim().ToLowerInvariant();
+            if (normalizedStatus == "pending")
+            {
+                usersQuery = usersQuery.Where(u => u.ApprovalStatus == "Pending" || u.OnboardingStep == OnboardingStep.PendingApproval || u.OnboardingStep == OnboardingStep.Registered || u.OnboardingStep == OnboardingStep.Institute || u.OnboardingStep == OnboardingStep.Branch || u.OnboardingStep == OnboardingStep.Library);
+            }
+            else if (normalizedStatus == "approved")
+            {
+                usersQuery = usersQuery.Where(u => u.ApprovalStatus == "Approved" || u.OnboardingStep == OnboardingStep.Completed);
+            }
+            else if (normalizedStatus == "rejected")
+            {
+                usersQuery = usersQuery.Where(u => u.ApprovalStatus == "Rejected" || u.OnboardingStep == OnboardingStep.Rejected);
+            }
+        }
+
+        var users = await usersQuery
+            .OrderByDescending(u => u.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        var userIds = users.Select(u => u.Id).ToList();
+
+        var packages = await _dbContext.UserPackages
+            .Include(up => up.Package)
+            .Where(up => userIds.Contains(up.UserId))
+            .ToListAsync(cancellationToken);
+
+        var addons = await _dbContext.UserPackageAddons
+            .Include(ua => ua.Addon)
+            .Where(ua => userIds.Contains(ua.UserId))
+            .ToListAsync(cancellationToken);
+
+        var userInstitutions = await _dbContext.UserInstitutions
+            .Include(ui => ui.Institution)
+            .Where(ui => userIds.Contains(ui.UserId) && ui.IsActive && !ui.Institution.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var institutionIds = userInstitutions.Select(i => i.InstitutionId).ToList();
+
+        var branches = await _dbContext.Branches
+            .Where(b => institutionIds.Contains(b.InstitutionId) && !b.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var branchIds = branches.Select(b => b.Id).ToList();
+
+        var libraries = await _dbContext.Libraries
+            .Where(l => branchIds.Contains(l.BranchId) && !l.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var result = new List<TenantRegistrationResponse>();
+
+        foreach (var user in users)
+        {
+            var userPkg = packages.Where(p => p.UserId == user.Id).OrderByDescending(p => p.CreatedAtUtc).FirstOrDefault();
+            var userAddonList = addons.Where(a => a.UserId == user.Id).OrderByDescending(a => a.CreatedAtUtc).ToList();
+            var userInst = userInstitutions.FirstOrDefault(i => i.UserId == user.Id)?.Institution;
+            var userBranch = userInst != null ? branches.FirstOrDefault(b => b.InstitutionId == userInst.Id) : null;
+            var userLib = userBranch != null ? libraries.FirstOrDefault(l => l.BranchId == userBranch.Id) : null;
+
+            var pkgPrice = userPkg?.AmountPaid ?? userPkg?.Package?.Price ?? 0;
+            var addonTotal = userAddonList.Sum(a => a.AmountPaid);
+            var totalCalculated = pkgPrice + addonTotal;
+
+            var effectiveStatus = user.ApprovalStatus;
+            if (string.IsNullOrWhiteSpace(effectiveStatus))
+            {
+                effectiveStatus = user.OnboardingStep == OnboardingStep.Completed ? "Approved" : (user.OnboardingStep == OnboardingStep.Rejected ? "Rejected" : "Pending");
+            }
+
+            result.Add(new TenantRegistrationResponse
+            {
+                UserId = user.Id,
+                FullName = user.FullName ?? user.UserName ?? "User",
+                Email = user.Email ?? "",
+                PhoneNumber = user.PhoneNumber,
+                RegisteredAtUtc = user.CreatedAtUtc,
+                OnboardingStep = user.OnboardingStep,
+                ApprovalStatus = effectiveStatus,
+                AdminRemarks = user.AdminRemarks,
+                FinalApprovedAmount = user.FinalApprovedAmount,
+                TotalCalculatedAmount = totalCalculated,
+                ApprovedAtUtc = user.ApprovedAtUtc,
+                RejectedAtUtc = user.RejectedAtUtc,
+                ApprovedBy = user.ApprovedByUserId,
+                IsActive = user.IsActive,
+
+                PackageId = userPkg?.PackageId,
+                PackageName = userPkg?.Package?.Name ?? "Selected Plan",
+                PackageCode = userPkg?.Package?.Code ?? "Basic",
+                PackageTier = userPkg?.Package?.Category ?? userPkg?.Package?.Code ?? "Basic",
+                PackagePrice = pkgPrice,
+                DurationInDays = userPkg?.Package?.DurationInDays ?? 365,
+
+                Addons = userAddonList.Select(a => new TenantRegistrationAddonItem
+                {
+                    AddonId = a.AddonId,
+                    AddonName = a.Addon?.Name ?? "Capacity Addon",
+                    AddonCode = a.Addon?.Code ?? "",
+                    ResourceType = a.Addon?.ResourceType ?? "",
+                    Quantity = a.Quantity,
+                    UnitQuantity = a.Addon?.UnitQuantity ?? 1,
+                    TotalExtraQuantity = a.TotalExtraQuantity,
+                    AmountPaid = a.AmountPaid,
+                    IsActive = a.IsActive
+                }).ToList(),
+
+                InstitutionId = userInst?.Id,
+                InstitutionName = userInst?.Name,
+                InstitutionCode = userInst?.Type,
+                InstitutionContactEmail = userInst?.Email,
+                InstitutionContactPhone = userInst?.Phone,
+
+                BranchId = userBranch?.Id,
+                BranchName = userBranch?.Name,
+                BranchCity = userBranch?.City,
+
+                LibraryId = userLib?.Id,
+                LibraryName = userLib?.Name,
+                LibraryCapacity = userLib?.Capacity
+            });
+        }
+
+        return result;
+    }
+
+    public async Task<TenantRegistrationResponse?> GetTenantRegistrationByIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return null;
+
+        var userPkg = await _dbContext.UserPackages
+            .Include(x => x.Package)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+
+        var userAddons = await _dbContext.UserPackageAddons
+            .Include(x => x.Addon)
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        var userInstitution = await _dbContext.UserInstitutions
+            .Include(x => x.Institution)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.IsActive && !x.Institution.IsDeleted, cancellationToken);
+
+        var institution = userInstitution?.Institution;
+
+        var branch = institution != null
+            ? await _dbContext.Branches.FirstOrDefaultAsync(x => x.InstitutionId == institution.Id && !x.IsDeleted, cancellationToken)
+            : null;
+
+        var library = branch != null
+            ? await _dbContext.Libraries.FirstOrDefaultAsync(x => x.BranchId == branch.Id && !x.IsDeleted, cancellationToken)
+            : null;
+
+        var pkgPrice = userPkg?.AmountPaid ?? userPkg?.Package?.Price ?? 0;
+        var addonTotal = userAddons.Sum(a => a.AmountPaid);
+        var totalCalculated = pkgPrice + addonTotal;
+
+        var effectiveStatus = user.ApprovalStatus;
+        if (string.IsNullOrWhiteSpace(effectiveStatus))
+        {
+            effectiveStatus = user.OnboardingStep == OnboardingStep.Completed ? "Approved" : (user.OnboardingStep == OnboardingStep.Rejected ? "Rejected" : "Pending");
+        }
+
+        return new TenantRegistrationResponse
+        {
+            UserId = user.Id,
+            FullName = user.FullName ?? user.UserName ?? "User",
+            Email = user.Email ?? "",
+            PhoneNumber = user.PhoneNumber,
+            RegisteredAtUtc = user.CreatedAtUtc,
+            OnboardingStep = user.OnboardingStep,
+            ApprovalStatus = effectiveStatus,
+            AdminRemarks = user.AdminRemarks,
+            FinalApprovedAmount = user.FinalApprovedAmount,
+            TotalCalculatedAmount = totalCalculated,
+            ApprovedAtUtc = user.ApprovedAtUtc,
+            RejectedAtUtc = user.RejectedAtUtc,
+            ApprovedBy = user.ApprovedByUserId,
+            IsActive = user.IsActive,
+
+            PackageId = userPkg?.PackageId,
+            PackageName = userPkg?.Package?.Name ?? "Selected Plan",
+            PackageCode = userPkg?.Package?.Code ?? "Basic",
+            PackageTier = userPkg?.Package?.Category ?? userPkg?.Package?.Code ?? "Basic",
+            PackagePrice = pkgPrice,
+            DurationInDays = userPkg?.Package?.DurationInDays ?? 365,
+
+            Addons = userAddons.Select(a => new TenantRegistrationAddonItem
+            {
+                AddonId = a.AddonId,
+                AddonName = a.Addon?.Name ?? "Capacity Addon",
+                AddonCode = a.Addon?.Code ?? "",
+                ResourceType = a.Addon?.ResourceType ?? "",
+                Quantity = a.Quantity,
+                UnitQuantity = a.Addon?.UnitQuantity ?? 1,
+                TotalExtraQuantity = a.TotalExtraQuantity,
+                AmountPaid = a.AmountPaid,
+                IsActive = a.IsActive
+            }).ToList(),
+
+            InstitutionId = institution?.Id,
+            InstitutionName = institution?.Name,
+            InstitutionCode = institution?.Type,
+            InstitutionContactEmail = institution?.Email,
+            InstitutionContactPhone = institution?.Phone,
+
+            BranchId = branch?.Id,
+            BranchName = branch?.Name,
+            BranchCity = branch?.City,
+
+            LibraryId = library?.Id,
+            LibraryName = library?.Name,
+            LibraryCapacity = library?.Capacity
+        };
+    }
+
+    public async Task<TenantRegistrationResponse> ApproveTenantRegistrationAsync(
+        string userId,
+        ApproveTenantRegistrationRequest request,
+        string approverUserId,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException("User not found.");
+
+        user.OnboardingStep = OnboardingStep.Completed;
+        user.ApprovalStatus = "Approved";
+        user.IsActive = true;
+        user.AdminRemarks = request.Remarks;
+        if (request.FinalAmount.HasValue)
+        {
+            user.FinalApprovedAmount = request.FinalAmount.Value;
+        }
+        user.ApprovedAtUtc = DateTime.UtcNow;
+        user.ApprovedByUserId = approverUserId;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join("; ", updateResult.Errors.Select(e => e.Description)));
+        }
+
+        // Activate UserPackage and Addons if any
+        var userPackages = await _dbContext.UserPackages
+            .Where(up => up.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var up in userPackages)
+        {
+            up.IsActive = true;
+            up.PaymentStatus = "Paid";
+            if (request.FinalAmount.HasValue && userPackages.Count == 1)
+            {
+                up.AmountPaid = request.FinalAmount.Value;
+            }
+        }
+
+        var userAddons = await _dbContext.UserPackageAddons
+            .Where(ua => ua.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var ua in userAddons)
+        {
+            ua.IsActive = true;
+            ua.PaymentStatus = "Paid";
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.WriteAsync(
+            AuditEventTypes.RegistrationApproval,
+            user.Id,
+            $"SuperAdmin approved tenant registration for '{user.Email}' ({user.FullName}). Remarks: {request.Remarks ?? "None"}",
+            ipAddress,
+            cancellationToken);
+
+        return (await GetTenantRegistrationByIdAsync(userId, cancellationToken))!;
+    }
+
+    public async Task<TenantRegistrationResponse> RejectTenantRegistrationAsync(
+        string userId,
+        RejectTenantRegistrationRequest request,
+        string approverUserId,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new InvalidOperationException("Rejection reason/comment is required.");
+        }
+
+        var user = await _userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException("User not found.");
+
+        user.OnboardingStep = OnboardingStep.Rejected;
+        user.ApprovalStatus = "Rejected";
+        user.AdminRemarks = request.Reason;
+        user.RejectedAtUtc = DateTime.UtcNow;
+        user.ApprovedByUserId = approverUserId;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join("; ", updateResult.Errors.Select(e => e.Description)));
+        }
+
+        await _auditLogService.WriteAsync(
+            AuditEventTypes.RegistrationApproval,
+            user.Id,
+            $"SuperAdmin rejected tenant registration for '{user.Email}' ({user.FullName}). Reason: {request.Reason}",
+            ipAddress,
+            cancellationToken);
+
+        return (await GetTenantRegistrationByIdAsync(userId, cancellationToken))!;
     }
 }
 

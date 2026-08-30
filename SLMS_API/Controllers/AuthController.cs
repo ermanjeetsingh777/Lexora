@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SLMS_API.Application.Contracts.Admin;
 using SLMS_API.Application.Contracts.Auth.Requests;
 using SLMS_API.Application.Contracts.Auth.Responses;
 using SLMS_API.Application.Contracts.Common;
@@ -164,6 +165,27 @@ public class AuthController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(ApiResponse<MessageResponse>.Fail(ex.Message));
+        }
+    }
+
+    [HttpGet("registration-status")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<TenantRegistrationStatusResponse>>> GetRegistrationStatus(CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<TenantRegistrationStatusResponse>.Fail("User is not authenticated."));
+        }
+
+        try
+        {
+            var status = await _authService.GetRegistrationStatusAsync(userId, cancellationToken);
+            return Ok(ApiResponse<TenantRegistrationStatusResponse>.Ok(status));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<TenantRegistrationStatusResponse>.Fail(ex.Message));
         }
     }
 

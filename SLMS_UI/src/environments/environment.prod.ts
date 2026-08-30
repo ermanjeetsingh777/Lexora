@@ -47,4 +47,12 @@ export const environment = {
       email: 'support@lexora.app',
     },
   ] as LexoraTeamMember[],
+  superAdminContact: {
+    email: 'er.yogeshrao@gmail.com',
+    phone: '+91 9992823909',
+    secondaryPhone: '+91 9468118737',
+    whatsApp: '+91 9992823909',
+    whatsAppUrl: 'https://wa.me/919992823909',
+    availability: 'Instant Verification & Activation Support (9:00 AM - 9:00 PM IST)',
+  },
 };

@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import {
   LucideArmchair, LucideBarChart3, LucideBell, LucideBookOpen, LucideBookUser,
   LucideBuilding2, LucideCalendarCheck, LucideCreditCard, LucideGraduationCap,
-  LucideLayoutDashboard, LucideLifeBuoy, LucideScanLine, LucideUser, LucideUserCog, LucideUsers,
+  LucideLayoutDashboard, LucideLifeBuoy, LucideScanLine, LucideUser, LucideUserCheck, LucideUserCog, LucideUsers,
 } from '@lucide/angular';
 import { SidebarService } from './sidebar.service';
 import { AuthService } from '@core/services/auth.service';
@@ -19,7 +19,7 @@ import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component
     RouterLink, RouterLinkActive, AppLogoComponent,
     LucideLayoutDashboard, LucideBarChart3, LucideUsers, LucideGraduationCap, LucideBookUser,
     LucideArmchair, LucideCalendarCheck, LucideScanLine, LucideBuilding2, LucideBookOpen,
-    LucideCreditCard, LucideBell, LucideUserCog, LucideUser, LucideLifeBuoy,
+    LucideCreditCard, LucideBell, LucideUserCheck, LucideUserCog, LucideUser, LucideLifeBuoy,
   ],
   template: `
     @if (sidebar.isMobile() && sidebar.mobileOpen()) {
@@ -126,6 +126,12 @@ import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component
               @if (sidebar.showLabels()) { <span>Users</span> }
             </a>
           }
+          @if (isSuperAdmin()) {
+            <a routerLink="/admin/approvals" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
+              <svg lucideUserCheck class="h-4 w-4 shrink-0 text-amber-500"></svg>
+              @if (sidebar.showLabels()) { <span>Tenant Approvals</span> }
+            </a>
+          }
           @if (canListRoles()) {
             <a routerLink="/roles" routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/60" (click)="sidebar.closeMobile()">
               <svg lucideUserCog class="h-4 w-4 shrink-0"></svg>
@@ -191,6 +197,10 @@ export class SidebarComponent {
 
   protected canListUsers(): boolean {
     return this.auth.hasPermission(PermissionKey.UsersList);
+  }
+
+  protected isSuperAdmin(): boolean {
+    return this.auth.hasRole('SuperAdmin');
   }
 
   protected canListRoles(): boolean {

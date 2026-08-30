@@ -208,9 +208,9 @@
                                     <span class="text-lg font-bold">₹{{ addon.price.toLocaleString('en-IN') }}</span>
                                     <span class="text-xs text-[var(--muted-foreground)]"> / yr</span>
                                 </div>
-                                <a routerLink="/register" class="rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-white transition-colors">
-                                    Select
-                                </a>
+                                <span class="text-xs text-[var(--muted-foreground)] font-medium">
+                                    Flexible add-on
+                                </span>
                             </div>
                         </div>
                     }
@@ -228,10 +228,10 @@
                 <div class="mt-5 overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead>
-                            <tr class="border-b border-[var(--border)] text-left">
-                                <th class="px-3 py-3 font-medium text-[var(--muted-foreground)]">Module / Feature</th>
+                            <tr class="border-b border-[var(--border)]">
+                                <th class="px-3 py-3 text-left font-medium text-[var(--muted-foreground)]">Module / Feature</th>
                                 @for (pkg of packages(); track pkg.id) {
-                                    <th class="px-3 py-3 font-medium">{{ pkg.name }}</th>
+                                    <th class="px-3 py-3 text-center font-medium">{{ pkg.name }}</th>
                                 }
                             </tr>
                         </thead>
@@ -247,12 +247,14 @@
                                 <tr class="border-b border-[var(--border)]/70 last:border-0">
                                     <td class="px-3 py-2.5 text-[var(--muted-foreground)]">{{ row.featureName }}</td>
                                     @for (pkg of packages(); track pkg.id) {
-                                        <td class="px-3 py-2.5">
-                                            @if (row.values[pkg.id]) {
-                                                <svg lucideCheck class="h-4 w-4 text-emerald-500"></svg>
-                                            } @else {
-                                                <svg lucideX class="h-4 w-4 text-[var(--muted-foreground)]/60"></svg>
-                                            }
+                                        <td class="px-3 py-2.5 text-center">
+                                            <div class="inline-flex items-center justify-center">
+                                                @if (row.values[pkg.id]) {
+                                                    <svg lucideCheck class="h-4 w-4 text-emerald-500"></svg>
+                                                } @else {
+                                                    <svg lucideX class="h-4 w-4 text-[var(--muted-foreground)]/60"></svg>
+                                                }
+                                            </div>
                                         </td>
                                     }
                                 </tr>

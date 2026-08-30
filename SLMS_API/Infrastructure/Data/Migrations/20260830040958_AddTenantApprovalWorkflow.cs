@@ -11,74 +11,73 @@ namespace SLMS_API.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "ApprovalStatus",
-                table: "AspNetUsers",
-                type: "nvarchar(50)",
-                maxLength: 50,
-                nullable: false,
-                defaultValue: "Pending");
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'ApprovalStatus')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] ADD [ApprovalStatus] nvarchar(50) NOT NULL CONSTRAINT [DF_AspNetUsers_ApprovalStatus] DEFAULT N'Pending';
+                END
 
-            migrationBuilder.AddColumn<string>(
-                name: "AdminRemarks",
-                table: "AspNetUsers",
-                type: "nvarchar(1000)",
-                maxLength: 1000,
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'AdminRemarks')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] ADD [AdminRemarks] nvarchar(1000) NULL;
+                END
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "FinalApprovedAmount",
-                table: "AspNetUsers",
-                type: "decimal(18,2)",
-                precision: 18,
-                scale: 2,
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'FinalApprovedAmount')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] ADD [FinalApprovedAmount] decimal(18,2) NULL;
+                END
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "ApprovedAtUtc",
-                table: "AspNetUsers",
-                type: "datetime2",
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'ApprovedAtUtc')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] ADD [ApprovedAtUtc] datetime2 NULL;
+                END
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "RejectedAtUtc",
-                table: "AspNetUsers",
-                type: "datetime2",
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'RejectedAtUtc')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] ADD [RejectedAtUtc] datetime2 NULL;
+                END
 
-            migrationBuilder.AddColumn<string>(
-                name: "ApprovedByUserId",
-                table: "AspNetUsers",
-                type: "nvarchar(max)",
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'ApprovedByUserId')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] ADD [ApprovedByUserId] nvarchar(max) NULL;
+                END
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "ApprovalStatus",
-                table: "AspNetUsers");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'ApprovalStatus')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] DROP COLUMN [ApprovalStatus];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "AdminRemarks",
-                table: "AspNetUsers");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'AdminRemarks')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] DROP COLUMN [AdminRemarks];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "FinalApprovedAmount",
-                table: "AspNetUsers");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'FinalApprovedAmount')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] DROP COLUMN [FinalApprovedAmount];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "ApprovedAtUtc",
-                table: "AspNetUsers");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'ApprovedAtUtc')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] DROP COLUMN [ApprovedAtUtc];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "RejectedAtUtc",
-                table: "AspNetUsers");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'RejectedAtUtc')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] DROP COLUMN [RejectedAtUtc];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "ApprovedByUserId",
-                table: "AspNetUsers");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AspNetUsers]') AND name = 'ApprovedByUserId')
+                BEGIN
+                    ALTER TABLE [AspNetUsers] DROP COLUMN [ApprovedByUserId];
+                END
+            ");
         }
     }
 }

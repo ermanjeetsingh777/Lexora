@@ -11,74 +11,73 @@ namespace SLMS_API.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "ApprovalStatus",
-                table: "UserPackageAddons",
-                type: "nvarchar(50)",
-                maxLength: 50,
-                nullable: false,
-                defaultValue: "Pending");
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovalStatus')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [ApprovalStatus] nvarchar(50) NOT NULL CONSTRAINT [DF_UserPackageAddons_ApprovalStatus] DEFAULT N'Pending';
+                END
 
-            migrationBuilder.AddColumn<string>(
-                name: "AdminRemarks",
-                table: "UserPackageAddons",
-                type: "nvarchar(1000)",
-                maxLength: 1000,
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'AdminRemarks')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [AdminRemarks] nvarchar(1000) NULL;
+                END
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "FinalApprovedAmount",
-                table: "UserPackageAddons",
-                type: "decimal(18,2)",
-                precision: 18,
-                scale: 2,
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'FinalApprovedAmount')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [FinalApprovedAmount] decimal(18,2) NULL;
+                END
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "ApprovedAtUtc",
-                table: "UserPackageAddons",
-                type: "datetime2",
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovedAtUtc')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [ApprovedAtUtc] datetime2 NULL;
+                END
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "RejectedAtUtc",
-                table: "UserPackageAddons",
-                type: "datetime2",
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'RejectedAtUtc')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [RejectedAtUtc] datetime2 NULL;
+                END
 
-            migrationBuilder.AddColumn<string>(
-                name: "ApprovedByUserId",
-                table: "UserPackageAddons",
-                type: "nvarchar(max)",
-                nullable: true);
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovedByUserId')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] ADD [ApprovedByUserId] nvarchar(max) NULL;
+                END
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "ApprovalStatus",
-                table: "UserPackageAddons");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovalStatus')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] DROP COLUMN [ApprovalStatus];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "AdminRemarks",
-                table: "UserPackageAddons");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'AdminRemarks')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] DROP COLUMN [AdminRemarks];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "FinalApprovedAmount",
-                table: "UserPackageAddons");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'FinalApprovedAmount')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] DROP COLUMN [FinalApprovedAmount];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "ApprovedAtUtc",
-                table: "UserPackageAddons");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovedAtUtc')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] DROP COLUMN [ApprovedAtUtc];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "RejectedAtUtc",
-                table: "UserPackageAddons");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'RejectedAtUtc')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] DROP COLUMN [RejectedAtUtc];
+                END
 
-            migrationBuilder.DropColumn(
-                name: "ApprovedByUserId",
-                table: "UserPackageAddons");
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[UserPackageAddons]') AND name = 'ApprovedByUserId')
+                BEGIN
+                    ALTER TABLE [UserPackageAddons] DROP COLUMN [ApprovedByUserId];
+                END
+            ");
         }
     }
 }

@@ -25,6 +25,7 @@ import {
   SectionHeaderComponent,
 } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { QuotaBadgeComponent } from '@shared/components/quota-badge/quota-badge.component';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
 import { AdminService } from '@core/services/admin.service';
@@ -68,6 +69,7 @@ import {
     StatusBadgeComponent,
     ButtonComponent,
     KpiCardComponent,
+    QuotaBadgeComponent,
     UserFormDialogComponent,
     LucideSearch,
     LucidePlus,
@@ -240,6 +242,7 @@ export class UsersListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
+    this.entitlements.load().subscribe();
     forkJoin({
       users: this.admin.getUsers({ staffOnly: true }).pipe(catchError(() => of([]))),
       roles: this.admin.getRoles().pipe(catchError(() => of([]))),

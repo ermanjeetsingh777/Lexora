@@ -1,5 +1,6 @@
 <app-page-header eyebrow="People" title="Members" [description]="headerDescription()">
-  <div actions class="flex items-center gap-2">
+  <div actions class="flex flex-wrap items-center gap-2">
+    <app-quota-badge resourceType="member" variant="pill" />
     @if (canCreate()) {
       <a routerLink="/members/bulk-upload">
         <app-button size="sm" variant="outline">

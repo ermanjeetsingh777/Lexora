@@ -40,6 +40,7 @@ import {
   PageHeaderComponent,
 } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { QuotaBadgeComponent } from '@shared/components/quota-badge/quota-badge.component';
 import { LibraryService } from '../library.service';
 import { AuthService } from '@core/services/auth.service';
 import { PermissionKey } from '@core/constants/permissions';
@@ -63,6 +64,7 @@ const PAGE_SIZE_OPTS = [12, 24, 48] as const;
     PageHeaderComponent,
     GlassCardComponent,
     StatusBadgeComponent,
+    QuotaBadgeComponent,
     LucideBookOpen,
     LucidePlus,
     LucideSearch,
@@ -265,6 +267,7 @@ export class LibraryListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
+    this.organizationEntitlements.load().subscribe();
     this.fetchList()
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe((view) => this.handleListView(view));

@@ -3,13 +3,14 @@
   title="Users"
   description="Staff accounts with role-based permissions and scope mapping."
 >
-  @if (canCreate()) {
-    <div actions>
+  <div actions class="flex flex-wrap items-center gap-2">
+    <app-quota-badge resourceType="user" variant="pill" />
+    @if (canCreate()) {
       <app-button size="sm" (click)="openCreate()">
         <svg lucidePlus class="h-4 w-4 mr-1.5"></svg> Add user
       </app-button>
-    </div>
-  }
+    }
+  </div>
 </app-page-header>
 
 @if (loading()) {

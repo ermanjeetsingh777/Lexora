@@ -25,6 +25,7 @@ import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
+import { QuotaBadgeComponent } from '@shared/components/quota-badge/quota-badge.component';
 import { ToastService } from '@core/services/toast.service';
 import { AuthService } from '@core/services/auth.service';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
@@ -79,7 +80,7 @@ interface MemberRow extends MemberListResponse {
   selector: 'app-members-list-component',
   imports: [
     RouterLink, FormsModule, DatePipe,
-    ButtonComponent, KpiCardComponent, PageHeaderComponent, GlassCardComponent, StatusBadgeComponent,
+    ButtonComponent, KpiCardComponent, PageHeaderComponent, GlassCardComponent, StatusBadgeComponent, QuotaBadgeComponent,
     LucideSearch, LucidePlus, LucideDownload, LucideUsers, LucideAlertCircle, LucideCrown,
     LucideLayoutGrid, LucideList, LucideMoreHorizontal, LucideEye, LucideMail, LucideEdit,
     LucideCopy, LucidePanelRightOpen, LucideRotateCcw, LucideFilter, LucideX, LucideChevronDown,
@@ -729,6 +730,7 @@ export class MembersListComponent implements OnInit {
   loadAllMembers(): void {
     this.loading.set(true);
     this.error.set(null);
+    this.entitlements.load().subscribe();
 
     this.memberService.getAllMembers().subscribe({
       next: (response) => {

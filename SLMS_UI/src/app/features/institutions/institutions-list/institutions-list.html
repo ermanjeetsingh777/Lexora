@@ -3,7 +3,8 @@
   title="Institutions"
   description="Multi-tenant institutions, branches and libraries you manage."
 >
-  <div actions class="flex gap-2">
+  <div actions class="flex flex-wrap items-center gap-2">
+    <app-quota-badge resourceType="institution" variant="pill" />
     @if (canCreateInstitution()) {
       <a routerLink="/institutions/create">
         <app-button size="sm">

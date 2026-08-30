@@ -3,7 +3,8 @@
   title="Libraries"
   [description]="headerDescription()"
 >
-  <div actions class="flex gap-2">
+  <div actions class="flex flex-wrap items-center gap-2">
+    <app-quota-badge resourceType="library" variant="pill" />
     <a routerLink="/branches">
       <app-button size="sm" variant="outline">View branches</app-button>
     </a>

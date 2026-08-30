@@ -3,7 +3,8 @@
   title="Branches"
   [description]="headerDescription()"
 >
-  <div actions class="flex gap-2">
+  <div actions class="flex flex-wrap items-center gap-2">
+    <app-quota-badge resourceType="branch" variant="pill" />
     <a routerLink="/institutions">
       <app-button size="sm" variant="outline">View institutions</app-button>
     </a>

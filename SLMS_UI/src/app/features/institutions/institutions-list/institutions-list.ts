@@ -21,6 +21,7 @@ import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap 
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { QuotaBadgeComponent } from '@shared/components/quota-badge/quota-badge.component';
 import { InstitutionListItem, InstitutionListView } from '@core/models/institution-detail.models';
 import { InstitutionsService } from '../institutions.service';
 import { AuthService } from '@core/services/auth.service';
@@ -59,6 +60,7 @@ const TYPE_FILTERS: { value: TypeFilter; label: string; apiType?: string }[] = [
     PageHeaderComponent,
     GlassCardComponent,
     StatusBadgeComponent,
+    QuotaBadgeComponent,
     LucideBuilding2,
     LucidePlus,
     LucideRefreshCw,
@@ -242,6 +244,7 @@ export class InstitutionsListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
+    this.organizationEntitlements.load().subscribe();
     this.fetchList().subscribe({
       next: (view) => this.applyView(view),
       error: () => {

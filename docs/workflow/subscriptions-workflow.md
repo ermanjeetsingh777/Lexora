@@ -2,13 +2,13 @@
 
 End-to-end workflow for **M-10 SaaS Subscriptions & Add-ons** across **SLMS_UI** (Angular) and **SLMS_API** (.NET).
 
-**Module ID:** M-10 · **Route:** `/subscriptions` · **Depends on:** M-01 Authentication, M-04 Institutions, M-17 Package Entitlements
+**Module ID:** M-10 · **Route:** `/subscriptions` · **Depends on:** M-01 Authentication, M-04 Institutions, M-17 Package Entitlements, M-18 Tenant & Subscription Approvals
 
 ---
 
 ## 1. Overview
 
-Institution-level SaaS package subscriptions, resource limits (Institutions, Branches, Libraries, Users, Members), capacity add-ons, renewal quotes, and billing history. SuperAdmin manages all tenant subscriptions and can modify package and add-on pricing and quotas at runtime; organization admins manage their own subscription, active add-ons, and renewals.
+Institution-level SaaS package subscriptions, resource limits (Institutions, Branches, Libraries, Users, Members), capacity add-ons, renewal quotes, approval workflows, and billing history. SuperAdmin manages all tenant subscriptions and can modify package and add-on pricing and quotas at runtime; organization admins manage their own subscription, active add-ons, and renewals.
 
 ```mermaid
 flowchart TD
@@ -35,15 +35,20 @@ flowchart TD
 
 ### 2.2 Features
 
-- **Overview KPI Cards:** Total active packages, expiring soon count (within 7 days), expired count, and all-time total revenue.
+- **Overview KPI Cards:** Total active packages, expiring soon count (within 14 days, configurable via `appsettings.json`), expired count, and all-time total revenue.
+- **Expiring / Expired Alert Banners:** Top notification banners with remaining days, renewal status, and contextual action buttons ("Upgrade Plan" / "Renew Now").
+- **Pending Plan Request Banner:** Alerts user if a Renew or Upgrade request is pending SuperAdmin review, with transaction reference and 1-click **"Send Slip via WhatsApp"** button.
 - **Current Plan & Inclusions:** Displays active subscription details, renewal status, dates, and quota inclusions.
-- **Active Capacity Add-ons:** Displays currently active add-ons purchased by the organization with expiry dates and extra capacity breakdown.
+- **Active Capacity Add-ons & Status Table:** Displays purchased add-ons with status badges (`Pending Approval`, `Applied to Quotas`, `Declined`), admin remarks, and WhatsApp slip submission.
 - **Available Plans & Quotas Grid:** Interactive cards showing prices, duration, feature sets, and resource limits (`MaxInstitutions`, `MaxBranches`, `MaxLibraries`, `MaxUsers`, `MaxMembers`).
-- **Capacity Add-ons Catalog:** Add extra libraries, members, staff users, branches, or institutions without upgrading the base plan tier. Includes quantity selector and instant price calculation.
+- **Trial Plan Specific Handling:**
+  - Cannot be renewed; forced to upgrade to a paid tier.
+  - Excluded from renew/upgrade dialog plan selection dropdowns.
+  - Add-on purchases disabled while on Trial plan.
 - **SuperAdmin Controls:**
   - Edit package quotas and pricing live via modal dialog (`openEditPackage`).
   - Create and edit add-on definitions (`openCreateAddon`, `openEditAddon`).
-- **Billing History & Invoices:** Tabulated invoice history with downloadable PDF invoices and consolidated PDF summary report (`subscription-invoice-export.util.ts`).
+- **Billing History & Invoices:** Tabulated invoice history with Request Type (`Renew` / `Upgrade`), Approval Status (`Pending Approval` / `Approved` / `Rejected`), admin remarks, downloadable PDF invoices, and consolidated PDF summary report (`subscription-invoice-export.util.ts`).
 
 ---
 
@@ -54,47 +59,53 @@ flowchart TD
 **Controller:** `SLMS_API/Controllers/PackageSubscriptionsController.cs`  
 **Base route:** `api/v1/package-subscriptions`
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/overview` | Subscription overview for caller scope |
-| GET | `/quote` | Prorated price quote for renew/upgrade |
-| POST | `/renew` | Renew existing package |
-| POST | `/subscribe` | New subscription |
-| POST | `/upgrade` | Upgrade package tier |
+| Method | Endpoint | Authorization | Purpose |
+|--------|----------|---------------|---------|
+| GET | `/overview` | SubscriptionsView | Subscription overview with current plan, pending requests, quotas, and history |
+| GET | `/quote` | SubscriptionsView | Prorated price quote for renew/upgrade (`forUpgrade=true` auto-enforced for trials) |
+| POST | `/renew` | SubscriptionsUpdate | Renew existing package (Pending if user; auto-approved if SuperAdmin) |
+| POST | `/subscribe` | SubscriptionsCreate | New subscription |
+| POST | `/upgrade` | SubscriptionsUpdate | Upgrade package tier (Pending if user; auto-approved if SuperAdmin) |
+| GET | `/requests` | SuperAdmin | Fetch all renew & upgrade requests |
+| POST | `/requests/{id}/approve` | SuperAdmin | Approve plan change, calculate dates & amount, activate plan |
+| POST | `/requests/{id}/reject` | SuperAdmin | Reject plan change request |
 
 ### 3.2 Addons Controller
 
 **Controller:** `SLMS_API/Controllers/AddonsController.cs`  
 **Base route:** `api/v1/addons`
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/` | Public list of active add-ons |
-| GET | `/all` | SuperAdmin list of all add-ons |
-| GET | `/{id}` | Get add-on details |
-| POST | `/` | SuperAdmin create add-on |
-| PUT | `/{id}` | SuperAdmin update add-on |
-| DELETE | `/{id}` | SuperAdmin delete add-on |
-| POST | `/purchase` | Purchase add-on for current organization |
-| GET | `/my-addons` | List active purchased add-ons for user |
+| Method | Endpoint | Authorization | Purpose |
+|--------|----------|---------------|---------|
+| GET | `/` | Anonymous | Public list of active add-ons |
+| GET | `/all` | SuperAdmin | SuperAdmin list of all add-ons |
+| GET | `/{id}` | Authenticated | Get add-on details |
+| POST | `/` | SuperAdmin | SuperAdmin create add-on |
+| PUT | `/{id}` | SuperAdmin | SuperAdmin update add-on |
+| DELETE | `/{id}` | SuperAdmin | SuperAdmin delete add-on |
+| POST | `/purchase` | Authenticated | Purchase add-on (enters Pending state; blocked for Trial plan) |
+| GET | `/my-addons` | Authenticated | List all purchased add-ons with approval status for user |
+| GET | `/requests` | SuperAdmin | SuperAdmin list of all add-on requests |
+| POST | `/requests/{id}/approve` | SuperAdmin | Approve add-on request and activate extra quota |
+| POST | `/requests/{id}/reject` | SuperAdmin | Reject add-on request |
 
 ### 3.3 Packages Controller
 
 **Controller:** `SLMS_API/Controllers/PackagesController.cs`  
 **Base route:** `api/v1/packages`
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/` | Public list of active packages |
-| GET | `/all` | SuperAdmin list of all packages with quotas |
-| GET | `/{id}` | Get package by ID |
-| POST | `/` | SuperAdmin create package |
-| PUT | `/{id}` | SuperAdmin update package & quotas |
-| DELETE | `/{id}` | SuperAdmin delete package |
+| Method | Endpoint | Authorization | Purpose |
+|--------|----------|---------------|---------|
+| GET | `/` | Anonymous | Public list of active packages |
+| GET | `/all` | SuperAdmin | SuperAdmin list of all packages with quotas |
+| GET | `/{id}` | Anonymous | Get package by ID |
+| POST | `/` | SuperAdmin | SuperAdmin create package |
+| PUT | `/{id}` | SuperAdmin | SuperAdmin update package & quotas |
+| DELETE | `/{id}` | SuperAdmin | SuperAdmin delete package |
 
 ---
 
-## 4. File map
+## 4. File Map
 
 ```
 SLMS_UI/src/app/
@@ -104,6 +115,10 @@ SLMS_UI/src/app/
 │   ├── subscriptions.component.css
 │   ├── package-features-list.component.ts
 │   └── subscription-invoice-export.util.ts
+├── features/admin/tenant-approvals/
+│   ├── tenant-approvals.component.ts
+│   ├── tenant-approvals.component.html
+│   └── tenant-approvals.component.css
 └── core/
     ├── models/package-subscription.models.ts
     ├── services/package.service.ts
@@ -119,8 +134,11 @@ SLMS_API/
 │   ├── Services/
 │   │   ├── PackageSubscriptionService.cs
 │   │   ├── PackageService.cs
-│   │   └── AddonService.cs
+│   │   ├── AddonService.cs
+│   │   └── PackageEntitlementService.cs
 │   └── Contracts/
+│       ├── PackageSubscription/
+│       │   └── PackageSubscriptionContracts.cs
 │       ├── Package/
 │       └── Addon/
 └── Domain/Entities/
@@ -129,22 +147,3 @@ SLMS_API/
     ├── UserPackage.cs
     └── UserPackageAddon.cs
 ```
-
----
-
-## 5. Test checklist
-
-- [ ] Org user sees only mapped institution subscriptions and active add-ons
-- [ ] SuperAdmin sees cross-tenant list with edit buttons for packages & add-ons
-- [ ] Expiring-soon banner displays when subscription ends within 7 days
-- [ ] Capacity add-on purchase increases organization creation limits immediately
-- [ ] Single invoice and all-history PDF downloads generate properly
-- [ ] Permission denied without `subscriptions.view`
-
----
-
-## 6. Related docs
-
-- [package-entitlements-workflow.md](./package-entitlements-workflow.md) — Dynamic quotas & creation limits
-- [institution-detail-workflow.md](./institution-detail-workflow.md) — Institution billing tab
-- [auth-workflow.md](./auth-workflow.md) — Registration with optional add-ons

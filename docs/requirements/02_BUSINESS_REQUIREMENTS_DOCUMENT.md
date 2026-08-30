@@ -1428,14 +1428,22 @@ Phase 3: Scale
 | **COGS** | Cost of Goods Sold |
 | **MVP** | Minimum Viable Product |
 
-### Appendix B: Additional Resources
+### Appendix C: SaaS Subscription Tiers, Add-ons & Approval Business Rules
 
-- Market Research Reports
-- Competitive Analysis Details
-- Customer Interview Summaries
-- Technical Architecture Document
-- Marketing Plan Details
-- Financial Model Spreadsheet
+#### 1. Tier Quota Enforcement
+- **Trial Plan (₹0 / 14 Days):** 1 Institution, 1 Branch, 1 Library, 2 Users, 50 Members. Auto-approved. Cannot be renewed. Add-ons blocked.
+- **Basic Plan (₹6,999 / 365 Days):** 1 Institution, 1 Branch, 1 Library, 2 Users, 200 Members.
+- **Value Plan (₹13,999 / 365 Days):** 2 Institutions, 2 Branches, 2 Libraries, 4 Users, 400 Members.
+- **Premium Plan (₹27,999 / 365 Days):** 5 Institutions, 5 Branches, 5 Libraries, 10 Users, 1,000 Members.
+
+#### 2. Capacity Add-ons & Scoping
+- Resource limits calculated dynamically: `package.Max + sum(approved_addons.Quantity * unitQuantity)`.
+- Counts only active records (`IsActive == true`).
+
+#### 3. SuperAdmin Verification & Approval Operations
+- Tenant registrations, add-on requests, and renewal/upgrade requests require SuperAdmin approval except Trial signups and SuperAdmin-initiated plan changes.
+- Direct outreach via pre-formatted WhatsApp templates for payment requests, custom discounts, and receipt confirmation.
+- Configurable expiration alert period (default: 14 days).
 
 ---
 
@@ -1456,6 +1464,7 @@ Phase 3: Scale
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
 | 1.0 | 2026-05-23 | Initial BRD creation | Product Team |
+| 2.0 | 2026-08-30 | 3-tier SaaS packages, dynamic add-ons, SuperAdmin approval console, WhatsApp outreach | Product Team |
 
 ---
 

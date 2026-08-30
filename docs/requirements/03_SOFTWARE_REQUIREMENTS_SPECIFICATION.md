@@ -2528,11 +2528,29 @@ app.MapHealthChecks("/health/live");
 - [ ] Security headers configured
 - [ ] Dependency vulnerabilities scanned
 
+### Appendix E: SaaS Subscription, Quotas & Approvals API Specification
+
+#### 1. Endpoints Overview
+- `POST /api/v1/auth/register` — Supports `packageId` and optional `selectedAddons`. Auto-approves Trial; sets Pending for Paid plans.
+- `GET /api/v1/package-subscriptions/overview` — Current subscription, active capacity, pending plan requests, 14-day expiry threshold.
+- `GET /api/v1/package-subscriptions/quote` — Prorated calculation for plan switches (`forUpgrade=true` auto-enforced for trials).
+- `POST /api/v1/package-subscriptions/renew` — Submit plan renewal (Pending for regular user, auto-approved for SuperAdmin).
+- `POST /api/v1/package-subscriptions/upgrade` — Submit plan upgrade (Pending for regular user, auto-approved for SuperAdmin).
+- `GET /api/v1/package-subscriptions/requests` — SuperAdmin list of plan renewal & upgrade requests.
+- `POST /api/v1/package-subscriptions/requests/{id}/approve` — SuperAdmin approve plan change.
+- `POST /api/v1/package-subscriptions/requests/{id}/reject` — SuperAdmin reject plan change.
+- `POST /api/v1/addons/purchase` — Submit capacity add-on request (Pending state).
+- `GET /api/v1/addons/requests` — SuperAdmin list of capacity add-on requests.
+- `POST /api/v1/addons/requests/{id}/approve` — SuperAdmin approve add-on and activate quota.
+- `POST /api/v1/addons/requests/{id}/reject` — SuperAdmin reject add-on request.
+- `GET /api/v1/admin/tenant-registrations` — SuperAdmin list of tenant registration requests.
+- `POST /api/v1/admin/tenant-registrations/{userId}/approve` — SuperAdmin approve tenant.
+- `POST /api/v1/admin/tenant-registrations/{userId}/reject` — SuperAdmin reject tenant.
+
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** May 23, 2026  
-**Next Review Date:** June 23, 2026  
+**Document Version:** 2.0  
+**Last Updated:** August 30, 2026  
 **Author:** Technical Team  
 **Status:** Active  
 

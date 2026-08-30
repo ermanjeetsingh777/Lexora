@@ -10,13 +10,13 @@ End-to-end workflow for **M-17 Package Entitlements, Capacity Add-ons & RBAC Aut
 
 Lexora implements a dynamic capacity & dual-layer access control model:
 1. **Subscription Package Entitlements & Capacity Quotas:** Controls quantitative resource creation limits based on the organization's base subscription tier (`Basic`, `Value`, `Premium` / `Trial`) plus any active **Capacity Add-ons** (`Addon`).
-2. **Active State Scoping:** Limits only apply to **Active** records (`IsActive == true` and `IsDeleted == false`). Inactive members and users do not count against the entitlement quota.
+2. **Approval & Active State Scoping:** Limits only apply to **Approved & Active** records (`IsActive == true`, `ApprovalStatus == "Approved"`, `IsDeleted == false`). Pending add-ons or inactive members do not count against quotas until verified.
 3. **SuperAdmin Dynamic Controls:** SuperAdmin can update prices, duration, and quota limits (`MaxInstitutions`, `MaxBranches`, `MaxLibraries`, `MaxUsers`, `MaxMembers`) for packages and add-ons at runtime without recompilation.
 4. **Role-Based Access Control (RBAC):** Controls granular functional capabilities using `PermissionKey` claims assigned to user roles. `SuperAdmin` bypasses permission checks globally.
 
 ```mermaid
 flowchart TD
-  Req[User attempts to Create Resource / Action] --> EntitlementCheck{Active Count < Dynamic Limit (Base Package + Addons)?}
+  Req[User attempts to Create Resource / Action] --> EntitlementCheck{Active Count < Dynamic Limit (Active Base Package + Approved Addons)?}
   EntitlementCheck -- No --> BlockEntitlement[Reject: Purchase Add-on or Upgrade Package / Hide Button]
   EntitlementCheck -- Yes --> PermCheck{Has PermissionKey Claim or SuperAdmin?}
   PermCheck -- No --> BlockPerm[403 Forbidden / Hide Action]
@@ -38,7 +38,7 @@ flowchart TD
 
 ### 2.2 Capacity Add-ons (`Addon` Entity)
 
-Organizations can expand quotas without upgrading the whole plan by purchasing add-ons:
+Organizations can expand quotas without upgrading the whole plan by purchasing add-ons (subject to SuperAdmin approval):
 - **Additional Library** (`ADDON_LIBRARY`): +1 Library
 - **100 Active Members Pack** (`ADDON_MEMBERS_100`): +100 Active Members
 - **200 Active Members Pack** (`ADDON_MEMBERS_200`): +200 Active Members
@@ -56,7 +56,7 @@ Organizations can expand quotas without upgrading the whole plan by purchasing a
 **Implementation:** `SLMS_API/Application/Services/PackageEntitlementService.cs`  
 **DTO:** `SLMS_API/Application/Contracts/Package/Response/OrganizationEntitlementsResponse.cs`
 
-- Calculates total allowed limits: `package.Max{Resource} + sum(active_addons.TotalExtraQuantity)`.
+- Calculates total allowed limits: `package.Max{Resource} + sum(active_and_approved_addons.TotalExtraQuantity)`.
 - Counts only **Active** resources linked to the user's scope.
 - Provides verification methods:
   - `EnsureCanCreateInstitutionAsync(userId, isOnboarding)`
@@ -73,8 +73,9 @@ Organizations can expand quotas without upgrading the whole plan by purchasing a
 - `GET /api/v1/addons/all`: SuperAdmin management list
 - `POST /api/v1/addons`: SuperAdmin create add-on
 - `PUT /api/v1/addons/{id}`: SuperAdmin update add-on
-- `POST /api/v1/addons/purchase`: User purchases an add-on; immediately updates user's entitlement limits
-- `GET /api/v1/addons/my-addons`: User's active capacity add-ons
+- `POST /api/v1/addons/purchase`: User purchases an add-on; enters Pending state until SuperAdmin approval
+- `GET /api/v1/addons/my-addons`: User's purchased capacity add-ons with approval statuses
+- `POST /api/v1/addons/requests/{id}/approve`: SuperAdmin approves add-on; activates quota immediately
 
 ### 3.3 Packages Controller (SuperAdmin Management)
 
@@ -96,9 +97,10 @@ Organizations can expand quotas without upgrading the whole plan by purchasing a
 ### 4.2 Registration with Optional Add-ons
 
 - `RegisterComponent` loads active packages and active add-ons.
-- Displays live package quota cards (Institutions, Branches, Libraries, Users, Members).
+- If directed from landing page with package query param, dropdown is locked with a "Change Plan" button.
+- If `Trial` package is selected, add-ons section is hidden and total price is 0.
 - Allows users to customize and add capacity add-ons during initial registration with live total pricing calculations.
 
 ### 4.3 Subscriptions & Quotas Management Screen
 
-- `SubscriptionsComponent` displays current plan, active add-ons, full package grid with quota details, capacity add-on catalog with 1-click purchase, and SuperAdmin dialogs to dynamically edit package and add-on prices and quotas.
+- `SubscriptionsComponent` displays current plan, active add-ons, full package grid with quota details, capacity add-on catalog with 1-click purchase, approval status badges, WhatsApp slip submission, and SuperAdmin dialogs to dynamically edit package and add-on prices and quotas.

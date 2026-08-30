@@ -8,7 +8,7 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 
 | ID | Module | Route(s) | Workflow doc | Status |
 |----|--------|----------|--------------|--------|
-| M-01 | Authentication | `/login`, `/register`, `/forgot-password`, … | [auth-workflow.md](../workflow/auth-workflow.md) | Implemented |
+| M-01 | Authentication | `/login`, `/register`, `/pending-approval`, `/forgot-password`, … | [auth-workflow.md](../workflow/auth-workflow.md) | Implemented |
 | M-02 | Landing & marketing | `/`, `/features`, `/prices`, `/terms`, `/privacy-policy` | — | Implemented (no workflow yet) |
 | M-03 | Onboarding | `/onboarding/*` | [onboarding-workflow.md](../workflow/onboarding-workflow.md) | Implemented |
 | M-04 | Institutions | `/institutions`, `/institutions/:id` | [institutions-list-workflow.md](../workflow/institutions-list-workflow.md), [institution-detail-workflow.md](../workflow/institution-detail-workflow.md) | Implemented |
@@ -26,6 +26,7 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 | M-15 | Administration | `/users`, `/roles` | [administration-workflow.md](../workflow/administration-workflow.md), [users-admin-workflow.md](../workflow/users-admin-workflow.md) | Implemented |
 | M-16 | Member portal & self-service | `/members/:memberId` (isolated) | [member-portal-workflow.md](../workflow/member-portal-workflow.md) | Implemented |
 | M-17 | Package entitlements, Add-ons & RBAC | Global creation limits & `[Permission]` claims | [package-entitlements-workflow.md](../workflow/package-entitlements-workflow.md) | Implemented |
+| M-18 | Tenant & Subscription Approvals | `/admin/tenant-approvals` | [tenant-approvals-workflow.md](../workflow/tenant-approvals-workflow.md) | Implemented |
 
 ## Planned / not yet routed
 

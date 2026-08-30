@@ -1124,6 +1124,29 @@ SaaS (Software-as-a-Service) B2B Platform
 | **Soft Delete** | Logical deletion preserving data in database |
 | **Audit Trail** | Log of all system actions for compliance |
 | **PKI** | Public Key Infrastructure |
+| **Capacity Add-on** | Granular resource booster pack (Libraries, Branches, Members, Users) |
+| **Approval Workflow** | SuperAdmin verification of tenant signups, plan switches, and add-ons |
+
+---
+
+## 12. SaaS Subscription Tiers, Add-ons & Approvals Architecture
+
+### 12.1 3-Tier Package System & Quotas
+The platform enforces hierarchical resource creation quotas per tenant based on their active package tier:
+- **Trial Plan (₹0 / 14 Days):** 1 Institution, 1 Branch, 1 Library, 2 Staff Users, 50 Active Members. Features include Basic catalog & check-in. Auto-approved on signup. Add-on purchases disabled. Cannot be renewed, must be upgraded to paid plans.
+- **Basic Plan (₹6,999 / 365 Days):** 1 Institution, 1 Branch, 1 Library, 2 Staff Users, 200 Active Members.
+- **Value Plan (₹13,999 / 365 Days):** 2 Institutions, 2 Branches, 2 Libraries, 4 Staff Users, 400 Active Members.
+- **Premium Plan (₹27,999 / 365 Days):** 5 Institutions, 5 Branches, 5 Libraries, 10 Staff Users, 1,000 Active Members.
+
+### 12.2 Capacity Add-ons
+Tenants can incrementally scale capacity without jumping plan tiers via Add-ons:
+- Additional Library (+1), Additional Branch (+1), Additional Institution (+1), Additional Staff User (+1), 100/200 Active Member Packs (+100/+200).
+
+### 12.3 Multi-Level SuperAdmin Approval Workflow
+1. **Tenant Registrations:** Paid registrations enter `Pending` status until SuperAdmin verifies payment. Trial registrations are auto-approved.
+2. **Capacity Add-ons:** Add-on purchases enter `Pending` state and do not expand quota until SuperAdmin approves.
+3. **Plan Renewal & Upgrades:** Plan changes submitted by logged-in users enter `Pending` state. If initiated by SuperAdmin, they are auto-approved immediately.
+4. **WhatsApp Direct Outreach:** 1-click messaging templates for payment collection, custom discount offers, and slip submissions.
 
 ---
 
@@ -1132,7 +1155,7 @@ SaaS (Software-as-a-Service) B2B Platform
 | Version | Date | Author | Status | Changes |
 |---------|------|--------|--------|---------|
 | 1.0 | 2026-05-23 | Mahi Rao | Active | Initial document creation |
-| | | | | |
+| 2.0 | 2026-08-30 | Engineering Team | Active | Added 3-tier package quotas, capacity add-ons, SuperAdmin approval workflow, trial handling & WhatsApp hotline |
 
 ---
 

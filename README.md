@@ -1,13 +1,13 @@
 # Lexora
 
-Smart Library Management System (SLMS) — multi-tenant SaaS for institutions, branches, libraries, members, attendance, books, and administration.
+Smart Library Management System (SLMS) — multi-tenant SaaS for institutions, branches, libraries, members, attendance, books, subscriptions, and administration.
 
 ## Repositories
 
 | Project | Stack | Description |
 |---------|-------|-------------|
 | **SLMS_API** | .NET 10, EF Core, SQL Server | REST API — [SLMS_API/README.md](SLMS_API/README.md) |
-| **SLMS_UI** | Angular 21, Tailwind, PrimeNG | Web application — [SLMS_UI/README.md](SLMS_UI/README.md) |
+| **SLMS_UI** | Angular 21, Tailwind, Lucide Icons | Web application — [SLMS_UI/README.md](SLMS_UI/README.md) |
 
 ## Quick start
 
@@ -23,7 +23,7 @@ npm install
 ng serve
 ```
 
-- API: `http://localhost:5050`
+- API: `http://localhost:5050` / `https://localhost:7050`
 - UI: `http://localhost:4200`
 
 ### Development login (seeded)
@@ -69,6 +69,7 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | M-15 | Users & roles | [users-admin-workflow.md](docs/workflow/users-admin-workflow.md) |
 | M-16 | Member portal | [member-portal-workflow.md](docs/workflow/member-portal-workflow.md) |
 | M-17 | Package entitlements, Add-ons & RBAC | [package-entitlements-workflow.md](docs/workflow/package-entitlements-workflow.md) |
+| M-18 | Tenant & Subscription Approvals | [tenant-approvals-workflow.md](docs/workflow/tenant-approvals-workflow.md) |
 
 ## Attendance QR kiosk (public, no login)
 
@@ -78,5 +79,3 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | Member | `/kiosk/attendance/member?token=` | Self check-in/out |
 
 Staff tools: `/attendance/scanner` (requires `attendance.scanner.use` permission).
-
-See [attendance-kiosk-workflow.md](docs/workflow/attendance-kiosk-workflow.md) for kiosk API; [attendance-module-workflow.md](docs/workflow/attendance-module-workflow.md) for records, calendar, and export.

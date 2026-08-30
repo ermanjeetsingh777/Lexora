@@ -56,12 +56,12 @@ SLMS_API/
 | `AttendanceController` | `api/v1/attendance` | [attendance-module-workflow.md](../docs/workflow/attendance-module-workflow.md), [member-portal-workflow.md](../docs/workflow/member-portal-workflow.md) |
 | `AttendanceKioskController` | `api/v1/attendance/kiosk` | [attendance-kiosk-workflow.md](../docs/workflow/attendance-kiosk-workflow.md) |
 | `AttendanceScannerController` | `api/v1/attendance/scanner` | [attendance-kiosk-workflow.md](../docs/workflow/attendance-kiosk-workflow.md), [member-portal-workflow.md](../docs/workflow/member-portal-workflow.md) |
-| `AdminController` | `api/v1/admin` | [administration-workflow.md](../docs/workflow/administration-workflow.md) |
+| `AdminController` | `api/v1/admin` | [administration-workflow.md](../docs/workflow/administration-workflow.md), [tenant-approvals-workflow.md](../docs/workflow/tenant-approvals-workflow.md) |
 | `SupportController` | `api/v1/support` | [support-workflow.md](../docs/workflow/support-workflow.md) |
 | `DashboardController` | `api/v1/dashboard` | [dashboard-workflow.md](../docs/workflow/dashboard-workflow.md) |
 | `PackagesController` | `api/v1/packages` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md) (Catalog, SuperAdmin dynamic quota management) |
-| `AddonsController` | `api/v1/addons` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md), [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md) (Capacity add-on purchase & SuperAdmin management) |
-| `PackageSubscriptionsController` | `api/v1/package-subscriptions` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md), [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md) (SaaS package billing & creation entitlements) |
+| `AddonsController` | `api/v1/addons` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md), [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md), [tenant-approvals-workflow.md](../docs/workflow/tenant-approvals-workflow.md) (Capacity add-on purchase, approvals & SuperAdmin management) |
+| `PackageSubscriptionsController` | `api/v1/package-subscriptions` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md), [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md), [tenant-approvals-workflow.md](../docs/workflow/tenant-approvals-workflow.md) (SaaS package billing, renew/upgrade approvals & entitlements) |
 | `PlanController` | `api/v1/institutions/.../plans` | [library-detail-workflow.md](../docs/workflow/library-detail-workflow.md) |
 | `SubscriptionsController` | `api/v1/institutions/{id}/subscriptions` | Planned |
 | `SeatsController` | `api/v1/institutions/.../seats` | Planned |

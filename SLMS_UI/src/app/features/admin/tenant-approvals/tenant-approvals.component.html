@@ -4,17 +4,17 @@
     <div>
       <h1 class="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
         <svg lucideUserCheck class="w-7 h-7 text-amber-500"></svg>
-        <span>Tenant Registration Approvals</span>
+        <span>Tenant & Subscription Approvals</span>
       </h1>
       <p class="text-sm text-muted-foreground mt-1">
-        Review new organization registration requests, verify subscription plans & add-ons, and approve or decline account activation.
+        Review organization registration requests and capacity add-on purchases, verify payments, and activate accounts.
       </p>
     </div>
 
     <div class="flex items-center gap-2">
       <button
         type="button"
-        (click)="loadRegistrations()"
+        (click)="loadAllData()"
         [disabled]="isLoading()"
         class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border border-border bg-card hover:bg-accent text-foreground transition-all shadow-sm disabled:opacity-50"
       >
@@ -24,478 +24,658 @@
     </div>
   </div>
 
-  <!-- Metric Overview Cards -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    <!-- Total Requests -->
-    <div
-      (click)="setTab('all')"
-      class="p-4 rounded-xl border transition-all cursor-pointer bg-card hover:border-primary/50"
-      [class.ring-2]="activeTab() === 'all'"
-      [class.ring-primary]="activeTab() === 'all'"
+  <!-- Top-Level Section Switcher: Tenant Registrations vs Capacity Add-on Requests -->
+  <div class="flex items-center gap-2 p-1.5 bg-muted/60 rounded-xl border border-border/80 w-full sm:w-auto self-start">
+    <button
+      type="button"
+      (click)="setSection('tenants')"
+      class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+      [ngClass]="activeSection() === 'tenants'
+        ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+        : 'text-muted-foreground hover:text-foreground'"
     >
-      <div class="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
-        <span>Total Registrations</span>
-        <svg lucideUsers class="w-4 h-4"></svg>
-      </div>
-      <div class="text-2xl font-bold text-foreground">{{ totalCount() }}</div>
-    </div>
-
-    <!-- Pending Approvals -->
-    <div
-      (click)="setTab('pending')"
-      class="p-4 rounded-xl border transition-all cursor-pointer bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40"
-      [class.ring-2]="activeTab() === 'pending'"
-      [class.ring-amber-500]="activeTab() === 'pending'"
-    >
-      <div class="flex items-center justify-between text-amber-500 text-xs font-medium mb-2">
-        <span class="flex items-center gap-1.5">
-          <span class="relative flex h-2 w-2">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-          </span>
-          <span>Pending Review</span>
+      <svg lucideBuilding class="w-4 h-4 text-indigo-500"></svg>
+      <span>Tenant Registrations</span>
+      @if (pendingCount() > 0) {
+        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse">
+          {{ pendingCount() }}
         </span>
-        <svg lucideClock class="w-4 h-4 text-amber-500"></svg>
-      </div>
-      <div class="text-2xl font-bold text-amber-500">{{ pendingCount() }}</div>
-    </div>
+      }
+    </button>
 
-    <!-- Approved -->
-    <div
-      (click)="setTab('approved')"
-      class="p-4 rounded-xl border transition-all cursor-pointer bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40"
-      [class.ring-2]="activeTab() === 'approved'"
-      [class.ring-emerald-500]="activeTab() === 'approved'"
+    <button
+      type="button"
+      (click)="setSection('addons')"
+      class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+      [ngClass]="activeSection() === 'addons'
+        ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+        : 'text-muted-foreground hover:text-foreground'"
     >
-      <div class="flex items-center justify-between text-emerald-500 text-xs font-medium mb-2">
-        <span>Approved Tenants</span>
-        <svg lucideCheckCircle class="w-4 h-4 text-emerald-500"></svg>
-      </div>
-      <div class="text-2xl font-bold text-emerald-500">{{ approvedCount() }}</div>
-    </div>
-
-    <!-- Rejected -->
-    <div
-      (click)="setTab('rejected')"
-      class="p-4 rounded-xl border transition-all cursor-pointer bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40"
-      [class.ring-2]="activeTab() === 'rejected'"
-      [class.ring-rose-500]="activeTab() === 'rejected'"
-    >
-      <div class="flex items-center justify-between text-rose-500 text-xs font-medium mb-2">
-        <span>Declined / Rejected</span>
-        <svg lucideXCircle class="w-4 h-4 text-rose-500"></svg>
-      </div>
-      <div class="text-2xl font-bold text-rose-500">{{ rejectedCount() }}</div>
-    </div>
+      <svg lucideLayers class="w-4 h-4 text-emerald-500"></svg>
+      <span>Capacity Add-on Requests</span>
+      @if (pendingAddonCount() > 0) {
+        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse">
+          {{ pendingAddonCount() }}
+        </span>
+      }
+    </button>
   </div>
 
-  <!-- Search & Filter Controls -->
-  <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border">
-    <!-- Filter Tabs -->
-    <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-lg w-full sm:w-auto">
-      <button
-        type="button"
+  @if (activeSection() === 'tenants') {
+    <!-- SECTION 1: TENANT REGISTRATIONS -->
+    <!-- Metric Overview Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total Requests -->
+      <div
         (click)="setTab('all')"
-        class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
-        [ngClass]="activeTab() === 'all' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-card hover:border-primary/50"
+        [class.ring-2]="activeTab() === 'all'"
+        [class.ring-primary]="activeTab() === 'all'"
       >
-        All ({{ totalCount() }})
-      </button>
-      <button
-        type="button"
+        <div class="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
+          <span>Total Registrations</span>
+          <svg lucideUsers class="w-4 h-4"></svg>
+        </div>
+        <div class="text-2xl font-bold text-foreground">{{ totalCount() }}</div>
+      </div>
+
+      <!-- Pending Approvals -->
+      <div
         (click)="setTab('pending')"
-        class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
-        [ngClass]="activeTab() === 'pending' ? 'bg-card text-amber-500 shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40"
+        [class.ring-2]="activeTab() === 'pending'"
+        [class.ring-amber-500]="activeTab() === 'pending'"
       >
-        Pending ({{ pendingCount() }})
-      </button>
-      <button
-        type="button"
+        <div class="flex items-center justify-between text-amber-500 text-xs font-medium mb-2">
+          <span class="flex items-center gap-1.5">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            <span>Pending Review</span>
+          </span>
+          <svg lucideClock class="w-4 h-4 text-amber-500"></svg>
+        </div>
+        <div class="text-2xl font-bold text-amber-500">{{ pendingCount() }}</div>
+      </div>
+
+      <!-- Approved -->
+      <div
         (click)="setTab('approved')"
-        class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
-        [ngClass]="activeTab() === 'approved' ? 'bg-card text-emerald-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40"
+        [class.ring-2]="activeTab() === 'approved'"
+        [class.ring-emerald-500]="activeTab() === 'approved'"
       >
-        Approved ({{ approvedCount() }})
-      </button>
-      <button
-        type="button"
+        <div class="flex items-center justify-between text-emerald-500 text-xs font-medium mb-2">
+          <span>Approved Tenants</span>
+          <svg lucideCheckCircle class="w-4 h-4 text-emerald-500"></svg>
+        </div>
+        <div class="text-2xl font-bold text-emerald-500">{{ approvedCount() }}</div>
+      </div>
+
+      <!-- Rejected -->
+      <div
         (click)="setTab('rejected')"
-        class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
-        [ngClass]="activeTab() === 'rejected' ? 'bg-card text-rose-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40"
+        [class.ring-2]="activeTab() === 'rejected'"
+        [class.ring-rose-500]="activeTab() === 'rejected'"
       >
-        Rejected ({{ rejectedCount() }})
-      </button>
+        <div class="flex items-center justify-between text-rose-500 text-xs font-medium mb-2">
+          <span>Declined / Rejected</span>
+          <svg lucideXCircle class="w-4 h-4 text-rose-500"></svg>
+        </div>
+        <div class="text-2xl font-bold text-rose-500">{{ rejectedCount() }}</div>
+      </div>
     </div>
 
-    <!-- Search Input -->
-    <div class="relative w-full sm:w-72">
-      <svg lucideSearch class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
-      <input
-        type="text"
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
-        placeholder="Search name, email, org..."
-        class="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-      />
+    <!-- Search & Filter Controls -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border">
+      <!-- Filter Tabs -->
+      <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-lg w-full sm:w-auto">
+        <button
+          type="button"
+          (click)="setTab('all')"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          [ngClass]="activeTab() === 'all' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        >
+          All ({{ totalCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setTab('pending')"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          [ngClass]="activeTab() === 'pending' ? 'bg-card text-amber-500 shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'"
+        >
+          Pending ({{ pendingCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setTab('approved')"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          [ngClass]="activeTab() === 'approved' ? 'bg-card text-emerald-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        >
+          Approved ({{ approvedCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setTab('rejected')"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          [ngClass]="activeTab() === 'rejected' ? 'bg-card text-rose-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        >
+          Rejected ({{ rejectedCount() }})
+        </button>
+      </div>
+
+      <!-- Search Input -->
+      <div class="relative w-full sm:w-72">
+        <svg lucideSearch class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
+        <input
+          type="text"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Search name, email, org..."
+          class="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
     </div>
-  </div>
 
-  <!-- Data Table -->
-  <div class="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-    @if (isLoading()) {
-      <div class="flex flex-col items-center justify-center py-16 text-center">
-        <div class="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin mb-3"></div>
-        <p class="text-sm text-muted-foreground">Loading registration requests...</p>
-      </div>
-    } @else if (filteredRegistrations().length === 0) {
-      <div class="py-16 text-center">
-        <svg lucideUserCheck class="w-12 h-12 text-muted-foreground/40 mx-auto mb-3"></svg>
-        <h3 class="text-base font-semibold text-foreground">No Registration Requests Found</h3>
-        <p class="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-          There are no tenant registrations matching your current filter criteria.
-        </p>
-      </div>
-    } @else {
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground font-semibold">
-            <tr>
-              <th class="px-4 py-3">Applicant / Owner</th>
-              <th class="px-4 py-3">Organization Setup</th>
-              <th class="px-4 py-3">Plan & Add-ons</th>
-              <th class="px-4 py-3">Total Amount</th>
-              <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            @for (item of filteredRegistrations(); track item.userId) {
-              <tr class="hover:bg-muted/30 transition-colors">
-                <!-- Applicant Details -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="font-semibold text-foreground">{{ item.fullName }}</div>
-                  <div class="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                    <svg lucideMail class="w-3 h-3 text-muted-foreground/70"></svg>
-                    <span>{{ item.email }}</span>
-                  </div>
-                  @if (getPrimaryContactPhone(item); as phone) {
-                    <div class="flex items-center gap-2 mt-1">
-                      <div class="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                        <svg lucidePhone class="w-3 h-3 text-muted-foreground/70"></svg>
-                        <span>{{ phone }}</span>
-                      </div>
-                      <!-- Quick WhatsApp Action from Table -->
-                      <a
-                        [href]="getWhatsAppUrl(item, 'payment')"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-colors"
-                        title="Chat on WhatsApp & ask for payment screenshot"
-                      >
-                        <svg lucideMessageCircle class="w-3 h-3"></svg>
-                        <span>WhatsApp</span>
-                      </a>
-                    </div>
-                  }
-                  <div class="text-[11px] text-muted-foreground/60 mt-1 flex items-center gap-1">
-                    <svg lucideCalendar class="w-3 h-3"></svg>
-                    <span>{{ item.registeredAtUtc | date:'mediumDate' }}</span>
-                  </div>
-                </td>
-
-                <!-- Organization Setup -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="font-medium text-foreground flex items-center gap-1.5">
-                    <svg lucideBuilding class="w-3.5 h-3.5 text-primary"></svg>
-                    <span>{{ item.institutionName || 'Institution Not Added' }}</span>
-                  </div>
-                  @if (item.institutionContactPhone) {
-                    <div class="text-xs text-muted-foreground pl-5 mt-0.5 flex items-center gap-1">
-                      <span class="text-[11px] text-muted-foreground/70">Org Phone:</span>
-                      <span class="text-foreground/80 font-medium">{{ item.institutionContactPhone }}</span>
-                    </div>
-                  }
-                  @if (item.branchName) {
-                    <div class="text-xs text-muted-foreground pl-5 mt-0.5">
-                      Branch: <span class="text-foreground/80 font-medium">{{ item.branchName }}</span>
-                      @if (item.branchCity) {
-                        <span class="text-[11px] text-muted-foreground/70">({{ item.branchCity }})</span>
-                      }
-                    </div>
-                  }
-                  @if (item.libraryName) {
-                    <div class="text-xs text-muted-foreground pl-5 mt-0.5">
-                      Library: <span class="text-foreground/80 font-medium">{{ item.libraryName }}</span>
-                      @if (item.libraryCapacity) {
-                        <span class="text-[11px] text-muted-foreground/70">({{ item.libraryCapacity }} seats)</span>
-                      }
-                    </div>
-                  }
-                </td>
-
-                <!-- Plan & Add-ons -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                    <svg lucideSparkles class="w-3 h-3"></svg>
-                    <span>{{ item.packageName || 'Basic' }}</span>
-                  </div>
-
-                  @if (item.addons && item.addons.length > 0) {
-                    <div class="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-                      @for (addon of item.addons; track addon.addonId) {
-                        <div class="flex items-center gap-1">
-                          <span class="w-1 h-1 rounded-full bg-indigo-400"></span>
-                          <span>+{{ addon.totalExtraQuantity }} {{ addon.resourceType }} (x{{ addon.quantity }})</span>
-                        </div>
-                      }
-                    </div>
-                  }
-                </td>
-
-                <!-- Amount -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="font-bold text-foreground">
-                    {{ (item.finalApprovedAmount ?? item.totalCalculatedAmount) | currency:'INR':'symbol':'1.0-0' }}
-                  </div>
-                  @if (item.finalApprovedAmount && item.finalApprovedAmount !== item.totalCalculatedAmount) {
-                    <div class="text-[11px] text-muted-foreground line-through">
-                      {{ item.totalCalculatedAmount | currency:'INR':'symbol':'1.0-0' }}
-                    </div>
-                  }
-                </td>
-
-                <!-- Status -->
-                <td class="px-4 py-3.5 align-top">
-                  @if (item.approvalStatus?.toLowerCase() === 'approved') {
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                      <svg lucideCheckCircle class="w-3 h-3"></svg>
-                      <span>Approved</span>
-                    </span>
-                  } @else if (item.approvalStatus?.toLowerCase() === 'rejected') {
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                      <svg lucideXCircle class="w-3 h-3"></svg>
-                      <span>Rejected</span>
-                    </span>
-                  } @else {
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                      <span class="relative flex h-1.5 w-1.5">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
-                      </span>
-                      <span>Pending</span>
-                    </span>
-                  }
-
-                  @if (item.adminRemarks) {
-                    <div class="text-[11px] text-muted-foreground mt-1 max-w-[180px] truncate" [title]="item.adminRemarks">
-                      "{{ item.adminRemarks }}"
-                    </div>
-                  }
-                </td>
-
-                <!-- Actions -->
-                <td class="px-4 py-3.5 align-top text-right">
-                  <button
-                    type="button"
-                    (click)="openReviewModal(item)"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm transition-all"
-                    [ngClass]="isPending(item) 
-                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
-                      : 'border border-border bg-card hover:bg-accent text-foreground'"
-                  >
-                    <svg lucideEye class="w-3.5 h-3.5"></svg>
-                    <span>{{ isPending(item) ? 'Review & Action' : 'View Details' }}</span>
-                  </button>
-                </td>
+    <!-- Data Table -->
+    <div class="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+      @if (isLoading()) {
+        <div class="flex flex-col items-center justify-center py-16 text-center">
+          <div class="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin mb-3"></div>
+          <p class="text-sm text-muted-foreground">Loading registration requests...</p>
+        </div>
+      } @else if (filteredRegistrations().length === 0) {
+        <div class="py-16 text-center">
+          <svg lucideUserCheck class="w-12 h-12 text-muted-foreground/40 mx-auto mb-3"></svg>
+          <h3 class="text-base font-semibold text-foreground">No Registration Requests Found</h3>
+          <p class="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+            There are no tenant registrations matching your current filter criteria.
+          </p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground font-semibold">
+              <tr>
+                <th class="px-4 py-3">Applicant / Owner</th>
+                <th class="px-4 py-3">Organization Setup</th>
+                <th class="px-4 py-3">Plan & Add-ons</th>
+                <th class="px-4 py-3">Total Amount</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-  </div>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (item of filteredRegistrations(); track item.userId) {
+                <tr class="hover:bg-muted/30 transition-colors">
+                  <!-- Applicant Details -->
+                  <td class="px-4 py-3.5 align-top">
+                    <div class="font-semibold text-foreground">{{ item.fullName }}</div>
+                    <div class="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                      <svg lucideMail class="w-3 h-3 text-muted-foreground/70"></svg>
+                      <span>{{ item.email }}</span>
+                    </div>
+                    @if (getPrimaryContactPhone(item); as phone) {
+                      <div class="flex items-center gap-2 mt-1">
+                        <div class="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                          <svg lucidePhone class="w-3 h-3 text-muted-foreground/70"></svg>
+                          <span>{{ phone }}</span>
+                        </div>
+                        <!-- Quick WhatsApp Action from Table -->
+                        <a
+                          [href]="getWhatsAppUrl(item, 'payment')"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-colors"
+                          title="Chat on WhatsApp & ask for payment screenshot"
+                        >
+                          <svg lucideMessageCircle class="w-3 h-3"></svg>
+                          <span>WhatsApp</span>
+                        </a>
+                      </div>
+                    }
+                    <div class="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                      <svg lucideCalendar class="w-3 h-3 text-muted-foreground/70"></svg>
+                      <span>Registered: {{ item.registeredAtUtc | date:'mediumDate' }}</span>
+                    </div>
+                  </td>
 
-  <!-- Review & Action Modal Dialog -->
+                  <!-- Organization Details -->
+                  <td class="px-4 py-3.5 align-top">
+                    <div class="font-semibold text-foreground flex items-center gap-1.5">
+                      <svg lucideBuilding class="w-3.5 h-3.5 text-primary"></svg>
+                      <span>{{ item.institutionName || 'Default Institution' }}</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground mt-1 space-y-0.5">
+                      @if (item.branchName) {
+                        <div>Branch: <strong class="text-foreground/80 font-medium">{{ item.branchName }}</strong></div>
+                      }
+                      @if (item.libraryName) {
+                        <div>Library: <strong class="text-foreground/80 font-medium">{{ item.libraryName }}</strong></div>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Subscription Details -->
+                  <td class="px-4 py-3.5 align-top">
+                    <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                      <span>{{ item.packageName }}</span>
+                    </div>
+                    @if (item.addons && item.addons.length > 0) {
+                      <div class="text-xs text-muted-foreground mt-1 space-y-0.5">
+                        @for (addon of item.addons; track addon.addonId) {
+                          <div class="flex items-center gap-1">
+                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">+{{ addon.totalExtraQuantity }} {{ addon.resourceType }}</span>
+                            <span class="text-[11px] text-muted-foreground">({{ addon.addonName }})</span>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </td>
+
+                  <!-- Total Amount -->
+                  <td class="px-4 py-3.5 align-top">
+                    <div class="font-bold text-sm text-foreground">
+                      {{ (item.finalApprovedAmount ?? item.totalCalculatedAmount) | currency:'INR':'symbol':'1.0-0' }}
+                    </div>
+                    @if (item.finalApprovedAmount && item.finalApprovedAmount !== item.totalCalculatedAmount) {
+                      <div class="text-[11px] text-muted-foreground line-through">
+                        Orig: {{ item.totalCalculatedAmount | currency:'INR':'symbol':'1.0-0' }}
+                      </div>
+                    }
+                  </td>
+
+                  <!-- Status Badge -->
+                  <td class="px-4 py-3.5 align-top">
+                    @if (isApproved(item)) {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                        <svg lucideCheckCircle class="w-3.5 h-3.5"></svg>
+                        <span>Approved</span>
+                      </span>
+                    } @else if (isRejected(item)) {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                        <svg lucideXCircle class="w-3.5 h-3.5"></svg>
+                        <span>Rejected</span>
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                        <svg lucideClock class="w-3.5 h-3.5 animate-pulse"></svg>
+                        <span>Pending</span>
+                      </span>
+                    }
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="px-4 py-3.5 align-top text-right">
+                    <button
+                      type="button"
+                      (click)="openReviewModal(item)"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm transition-all"
+                      [ngClass]="isPending(item) 
+                        ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                        : 'border border-border bg-card hover:bg-accent text-foreground'"
+                    >
+                      <svg lucideEye class="w-3.5 h-3.5"></svg>
+                      <span>{{ isPending(item) ? 'Review & Action' : 'View Details' }}</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- SECTION 2: CAPACITY ADD-ON REQUESTS -->
+    <!-- Metric Overview Cards for Addons -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div
+        (click)="setAddonTab('all')"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-card hover:border-primary/50"
+        [class.ring-2]="addonTab() === 'all'"
+        [class.ring-primary]="addonTab() === 'all'"
+      >
+        <div class="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
+          <span>Total Add-on Requests</span>
+          <svg lucideLayers class="w-4 h-4"></svg>
+        </div>
+        <div class="text-2xl font-bold text-foreground">{{ totalAddonCount() }}</div>
+      </div>
+
+      <div
+        (click)="setAddonTab('pending')"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40"
+        [class.ring-2]="addonTab() === 'pending'"
+        [class.ring-amber-500]="addonTab() === 'pending'"
+      >
+        <div class="flex items-center justify-between text-amber-500 text-xs font-medium mb-2">
+          <span class="flex items-center gap-1.5">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            <span>Pending Add-on Review</span>
+          </span>
+          <svg lucideClock class="w-4 h-4 text-amber-500"></svg>
+        </div>
+        <div class="text-2xl font-bold text-amber-500">{{ pendingAddonCount() }}</div>
+      </div>
+
+      <div
+        (click)="setAddonTab('approved')"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40"
+        [class.ring-2]="addonTab() === 'approved'"
+        [class.ring-emerald-500]="addonTab() === 'approved'"
+      >
+        <div class="flex items-center justify-between text-emerald-500 text-xs font-medium mb-2">
+          <span>Approved & Active</span>
+          <svg lucideCheckCircle class="w-4 h-4 text-emerald-500"></svg>
+        </div>
+        <div class="text-2xl font-bold text-emerald-500">{{ approvedAddonCount() }}</div>
+      </div>
+
+      <div
+        (click)="setAddonTab('rejected')"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40"
+        [class.ring-2]="addonTab() === 'rejected'"
+        [class.ring-rose-500]="addonTab() === 'rejected'"
+      >
+        <div class="flex items-center justify-between text-rose-500 text-xs font-medium mb-2">
+          <span>Declined Add-ons</span>
+          <svg lucideXCircle class="w-4 h-4 text-rose-500"></svg>
+        </div>
+        <div class="text-2xl font-bold text-rose-500">{{ rejectedAddonCount() }}</div>
+      </div>
+    </div>
+
+    <!-- Search & Filter Controls for Addons -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border">
+      <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-lg w-full sm:w-auto">
+        <button
+          type="button"
+          (click)="setAddonTab('all')"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          [ngClass]="addonTab() === 'all' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        >
+          All ({{ totalAddonCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setAddonTab('pending')"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          [ngClass]="addonTab() === 'pending' ? 'bg-card text-amber-500 shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'"
+        >
+          Pending ({{ pendingAddonCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setAddonTab('approved')"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          [ngClass]="addonTab() === 'approved' ? 'bg-card text-emerald-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        >
+          Approved ({{ approvedAddonCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setAddonTab('rejected')"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          [ngClass]="addonTab() === 'rejected' ? 'bg-card text-rose-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        >
+          Rejected ({{ rejectedAddonCount() }})
+        </button>
+      </div>
+
+      <div class="relative w-full sm:w-72">
+        <svg lucideSearch class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></svg>
+        <input
+          type="text"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Search user, org, addon..."
+          class="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+    </div>
+
+    <!-- Addon Requests Data Table -->
+    <div class="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+      @if (filteredAddonRequests().length === 0) {
+        <div class="py-16 text-center">
+          <svg lucideLayers class="w-12 h-12 text-muted-foreground/40 mx-auto mb-3"></svg>
+          <h3 class="text-base font-semibold text-foreground">No Add-on Requests Found</h3>
+          <p class="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+            There are no capacity add-on purchase requests matching your filter criteria.
+          </p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground font-semibold">
+              <tr>
+                <th class="px-4 py-3">User & Organization</th>
+                <th class="px-4 py-3">Add-on Item</th>
+                <th class="px-4 py-3">Extra Capacity</th>
+                <th class="px-4 py-3">Payable Amount</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (item of filteredAddonRequests(); track item.id) {
+                <tr class="hover:bg-muted/30 transition-colors">
+                  <td class="px-4 py-3.5 align-top">
+                    <div class="font-semibold text-foreground">{{ item.userFullName || 'User' }}</div>
+                    <div class="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                      <svg lucideMail class="w-3 h-3 text-muted-foreground/70"></svg>
+                      <span>{{ item.userEmail || '—' }}</span>
+                    </div>
+                    @if (item.institutionName) {
+                      <div class="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                        <svg lucideBuilding class="w-3 h-3"></svg>
+                        <span>{{ item.institutionName }}</span>
+                      </div>
+                    }
+                    @if (item.userPhone) {
+                      <div class="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <svg lucidePhone class="w-3 h-3"></svg>
+                        <span>{{ item.userPhone }}</span>
+                      </div>
+                    }
+                    <div class="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                      <svg lucideCalendar class="w-3 h-3 text-muted-foreground/70"></svg>
+                      <span>Requested: {{ (item.createdAtUtc || item.startDateUtc) | date:'mediumDate' }}</span>
+                    </div>
+                  </td>
+
+                  <td class="px-4 py-3.5 align-top">
+                    <div class="font-semibold text-foreground">{{ item.addonName }}</div>
+                    <div class="text-xs text-muted-foreground">{{ item.addonCode }}</div>
+                    <div class="text-[11px] text-muted-foreground mt-0.5">Qty: {{ item.quantity }}</div>
+                  </td>
+
+                  <td class="px-4 py-3.5 align-top">
+                    <span class="inline-flex items-center gap-1 font-semibold text-xs text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                      +{{ item.totalExtraQuantity }} {{ item.resourceType }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3.5 align-top">
+                    <div class="font-bold text-sm text-foreground">
+                      {{ (item.finalApprovedAmount ?? item.amountPaid) | currency:'INR':'symbol':'1.0-0' }}
+                    </div>
+                  </td>
+
+                  <td class="px-4 py-3.5 align-top">
+                    @if (isAddonItemApproved(item)) {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                        <svg lucideCheckCircle class="w-3.5 h-3.5"></svg>
+                        <span>Approved & Active</span>
+                      </span>
+                    } @else if (isAddonItemRejected(item)) {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                        <svg lucideXCircle class="w-3.5 h-3.5"></svg>
+                        <span>Declined</span>
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                        <svg lucideClock class="w-3.5 h-3.5 animate-pulse"></svg>
+                        <span>Pending</span>
+                      </span>
+                    }
+                  </td>
+
+                  <td class="px-4 py-3.5 align-top text-right">
+                    <button
+                      type="button"
+                      (click)="openAddonReviewModal(item)"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm transition-all"
+                      [ngClass]="isAddonItemPending(item) 
+                        ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                        : 'border border-border bg-card hover:bg-accent text-foreground'"
+                    >
+                      <svg lucideEye class="w-3.5 h-3.5"></svg>
+                      <span>{{ isAddonItemPending(item) ? 'Review & Action' : 'View Details' }}</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- MODAL 1: Tenant Review Modal -->
   @if (modalOpen() && selectedRegistration(); as reg) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
         
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/30">
+        <div class="px-6 py-4 border-b border-border flex items-center justify-between"
+          [ngClass]="{
+            'bg-amber-500/10 border-b-amber-500/20': isPending(reg),
+            'bg-emerald-500/10 border-b-emerald-500/20': isApproved(reg),
+            'bg-rose-500/10 border-b-rose-500/20': isRejected(reg)
+          }">
           <div class="flex items-center gap-2.5">
             @if (isApproved(reg)) {
-              <svg lucideCheckCircle class="w-6 h-6 text-emerald-500"></svg>
+              <div class="p-2 rounded-xl bg-emerald-500/20 text-emerald-500">
+                <svg lucideCheckCircle class="w-5 h-5"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Tenant Registration — Approved</h2>
+                <p class="text-xs text-muted-foreground">This tenant is active with subscription limits enabled.</p>
+              </div>
             } @else if (isRejected(reg)) {
-              <svg lucideXCircle class="w-6 h-6 text-rose-500"></svg>
+              <div class="p-2 rounded-xl bg-rose-500/20 text-rose-500">
+                <svg lucideXCircle class="w-5 h-5"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Tenant Registration — Declined</h2>
+                <p class="text-xs text-muted-foreground">Registration was declined with admin remarks below.</p>
+              </div>
             } @else {
-              <svg lucideShieldCheck class="w-6 h-6 text-primary"></svg>
+              <div class="p-2 rounded-xl bg-amber-500/20 text-amber-500">
+                <svg lucideClock class="w-5 h-5 animate-pulse"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Review Tenant Registration</h2>
+                <p class="text-xs text-muted-foreground">Verify details, adjust pricing, and approve account.</p>
+              </div>
             }
-            <div>
-              <h3 class="text-lg font-bold text-foreground">
-                @if (isApproved(reg)) {
-                  Tenant Registration Details (Approved)
-                } @else if (isRejected(reg)) {
-                  Tenant Registration Details (Rejected)
-                } @else {
-                  Review Tenant Registration
-                }
-              </h3>
-              <p class="text-xs text-muted-foreground">User ID: {{ reg.userId }} · Submitted {{ reg.registeredAtUtc | date:'medium' }}</p>
-            </div>
           </div>
 
           <button
             type="button"
             (click)="closeModal()"
-            class="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg lucideX class="w-5 h-5"></svg>
           </button>
         </div>
 
-        <!-- Modal Body (Scrollable) -->
-        <div class="p-6 overflow-y-auto space-y-5 flex-1 text-sm">
+        <!-- Modal Body Content -->
+        <div class="p-6 space-y-5 max-h-[72vh] overflow-y-auto">
           
-          <!-- Applicant & Organization Card -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <!-- Applicant Details -->
-            <div class="p-4 rounded-xl bg-muted/40 border border-border space-y-2.5">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <!-- Applicant & Organization Details Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <!-- Applicant Card -->
+            <div class="p-4 rounded-xl bg-muted/40 border border-border space-y-2">
+              <div class="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <span class="flex items-center gap-1.5">
                   <svg lucideUser class="w-3.5 h-3.5 text-primary"></svg>
-                  <span>Applicant / Account Owner</span>
+                  <span>Applicant / Owner</span>
                 </span>
-                @if (reg.phoneNumber) {
-                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">Primary Contact</span>
-                }
+                <span class="text-[11px] text-muted-foreground lowercase">ID: {{ reg.userId.slice(0, 8) }}…</span>
               </div>
-
-              <div>
-                <div class="font-bold text-foreground text-base">{{ reg.fullName }}</div>
-                
-                <div class="text-xs text-muted-foreground flex items-center justify-between gap-1.5 mt-1.5">
-                  <div class="flex items-center gap-1.5 truncate">
-                    <svg lucideMail class="w-3.5 h-3.5 text-muted-foreground shrink-0"></svg>
-                    <a [href]="getMailtoUrl(reg)" class="hover:underline text-foreground/90 truncate">{{ reg.email }}</a>
-                  </div>
-                  <button type="button" (click)="copyToClipboard(reg.email, 'Email')" class="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground" title="Copy Email">
-                    @if (copiedText() === 'Email') {
-                      <svg lucideCheck class="w-3.5 h-3.5 text-emerald-500"></svg>
-                    } @else {
-                      <svg lucideCopy class="w-3.5 h-3.5"></svg>
-                    }
-                  </button>
+              <div class="font-bold text-sm text-foreground">{{ reg.fullName }}</div>
+              
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between text-muted-foreground">
+                  <span class="flex items-center gap-1 truncate">
+                    <svg lucideMail class="w-3 h-3"></svg>
+                    <span>{{ reg.email }}</span>
+                  </span>
+                  <button type="button" (click)="copyToClipboard(reg.email, 'Email')" class="text-primary hover:underline text-[11px]">Copy</button>
                 </div>
-
-                @if (reg.phoneNumber) {
-                  <div class="text-xs text-muted-foreground flex items-center justify-between gap-1.5 mt-1.5">
-                    <div class="flex items-center gap-1.5">
-                      <svg lucidePhone class="w-3.5 h-3.5 text-muted-foreground shrink-0"></svg>
-                      <a [href]="'tel:' + reg.phoneNumber" class="font-semibold text-foreground hover:underline">{{ reg.phoneNumber }}</a>
-                    </div>
-                    <div class="flex items-center gap-1">
-                      <a [href]="getWhatsAppUrl(reg, 'payment')" target="_blank" rel="noopener noreferrer" class="p-1 px-2 text-[11px] rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 font-medium flex items-center gap-1" title="Open WhatsApp">
-                        <svg lucideMessageCircle class="w-3 h-3"></svg>
-                        <span>WhatsApp</span>
-                      </a>
-                      <button type="button" (click)="copyToClipboard(reg.phoneNumber, 'Phone')" class="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground" title="Copy Phone">
-                        @if (copiedText() === 'Phone') {
-                          <svg lucideCheck class="w-3.5 h-3.5 text-emerald-500"></svg>
-                        } @else {
-                          <svg lucideCopy class="w-3.5 h-3.5"></svg>
-                        }
-                      </button>
-                    </div>
+                @if (getApplicantPhone(reg); as phone) {
+                  <div class="flex items-center justify-between text-muted-foreground">
+                    <span class="flex items-center gap-1 font-medium text-foreground">
+                      <svg lucidePhone class="w-3 h-3 text-emerald-500"></svg>
+                      <span>{{ phone }}</span>
+                    </span>
+                    <button type="button" (click)="copyToClipboard(phone, 'Phone')" class="text-primary hover:underline text-[11px]">Copy</button>
                   </div>
                 }
               </div>
             </div>
 
-            <!-- Organization Nodes -->
-            <div class="p-4 rounded-xl bg-muted/40 border border-border space-y-2.5">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <svg lucideBuilding class="w-3.5 h-3.5 text-primary"></svg>
-                  <span>Organization Details</span>
+            <!-- Organization Card -->
+            <div class="p-4 rounded-xl bg-muted/40 border border-border space-y-2">
+              <div class="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <span class="flex items-center gap-1.5">
+                  <svg lucideBuilding class="w-3.5 h-3.5 text-indigo-500"></svg>
+                  <span>Organization</span>
                 </span>
-                @if (reg.institutionCode) {
-                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium uppercase">{{ reg.institutionCode }}</span>
-                }
+                <span class="text-[11px] text-emerald-600 font-semibold uppercase">Initial Setup</span>
               </div>
-
-              <div>
-                <div class="font-bold text-foreground text-sm flex items-center gap-1.5">
-                  <span>{{ reg.institutionName || 'No Institution Added' }}</span>
-                </div>
-
-                <!-- Org Phone & Email if present -->
-                @if (reg.institutionContactPhone || reg.institutionContactEmail) {
-                  <div class="mt-1.5 space-y-1 text-xs text-muted-foreground">
-                    @if (reg.institutionContactPhone) {
-                      <div class="flex items-center justify-between">
-                        <span class="flex items-center gap-1.5">
-                          <svg lucidePhone class="w-3 h-3 text-muted-foreground"></svg>
-                          <span>Org Phone: <strong class="text-foreground/90">{{ reg.institutionContactPhone }}</strong></span>
-                        </span>
-                        <a [href]="'https://wa.me/' + cleanPhoneNumber(reg.institutionContactPhone)" target="_blank" rel="noopener noreferrer" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline">WhatsApp</a>
-                      </div>
-                    }
-                    @if (reg.institutionContactEmail) {
-                      <div class="flex items-center gap-1.5">
-                        <svg lucideMail class="w-3 h-3 text-muted-foreground"></svg>
-                        <span>Org Email: <strong class="text-foreground/90">{{ reg.institutionContactEmail }}</strong></span>
-                      </div>
-                    }
-                  </div>
+              <div class="font-bold text-sm text-foreground">{{ reg.institutionName || 'Default Institution' }}</div>
+              
+              <div class="space-y-1 text-xs text-muted-foreground">
+                @if (reg.branchName) {
+                  <div>Branch: <strong class="text-foreground/90 font-medium">{{ reg.branchName }}</strong></div>
                 }
-
-                <div class="text-xs text-muted-foreground space-y-1 mt-2 pt-2 border-t border-border/60">
-                  @if (reg.branchName) {
-                    <div>
-                      Branch: <strong class="text-foreground/90">{{ reg.branchName }}</strong>
-                      @if (reg.branchCity) {
-                        <span class="text-[11px] text-muted-foreground ml-1">({{ reg.branchCity }})</span>
-                      }
-                    </div>
-                  }
-                  @if (reg.libraryName) {
-                    <div>
-                      Library: <strong class="text-foreground/90">{{ reg.libraryName }}</strong>
-                      @if (reg.libraryCapacity) {
-                        <span class="text-[11px] text-muted-foreground ml-1">({{ reg.libraryCapacity }} seats)</span>
-                      }
-                    </div>
-                  }
-                </div>
+                @if (reg.libraryName) {
+                  <div>Library: <strong class="text-foreground/90 font-medium">{{ reg.libraryName }}</strong></div>
+                }
+                @if (reg.institutionContactPhone) {
+                  <div class="text-[11px] text-muted-foreground">Org Phone: {{ reg.institutionContactPhone }}</div>
+                }
               </div>
             </div>
           </div>
 
-          <!-- Direct Outreach & Payment Verification Box -->
-          <div class="rounded-xl border border-emerald-500/30 bg-card overflow-hidden shadow-sm">
-            <!-- Header Bar -->
-            <div class="px-4 py-3 bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border-b border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <!-- Direct Outreach & Payment Verification Section -->
+          <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
+            <div class="px-4 py-3 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2">
-                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                  <svg lucideMessageCircle class="w-4 h-4"></svg>
-                </div>
-                <div>
-                  <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                    Direct Outreach & Payment Verification
-                  </h4>
-                  <p class="text-[11px] text-muted-foreground">
-                    Connect with <strong class="text-foreground">{{ reg.fullName }}</strong> ({{ getPrimaryContactPhone(reg) || reg.email }}) to ask for payment screenshot & verify details
-                  </p>
-                </div>
+                <svg lucideMessageCircle class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></svg>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                  Direct Outreach & Payment Verification
+                </span>
               </div>
 
-              <!-- Fast Contact Badges -->
-              <div class="flex items-center gap-1.5 shrink-0">
+              <!-- Quick Action Links -->
+              <div class="flex items-center gap-2">
                 @if (getPrimaryContactPhone(reg); as phone) {
                   <a
                     [href]="'tel:' + phone"
                     class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-border bg-background hover:bg-muted text-foreground transition-colors"
-                    title="Direct Call"
+                    title="Call Phone Number"
                   >
                     <svg lucidePhone class="w-3 h-3 text-indigo-400"></svg>
                     <span>Call</span>
@@ -516,7 +696,6 @@
 
             <!-- Content Area -->
             <div class="p-4 space-y-3.5">
-              <!-- Template Switcher Pills -->
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex flex-wrap items-center gap-1.5">
                   <button
@@ -556,7 +735,6 @@
                   </button>
                 </div>
 
-                <!-- Toggle Edit Button -->
                 <button
                   type="button"
                   (click)="isEditingOutreachMessage.set(!isEditingOutreachMessage())"
@@ -567,7 +745,6 @@
                 </button>
               </div>
 
-              <!-- Message Preview Card -->
               <div class="rounded-xl bg-muted/40 dark:bg-slate-900/60 border border-border p-3.5 space-y-2">
                 <div class="flex items-center justify-between text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
                   <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
@@ -594,14 +771,12 @@
                 }
               </div>
 
-              <!-- Action Buttons Row -->
               <div class="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
                 <div class="text-[11px] text-muted-foreground">
                   Clicking will open WhatsApp Web / App with this message pre-filled.
                 </div>
 
                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                  <!-- Copy Message Button -->
                   <button
                     type="button"
                     (click)="copyToClipboard(getCurrentOutreachText(reg), 'Message')"
@@ -616,7 +791,6 @@
                     }
                   </button>
 
-                  <!-- Send on WhatsApp Button -->
                   @if (getPrimaryContactPhone(reg); as phone) {
                     <a
                       [href]="getWhatsAppLaunchUrl(reg)"
@@ -825,6 +999,431 @@
                   <svg lucideCheckCircle class="w-4 h-4"></svg>
                 }
                 <span>{{ isSubmitting() ? 'Processing...' : 'Approve & Activate' }}</span>
+              </button>
+            </div>
+          }
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- MODAL 2: Add-on Request Review Modal -->
+  @if (addonModalOpen() && selectedAddonRequest(); as req) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+        
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-border flex items-center justify-between"
+          [ngClass]="{
+            'bg-amber-500/10 border-b-amber-500/20': isAddonItemPending(req),
+            'bg-emerald-500/10 border-b-emerald-500/20': isAddonItemApproved(req),
+            'bg-rose-500/10 border-b-rose-500/20': isAddonItemRejected(req)
+          }">
+          <div class="flex items-center gap-2.5">
+            @if (isAddonItemApproved(req)) {
+              <div class="p-2 rounded-xl bg-emerald-500/20 text-emerald-500">
+                <svg lucideCheckCircle class="w-5 h-5"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Add-on Request — Approved & Active</h2>
+                <p class="text-xs text-muted-foreground">Capacity has been added to the organization quotas.</p>
+              </div>
+            } @else if (isAddonItemRejected(req)) {
+              <div class="p-2 rounded-xl bg-rose-500/20 text-rose-500">
+                <svg lucideXCircle class="w-5 h-5"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Add-on Request — Declined</h2>
+                <p class="text-xs text-muted-foreground">Request was declined with admin remarks below.</p>
+              </div>
+            } @else {
+              <div class="p-2 rounded-xl bg-amber-500/20 text-amber-500">
+                <svg lucideClock class="w-5 h-5 animate-pulse"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Review Capacity Add-on Request</h2>
+                <p class="text-xs text-muted-foreground">Verify payment screenshot and approve extra capacity.</p>
+              </div>
+            }
+          </div>
+
+          <button
+            type="button"
+            (click)="closeAddonModal()"
+            class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <svg lucideX class="w-5 h-5"></svg>
+          </button>
+        </div>
+
+        <!-- Modal Body Content -->
+        <div class="p-6 space-y-5 max-h-[72vh] overflow-y-auto">
+          
+          <!-- User & Org Details Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <!-- User Card -->
+            <div class="p-4 rounded-xl bg-muted/40 border border-border space-y-2">
+              <div class="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <span class="flex items-center gap-1.5">
+                  <svg lucideUser class="w-3.5 h-3.5 text-primary"></svg>
+                  <span>Applicant / User</span>
+                </span>
+                <span class="text-[11px] text-muted-foreground lowercase">ID: {{ req.userId?.slice(0, 8) }}…</span>
+              </div>
+              <div class="font-bold text-sm text-foreground">{{ req.userFullName || 'User' }}</div>
+              
+              <div class="space-y-1 text-xs">
+                @if (req.userEmail) {
+                  <div class="flex items-center justify-between text-muted-foreground">
+                    <span class="flex items-center gap-1 truncate">
+                      <svg lucideMail class="w-3 h-3"></svg>
+                      <span>{{ req.userEmail }}</span>
+                    </span>
+                    <button type="button" (click)="copyToClipboard(req.userEmail, 'Email')" class="text-primary hover:underline text-[11px]">Copy</button>
+                  </div>
+                }
+                @if (req.userPhone) {
+                  <div class="flex items-center justify-between text-muted-foreground">
+                    <span class="flex items-center gap-1 font-medium text-foreground">
+                      <svg lucidePhone class="w-3 h-3 text-emerald-500"></svg>
+                      <span>{{ req.userPhone }}</span>
+                    </span>
+                    <button type="button" (click)="copyToClipboard(req.userPhone, 'Phone')" class="text-primary hover:underline text-[11px]">Copy</button>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Add-on Info Card -->
+            <div class="p-4 rounded-xl bg-muted/40 border border-border space-y-2">
+              <div class="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <span class="flex items-center gap-1.5">
+                  <svg lucideLayers class="w-3.5 h-3.5 text-emerald-500"></svg>
+                  <span>Requested Add-on</span>
+                </span>
+                <span class="text-[11px] text-emerald-600 font-semibold uppercase">Capacity</span>
+              </div>
+              <div class="font-bold text-sm text-foreground">{{ req.addonName }}</div>
+              
+              <div class="space-y-1 text-xs text-muted-foreground">
+                <div class="flex justify-between items-center">
+                  <span>Resource:</span>
+                  <strong class="text-foreground font-semibold">+{{ req.totalExtraQuantity }} {{ req.resourceType }}</strong>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span>Quantity Ordered:</span>
+                  <span class="text-foreground font-medium">{{ req.quantity }} Units</span>
+                </div>
+                @if (req.institutionName) {
+                  <div>Org: <strong class="text-foreground/90 font-medium">{{ req.institutionName }}</strong></div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Direct WhatsApp Outreach Module for Add-on -->
+          <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
+            <div class="px-4 py-3 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <svg lucideMessageCircle class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></svg>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                  Direct Outreach & Payment Verification
+                </span>
+              </div>
+
+              <!-- Quick Action Links -->
+              <div class="flex items-center gap-2">
+                @if (req.userPhone) {
+                  <a
+                    [href]="'tel:' + req.userPhone"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-border bg-background hover:bg-muted text-foreground transition-colors"
+                    title="Call User"
+                  >
+                    <svg lucidePhone class="w-3 h-3 text-indigo-400"></svg>
+                    <span>Call</span>
+                  </a>
+                }
+                @if (req.userEmail) {
+                  <a
+                    [href]="getMailtoAddonUrl(req)"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-border bg-background hover:bg-muted text-foreground transition-colors"
+                    title="Send Email"
+                  >
+                    <svg lucideMail class="w-3 h-3 text-amber-500"></svg>
+                    <span>Email</span>
+                  </a>
+                }
+              </div>
+            </div>
+
+            <div class="p-4 space-y-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    (click)="setAddonOutreachTemplate('payment')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    [ngClass]="activeAddonOutreachTemplate() === 'payment'
+                      ? 'bg-emerald-600 text-white shadow-sm font-semibold'
+                      : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
+                  >
+                    <svg lucideMessageSquare class="w-3.5 h-3.5"></svg>
+                    <span>Ask Payment Screenshot</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="setAddonOutreachTemplate('discount')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    [ngClass]="activeAddonOutreachTemplate() === 'discount'
+                      ? 'bg-emerald-600 text-white shadow-sm font-semibold'
+                      : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
+                  >
+                    <svg lucideSparkles class="w-3.5 h-3.5"></svg>
+                    <span>Send Approved Price</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="setAddonOutreachTemplate('reminder')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    [ngClass]="activeAddonOutreachTemplate() === 'reminder'
+                      ? 'bg-emerald-600 text-white shadow-sm font-semibold'
+                      : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
+                  >
+                    <svg lucideClock class="w-3.5 h-3.5"></svg>
+                    <span>Follow-up Reminder</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="isEditingAddonOutreach.set(!isEditingAddonOutreach())"
+                  class="px-2.5 py-1 rounded-md text-[11px] font-medium border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+                >
+                  <svg lucideEdit3 class="w-3 h-3"></svg>
+                  <span>{{ isEditingAddonOutreach() ? 'Done Editing' : 'Customize Text' }}</span>
+                </button>
+              </div>
+
+              <div class="rounded-xl bg-muted/40 dark:bg-slate-900/60 border border-border p-3.5 space-y-2">
+                <div class="flex items-center justify-between text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
+                  <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <svg lucideMessageCircle class="w-3 h-3"></svg>
+                    <span>Pre-formatted WhatsApp Message</span>
+                  </span>
+                  @if (req.userPhone; as ph) {
+                    <span>To: <strong class="text-foreground">+{{ cleanPhoneNumber(ph) }}</strong></span>
+                  }
+                </div>
+
+                @if (isEditingAddonOutreach()) {
+                  <textarea
+                    [ngModel]="customAddonOutreachText()"
+                    (ngModelChange)="customAddonOutreachText.set($event)"
+                    rows="5"
+                    class="w-full px-3 py-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none font-mono"
+                    placeholder="Type custom WhatsApp message..."
+                  ></textarea>
+                } @else {
+                  <div class="text-xs text-foreground/90 whitespace-pre-line leading-relaxed bg-background/80 p-3 rounded-lg border border-border/60 font-sans">
+                    {{ getCurrentAddonOutreachText(req) }}
+                  </div>
+                }
+              </div>
+
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
+                <div class="text-[11px] text-muted-foreground">
+                  Clicking will open WhatsApp with this message pre-filled.
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    (click)="copyToClipboard(getCurrentAddonOutreachText(req), 'Message')"
+                    class="px-3 py-2 rounded-lg text-xs font-medium border border-border bg-card hover:bg-accent text-foreground transition-all inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
+                  >
+                    @if (copiedText() === 'Message') {
+                      <svg lucideCheck class="w-3.5 h-3.5 text-emerald-500"></svg>
+                      <span class="text-emerald-500 font-semibold">Copied!</span>
+                    } @else {
+                      <svg lucideCopy class="w-3.5 h-3.5"></svg>
+                      <span>Copy Text</span>
+                    }
+                  </button>
+
+                  @if (req.userPhone) {
+                    <a
+                      [href]="getWhatsAppAddonLaunchUrl(req)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="px-4 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-900/20 transition-all inline-flex items-center justify-center gap-2 flex-1 sm:flex-initial"
+                    >
+                      <svg lucideMessageCircle class="w-4 h-4"></svg>
+                      <span>Send on WhatsApp</span>
+                      <svg lucideExternalLink class="w-3.5 h-3.5 opacity-70"></svg>
+                    </a>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add-on Price Breakdown -->
+          <div class="p-4 rounded-xl bg-muted/30 border border-border space-y-2 text-xs">
+            <div class="text-xs font-semibold text-muted-foreground uppercase flex items-center justify-between">
+              <span>Payment Details</span>
+              <span class="text-[11px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">
+                +{{ req.totalExtraQuantity }} {{ req.resourceType }} Quota
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between text-sm py-1">
+              <span class="font-medium text-foreground">Payable Amount:</span>
+              <span class="font-bold text-base text-primary">{{ (req.finalApprovedAmount ?? req.amountPaid) | currency:'INR':'symbol':'1.0-0' }}</span>
+            </div>
+            @if (req.adminRemarks) {
+              <div class="pt-1 border-t border-border/60 text-muted-foreground">
+                <span>User / Admin Note: </span>
+                <span class="text-foreground font-medium">{{ req.adminRemarks }}</span>
+              </div>
+            }
+          </div>
+
+          @if (isAddonItemApproved(req)) {
+            <!-- Approved Banner -->
+            <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-500">
+                  <svg lucideCheckCircle class="w-4 h-4"></svg>
+                  <span>Add-on Request Approved & Active</span>
+                </span>
+                @if (req.approvedAtUtc) {
+                  <span class="text-xs text-muted-foreground">
+                    Approved: {{ req.approvedAtUtc | date:'medium' }}
+                  </span>
+                }
+              </div>
+              <p class="text-xs text-foreground font-medium">
+                {{ req.adminRemarks || 'Quota activated successfully.' }}
+              </p>
+            </div>
+          } @else if (isAddonItemRejected(req)) {
+            <!-- Rejected Banner -->
+            <div class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-500">
+                  <svg lucideXCircle class="w-4 h-4"></svg>
+                  <span>Add-on Request Declined</span>
+                </span>
+                @if (req.rejectedAtUtc) {
+                  <span class="text-xs text-muted-foreground">
+                    Declined: {{ req.rejectedAtUtc | date:'medium' }}
+                  </span>
+                }
+              </div>
+              <p class="text-xs text-foreground font-medium">
+                Reason: {{ req.adminRemarks || 'Declined by administrator.' }}
+              </p>
+            </div>
+          } @else {
+            <!-- SuperAdmin Action Form (Pending Add-on) -->
+            <div class="space-y-4 pt-2">
+              <!-- Final Approved Amount -->
+              <div>
+                <label class="block text-xs font-semibold text-foreground mb-1">
+                  Final Approved Amount (₹)
+                </label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">₹</span>
+                  <input
+                    type="number"
+                    [ngModel]="formAddonFinalAmount()"
+                    (ngModelChange)="formAddonFinalAmount.set($event)"
+                    placeholder="Enter final amount"
+                    class="w-full pl-8 pr-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium"
+                  />
+                </div>
+              </div>
+
+              <!-- Remarks -->
+              <div>
+                <label class="block text-xs font-semibold text-foreground mb-1">
+                  Administrator Remarks (Visible to user)
+                </label>
+                <textarea
+                  [ngModel]="formAddonRemarks()"
+                  (ngModelChange)="formAddonRemarks.set($event)"
+                  rows="3"
+                  placeholder="e.g., Payment verified via UPI. Extra capacity quota unlocked."
+                  class="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                ></textarea>
+
+                <div class="flex flex-wrap gap-1.5 mt-2">
+                  <button
+                    type="button"
+                    (click)="setQuickAddonRemark('Payment verified & capacity activated successfully.')"
+                    class="px-2 py-1 rounded text-[11px] bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors border border-border"
+                  >
+                    Payment Verified
+                  </button>
+                  <button
+                    type="button"
+                    (click)="setQuickAddonRemark('Payment slip received and confirmed. Quota updated.')"
+                    class="px-2 py-1 rounded text-[11px] bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors border border-border"
+                  >
+                    Slip Confirmed
+                  </button>
+                  <button
+                    type="button"
+                    (click)="setQuickAddonRemark('Please share clear transaction receipt on WhatsApp.')"
+                    class="px-2 py-1 rounded text-[11px] bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors border border-border"
+                  >
+                    Slip Required
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/30">
+          <button
+            type="button"
+            (click)="closeAddonModal()"
+            [disabled]="isSubmitting()"
+            class="w-full sm:w-auto px-4 py-2 rounded-lg text-xs sm:text-sm font-medium border border-border bg-card hover:bg-accent text-foreground transition-all disabled:opacity-50"
+          >
+            {{ isAddonItemPending(req) ? 'Cancel' : 'Close' }}
+          </button>
+
+          @if (isAddonItemPending(req)) {
+            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+              <button
+                type="button"
+                (click)="rejectAddonRequest()"
+                [disabled]="isSubmitting()"
+                class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all disabled:opacity-50"
+              >
+                <svg lucideXCircle class="w-4 h-4"></svg>
+                <span>Reject Request</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="approveAddonRequest()"
+                [disabled]="isSubmitting()"
+                class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-900/20 transition-all disabled:opacity-50"
+              >
+                @if (isSubmitting()) {
+                  <svg lucideRefreshCw class="w-4 h-4 animate-spin"></svg>
+                } @else {
+                  <svg lucideCheckCircle class="w-4 h-4"></svg>
+                }
+                <span>{{ isSubmitting() ? 'Processing...' : 'Approve & Activate Quota' }}</span>
               </button>
             </div>
           }

@@ -12,5 +12,8 @@ namespace SLMS_API.Application.Services.Interfaces
         Task DeleteAsync(Guid id, string? userId, CancellationToken cancellationToken = default);
         Task<UserAddonResponse> PurchaseAddonAsync(PurchaseAddonRequest request, string userId, CancellationToken cancellationToken = default);
         Task<IReadOnlyCollection<UserAddonResponse>> GetUserAddonsAsync(string userId, CancellationToken cancellationToken = default);
+        Task<IReadOnlyCollection<UserAddonResponse>> GetAllAddonRequestsAsync(string? status, CancellationToken cancellationToken = default);
+        Task<UserAddonResponse> ApproveAddonRequestAsync(Guid id, ApproveAddonRequest request, string approverUserId, string? ipAddress, CancellationToken cancellationToken = default);
+        Task<UserAddonResponse> RejectAddonRequestAsync(Guid id, RejectAddonRequest request, string approverUserId, string? ipAddress, CancellationToken cancellationToken = default);
     }
 }

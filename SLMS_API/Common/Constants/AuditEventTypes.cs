@@ -10,4 +10,5 @@ public static class AuditEventTypes
     public const string PasswordReset = "PasswordReset";
     public const string UserUpdate = "UserUpdate";
     public const string RegistrationApproval = "RegistrationApproval";
+    public const string AddonApproval = "AddonApproval";
 }

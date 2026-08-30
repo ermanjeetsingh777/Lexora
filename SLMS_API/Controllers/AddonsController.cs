@@ -96,7 +96,7 @@ public class AddonsController : ControllerBase
                 return Unauthorized(ApiResponse<UserAddonResponse>.Fail("User is not authenticated."));
 
             var userAddon = await _addonService.PurchaseAddonAsync(request, userId, cancellationToken);
-            return Ok(ApiResponse<UserAddonResponse>.Ok(userAddon, "Addon purchased successfully. Your quota has been updated."));
+            return Ok(ApiResponse<UserAddonResponse>.Ok(userAddon, "Add-on request submitted successfully. Awaiting SuperAdmin verification and approval."));
         }
         catch (InvalidOperationException ex)
         {
@@ -114,5 +114,61 @@ public class AddonsController : ControllerBase
 
         var addons = await _addonService.GetUserAddonsAsync(userId, cancellationToken);
         return Ok(ApiResponse<IReadOnlyCollection<UserAddonResponse>>.Ok(addons));
+    }
+
+    [HttpGet("requests")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<UserAddonResponse>>>> GetAddonRequests([FromQuery] string? status, CancellationToken cancellationToken)
+    {
+        var requests = await _addonService.GetAllAddonRequestsAsync(status, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyCollection<UserAddonResponse>>.Ok(requests));
+    }
+
+    [HttpPost("requests/{id:guid}/approve")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<UserAddonResponse>>> ApproveAddonRequest(
+        Guid id,
+        [FromBody] ApproveAddonRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var approverUserId = _currentUserService.UserId ?? "superadmin";
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var response = await _addonService.ApproveAddonRequestAsync(id, request, approverUserId, ipAddress, cancellationToken);
+            return Ok(ApiResponse<UserAddonResponse>.Ok(response, "Add-on request approved and activated successfully. Quota expanded."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<UserAddonResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<UserAddonResponse>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPost("requests/{id:guid}/reject")]
+    [Authorize(Roles = RoleDefinitions.SuperAdmin)]
+    public async Task<ActionResult<ApiResponse<UserAddonResponse>>> RejectAddonRequest(
+        Guid id,
+        [FromBody] RejectAddonRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var approverUserId = _currentUserService.UserId ?? "superadmin";
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var response = await _addonService.RejectAddonRequestAsync(id, request, approverUserId, ipAddress, cancellationToken);
+            return Ok(ApiResponse<UserAddonResponse>.Ok(response, "Add-on request rejected."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<UserAddonResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<UserAddonResponse>.Fail(ex.Message));
+        }
     }
 }

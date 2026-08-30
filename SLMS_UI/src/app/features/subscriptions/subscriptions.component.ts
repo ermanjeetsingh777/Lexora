@@ -2,7 +2,23 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  LucideAlertTriangle, LucideDownload, LucideHistory, LucideLoader2, LucidePlus, LucideRefreshCw, LucideSettings, LucideSparkles,
+  LucideAlertTriangle,
+  LucideBookOpen,
+  LucideBuilding,
+  LucideCheckCircle,
+  LucideClock,
+  LucideDownload,
+  LucideExternalLink,
+  LucideHistory,
+  LucideLayers,
+  LucideLoader2,
+  LucideMessageCircle,
+  LucidePlus,
+  LucideRefreshCw,
+  LucideSettings,
+  LucideSparkles,
+  LucideUsers,
+  LucideXCircle,
 } from '@lucide/angular';
 import {
   AddonCatalogItem,
@@ -17,6 +33,7 @@ import { PackageSubscriptionService } from '@core/services/package-subscription.
 import { PackageService } from '@core/services/package.service';
 import { AddonService } from '@core/services/addon.service';
 import { ToastService } from '@core/services/toast.service';
+import { environment } from '@env/environment';
 import {
   downloadSubscriptionHistoryPdf,
   downloadSubscriptionInvoicePdf,
@@ -44,13 +61,22 @@ type DialogMode = 'renew' | 'upgrade' | 'update' | 'buy-addon' | 'edit-package' 
     ButtonComponent,
     PackageFeaturesListComponent,
     LucideAlertTriangle,
+    LucideBookOpen,
+    LucideBuilding,
+    LucideCheckCircle,
+    LucideClock,
     LucideRefreshCw,
     LucideHistory,
     LucideSparkles,
     LucideLoader2,
     LucideDownload,
+    LucideExternalLink,
+    LucideLayers,
+    LucideMessageCircle,
     LucidePlus,
     LucideSettings,
+    LucideUsers,
+    LucideXCircle,
   ],
   templateUrl: './subscriptions.component.html',
   styleUrl: './subscriptions.component.css',
@@ -77,6 +103,7 @@ export class SubscriptionsComponent {
   readonly myAddons = signal<UserAddonItem[]>([]);
   readonly selectedAddon = signal<AddonCatalogItem | null>(null);
   readonly addonPurchaseQuantity = signal(1);
+  readonly addonPurchaseNote = signal('');
 
   // SuperAdmin edit state
   readonly editingPackage = signal<PackageCatalogItem | null>(null);
@@ -158,6 +185,7 @@ export class SubscriptionsComponent {
   openBuyAddon(addon: AddonCatalogItem): void {
     this.selectedAddon.set(addon);
     this.addonPurchaseQuantity.set(1);
+    this.addonPurchaseNote.set('');
     this.dialogMode.set('buy-addon');
   }
 
@@ -249,15 +277,16 @@ export class SubscriptionsComponent {
         addonId: addon.id,
         quantity: this.addonPurchaseQuantity(),
         paymentMethod: 'Online',
+        note: this.addonPurchaseNote().trim() || undefined,
       }).subscribe({
         next: () => {
-          this.toast.success(`Successfully added capacity for ${addon.name}!`);
+          this.toast.success(`Add-on request submitted for ${addon.name}! Sent to SuperAdmin for verification.`);
           this.closeDialog();
           this.loadAddons();
           this.saving.set(false);
         },
         error: (err) => {
-          this.toast.error(err?.error?.message ?? 'Addon purchase failed.');
+          this.toast.error(err?.error?.message ?? 'Addon request failed.');
           this.saving.set(false);
         },
       });
@@ -431,6 +460,29 @@ export class SubscriptionsComponent {
   statusLabel(status: string): string {
     if (status === 'ExpiringSoon') return 'Expiring soon';
     return status;
+  }
+
+  isAddonPending(addon: UserAddonItem): boolean {
+    return !addon.approvalStatus || addon.approvalStatus.toLowerCase() === 'pending' || (!addon.isActive && addon.approvalStatus.toLowerCase() !== 'rejected');
+  }
+
+  isAddonApproved(addon: UserAddonItem): boolean {
+    return addon.approvalStatus?.toLowerCase() === 'approved' || addon.isActive;
+  }
+
+  isAddonRejected(addon: UserAddonItem): boolean {
+    return addon.approvalStatus?.toLowerCase() === 'rejected';
+  }
+
+  getWhatsAppAddonSlipUrl(addon: UserAddonItem): string {
+    const env = (environment as unknown as { superAdminContact?: { whatsApp?: string; phone?: string } }).superAdminContact;
+    const cleanWa = (env?.whatsApp || env?.phone || '9992823909').replace(/\D/g, '');
+    const phone = cleanWa.length === 10 ? '91' + cleanWa : cleanWa;
+    const currentSub = this.current();
+    const org = currentSub?.institutionName || 'My Organization';
+    const amount = addon.finalApprovedAmount ?? addon.amountPaid;
+    const msg = `Hello Lexora Admin,\n\nI have submitted a Capacity Add-on request for *${org}*:\n\n⚡ *Add-on:* ${addon.addonName} (+${addon.totalExtraQuantity} ${addon.resourceType})\n💰 *Payable Amount:* ₹${amount}\n\n📎 *I have attached my payment confirmation screenshot / transaction receipt here.* Please verify and activate our extra quota.\n\nThank you!`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   }
 
   formatCurrency(value: number): string {

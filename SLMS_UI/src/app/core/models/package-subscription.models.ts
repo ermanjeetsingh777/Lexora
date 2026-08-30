@@ -39,17 +39,30 @@ export interface AddonCatalogItem {
 
 export interface UserAddonItem {
   id: string;
+  userId?: string;
+  userFullName?: string | null;
+  userEmail?: string | null;
+  userPhone?: string | null;
+  institutionName?: string | null;
   addonId: string;
   addonName: string;
   addonCode: string;
   resourceType: string;
   quantity: number;
+  unitQuantity?: number;
   totalExtraQuantity: number;
   amountPaid: number;
+  finalApprovedAmount?: number | null;
   startDateUtc: string;
   endDateUtc: string;
   paymentStatus: string;
+  approvalStatus?: 'Pending' | 'Approved' | 'Rejected' | string;
+  adminRemarks?: string | null;
+  approvedAtUtc?: string | null;
+  rejectedAtUtc?: string | null;
+  approvedBy?: string | null;
   isActive: boolean;
+  createdAtUtc?: string;
 }
 
 export interface PurchaseAddonRequest {
@@ -57,6 +70,16 @@ export interface PurchaseAddonRequest {
   quantity: number;
   paymentMethod?: string;
   transactionId?: string;
+  note?: string;
+}
+
+export interface ApproveAddonRequest {
+  finalAmount?: number | null;
+  remarks?: string | null;
+}
+
+export interface RejectAddonRequest {
+  reason: string;
 }
 
 export interface PackageSubscriptionItem {

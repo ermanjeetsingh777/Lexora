@@ -2,12 +2,18 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '@core/services/admin.service';
+import { AddonService } from '@core/services/addon.service';
 import { ToastService } from '@core/services/toast.service';
 import {
   ApproveTenantRegistrationRequest,
   RejectTenantRegistrationRequest,
   TenantRegistrationItem,
 } from '@core/models/tenant-registration.models';
+import {
+  ApproveAddonRequest,
+  RejectAddonRequest,
+  UserAddonItem,
+} from '@core/models/package-subscription.models';
 import {
   LucideBuilding,
   LucideCalendar,
@@ -18,6 +24,7 @@ import {
   LucideEdit3,
   LucideExternalLink,
   LucideEye,
+  LucideLayers,
   LucideMail,
   LucideMessageCircle,
   LucideMessageSquare,
@@ -51,13 +58,13 @@ import {
     LucideEdit3,
     LucideExternalLink,
     LucideEye,
+    LucideLayers,
     LucideMail,
     LucideMessageCircle,
     LucideMessageSquare,
     LucidePhone,
     LucideRefreshCw,
     LucideSearch,
-    LucideSend,
     LucideShieldCheck,
     LucideSparkles,
     LucideUser,
@@ -71,15 +78,21 @@ import {
 })
 export class TenantApprovalsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
+  private readonly addonService = inject(AddonService);
   private readonly toast = inject(ToastService);
 
   readonly isLoading = signal(true);
   readonly isSubmitting = signal(false);
+
+  // Top-level Section Switcher: 'tenants' | 'addons'
+  readonly activeSection = signal<'tenants' | 'addons'>('tenants');
+
+  // Tenant Registrations State
   readonly registrations = signal<TenantRegistrationItem[]>([]);
   readonly activeTab = signal<'all' | 'pending' | 'approved' | 'rejected'>('all');
   readonly searchQuery = signal('');
 
-  // Selected item for modal
+  // Selected item for tenant modal
   readonly selectedRegistration = signal<TenantRegistrationItem | null>(null);
   readonly modalOpen = signal(false);
   readonly formFinalAmount = signal<number | null>(null);
@@ -87,12 +100,24 @@ export class TenantApprovalsComponent implements OnInit {
   readonly rejectReason = signal<string>('');
   readonly copiedText = signal<string | null>(null);
 
-  // Outreach Template State
+  // Outreach Template State for Tenant
   readonly activeOutreachTemplate = signal<'payment' | 'discount' | 'reminder'>('payment');
   readonly isEditingOutreachMessage = signal(false);
   readonly customOutreachText = signal('');
 
-  // Computed counts
+  // Add-on Capacity Requests State
+  readonly addonRequests = signal<UserAddonItem[]>([]);
+  readonly addonTab = signal<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  readonly selectedAddonRequest = signal<UserAddonItem | null>(null);
+  readonly addonModalOpen = signal(false);
+  readonly formAddonFinalAmount = signal<number | null>(null);
+  readonly formAddonRemarks = signal<string>('');
+  readonly addonRejectReason = signal<string>('');
+  readonly activeAddonOutreachTemplate = signal<'payment' | 'discount' | 'reminder'>('payment');
+  readonly isEditingAddonOutreach = signal(false);
+  readonly customAddonOutreachText = signal('');
+
+  // Computed counts for Tenants
   readonly totalCount = computed(() => this.registrations().length);
   readonly pendingCount = computed(() =>
     this.registrations().filter((r) => r.approvalStatus?.toLowerCase() === 'pending').length
@@ -104,7 +129,19 @@ export class TenantApprovalsComponent implements OnInit {
     this.registrations().filter((r) => r.approvalStatus?.toLowerCase() === 'rejected').length
   );
 
-  // Filtered list
+  // Computed counts for Addons
+  readonly totalAddonCount = computed(() => this.addonRequests().length);
+  readonly pendingAddonCount = computed(() =>
+    this.addonRequests().filter((a) => !a.approvalStatus || a.approvalStatus.toLowerCase() === 'pending' || (!a.isActive && a.approvalStatus?.toLowerCase() !== 'rejected')).length
+  );
+  readonly approvedAddonCount = computed(() =>
+    this.addonRequests().filter((a) => a.approvalStatus?.toLowerCase() === 'approved' || a.isActive).length
+  );
+  readonly rejectedAddonCount = computed(() =>
+    this.addonRequests().filter((a) => a.approvalStatus?.toLowerCase() === 'rejected').length
+  );
+
+  // Filtered Tenant list
   readonly filteredRegistrations = computed(() => {
     let list = this.registrations();
     const tab = this.activeTab();
@@ -126,8 +163,44 @@ export class TenantApprovalsComponent implements OnInit {
     return list;
   });
 
+  // Filtered Addon Requests list
+  readonly filteredAddonRequests = computed(() => {
+    let list = this.addonRequests();
+    const tab = this.addonTab();
+    if (tab === 'pending') {
+      list = list.filter((a) => !a.approvalStatus || a.approvalStatus.toLowerCase() === 'pending' || (!a.isActive && a.approvalStatus?.toLowerCase() !== 'rejected'));
+    } else if (tab === 'approved') {
+      list = list.filter((a) => a.approvalStatus?.toLowerCase() === 'approved' || a.isActive);
+    } else if (tab === 'rejected') {
+      list = list.filter((a) => a.approvalStatus?.toLowerCase() === 'rejected');
+    }
+
+    const query = this.searchQuery().trim().toLowerCase();
+    if (query) {
+      list = list.filter(
+        (a) =>
+          (a.userFullName && a.userFullName.toLowerCase().includes(query)) ||
+          (a.userEmail && a.userEmail.toLowerCase().includes(query)) ||
+          (a.institutionName && a.institutionName.toLowerCase().includes(query)) ||
+          (a.addonName && a.addonName.toLowerCase().includes(query)) ||
+          (a.resourceType && a.resourceType.toLowerCase().includes(query))
+      );
+    }
+
+    return list;
+  });
+
   ngOnInit(): void {
+    this.loadAllData();
+  }
+
+  loadAllData(): void {
     this.loadRegistrations();
+    this.loadAddonRequests();
+  }
+
+  setSection(section: 'tenants' | 'addons'): void {
+    this.activeSection.set(section);
   }
 
   loadRegistrations(): void {
@@ -144,8 +217,21 @@ export class TenantApprovalsComponent implements OnInit {
     });
   }
 
+  loadAddonRequests(): void {
+    this.addonService.getAddonRequests().subscribe({
+      next: (data) => {
+        this.addonRequests.set(data);
+      },
+      error: () => {},
+    });
+  }
+
   setTab(tab: 'all' | 'pending' | 'approved' | 'rejected'): void {
     this.activeTab.set(tab);
+  }
+
+  setAddonTab(tab: 'all' | 'pending' | 'approved' | 'rejected'): void {
+    this.addonTab.set(tab);
   }
 
   isPending(item?: TenantRegistrationItem | null): boolean {
@@ -159,6 +245,21 @@ export class TenantApprovalsComponent implements OnInit {
   }
 
   isRejected(item?: TenantRegistrationItem | null): boolean {
+    if (!item) return false;
+    return item.approvalStatus?.toLowerCase() === 'rejected';
+  }
+
+  isAddonItemPending(item?: UserAddonItem | null): boolean {
+    if (!item) return false;
+    return !item.approvalStatus || item.approvalStatus.toLowerCase() === 'pending' || (!item.isActive && item.approvalStatus.toLowerCase() !== 'rejected');
+  }
+
+  isAddonItemApproved(item?: UserAddonItem | null): boolean {
+    if (!item) return false;
+    return item.approvalStatus?.toLowerCase() === 'approved' || item.isActive;
+  }
+
+  isAddonItemRejected(item?: UserAddonItem | null): boolean {
     if (!item) return false;
     return item.approvalStatus?.toLowerCase() === 'rejected';
   }
@@ -242,6 +343,58 @@ export class TenantApprovalsComponent implements OnInit {
     const body = encodeURIComponent(`Hello ${item.fullName},\n\nWe have received your registration for ${orgName} on Lexora (${planName} Plan).\n\nTotal Payable Amount: Rs. ${amount}\n\nKindly reply to this email with your payment confirmation screenshot / transaction receipt to complete your account activation.\n\nFor instant support or to share the slip on WhatsApp, feel free to contact us:\nWhatsApp / Phone: +91 9992823909 / +91 9468118737\n\nBest regards,\nLexora Support Team`);
 
     return `mailto:${item.email}?subject=${subject}&body=${body}`;
+  }
+
+  // Addon Outreach Helpers
+  setAddonOutreachTemplate(template: 'payment' | 'discount' | 'reminder'): void {
+    this.activeAddonOutreachTemplate.set(template);
+    const item = this.selectedAddonRequest();
+    if (item) {
+      this.customAddonOutreachText.set(this.getAddonOutreachMessage(item, template));
+    }
+    this.isEditingAddonOutreach.set(false);
+  }
+
+  getAddonOutreachMessage(item?: UserAddonItem | null, template?: 'payment' | 'discount' | 'reminder'): string {
+    if (!item) return '';
+    const tmpl = template || this.activeAddonOutreachTemplate();
+    const orgName = item.institutionName || 'your organization';
+    const addonName = item.addonName || 'Capacity Add-on';
+    const amount = (item.finalApprovedAmount ?? item.amountPaid);
+    const extra = `+${item.totalExtraQuantity} ${item.resourceType}`;
+
+    if (tmpl === 'payment') {
+      return `Hello ${item.userFullName || 'Admin'},\n\nGreetings from *Lexora Support*! 👋\n\nWe received your Capacity Add-on request for *${orgName}*:\n\n⚡ *Add-on:* ${addonName} (${extra})\n💰 *Total Payable Amount:* ₹${amount}\n\nTo activate this extra capacity for your organization, *please share your payment confirmation screenshot / transaction slip* here.\n\nOnce received, we will activate the quota immediately.\n\nThank you,\n*Lexora Support Team*`;
+    } else if (tmpl === 'discount') {
+      return `Hello ${item.userFullName || 'Admin'},\n\nRegarding your Add-on request for *${orgName}*, the approved amount is *₹${amount}*.\n\nKindly share the payment slip once done for instant quota activation.\n\nBest regards,\n*Lexora Support Team*`;
+    } else {
+      return `Hello ${item.userFullName || 'Admin'},\n\nThis is a friendly follow-up regarding your pending Add-on request (${addonName}) for *${orgName}*.\n\nPlease share your payment slip or let us know if you have any questions.\n\n*Lexora Support Team*`;
+    }
+  }
+
+  getCurrentAddonOutreachText(item?: UserAddonItem | null): string {
+    if (this.customAddonOutreachText()) {
+      return this.customAddonOutreachText();
+    }
+    return this.getAddonOutreachMessage(item);
+  }
+
+  getWhatsAppAddonLaunchUrl(item?: UserAddonItem | null): string {
+    if (!item || !item.userPhone) return '';
+    const phone = this.cleanPhoneNumber(item.userPhone);
+    if (!phone) return '';
+    const msg = this.getCurrentAddonOutreachText(item);
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  }
+
+  getMailtoAddonUrl(item?: UserAddonItem | null): string {
+    if (!item || !item.userEmail) return '';
+    const orgName = item.institutionName || 'your organization';
+    const amount = (item.finalApprovedAmount ?? item.amountPaid);
+    const subject = encodeURIComponent(`Capacity Add-on Payment Verification - ${orgName}`);
+    const body = encodeURIComponent(`Hello ${item.userFullName},\n\nWe have received your Capacity Add-on request for ${orgName} (+${item.totalExtraQuantity} ${item.resourceType}).\n\nPayable Amount: Rs. ${amount}\n\nKindly reply to this email or share your payment screenshot on WhatsApp to activate this extra capacity.\n\nWhatsApp: +91 9992823909 / +91 9468118737\n\nBest regards,\nLexora Support Team`);
+
+    return `mailto:${item.userEmail}?subject=${subject}&body=${body}`;
   }
 
   copyToClipboard(text?: string | null, label: string = 'text'): void {
@@ -330,5 +483,84 @@ export class TenantApprovalsComponent implements OnInit {
       r.userId === updated.userId ? updated : r
     );
     this.registrations.set(list);
+  }
+
+  // Add-on Request Actions
+  openAddonReviewModal(item: UserAddonItem): void {
+    this.selectedAddonRequest.set(item);
+    this.formAddonFinalAmount.set(item.finalApprovedAmount ?? item.amountPaid);
+    this.formAddonRemarks.set(item.adminRemarks || '');
+    this.addonRejectReason.set('');
+    this.activeAddonOutreachTemplate.set('payment');
+    this.isEditingAddonOutreach.set(false);
+    this.customAddonOutreachText.set(this.getAddonOutreachMessage(item, 'payment'));
+    this.addonModalOpen.set(true);
+  }
+
+  closeAddonModal(): void {
+    this.addonModalOpen.set(false);
+    this.selectedAddonRequest.set(null);
+  }
+
+  setQuickAddonRemark(remark: string): void {
+    this.formAddonRemarks.set(remark);
+  }
+
+  approveAddonRequest(): void {
+    const item = this.selectedAddonRequest();
+    if (!item) return;
+
+    this.isSubmitting.set(true);
+    const payload: ApproveAddonRequest = {
+      finalAmount: this.formAddonFinalAmount() ?? item.amountPaid,
+      remarks: this.formAddonRemarks().trim() || undefined,
+    };
+
+    this.addonService.approveAddonRequest(item.id, payload).subscribe({
+      next: (updated) => {
+        this.isSubmitting.set(false);
+        this.toast.success(`Add-on approved & capacity activated for ${updated.userFullName || updated.userEmail}!`);
+        this.updateLocalAddonItem(updated);
+        this.closeAddonModal();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.message || 'Failed to approve add-on request.');
+      },
+    });
+  }
+
+  rejectAddonRequest(): void {
+    const item = this.selectedAddonRequest();
+    if (!item) return;
+
+    const reason = this.formAddonRemarks().trim() || this.addonRejectReason().trim();
+    if (!reason) {
+      this.toast.error('Please enter a rejection reason / remarks.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    const payload: RejectAddonRequest = {
+      reason,
+    };
+
+    this.addonService.rejectAddonRequest(item.id, payload).subscribe({
+      next: (updated) => {
+        this.isSubmitting.set(false);
+        this.toast.info(`Add-on request declined for ${updated.userFullName || updated.userEmail}`);
+        this.updateLocalAddonItem(updated);
+        this.closeAddonModal();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.message || 'Failed to reject add-on request.');
+      },
+    });
+  }
+
+  private updateLocalAddonItem(updated: UserAddonItem): void {
+    const list = this.addonRequests().map((a) => (a.id === updated.id ? updated : a));
+    this.addonRequests.set(list);
   }
 }

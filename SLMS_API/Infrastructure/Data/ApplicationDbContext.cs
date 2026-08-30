@@ -366,6 +366,30 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<UserPackageAddon>(entity =>
+        {
+            entity.Property(x => x.ApprovalStatus).HasMaxLength(50).HasDefaultValue("Pending");
+            entity.Property(x => x.AdminRemarks).HasMaxLength(1000);
+            entity.Property(x => x.AmountPaid).HasPrecision(18, 2);
+            entity.Property(x => x.FinalApprovedAmount).HasPrecision(18, 2);
+        });
+
+        builder.Entity<Addon>(entity =>
+        {
+            entity.Property(x => x.Price).HasPrecision(18, 2);
+        });
+
+        builder.Entity<Package>(entity =>
+        {
+            entity.Property(x => x.Price).HasPrecision(18, 2);
+        });
+
+        builder.Entity<UserPackage>(entity =>
+        {
+            entity.Property(x => x.AmountPaid).HasPrecision(18, 2);
+            entity.Property(x => x.AdjustmentAmount).HasPrecision(18, 2);
+        });
+
 
     }
 }

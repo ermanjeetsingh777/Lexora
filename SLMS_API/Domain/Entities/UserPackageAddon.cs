@@ -27,7 +27,7 @@ namespace SLMS_API.Domain.Entities
         public DateTime EndDateUtc { get; set; }
 
         [MaxLength(50)]
-        public string PaymentStatus { get; set; } = "Paid";
+        public string PaymentStatus { get; set; } = "PendingApproval";
 
         [MaxLength(100)]
         public string? TransactionId { get; set; }
@@ -35,7 +35,22 @@ namespace SLMS_API.Domain.Entities
         [MaxLength(50)]
         public string? PaymentMethod { get; set; }
 
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; } = false;
+
+        // SuperAdmin Approval Workflow
+        [MaxLength(50)]
+        public string ApprovalStatus { get; set; } = "Pending"; // "Pending", "Approved", "Rejected"
+
+        [MaxLength(1000)]
+        public string? AdminRemarks { get; set; }
+
+        public decimal? FinalApprovedAmount { get; set; }
+
+        public DateTime? ApprovedAtUtc { get; set; }
+
+        public DateTime? RejectedAtUtc { get; set; }
+
+        public string? ApprovedByUserId { get; set; }
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

@@ -1,6 +1,12 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { AddonCatalogItem, PurchaseAddonRequest, UserAddonItem } from '@core/models/package-subscription.models';
+import {
+  AddonCatalogItem,
+  ApproveAddonRequest,
+  PurchaseAddonRequest,
+  RejectAddonRequest,
+  UserAddonItem,
+} from '@core/models/package-subscription.models';
 import { ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
@@ -37,5 +43,18 @@ export class AddonService {
 
   getMyAddons(): Observable<UserAddonItem[]> {
     return this.api.get<UserAddonItem[]>('addons/my-addons').pipe(map((res) => res.data ?? []));
+  }
+
+  getAddonRequests(status?: string): Observable<UserAddonItem[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.api.get<UserAddonItem[]>(`addons/requests${query}`).pipe(map((res) => res.data ?? []));
+  }
+
+  approveAddonRequest(id: string, payload: ApproveAddonRequest): Observable<UserAddonItem> {
+    return this.api.post<UserAddonItem>(`addons/requests/${id}/approve`, payload).pipe(map((res) => res.data!));
+  }
+
+  rejectAddonRequest(id: string, payload: RejectAddonRequest): Observable<UserAddonItem> {
+    return this.api.post<UserAddonItem>(`addons/requests/${id}/reject`, payload).pipe(map((res) => res.data!));
   }
 }

@@ -278,12 +278,14 @@ SLMS_API/
 
 SLMS_UI/src/app/
 ├── features/attendance/
-│   ├── kiosk/                            # NEW — public kiosk module
+│   ├── kiosk/                            # Public kiosk module
 │   │   ├── library-kiosk.component.*
 │   │   └── member-kiosk.component.*
-│   └── attendance-scanner/               # Staff scanner (authenticated)
+│   └── attendance-scanner/               # Staff scanner (authenticated; includes Download QR PDF standee poster)
+├── features/libraries/
+│   └── library-qr-pdf.util.ts            # A4 QR Standee / Poster PDF export generator (jsPDF)
 ├── core/services/
-│   ├── attendance-kiosk.service.ts       # NEW
+│   ├── attendance-kiosk.service.ts
 │   └── attendance-scanner.service.ts
 └── app.routes.ts                         # /kiosk/attendance/* routes
 ```

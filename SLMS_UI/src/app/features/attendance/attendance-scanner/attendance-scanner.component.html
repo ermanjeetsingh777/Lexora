@@ -2,16 +2,33 @@
   eyebrow="Attendance"
   title="QR scanner"
   description="Select your library, then choose a member to check in or check out."
-/>
+>
+  @if (context() && qrImage()) {
+    <div actions class="flex items-center gap-2">
+      <app-button variant="outline" size="sm" (click)="downloadAttendanceQrPdf()">
+        <svg lucideDownload class="h-4 w-4 mr-1.5"></svg>
+        <span>Download QR PDF</span>
+      </app-button>
+    </div>
+  }
+</app-page-header>
 
 @if (loading()) {
   <p class="py-16 text-center text-sm text-muted-foreground">Loading scanner…</p>
 } @else {
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <app-glass-card class="block lg:col-span-1">
-      <div class="flex items-center gap-2 mb-3">
-        <svg lucideQrCode class="h-5 w-5 text-primary"></svg>
-        <h2 class="font-semibold text-sm">Library QR</h2>
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          <svg lucideQrCode class="h-5 w-5 text-primary"></svg>
+          <h2 class="font-semibold text-sm">Library QR</h2>
+        </div>
+        @if (context() && qrImage()) {
+          <app-button variant="outline" size="sm" (click)="downloadAttendanceQrPdf()">
+            <svg lucideDownload class="h-3.5 w-3.5 mr-1.5"></svg>
+            <span>Download PDF</span>
+          </app-button>
+        }
       </div>
 
       @if (isSuperAdmin()) {
@@ -33,7 +50,16 @@
           <p class="text-muted-foreground">{{ ctx.institutionName }} · {{ ctx.branchName }}</p>
         </div>
         @if (qrImage()) {
-          <img [src]="qrImage()!" alt="Attendance QR code" class="mt-4 mx-auto w-40 h-40 rounded-lg border bg-white p-2" />
+          <div class="mt-4 flex flex-col items-center gap-2.5">
+            <img [src]="qrImage()!" alt="Attendance QR code" class="w-40 h-40 rounded-xl border bg-white p-2.5 shadow-sm" />
+            <button
+              type="button"
+              (click)="downloadAttendanceQrPdf()"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--muted)]/50 transition-colors shadow-xs">
+              <svg lucideDownload class="h-3.5 w-3.5 text-primary"></svg>
+              <span>Download PDF</span>
+            </button>
+          </div>
           <p class="text-[11px] text-muted-foreground text-center mt-2 break-all">{{ ctx.scanUrl }}</p>
         }
       } @else if (!filters.libraryId() && filters.libraries().length > 1) {

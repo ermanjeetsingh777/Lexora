@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, OnInit, signal } from '@angular/co
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import {
-  LucideCheckCircle2, LucideLogIn, LucideLogOut, LucideQrCode,
+  LucideCheckCircle2, LucideDownload, LucideLogIn, LucideLogOut, LucideQrCode,
   LucideScanLine, LucideSearch, LucideXCircle,
 } from '@lucide/angular';
 import { AttendanceScannerService } from '@core/services/attendance-scanner.service';
@@ -21,6 +21,7 @@ import {
 import { AttendanceSeatPickerComponent } from '../components/attendance-seat-picker/attendance-seat-picker.component';
 import { formatAttendanceDisplayTime } from '../attendance-format.util';
 import { AttendanceFilterService } from '../attendance-filter.service';
+import { exportLibraryQrPdf } from '../../libraries/library-qr-pdf.util';
 
 @Component({
   selector: 'app-attendance-scanner',
@@ -29,7 +30,7 @@ import { AttendanceFilterService } from '../attendance-filter.service';
     FormsModule,
     PageHeaderComponent, GlassCardComponent, ButtonComponent, StatusBadgeComponent, AttendanceSeatPickerComponent,
     LucideScanLine, LucideQrCode, LucideSearch, LucideLogIn, LucideLogOut,
-    LucideCheckCircle2, LucideXCircle,
+    LucideCheckCircle2, LucideXCircle, LucideDownload,
   ],
   templateUrl: './attendance-scanner.component.html',
   styleUrl: './attendance-scanner.component.css',
@@ -248,5 +249,28 @@ export class AttendanceScannerComponent implements OnInit {
       next: (qr) => this.qrImage.set(qr.qrCodeBase64),
       error: () => this.qrImage.set(null),
     });
+  }
+
+  downloadAttendanceQrPdf(): void {
+    const ctx = this.context();
+    const qrImg = this.qrImage();
+    if (!ctx || !qrImg) {
+      this.toast.error('Attendance QR code is not loaded yet');
+      return;
+    }
+
+    try {
+      exportLibraryQrPdf({
+        libraryName: ctx.libraryName || 'Library',
+        institutionName: ctx.institutionName,
+        branchName: ctx.branchName,
+        scanUrl: ctx.scanUrl,
+        qrCodeBase64: qrImg,
+      });
+      this.toast.success('Attendance QR PDF downloaded successfully');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.toast.error('Failed to generate QR PDF: ' + message);
+    }
   }
 }

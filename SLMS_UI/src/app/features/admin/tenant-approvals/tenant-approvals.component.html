@@ -76,6 +76,23 @@
         </span>
       }
     </button>
+
+    <button
+      type="button"
+      (click)="setSection('reviews')"
+      class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+      [ngClass]="activeSection() === 'reviews'
+        ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+        : 'text-muted-foreground hover:text-foreground'"
+    >
+      <svg lucideStar class="w-4 h-4 text-amber-500 fill-amber-500"></svg>
+      <span>Customer Reviews</span>
+      @if (pendingReviewCount() > 0) {
+        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse">
+          {{ pendingReviewCount() }}
+        </span>
+      }
+    </button>
   </div>
 
   @if (activeSection() === 'tenants') {
@@ -796,6 +813,298 @@
                       <svg lucideEye class="w-3.5 h-3.5"></svg>
                       <span>{{ isPlanItemPending(item) ? 'Review & Action' : 'View Details' }}</span>
                     </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  } @else if (activeSection() === 'reviews') {
+    <!-- SECTION 4: CUSTOMER REVIEWS & SUGGESTIONS -->
+    <!-- Metric Overview Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total Reviews -->
+      <div
+        (click)="setReviewsTab('all')"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-card hover:border-primary/50"
+        [class.ring-2]="reviewsTab() === 'all'"
+        [class.ring-primary]="reviewsTab() === 'all'"
+      >
+        <div class="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
+          <span>Total Reviews</span>
+          <svg lucideStar class="w-4 h-4 text-amber-500 fill-amber-500"></svg>
+        </div>
+        <div class="text-2xl font-bold text-foreground">{{ totalReviewCount() }}</div>
+        <p class="text-[11px] text-muted-foreground mt-1">Submitted from landing page</p>
+      </div>
+
+      <!-- Pending Approval -->
+      <div
+        (click)="setReviewsTab('pending')"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-card hover:border-amber-500/50"
+        [class.ring-2]="reviewsTab() === 'pending'"
+        [class.ring-amber-500]="reviewsTab() === 'pending'"
+      >
+        <div class="flex items-center justify-between text-amber-600 text-xs font-medium mb-2">
+          <span>Pending Approval</span>
+          <svg lucideClock class="w-4 h-4"></svg>
+        </div>
+        <div class="text-2xl font-bold text-amber-600">{{ pendingReviewCount() }}</div>
+        <p class="text-[11px] text-muted-foreground mt-1">Awaiting SuperAdmin moderation</p>
+      </div>
+
+      <!-- Approved (Live on Landing) -->
+      <div
+        (click)="setReviewsTab('approved')"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-card hover:border-emerald-500/50"
+        [class.ring-2]="reviewsTab() === 'approved'"
+        [class.ring-emerald-500]="reviewsTab() === 'approved'"
+      >
+        <div class="flex items-center justify-between text-emerald-600 text-xs font-medium mb-2">
+          <span>Live on Landing Page</span>
+          <svg lucideCheckCircle class="w-4 h-4"></svg>
+        </div>
+        <div class="text-2xl font-bold text-emerald-600">{{ approvedReviewCount() }}</div>
+        <p class="text-[11px] text-muted-foreground mt-1">Approved & visible to visitors</p>
+      </div>
+
+      <!-- Rejected -->
+      <div
+        (click)="setReviewsTab('rejected')"
+        class="p-4 rounded-xl border transition-all cursor-pointer bg-card hover:border-rose-500/50"
+        [class.ring-2]="reviewsTab() === 'rejected'"
+        [class.ring-rose-500]="reviewsTab() === 'rejected'"
+      >
+        <div class="flex items-center justify-between text-rose-600 text-xs font-medium mb-2">
+          <span>Rejected</span>
+          <svg lucideXCircle class="w-4 h-4"></svg>
+        </div>
+        <div class="text-2xl font-bold text-rose-600">{{ rejectedReviewCount() }}</div>
+        <p class="text-[11px] text-muted-foreground mt-1">Hidden from public view</p>
+      </div>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border">
+      <!-- Tabs -->
+      <div class="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+        <button
+          type="button"
+          (click)="setReviewsTab('all')"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          [ngClass]="reviewsTab() === 'all' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+        >
+          All ({{ totalReviewCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setReviewsTab('pending')"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          [ngClass]="reviewsTab() === 'pending' ? 'bg-amber-500 text-white font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+        >
+          Pending ({{ pendingReviewCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setReviewsTab('approved')"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          [ngClass]="reviewsTab() === 'approved' ? 'bg-emerald-600 text-white font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+        >
+          Approved ({{ approvedReviewCount() }})
+        </button>
+        <button
+          type="button"
+          (click)="setReviewsTab('rejected')"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          [ngClass]="reviewsTab() === 'rejected' ? 'bg-rose-600 text-white font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+        >
+          Rejected ({{ rejectedReviewCount() }})
+        </button>
+      </div>
+
+      <!-- Search Box -->
+      <div class="relative min-w-[240px]">
+        <svg lucideSearch class="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"></svg>
+        <input
+          type="text"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Search by name, email, feedback..."
+          class="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+    </div>
+
+    <!-- Reviews Table / List -->
+    <div class="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+      @if (filteredReviews().length === 0) {
+        <div class="text-center py-12 px-4">
+          <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 text-muted-foreground">
+            <svg lucideStar class="w-6 h-6"></svg>
+          </div>
+          <h3 class="text-sm font-semibold text-foreground">No customer reviews found</h3>
+          <p class="text-xs text-muted-foreground mt-1">
+            {{ searchQuery() ? 'No reviews match your search query.' : 'No customer reviews submitted in this category.' }}
+          </p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm border-collapse">
+            <thead>
+              <tr class="border-b border-border bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider font-semibold">
+                <th class="px-4 py-3">Reviewer Details</th>
+                <th class="px-4 py-3">Rating</th>
+                <th class="px-4 py-3">Review & Suggestion</th>
+                <th class="px-4 py-3">Date</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (item of filteredReviews(); track item.id) {
+                <tr class="hover:bg-muted/30 transition-colors">
+                  <!-- Reviewer Info -->
+                  <td class="px-4 py-3.5 align-top">
+                    <div class="font-semibold text-foreground flex items-center gap-1.5">
+                      <svg lucideUser class="w-3.5 h-3.5 text-muted-foreground"></svg>
+                      <span>{{ item.fullName }}</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                      <svg lucideMail class="w-3.5 h-3.5 text-muted-foreground"></svg>
+                      <a [href]="'mailto:' + item.email" class="hover:underline hover:text-primary">{{ item.email }}</a>
+                    </div>
+                    @if (item.organizationName || item.role) {
+                      <div class="text-[11px] text-muted-foreground/80 flex items-center gap-1 mt-1">
+                        <svg lucideBuilding class="w-3 h-3 text-indigo-400"></svg>
+                        <span>{{ item.role ? item.role + ' • ' : '' }}{{ item.organizationName }}</span>
+                      </div>
+                    }
+                  </td>
+
+                  <!-- Rating -->
+                  <td class="px-4 py-3.5 align-top whitespace-nowrap">
+                    <div class="flex items-center gap-1">
+                      @for (star of getStarArray(item.rating); track star) {
+                        <svg lucideStar class="w-3.5 h-3.5 text-amber-500 fill-amber-500"></svg>
+                      }
+                      <span class="text-xs font-bold text-foreground ml-1">({{ item.rating }}/5)</span>
+                    </div>
+                    @if (item.title) {
+                      <div class="text-xs font-semibold text-foreground/90 mt-1 max-w-[160px] truncate" [title]="item.title">
+                        {{ item.title }}
+                      </div>
+                    }
+                  </td>
+
+                  <!-- Review & Suggestion -->
+                  <td class="px-4 py-3.5 align-top max-w-md">
+                    <p class="text-xs text-foreground leading-relaxed">{{ item.comment }}</p>
+                    @if (item.suggestion) {
+                      <div class="mt-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200">
+                        <div class="font-semibold flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                          <svg lucideSparkles class="w-3 h-3"></svg>
+                          <span>Suggestion:</span>
+                        </div>
+                        <p class="mt-0.5">{{ item.suggestion }}</p>
+                      </div>
+                    }
+                    @if (item.adminRemarks) {
+                      <div class="mt-1 text-[11px] text-muted-foreground italic">
+                        <span class="font-medium">Remarks:</span> {{ item.adminRemarks }}
+                      </div>
+                    }
+                  </td>
+
+                  <!-- Date -->
+                  <td class="px-4 py-3.5 align-top whitespace-nowrap text-xs text-muted-foreground">
+                    <div>{{ item.createdAtUtc | date:'mediumDate' }}</div>
+                    <div class="text-[10px]">{{ item.createdAtUtc | date:'shortTime' }}</div>
+                  </td>
+
+                  <!-- Status -->
+                  <td class="px-4 py-3.5 align-top whitespace-nowrap">
+                    @if (isReviewApproved(item)) {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                        <svg lucideCheckCircle class="w-3.5 h-3.5"></svg>
+                        <span>Approved</span>
+                      </span>
+                    } @else if (isReviewRejected(item)) {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                        <svg lucideXCircle class="w-3.5 h-3.5"></svg>
+                        <span>Rejected</span>
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                        <svg lucideClock class="w-3.5 h-3.5 animate-pulse"></svg>
+                        <span>Pending</span>
+                      </span>
+                    }
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="px-4 py-3.5 align-top text-right whitespace-nowrap">
+                    <div class="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        (click)="openCustomerReviewModal(item)"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border bg-card hover:bg-accent text-foreground transition-all shadow-xs"
+                      >
+                        <svg lucideEye class="w-3.5 h-3.5"></svg>
+                        <span>View</span>
+                      </button>
+
+                      @if (isReviewPending(item)) {
+                        <button
+                          type="button"
+                          (click)="approveCustomerReview(item)"
+                          class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-all"
+                          title="Approve and publish to landing page"
+                        >
+                          <svg lucideCheck class="w-3.5 h-3.5"></svg>
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="rejectCustomerReview(item)"
+                          class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 border border-rose-500/30 transition-all"
+                          title="Reject review"
+                        >
+                          <svg lucideX class="w-3.5 h-3.5"></svg>
+                          <span>Reject</span>
+                        </button>
+                      } @else if (isReviewApproved(item)) {
+                        <button
+                          type="button"
+                          (click)="rejectCustomerReview(item)"
+                          class="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-rose-600 hover:bg-rose-500/10 transition-all"
+                          title="Unpublish / Reject"
+                        >
+                          <svg lucideX class="w-3.5 h-3.5"></svg>
+                          <span>Hide</span>
+                        </button>
+                      } @else if (isReviewRejected(item)) {
+                        <button
+                          type="button"
+                          (click)="approveCustomerReview(item)"
+                          class="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-emerald-600 hover:bg-emerald-500/10 transition-all"
+                          title="Approve and publish"
+                        >
+                          <svg lucideCheck class="w-3.5 h-3.5"></svg>
+                          <span>Approve</span>
+                        </button>
+                      }
+
+                      <button
+                        type="button"
+                        (click)="deleteCustomerReview(item)"
+                        class="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                        title="Delete review"
+                      >
+                        <svg lucideTrash2 class="w-3.5 h-3.5"></svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -2099,6 +2408,176 @@
               </button>
             </div>
           }
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- MODAL 4: Customer Review Detail & Moderation Modal -->
+  @if (reviewModalOpen() && selectedReview(); as rev) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+        
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-border flex items-center justify-between"
+          [ngClass]="{
+            'bg-amber-500/10 border-b-amber-500/20': isReviewPending(rev),
+            'bg-emerald-500/10 border-b-emerald-500/20': isReviewApproved(rev),
+            'bg-rose-500/10 border-b-rose-500/20': isReviewRejected(rev)
+          }">
+          <div class="flex items-center gap-2.5">
+            @if (isReviewApproved(rev)) {
+              <div class="p-2 rounded-xl bg-emerald-500/20 text-emerald-500">
+                <svg lucideCheckCircle class="w-5 h-5"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Customer Review — Live on Landing Page</h2>
+                <p class="text-xs text-muted-foreground">This review is approved and visible publicly on the landing page.</p>
+              </div>
+            } @else if (isReviewRejected(rev)) {
+              <div class="p-2 rounded-xl bg-rose-500/20 text-rose-500">
+                <svg lucideXCircle class="w-5 h-5"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Customer Review — Rejected / Hidden</h2>
+                <p class="text-xs text-muted-foreground">This review is hidden from visitors.</p>
+              </div>
+            } @else {
+              <div class="p-2 rounded-xl bg-amber-500/20 text-amber-500">
+                <svg lucideClock class="w-5 h-5"></svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-foreground">Customer Review Moderation</h2>
+                <p class="text-xs text-muted-foreground">Review submitted by website visitor awaiting SuperAdmin approval.</p>
+              </div>
+            }
+          </div>
+
+          <button
+            type="button"
+            (click)="closeCustomerReviewModal()"
+            class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <svg lucideX class="w-5 h-5"></svg>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+          <!-- Reviewer Info Card -->
+          <div class="p-4 rounded-xl bg-muted/40 border border-border space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/60 pb-3">
+              <div>
+                <div class="text-base font-bold text-foreground flex items-center gap-2">
+                  <svg lucideUser class="w-4 h-4 text-primary"></svg>
+                  <span>{{ rev.fullName }}</span>
+                </div>
+                <div class="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                  <svg lucideMail class="w-3.5 h-3.5"></svg>
+                  <a [href]="'mailto:' + rev.email" class="hover:underline text-primary">{{ rev.email }}</a>
+                </div>
+              </div>
+
+              <!-- Rating Stars -->
+              <div class="flex items-center gap-1 bg-background px-3 py-1.5 rounded-lg border border-border self-start">
+                @for (star of getStarArray(rev.rating); track star) {
+                  <svg lucideStar class="w-4 h-4 text-amber-500 fill-amber-500"></svg>
+                }
+                <span class="text-xs font-bold text-foreground ml-1.5">{{ rev.rating }} / 5 Stars</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              @if (rev.organizationName || rev.role) {
+                <div>
+                  <span class="text-muted-foreground">Designation / Library:</span>
+                  <p class="font-semibold text-foreground mt-0.5">{{ rev.role ? rev.role + ' - ' : '' }}{{ rev.organizationName }}</p>
+                </div>
+              }
+              <div>
+                <span class="text-muted-foreground">Submitted At:</span>
+                <p class="font-semibold text-foreground mt-0.5">{{ rev.createdAtUtc | date:'medium' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Review Comment Content -->
+          <div class="space-y-2">
+            @if (rev.title) {
+              <h4 class="text-sm font-bold text-foreground">"{{ rev.title }}"</h4>
+            }
+            <div class="p-4 rounded-xl bg-background border border-border text-xs sm:text-sm text-foreground leading-relaxed">
+              {{ rev.comment }}
+            </div>
+          </div>
+
+          <!-- Suggestion if present -->
+          @if (rev.suggestion) {
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+              <div class="font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                <svg lucideSparkles class="w-3 h-3"></svg>
+                <span>Customer Suggestion for Lexora:</span>
+              </div>
+              <p class="leading-relaxed">{{ rev.suggestion }}</p>
+            </div>
+          }
+
+          <!-- Admin Remarks Editor -->
+          <div class="space-y-2">
+            <label class="text-xs font-semibold text-foreground block">
+              Admin Remarks / Internal Notes (Optional)
+            </label>
+            <textarea
+              [ngModel]="formReviewRemarks()"
+              (ngModelChange)="formReviewRemarks.set($event)"
+              rows="2"
+              placeholder="e.g., Verified library owner from Jaipur. Great testimonial."
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/30">
+          <button
+            type="button"
+            (click)="closeCustomerReviewModal()"
+            [disabled]="isSubmitting()"
+            class="w-full sm:w-auto px-4 py-2 rounded-lg text-xs sm:text-sm font-medium border border-border bg-card hover:bg-accent text-foreground transition-all disabled:opacity-50"
+          >
+            Close
+          </button>
+
+          <div class="flex items-center gap-2.5 w-full sm:w-auto">
+            @if (!isReviewRejected(rev)) {
+              <button
+                type="button"
+                (click)="rejectCustomerReview(rev)"
+                [disabled]="isSubmitting()"
+                class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all disabled:opacity-50"
+              >
+                <svg lucideXCircle class="w-4 h-4"></svg>
+                <span>{{ isReviewApproved(rev) ? 'Reject & Hide' : 'Reject Review' }}</span>
+              </button>
+            }
+
+            @if (!isReviewApproved(rev)) {
+              <button
+                type="button"
+                (click)="approveCustomerReview(rev)"
+                [disabled]="isSubmitting()"
+                class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-900/20 transition-all disabled:opacity-50"
+              >
+                @if (isSubmitting()) {
+                  <svg lucideRefreshCw class="w-4 h-4 animate-spin"></svg>
+                } @else {
+                  <svg lucideCheckCircle class="w-4 h-4"></svg>
+                }
+                <span>{{ isSubmitting() ? 'Processing...' : 'Approve & Publish to Landing' }}</span>
+              </button>
+            }
+          </div>
         </div>
 
       </div>

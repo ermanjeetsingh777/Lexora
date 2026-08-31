@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService } from '@core/services/admin.service';
 import { AddonService } from '@core/services/addon.service';
 import { PackageSubscriptionService } from '@core/services/package-subscription.service';
+import { CustomerReviewService } from '@core/services/customer-review.service';
 import { ToastService } from '@core/services/toast.service';
 import {
   ApproveTenantRegistrationRequest,
@@ -18,6 +19,11 @@ import {
   RejectSubscriptionRequest,
   UserAddonItem,
 } from '@core/models/package-subscription.models';
+import {
+  ApproveCustomerReviewRequest,
+  CustomerReviewItem,
+  RejectCustomerReviewRequest,
+} from '@core/models/customer-review.model';
 import {
   LucideBuilding,
   LucideCalendar,
@@ -38,6 +44,8 @@ import {
   LucideSend,
   LucideShieldCheck,
   LucideSparkles,
+  LucideStar,
+  LucideTrash2,
   LucideUser,
   LucideUserCheck,
   LucideUsers,
@@ -71,6 +79,8 @@ import {
     LucideSearch,
     LucideShieldCheck,
     LucideSparkles,
+    LucideStar,
+    LucideTrash2,
     LucideUser,
     LucideUserCheck,
     LucideUsers,
@@ -84,13 +94,14 @@ export class TenantApprovalsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly addonService = inject(AddonService);
   private readonly subscriptionService = inject(PackageSubscriptionService);
+  private readonly customerReviewService = inject(CustomerReviewService);
   private readonly toast = inject(ToastService);
 
   readonly isLoading = signal(true);
   readonly isSubmitting = signal(false);
 
-  // Top-level Section Switcher: 'tenants' | 'addons' | 'plans'
-  readonly activeSection = signal<'tenants' | 'addons' | 'plans'>('tenants');
+  // Top-level Section Switcher: 'tenants' | 'addons' | 'plans' | 'reviews'
+  readonly activeSection = signal<'tenants' | 'addons' | 'plans' | 'reviews'>('tenants');
 
   // Tenant Registrations State
   readonly registrations = signal<TenantRegistrationItem[]>([]);
@@ -134,6 +145,14 @@ export class TenantApprovalsComponent implements OnInit {
   readonly isEditingPlanOutreach = signal(false);
   readonly customPlanOutreachText = signal('');
 
+  // Customer Reviews State
+  readonly reviews = signal<CustomerReviewItem[]>([]);
+  readonly reviewsTab = signal<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  readonly selectedReview = signal<CustomerReviewItem | null>(null);
+  readonly reviewModalOpen = signal(false);
+  readonly formReviewRemarks = signal<string>('');
+  readonly reviewRejectReason = signal<string>('');
+
   // Computed counts for Tenants
   readonly totalCount = computed(() => this.registrations().length);
   readonly pendingCount = computed(() =>
@@ -168,6 +187,18 @@ export class TenantApprovalsComponent implements OnInit {
   );
   readonly rejectedPlanCount = computed(() =>
     this.planRequests().filter((p) => p.approvalStatus?.toLowerCase() === 'rejected').length
+  );
+
+  // Computed counts for Customer Reviews
+  readonly totalReviewCount = computed(() => this.reviews().length);
+  readonly pendingReviewCount = computed(() =>
+    this.reviews().filter((r) => r.status?.toLowerCase() === 'pending').length
+  );
+  readonly approvedReviewCount = computed(() =>
+    this.reviews().filter((r) => r.status?.toLowerCase() === 'approved').length
+  );
+  readonly rejectedReviewCount = computed(() =>
+    this.reviews().filter((r) => r.status?.toLowerCase() === 'rejected').length
   );
 
   // Filtered Tenant list
@@ -242,6 +273,29 @@ export class TenantApprovalsComponent implements OnInit {
     return list;
   });
 
+  // Filtered Customer Reviews list
+  readonly filteredReviews = computed(() => {
+    let list = this.reviews();
+    const tab = this.reviewsTab();
+    if (tab !== 'all') {
+      list = list.filter((r) => r.status?.toLowerCase() === tab);
+    }
+
+    const query = this.searchQuery().trim().toLowerCase();
+    if (query) {
+      list = list.filter(
+        (r) =>
+          r.fullName.toLowerCase().includes(query) ||
+          r.email.toLowerCase().includes(query) ||
+          (r.organizationName && r.organizationName.toLowerCase().includes(query)) ||
+          r.comment.toLowerCase().includes(query) ||
+          (r.suggestion && r.suggestion.toLowerCase().includes(query))
+      );
+    }
+
+    return list;
+  });
+
   ngOnInit(): void {
     this.loadAllData();
   }
@@ -250,10 +304,20 @@ export class TenantApprovalsComponent implements OnInit {
     this.loadRegistrations();
     this.loadAddonRequests();
     this.loadPlanRequests();
+    this.loadReviews();
   }
 
-  setSection(section: 'tenants' | 'addons' | 'plans'): void {
+  setSection(section: 'tenants' | 'addons' | 'plans' | 'reviews'): void {
     this.activeSection.set(section);
+  }
+
+  loadReviews(): void {
+    this.customerReviewService.getAllReviews().subscribe({
+      next: (data) => {
+        this.reviews.set(data);
+      },
+      error: () => {},
+    });
   }
 
   loadRegistrations(): void {
@@ -775,5 +839,113 @@ export class TenantApprovalsComponent implements OnInit {
   private updateLocalPlanItem(updated: PackageSubscriptionItem): void {
     const list = this.planRequests().map((p) => (p.id === updated.id ? updated : p));
     this.planRequests.set(list);
+  }
+
+  // Customer Review Management Methods
+  setReviewsTab(tab: 'all' | 'pending' | 'approved' | 'rejected'): void {
+    this.reviewsTab.set(tab);
+  }
+
+  isReviewPending(item?: CustomerReviewItem | null): boolean {
+    if (!item) return false;
+    return !item.status || item.status.toLowerCase() === 'pending';
+  }
+
+  isReviewApproved(item?: CustomerReviewItem | null): boolean {
+    if (!item) return false;
+    return item.status?.toLowerCase() === 'approved' || item.isApproved;
+  }
+
+  isReviewRejected(item?: CustomerReviewItem | null): boolean {
+    if (!item) return false;
+    return item.status?.toLowerCase() === 'rejected';
+  }
+
+  openCustomerReviewModal(item: CustomerReviewItem): void {
+    this.selectedReview.set(item);
+    this.formReviewRemarks.set(item.adminRemarks || '');
+    this.reviewRejectReason.set('');
+    this.reviewModalOpen.set(true);
+  }
+
+  closeCustomerReviewModal(): void {
+    this.reviewModalOpen.set(false);
+    this.selectedReview.set(null);
+  }
+
+  approveCustomerReview(item?: CustomerReviewItem): void {
+    const target = item || this.selectedReview();
+    if (!target) return;
+
+    this.isSubmitting.set(true);
+    const payload: ApproveCustomerReviewRequest = {
+      adminRemarks: this.formReviewRemarks().trim() || undefined,
+    };
+
+    this.customerReviewService.approveReview(target.id, payload).subscribe({
+      next: (updated) => {
+        this.isSubmitting.set(false);
+        this.toast.success(`Review from ${updated.fullName} approved and published to landing page!`);
+        this.updateLocalReview(updated);
+        this.closeCustomerReviewModal();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.message || 'Failed to approve review.');
+      },
+    });
+  }
+
+  rejectCustomerReview(item?: CustomerReviewItem): void {
+    const target = item || this.selectedReview();
+    if (!target) return;
+
+    const remarks = this.formReviewRemarks().trim() || this.reviewRejectReason().trim();
+    this.isSubmitting.set(true);
+    const payload: RejectCustomerReviewRequest = {
+      adminRemarks: remarks || undefined,
+    };
+
+    this.customerReviewService.rejectReview(target.id, payload).subscribe({
+      next: (updated) => {
+        this.isSubmitting.set(false);
+        this.toast.info(`Review from ${updated.fullName} rejected.`);
+        this.updateLocalReview(updated);
+        this.closeCustomerReviewModal();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.message || 'Failed to reject review.');
+      },
+    });
+  }
+
+  deleteCustomerReview(item: CustomerReviewItem): void {
+    if (!confirm(`Are you sure you want to delete the review by ${item.fullName}?`)) {
+      return;
+    }
+
+    this.customerReviewService.deleteReview(item.id).subscribe({
+      next: () => {
+        this.toast.success(`Review by ${item.fullName} deleted.`);
+        this.reviews.update((list) => list.filter((r) => r.id !== item.id));
+        if (this.selectedReview()?.id === item.id) {
+          this.closeCustomerReviewModal();
+        }
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message || 'Failed to delete review.');
+      },
+    });
+  }
+
+  private updateLocalReview(updated: CustomerReviewItem): void {
+    const list = this.reviews().map((r) => (r.id === updated.id ? updated : r));
+    this.reviews.set(list);
+  }
+
+  getStarArray(rating: number): number[] {
+    const clamped = Math.max(1, Math.min(5, Math.round(rating)));
+    return Array.from({ length: clamped }, (_, i) => i + 1);
   }
 }

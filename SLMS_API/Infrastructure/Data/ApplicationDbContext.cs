@@ -50,6 +50,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<BookLoan> BookLoans => Set<BookLoan>();
     public DbSet<BookAuditEntry> BookAuditEntries => Set<BookAuditEntry>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<CustomerReview> CustomerReviews => Set<CustomerReview>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -395,6 +396,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(x => x.FinalApprovedAmount).HasPrecision(18, 2);
         });
 
-
+        builder.Entity<CustomerReview>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.FullName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Email).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.OrganizationName).HasMaxLength(150);
+            entity.Property(x => x.Role).HasMaxLength(100);
+            entity.Property(x => x.Title).HasMaxLength(200);
+            entity.Property(x => x.Comment).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Suggestion).HasMaxLength(2000);
+            entity.Property(x => x.Status).HasMaxLength(50).HasDefaultValue("Pending");
+            entity.Property(x => x.AdminRemarks).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.IsApproved, x.IsDeleted, x.CreatedAtUtc });
+        });
     }
 }

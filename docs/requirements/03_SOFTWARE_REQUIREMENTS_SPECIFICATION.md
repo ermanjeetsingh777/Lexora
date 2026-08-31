@@ -2547,10 +2547,20 @@ app.MapHealthChecks("/health/live");
 - `POST /api/v1/admin/tenant-registrations/{userId}/approve` — SuperAdmin approve tenant.
 - `POST /api/v1/admin/tenant-registrations/{userId}/reject` — SuperAdmin reject tenant.
 
+### Appendix F: Customer Reviews & Suggestions API Specification
+
+#### 1. Endpoints Overview
+- `POST /api/v1/customer-reviews` — Anonymous/Public: Submit new rating, comment & suggestion (starts in `Pending` state).
+- `GET /api/v1/customer-reviews/public` — Anonymous/Public: List approved customer reviews (`Status == "Approved"`) for landing page display.
+- `GET /api/v1/customer-reviews` — SuperAdmin: List all submitted reviews with optional status filter (`all`, `pending`, `approved`, `rejected`).
+- `POST /api/v1/customer-reviews/{id}/approve` — SuperAdmin: Approve review and publish immediately to landing page.
+- `POST /api/v1/customer-reviews/{id}/reject` — SuperAdmin: Reject review and hide from public view with optional remarks.
+- `DELETE /api/v1/customer-reviews/{id}` — SuperAdmin: Soft-delete review.
+
 ---
 
-**Document Version:** 2.0  
-**Last Updated:** August 30, 2026  
+**Document Version:** 2.1  
+**Last Updated:** August 31, 2026  
 **Author:** Technical Team  
 **Status:** Active  
 

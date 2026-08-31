@@ -62,6 +62,7 @@ SLMS_API/
 | `PackagesController` | `api/v1/packages` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md) (Catalog, SuperAdmin dynamic quota management) |
 | `AddonsController` | `api/v1/addons` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md), [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md), [tenant-approvals-workflow.md](../docs/workflow/tenant-approvals-workflow.md) (Capacity add-on purchase, approvals & SuperAdmin management) |
 | `PackageSubscriptionsController` | `api/v1/package-subscriptions` | [package-entitlements-workflow.md](../docs/workflow/package-entitlements-workflow.md), [subscriptions-workflow.md](../docs/workflow/subscriptions-workflow.md), [tenant-approvals-workflow.md](../docs/workflow/tenant-approvals-workflow.md) (SaaS package billing, renew/upgrade approvals & entitlements) |
+| `CustomerReviewsController` | `api/v1/customer-reviews` | [customer-reviews-workflow.md](../docs/workflow/customer-reviews-workflow.md) (Public review submission, landing page display & SuperAdmin moderation) |
 | `PlanController` | `api/v1/institutions/.../plans` | [library-detail-workflow.md](../docs/workflow/library-detail-workflow.md) |
 | `SubscriptionsController` | `api/v1/institutions/{id}/subscriptions` | Planned |
 | `SeatsController` | `api/v1/institutions/.../seats` | Planned |

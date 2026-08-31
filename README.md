@@ -70,6 +70,7 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | M-16 | Member portal | [member-portal-workflow.md](docs/workflow/member-portal-workflow.md) |
 | M-17 | Package entitlements, Add-ons & RBAC | [package-entitlements-workflow.md](docs/workflow/package-entitlements-workflow.md) |
 | M-18 | Tenant & Subscription Approvals | [tenant-approvals-workflow.md](docs/workflow/tenant-approvals-workflow.md) |
+| M-19 | Customer Reviews & Suggestions | [customer-reviews-workflow.md](docs/workflow/customer-reviews-workflow.md) |
 
 ## Attendance QR kiosk (public, no login)
 

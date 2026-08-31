@@ -120,6 +120,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISupportService, SupportService>();
         services.AddScoped<IBookService, BookService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<ICustomerReviewService, CustomerReviewService>();
 
         services.AddHttpContextAccessor();
 

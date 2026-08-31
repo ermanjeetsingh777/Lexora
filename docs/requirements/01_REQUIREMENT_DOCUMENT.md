@@ -1148,6 +1148,11 @@ Tenants can incrementally scale capacity without jumping plan tiers via Add-ons:
 3. **Plan Renewal & Upgrades:** Plan changes submitted by logged-in users enter `Pending` state. If initiated by SuperAdmin, they are auto-approved immediately.
 4. **WhatsApp Direct Outreach:** 1-click messaging templates for payment collection, custom discount offers, and slip submissions.
 
+### 12.4 Customer Reviews & Community Feedback Architecture
+1. **Public Review Submission:** Website visitors, library managers, and members can submit ratings (1-5 stars), review titles, feedback comments, and improvement suggestions with their name, email, and organization details directly on the landing page.
+2. **SuperAdmin Moderation Console:** All submitted reviews enter `Pending` status and require SuperAdmin approval in `/admin/tenant-approvals` before going live.
+3. **Landing Page Showcase:** Approved reviews display reviewer name, verified email, rating stars, review comment, and suggestions on the public landing page.
+
 ---
 
 ## Document Control
@@ -1156,6 +1161,7 @@ Tenants can incrementally scale capacity without jumping plan tiers via Add-ons:
 |---------|------|--------|--------|---------|
 | 1.0 | 2026-05-23 | Mahi Rao | Active | Initial document creation |
 | 2.0 | 2026-08-30 | Engineering Team | Active | Added 3-tier package quotas, capacity add-ons, SuperAdmin approval workflow, trial handling & WhatsApp hotline |
+| 2.1 | 2026-08-31 | Engineering Team | Active | Added Customer Reviews submission, landing page display & SuperAdmin moderation workflow |
 
 ---
 

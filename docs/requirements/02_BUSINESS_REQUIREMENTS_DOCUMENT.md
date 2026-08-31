@@ -1445,6 +1445,11 @@ Phase 3: Scale
 - Direct outreach via pre-formatted WhatsApp templates for payment requests, custom discounts, and receipt confirmation.
 - Configurable expiration alert period (default: 14 days).
 
+#### 4. Customer Reviews & Community Feedback Rules
+- Any visitor or user can submit reviews, ratings (1-5), comments, and feature suggestions from the public landing page.
+- Submissions are held in `Pending` state and are published to the landing page only upon SuperAdmin verification & approval.
+- Approved cards publicly display the reviewer's Full Name, verified Email, Star rating, feedback comment, and suggestion box.
+
 ---
 
 ## Document Approval
@@ -1465,6 +1470,7 @@ Phase 3: Scale
 |---------|------|---------|--------|
 | 1.0 | 2026-05-23 | Initial BRD creation | Product Team |
 | 2.0 | 2026-08-30 | 3-tier SaaS packages, dynamic add-ons, SuperAdmin approval console, WhatsApp outreach | Product Team |
+| 2.1 | 2026-08-31 | Customer reviews submission, public display & SuperAdmin moderation workflow | Product Team |
 
 ---
 

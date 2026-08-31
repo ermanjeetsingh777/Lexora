@@ -27,6 +27,7 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 | M-16 | Member portal & self-service | `/members/:memberId` (isolated) | [member-portal-workflow.md](../workflow/member-portal-workflow.md) | Implemented |
 | M-17 | Package entitlements, Add-ons & RBAC | Global creation limits & `[Permission]` claims | [package-entitlements-workflow.md](../workflow/package-entitlements-workflow.md) | Implemented |
 | M-18 | Tenant & Subscription Approvals | `/admin/tenant-approvals` | [tenant-approvals-workflow.md](../workflow/tenant-approvals-workflow.md) | Implemented |
+| M-19 | Customer Reviews & Suggestions | `/`, `/admin/tenant-approvals` | [customer-reviews-workflow.md](../workflow/customer-reviews-workflow.md) | Implemented |
 
 ## Planned / not yet routed
 

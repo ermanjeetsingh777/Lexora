@@ -169,6 +169,32 @@ public static class DbSeeder
                 BEGIN
                     ALTER TABLE [UserPackageAddons] ADD [ApprovedByUserId] nvarchar(max) NULL;
                 END
+
+                -- Ensure CustomerReviews table exists
+                IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CustomerReviews')
+                BEGIN
+                    CREATE TABLE [CustomerReviews] (
+                        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+                        [FullName] nvarchar(100) NOT NULL,
+                        [Email] nvarchar(150) NOT NULL,
+                        [OrganizationName] nvarchar(150) NULL,
+                        [Role] nvarchar(100) NULL,
+                        [Rating] int NOT NULL DEFAULT 5,
+                        [Title] nvarchar(200) NULL,
+                        [Comment] nvarchar(2000) NOT NULL,
+                        [Suggestion] nvarchar(2000) NULL,
+                        [Status] nvarchar(50) NOT NULL DEFAULT N'Pending',
+                        [IsApproved] bit NOT NULL DEFAULT 0,
+                        [AdminRemarks] nvarchar(1000) NULL,
+                        [ApprovedByUserId] nvarchar(450) NULL,
+                        [ApprovedAtUtc] datetime2 NULL,
+                        [RejectedAtUtc] datetime2 NULL,
+                        [CreatedAtUtc] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                        [UpdatedAtUtc] datetime2 NULL,
+                        [IsDeleted] bit NOT NULL DEFAULT 0
+                    );
+                    CREATE INDEX [IX_CustomerReviews_IsApproved_IsDeleted_CreatedAtUtc] ON [CustomerReviews] ([IsApproved], [IsDeleted], [CreatedAtUtc]);
+                END
             ");
         }
         catch

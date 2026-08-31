@@ -41,7 +41,7 @@ export class EditMemberComponent implements OnInit, OnDestroy {
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
     email: ['', [Validators.email, Validators.maxLength(150)]],
-    dateOfBirth: ['', Validators.required],
+    dateOfBirth: [''],
     gender: ['', Validators.required],
     status: ['Active', Validators.required],
     institution: [{ value: '', disabled: true }],

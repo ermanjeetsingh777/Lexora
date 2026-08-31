@@ -80,7 +80,7 @@ This gives real-time **“5 / 20 done”** feedback. The API bulk endpoint remai
 | `FullName` | Yes | 2–100 characters |
 | `Email` | No | Optional; unique if provided; used for login username & credentials email |
 | `PhoneNumber` | Yes | 10-digit Indian mobile number (`^[6-9]\d{9}$`) |
-| `DateOfBirth` | Yes | `yyyy-MM-dd` |
+| `DateOfBirth` | No | Optional; `yyyy-MM-dd` format if provided |
 | `Gender` | Yes | Male, Female, Other |
 | `Shift` | Yes | Morning, Afternoon, Evening, Night, Full, General |
 | `PlanName` | Yes | Must match active plan for selected library |

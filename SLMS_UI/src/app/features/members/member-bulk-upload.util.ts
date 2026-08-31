@@ -8,6 +8,7 @@ export interface ParsedBulkMemberRow {
   email: string;
   phoneNumber: string;
   dateOfBirth: Date | null;
+  rawDateOfBirth?: string;
   gender: string;
   shift: string;
   planName: string;
@@ -106,6 +107,7 @@ export async function parseMemberBulkExcel(file: File): Promise<ParsedBulkMember
     columnMap.forEach((field, columnIndex) => {
       const rawValue = rawRow[columnIndex];
       if (field === 'dateOfBirth') {
+        parsed.rawDateOfBirth = cellToString(rawValue);
         parsed.dateOfBirth = parseDateOfBirth(rawValue);
         return;
       }
@@ -148,7 +150,10 @@ export function validateBulkMemberRow(
     return `Duplicate phone number '${normalizedPhone}' found in the uploaded file.`;
   }
 
-  if (!row.dateOfBirth) return 'DateOfBirth is required and must be in yyyy-MM-dd format.';
+  if (row.rawDateOfBirth && row.rawDateOfBirth.trim() && !row.dateOfBirth) {
+    return 'DateOfBirth must be in yyyy-MM-dd format.';
+  }
+
   if (!row.gender.trim()) return 'Gender is required.';
   if (!VALID_GENDERS.has(row.gender.trim().toLowerCase())) {
     return 'Gender must be Male, Female, or Other.';

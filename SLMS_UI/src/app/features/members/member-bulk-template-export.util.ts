@@ -10,9 +10,9 @@ export interface MemberBulkTemplateContext {
 
 const COLUMN_INSTRUCTIONS: [string, string, string][] = [
   ['FullName', 'Yes', 'Member full name (2–100 characters).'],
-  ['Email', 'Yes', 'Unique email address; used as login username.'],
-  ['PhoneNumber', 'Yes', '10-digit Indian mobile number starting with 6–9.'],
-  ['DateOfBirth', 'Yes', 'Date in yyyy-MM-dd format (e.g. 2000-01-15).'],
+  ['Email', 'No', 'Email address (optional). Used for login and notifications.'],
+  ['PhoneNumber', 'Yes', '10-digit Indian mobile number starting with 6–9 (required).'],
+  ['DateOfBirth', 'No', 'Date in yyyy-MM-dd format (optional, e.g. 2000-01-15).'],
   ['Gender', 'Yes', 'Male, Female, or Other.'],
   ['Shift', 'Yes', 'Morning, Afternoon, Evening, Night, Full, or General.'],
   ['PlanName', 'Yes', 'Must match an active plan name listed below.'],

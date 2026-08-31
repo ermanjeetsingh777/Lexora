@@ -11,6 +11,7 @@ public sealed class BulkMemberExcelRow
     public string Email { get; init; } = string.Empty;
     public string PhoneNumber { get; init; } = string.Empty;
     public DateTime? DateOfBirth { get; init; }
+    public string? RawDateOfBirth { get; init; }
     public string Gender { get; init; } = string.Empty;
     public string Shift { get; init; } = string.Empty;
     public string PlanName { get; init; } = string.Empty;
@@ -71,7 +72,7 @@ public static class MemberBulkExcelHelper
             ("FullName", "Yes", "Member full name (2–100 characters)."),
             ("Email", "No", "Email address (optional). If provided, used for login and notifications."),
             ("PhoneNumber", "Yes", "10-digit Indian mobile number starting with 6–9 (required)."),
-            ("DateOfBirth", "Yes", "Date in yyyy-MM-dd format."),
+            ("DateOfBirth", "No", "Date in yyyy-MM-dd format (optional)."),
             ("Gender", "Yes", "Male, Female, or Other."),
             ("Shift", "Yes", "Morning, Afternoon, Evening, Night, Full, or General."),
             ("PlanName", "Yes", "Must match an active plan name for the selected library (see Plans sheet).")
@@ -139,6 +140,7 @@ public static class MemberBulkExcelHelper
                 Email = email,
                 PhoneNumber = phone,
                 DateOfBirth = ParseDateOfBirth(worksheet, rowNumber, dobText),
+                RawDateOfBirth = dobText,
                 Gender = gender,
                 Shift = shift,
                 PlanName = planName
@@ -167,8 +169,8 @@ public static class MemberBulkExcelHelper
         if (!PhoneRegex.IsMatch(row.PhoneNumber.Trim()))
             return "PhoneNumber must be a valid 10-digit mobile number starting with 6–9.";
 
-        if (row.DateOfBirth is null)
-            return "DateOfBirth is required and must be in yyyy-MM-dd format.";
+        if (!string.IsNullOrWhiteSpace(row.RawDateOfBirth) && row.DateOfBirth is null)
+            return "DateOfBirth must be in yyyy-MM-dd format.";
 
         if (string.IsNullOrWhiteSpace(row.Gender))
             return "Gender is required.";

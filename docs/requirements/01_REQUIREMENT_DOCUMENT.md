@@ -258,8 +258,8 @@ SaaS (Software-as-a-Service) B2B Platform
 
 #### 3.1 Member Registration & Profile
 - **FR-3.1.1**: System shall support member self-registration
-- **FR-3.1.2**: System shall support member registration by administrators (Phone number required, Email optional)
-- **FR-3.1.3**: System shall support member profile with photo and editable email in profile/edit mode
+- **FR-3.1.2**: System shall support member registration by administrators (Phone number required; Email and Date of Birth optional)
+- **FR-3.1.3**: System shall support member profile with photo and editable email/date of birth in profile/edit mode
 - **FR-3.1.4**: System shall support member document verification
 - **FR-3.1.5**: System shall support member contact information
 - **FR-3.1.6**: System shall support member ID card generation
@@ -267,7 +267,7 @@ SaaS (Software-as-a-Service) B2B Platform
 - **FR-3.1.8**: System shall support member emergency contacts
 - **FR-3.1.9**: System shall support member custom fields
 - **FR-3.1.10**: System shall track member registration status
-- **FR-3.1.11**: System shall support bulk member import via Excel template with optional Email and required Phone *(Implemented — [members-bulk-upload-workflow.md](../workflow/members-bulk-upload-workflow.md))*
+- **FR-3.1.11**: System shall support bulk member import via Excel template with optional Email and Date of Birth, and required Phone *(Implemented — [members-bulk-upload-workflow.md](../workflow/members-bulk-upload-workflow.md))*
 
 #### 3.2 Member Status Management
 - **FR-3.2.1**: System shall support member status (Active, Inactive, Suspended, Deleted)

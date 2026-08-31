@@ -334,17 +334,11 @@
           <div class="space-y-1.5">
 
             <label class="text-sm font-medium">
-              Date of Birth <span class="text-red-500">*</span>
+              Date of Birth <span class="text-xs text-muted-foreground font-normal">(optional)</span>
             </label>
 
             <input type="date" formControlName="dateOfBirth" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
                focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-
-            @if (memberForm.controls.dateOfBirth.touched && memberForm.controls.dateOfBirth.hasError('required')) {
-            <p class="text-xs text-red-500">
-              Date of birth is required.
-            </p>
-            }
 
           </div>
 

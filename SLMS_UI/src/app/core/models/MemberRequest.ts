@@ -4,7 +4,7 @@ import { AttendanceResponse } from "./attendanceModels";
 
 export interface CreateMemberRequest {
   fullName: string;
-  email: string;
+  email?: string;
   phoneNumber: string;
   dateOfBirth?: Date | null;
   gender?: string;
@@ -14,7 +14,7 @@ export interface CreateMemberRequest {
 export interface CreateMemberResponse {
   id: string;
   fullName: string;
-  email: string;
+  email?: string;
   phoneNumber: string;
   membershipNo: string;
 }
@@ -22,7 +22,7 @@ export interface CreateMemberResponse {
 export interface BulkMemberUploadRowResult {
   rowNumber: number;
   fullName: string;
-  email: string;
+  email?: string;
   success: boolean;
   message?: string;
   memberId?: string;

@@ -24,6 +24,7 @@ public class AdminService : IAdminService
     private readonly IAuditLogService _auditLogService;
     private readonly IConfiguration _configuration;
     private readonly IPackageEntitlementService _packageEntitlementService;
+    private readonly IAppEmailService _appEmailService;
     private readonly ILogger<AdminService> _logger;
 
     public AdminService(
@@ -33,6 +34,7 @@ public class AdminService : IAdminService
         IAuditLogService auditLogService,
         IConfiguration configuration,
         IPackageEntitlementService packageEntitlementService,
+        IAppEmailService appEmailService,
         ILogger<AdminService> logger)
     {
         _userManager = userManager;
@@ -41,6 +43,7 @@ public class AdminService : IAdminService
         _auditLogService = auditLogService;
         _configuration = configuration;
         _packageEntitlementService = packageEntitlementService;
+        _appEmailService = appEmailService;
         _logger = logger;
     }
 
@@ -1780,10 +1783,16 @@ public class AdminService : IAdminService
         foreach (var up in userPackages)
         {
             up.IsActive = true;
+            up.ApprovalStatus = "Approved";
+            up.ApprovedAtUtc = DateTime.UtcNow;
+            up.ApprovedByUserId = approverUserId;
+            up.AdminRemarks = request.Remarks;
             up.PaymentStatus = "Paid";
+            up.UpdatedAtUtc = DateTime.UtcNow;
             if (request.FinalAmount.HasValue && userPackages.Count == 1)
             {
                 up.AmountPaid = request.FinalAmount.Value;
+                up.FinalApprovedAmount = request.FinalAmount.Value;
             }
         }
 
@@ -1794,6 +1803,10 @@ public class AdminService : IAdminService
         foreach (var ua in userAddons)
         {
             ua.IsActive = true;
+            ua.ApprovalStatus = "Approved";
+            ua.ApprovedAtUtc = DateTime.UtcNow;
+            ua.ApprovedByUserId = approverUserId;
+            ua.AdminRemarks = request.Remarks;
             ua.PaymentStatus = "Paid";
         }
 
@@ -1805,6 +1818,42 @@ public class AdminService : IAdminService
             $"SuperAdmin approved tenant registration for '{user.Email}' ({user.FullName}). Remarks: {request.Remarks ?? "None"}",
             ipAddress,
             cancellationToken);
+
+        // Send Approval Notification Email to Tenant
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var pkgName = userPackages.FirstOrDefault()?.Package?.Name;
+                if (string.IsNullOrWhiteSpace(pkgName))
+                {
+                    var pkgId = userPackages.FirstOrDefault()?.PackageId;
+                    if (pkgId.HasValue)
+                    {
+                        var pkg = await _dbContext.Packages.FindAsync(pkgId.Value);
+                        pkgName = pkg?.Name;
+                    }
+                }
+
+                var orgName = await _dbContext.Institutions
+                    .Where(i => i.CreatedBy == user.Id && !i.IsDeleted)
+                    .Select(i => i.Name)
+                    .FirstOrDefaultAsync();
+
+                await _appEmailService.SendTenantApprovalAsync(
+                    user.Email,
+                    user.FullName ?? user.UserName ?? "User",
+                    orgName,
+                    pkgName ?? "Standard Plan",
+                    user.FinalApprovedAmount,
+                    request.Remarks,
+                    CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send tenant approval email to {Email}", user.Email);
+            }
+        });
 
         return (await GetTenantRegistrationByIdAsync(userId, cancellationToken))!;
     }
@@ -1836,6 +1885,37 @@ public class AdminService : IAdminService
         {
             throw new InvalidOperationException(string.Join("; ", updateResult.Errors.Select(e => e.Description)));
         }
+
+        var userPackages = await _dbContext.UserPackages
+            .Where(up => up.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var up in userPackages)
+        {
+            up.IsActive = false;
+            up.ApprovalStatus = "Rejected";
+            up.PaymentStatus = "Rejected";
+            up.RejectedAtUtc = DateTime.UtcNow;
+            up.ApprovedByUserId = approverUserId;
+            up.AdminRemarks = request.Reason;
+            up.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        var userAddons = await _dbContext.UserPackageAddons
+            .Where(ua => ua.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var ua in userAddons)
+        {
+            ua.IsActive = false;
+            ua.ApprovalStatus = "Rejected";
+            ua.PaymentStatus = "Rejected";
+            ua.RejectedAtUtc = DateTime.UtcNow;
+            ua.ApprovedByUserId = approverUserId;
+            ua.AdminRemarks = request.Reason;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         await _auditLogService.WriteAsync(
             AuditEventTypes.RegistrationApproval,

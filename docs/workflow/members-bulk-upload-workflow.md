@@ -32,10 +32,10 @@ flowchart TB
 
 | Rule | Implementation |
 |------|----------------|
-| **BR-06c.1** Email must be unique system-wide | Same as single create — `UserManager.FindByEmailAsync` |
-| **BR-06c.2** Duplicate emails within file rejected | Client `seenEmails` set + API bulk helper |
-| **BR-06c.3** Plan name must match active library plan | Resolved to `PlanId` before create |
-| **BR-06c.4** Phone = 10-digit Indian mobile (6–9 start) | Client + `MemberBulkExcelHelper.ValidateRow` |
+| **BR-06c.1** Phone number is required & unique | `^[6-9]\d{9}$`; Indian mobile format; used as fallback login |
+| **BR-06c.2** Email is optional | If provided, validated & unique system-wide; receives credentials email |
+| **BR-06c.3** Duplicate emails or phones within file rejected | Client `seenEmails` / `seenPhones` set + API bulk helper |
+| **BR-06c.4** Plan name must match active library plan | Resolved to `PlanId` before create |
 | **BR-06c.5** Default member password from config | `Identity:DefaultMemberPassword` on Identity user create |
 | **BR-06c.6** Partial success allowed | Failed rows reported; successful rows remain committed |
 | **BR-06c.7** Photo / Aadhaar not in bulk | Upload individually after create on member detail |
@@ -78,8 +78,8 @@ This gives real-time **“5 / 20 done”** feedback. The API bulk endpoint remai
 | Column | Required | Notes |
 |--------|----------|-------|
 | `FullName` | Yes | 2–100 characters |
-| `Email` | Yes | Unique; used as login username |
-| `PhoneNumber` | Yes | `^[6-9]\d{9}$` |
+| `Email` | No | Optional; unique if provided; used for login username & credentials email |
+| `PhoneNumber` | Yes | 10-digit Indian mobile number (`^[6-9]\d{9}$`) |
 | `DateOfBirth` | Yes | `yyyy-MM-dd` |
 | `Gender` | Yes | Male, Female, Other |
 | `Shift` | Yes | Morning, Afternoon, Evening, Night, Full, General |

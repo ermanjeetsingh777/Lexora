@@ -307,7 +307,7 @@
         <div class="space-y-1.5">
 
           <label class="text-sm font-medium">
-            Email <span class="text-red-500">*</span>
+            Email <span class="text-xs text-muted-foreground font-normal">(optional)</span>
           </label>
 
           <input type="email" formControlName="email" placeholder="member@example.com" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
@@ -315,12 +315,6 @@
              focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
 
           @if (memberForm.controls.email.touched) {
-
-          @if (memberForm.controls.email.hasError('required')) {
-          <p class="text-xs text-red-500">
-            Email is required.
-          </p>
-          }
 
           @if (memberForm.controls.email.hasError('email')) {
           <p class="text-xs text-red-500">

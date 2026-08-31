@@ -69,8 +69,8 @@ public static class MemberBulkExcelHelper
         var instructions = new (string Column, string Required, string Description)[]
         {
             ("FullName", "Yes", "Member full name (2–100 characters)."),
-            ("Email", "Yes", "Unique email address; used as login username."),
-            ("PhoneNumber", "Yes", "10-digit Indian mobile number starting with 6–9."),
+            ("Email", "No", "Email address (optional). If provided, used for login and notifications."),
+            ("PhoneNumber", "Yes", "10-digit Indian mobile number starting with 6–9 (required)."),
             ("DateOfBirth", "Yes", "Date in yyyy-MM-dd format."),
             ("Gender", "Yes", "Male, Female, or Other."),
             ("Shift", "Yes", "Morning, Afternoon, Evening, Night, Full, or General."),
@@ -155,10 +155,12 @@ public static class MemberBulkExcelHelper
         if (row.FullName.Trim().Length < 2 || row.FullName.Trim().Length > 100)
             return "FullName must be between 2 and 100 characters.";
 
-        if (string.IsNullOrWhiteSpace(row.Email))
-            return "Email is required.";
-        if (!row.Email.Contains('@') || row.Email.Length > 150)
-            return "Email is invalid.";
+        if (!string.IsNullOrWhiteSpace(row.Email))
+        {
+            var email = row.Email.Trim();
+            if (!email.Contains('@') || email.Length > 150)
+                return "Email is invalid.";
+        }
 
         if (string.IsNullOrWhiteSpace(row.PhoneNumber))
             return "PhoneNumber is required.";

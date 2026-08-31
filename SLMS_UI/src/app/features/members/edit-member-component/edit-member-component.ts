@@ -40,7 +40,7 @@ export class EditMemberComponent implements OnInit, OnDestroy {
   memberForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
-    email: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
+    email: ['', [Validators.email, Validators.maxLength(150)]],
     dateOfBirth: ['', Validators.required],
     gender: ['', Validators.required],
     status: ['Active', Validators.required],
@@ -113,10 +113,11 @@ export class EditMemberComponent implements OnInit, OnDestroy {
         }
 
         this.member.set(member);
+        const displayEmail = member.email?.endsWith('@member.lexora.local') ? '' : (member.email ?? '');
         this.memberForm.patchValue({
           name: member.name,
           phone: member.phone ?? '',
-          email: member.email ?? '',
+          email: displayEmail,
           dateOfBirth: this.toDateInputValue(member.dateOfBirth),
           gender: member.gender ?? '',
           status: member.isActive ? 'Active' : 'Inactive',
@@ -238,8 +239,11 @@ export class EditMemberComponent implements OnInit, OnDestroy {
     const formValue = this.memberForm.getRawValue();
     const request: UpdateMemberRequest = {};
 
+    const currentEmail = member.email?.endsWith('@member.lexora.local') ? '' : (member.email ?? '');
+    const newEmail = formValue.email?.trim() ?? '';
+
     if (formValue.name !== member.name) request.fullName = formValue.name;
-    if (formValue.email !== (member.email ?? '')) request.email = formValue.email;
+    if (newEmail !== currentEmail) request.email = newEmail;
     if (formValue.phone !== (member.phone ?? '')) request.phoneNumber = formValue.phone;
 
     const dobInput = formValue.dateOfBirth;

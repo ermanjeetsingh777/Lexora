@@ -67,7 +67,7 @@ export class SupportCentreComponent implements OnInit {
   readonly assistantSuggestions = ['Refund flow', 'QR pairing', 'Bulk import', 'Shift rules'];
   readonly contactChannels = [
     { icon: 'message', label: 'Live chat', meta: 'Avg reply · 2 min', hint: 'Mon–Sat, 8am–10pm', actionLabel: 'Open chat' },
-    { icon: 'mail', label: 'Email support', meta: 'er.yogeshrao@gmail.com', hint: 'Reply within 2 hrs', actionLabel: 'Send email' },
+    { icon: 'mail', label: 'Email support', meta: 'support@uniappx.in', hint: 'Reply within 2 hrs', actionLabel: 'Send email' },
     { icon: 'phone', label: 'Phone Support', meta: '+91 9992823909 / +91 9468118737', hint: 'Verification & instant line', actionLabel: 'Call now' },
     { icon: 'video', label: 'Book a specialist', meta: '30-min screen-share', hint: 'Onboarding & migrations', actionLabel: 'Book slot' },
   ];

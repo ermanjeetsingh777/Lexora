@@ -20,6 +20,7 @@ public class SupportService : ISupportService
     private readonly ICurrentUserService _currentUserService;
     private readonly ISupportAccessResolver _accessResolver;
     private readonly SupportStatusSimulator _statusSimulator;
+    private readonly IAppEmailService _appEmailService;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<SupportService> _logger;
 
@@ -28,6 +29,7 @@ public class SupportService : ISupportService
         ICurrentUserService currentUserService,
         ISupportAccessResolver accessResolver,
         SupportStatusSimulator statusSimulator,
+        IAppEmailService appEmailService,
         IWebHostEnvironment environment,
         ILogger<SupportService> logger)
     {
@@ -35,6 +37,7 @@ public class SupportService : ISupportService
         _currentUserService = currentUserService;
         _accessResolver = accessResolver;
         _statusSimulator = statusSimulator;
+        _appEmailService = appEmailService;
         _environment = environment;
         _logger = logger;
     }
@@ -165,6 +168,28 @@ public class SupportService : ISupportService
             var firstMessageId = ticket.Messages.First().Id;
             await LinkAttachmentsAsync(ticket.Id, firstMessageId, request.AttachmentIds, userId, cancellationToken);
         }
+
+        // Send Email notification to Support & SuperAdmin team
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _appEmailService.SendSupportTicketNotificationAsync(
+                    requesterEmail,
+                    requesterName,
+                    institutionName,
+                    ticket.Subject,
+                    ticket.Category.ToString(),
+                    ticket.Priority.ToString(),
+                    request.Description,
+                    ticket.Id,
+                    CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send support ticket email notification for ticket {TicketId}", ticket.Id);
+            }
+        });
 
         return await GetTicketByIdAsync(userId, ticket.Id, cancellationToken);
     }

@@ -468,6 +468,7 @@ SLMS_API/
 | Export | Button present, no handler |
 | Bulk upload | Implemented at `/members/bulk-upload` — see [members-bulk-upload-workflow.md](./members-bulk-upload-workflow.md) |
 | `UserName` | Not mapped in `GetAllMemberListAsync` |
+| Member Contacts & Auth | Phone number is required for all members (`^[6-9]\d{9}$`). Email is optional for add, edit, and bulk upload. In edit mode, email can be updated, added, or removed. |
 
 ---
 

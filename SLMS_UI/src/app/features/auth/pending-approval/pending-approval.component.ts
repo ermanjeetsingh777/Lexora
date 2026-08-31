@@ -91,7 +91,7 @@ export class PendingApprovalComponent implements OnInit {
     }
     const envContact = (environment as unknown as { superAdminContact?: SuperAdminContactInfo }).superAdminContact;
     return {
-      email: envContact?.email || 'er.yogeshrao@gmail.com',
+      email: envContact?.email || 'yogeshyadav@uniappx.in',
       phone: envContact?.phone || '+91 9992823909',
       secondaryPhone: envContact?.secondaryPhone || '+91 9468118737',
       whatsApp: envContact?.whatsApp || '+91 9992823909',

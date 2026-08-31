@@ -57,8 +57,8 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
     shift: this.fb.control<Shift>('General', Validators.required),
     planId: ['', Validators.required],
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-    phone: ['', [Validators.pattern(/^[6-9]\d{9}$/), Validators.required]],
-    email: ['', [Validators.email, Validators.maxLength(150), Validators.required]],
+    phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
+    email: ['', [Validators.email, Validators.maxLength(150)]],
     dateOfBirth: [null as Date | null, Validators.required],
     gender: ['', Validators.required],
   });
@@ -368,8 +368,8 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
     this.loader.set(true);
     const request: CreateMemberRequest = {
       fullName: formValue.name,
-      email: formValue.email,
-      phoneNumber: formValue.phone,
+      email: formValue.email?.trim() ? formValue.email.trim() : undefined,
+      phoneNumber: formValue.phone?.trim() ?? '',
       dateOfBirth: formValue.dateOfBirth,
       gender: formValue.gender,
       planId: formValue.planId,

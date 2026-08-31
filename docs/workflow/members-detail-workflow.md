@@ -611,6 +611,7 @@ SLMS_API/
 | `AttendanceService` (API) | Several methods still `NotImplementedException` |
 | Detail `AttendanceRate` vs calendar stats | Different calculation windows |
 | Payment receipt download | Demo `WhatsAppService` data |
+| Member Email & Phone Management | Phone number is mandatory (`^[6-9]\d{9}$`). Email is optional and can be updated anytime in the Edit Member view (`/members/:id/edit`). |
 | Bulk-created members | Photo/Aadhaar uploaded here after [bulk upload](./members-bulk-upload-workflow.md) |
 | Filter persistence (list) | See list workflow doc |
 

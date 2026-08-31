@@ -122,23 +122,30 @@ export function validateBulkMemberRow(
   row: ParsedBulkMemberRow,
   planByName: Map<string, PlanResponse>,
   seenEmails: Set<string>,
+  seenPhones: Set<string>,
 ): string | null {
   if (!row.fullName.trim()) return 'FullName is required.';
   if (row.fullName.trim().length < 2 || row.fullName.trim().length > 100) {
     return 'FullName must be between 2 and 100 characters.';
   }
 
-  if (!row.email.trim()) return 'Email is required.';
-  if (!row.email.includes('@') || row.email.length > 150) return 'Email is invalid.';
+  if (row.email && row.email.trim()) {
+    if (!row.email.includes('@') || row.email.length > 150) return 'Email is invalid.';
 
-  const normalizedEmail = row.email.trim().toLowerCase();
-  if (seenEmails.has(normalizedEmail)) {
-    return `Duplicate email '${row.email.trim()}' found in the uploaded file.`;
+    const normalizedEmail = row.email.trim().toLowerCase();
+    if (seenEmails.has(normalizedEmail)) {
+      return `Duplicate email '${row.email.trim()}' found in the uploaded file.`;
+    }
   }
 
   if (!row.phoneNumber.trim()) return 'PhoneNumber is required.';
   if (!PHONE_REGEX.test(row.phoneNumber.trim())) {
     return 'PhoneNumber must be a valid 10-digit mobile number starting with 6–9.';
+  }
+
+  const normalizedPhone = row.phoneNumber.trim();
+  if (seenPhones.has(normalizedPhone)) {
+    return `Duplicate phone number '${normalizedPhone}' found in the uploaded file.`;
   }
 
   if (!row.dateOfBirth) return 'DateOfBirth is required and must be in yyyy-MM-dd format.';

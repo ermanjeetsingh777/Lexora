@@ -632,6 +632,23 @@ public class PackageSubscriptionService : IPackageSubscriptionService
 
         userPackage.UpdatedAtUtc = DateTime.UtcNow;
 
+        // Auto-approve any pending addons for this user/subscription so SuperAdmin doesn't need to approve them separately
+        var pendingAddons = await _db.UserPackageAddons
+            .Where(ua => ua.UserId == userPackage.UserId && (ua.ApprovalStatus == "Pending" || !ua.IsActive))
+            .ToListAsync(cancellationToken);
+
+        foreach (var ua in pendingAddons)
+        {
+            ua.IsActive = true;
+            ua.ApprovalStatus = "Approved";
+            ua.ApprovedAtUtc = DateTime.UtcNow;
+            ua.ApprovedByUserId = approverUserId;
+            ua.AdminRemarks = request.AdminRemarks ?? ua.AdminRemarks;
+            ua.PaymentStatus = "Paid";
+            ua.UserPackageId = userPackage.Id;
+            ua.EndDateUtc = userPackage.EndDateUtc;
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
 
         await _auditLogService.WriteAsync(
@@ -671,6 +688,21 @@ public class PackageSubscriptionService : IPackageSubscriptionService
         userPackage.ApprovedByUserId = approverUserId;
         userPackage.AdminRemarks = request.AdminRemarks;
         userPackage.UpdatedAtUtc = DateTime.UtcNow;
+
+        // Also reject any pending addons for this rejected subscription request
+        var pendingAddons = await _db.UserPackageAddons
+            .Where(ua => ua.UserId == userPackage.UserId && ua.ApprovalStatus == "Pending")
+            .ToListAsync(cancellationToken);
+
+        foreach (var ua in pendingAddons)
+        {
+            ua.IsActive = false;
+            ua.ApprovalStatus = "Rejected";
+            ua.PaymentStatus = "Rejected";
+            ua.RejectedAtUtc = DateTime.UtcNow;
+            ua.ApprovedByUserId = approverUserId;
+            ua.AdminRemarks = request.AdminRemarks ?? ua.AdminRemarks;
+        }
 
         await _db.SaveChangesAsync(cancellationToken);
 

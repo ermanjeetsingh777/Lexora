@@ -232,6 +232,7 @@ namespace SLMS_API.Application.Services
             var query = _context.UserPackageAddons
                 .Include(x => x.Addon)
                 .Include(x => x.User)
+                .Where(x => !(x.TransactionId != null && x.TransactionId.StartsWith("REG-") && x.User != null && x.User.ApprovalStatus == "Pending"))
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))

@@ -19,37 +19,58 @@ public class SmtpEmailSender : IEmailSender
 
     public async Task SendAsync(string toEmail, string subject, string htmlBody, CancellationToken cancellationToken = default)
     {
+        if (!_options.Enabled)
+        {
+            _logger.LogInformation(
+                "Email sending disabled (Email:Enabled=false). To: {Email}, Subject: {Subject}",
+                toEmail,
+                subject);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_options.SmtpHost))
         {
             _logger.LogWarning(
-                "Email not sent (SMTP not configured). To: {Email}, Subject: {Subject}, Body preview: {Preview}",
+                "Email not sent (SMTP host not configured). To: {Email}, Subject: {Subject}, Body preview: {Preview}",
                 toEmail,
                 subject,
                 htmlBody.Length > 200 ? htmlBody[..200] + "…" : htmlBody);
             return;
         }
 
-        using var message = new MailMessage
+        try
         {
-            From = new MailAddress(_options.FromAddress, _options.FromName),
-            Subject = subject,
-            Body = htmlBody,
-            IsBodyHtml = true,
-        };
-        message.To.Add(toEmail);
+            using var message = new MailMessage
+            {
+                From = new MailAddress(_options.FromAddress, _options.FromName),
+                Subject = subject,
+                Body = htmlBody,
+                IsBodyHtml = true,
+            };
 
-        using var client = new SmtpClient(_options.SmtpHost, _options.SmtpPort)
-        {
-            EnableSsl = _options.UseSsl,
-            DeliveryMethod = SmtpDeliveryMethod.Network,
-        };
+            var emailAddresses = toEmail.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var email in emailAddresses)
+            {
+                message.To.Add(email);
+            }
 
-        if (!string.IsNullOrWhiteSpace(_options.SmtpUser))
-        {
-            client.Credentials = new NetworkCredential(_options.SmtpUser, _options.SmtpPassword);
+            using var client = new SmtpClient(_options.SmtpHost, _options.SmtpPort)
+            {
+                EnableSsl = _options.UseSsl,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+            };
+
+            if (!string.IsNullOrWhiteSpace(_options.SmtpUser))
+            {
+                client.Credentials = new NetworkCredential(_options.SmtpUser, _options.SmtpPassword);
+            }
+
+            await client.SendMailAsync(message, cancellationToken);
+            _logger.LogInformation("Email successfully sent to {Email} with subject '{Subject}'", toEmail, subject);
         }
-
-        await client.SendMailAsync(message, cancellationToken);
-        _logger.LogInformation("Email sent to {Email} with subject {Subject}", toEmail, subject);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send email to {Email} with subject '{Subject}'", toEmail, subject);
+        }
     }
 }

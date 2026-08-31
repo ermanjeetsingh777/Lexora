@@ -31,7 +31,9 @@ public class MemberService : IMemberService
     private readonly IAuditLogService _auditLogService;
     private readonly IConfiguration _configuration;
     private readonly IPackageEntitlementService _packageEntitlementService;
+    private readonly IAppEmailService _appEmailService;
     private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<MemberService> _logger;
 
     public MemberService(ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager,
@@ -41,7 +43,9 @@ public class MemberService : IMemberService
         IAuditLogService auditLogService,
         ICurrentUserService currentUserService,
         IPackageEntitlementService packageEntitlementService,
-        IWebHostEnvironment environment)
+        IAppEmailService appEmailService,
+        IWebHostEnvironment environment,
+        ILogger<MemberService> logger)
     {
         _dbContext = dbContext;
         _authService = authService;
@@ -51,7 +55,9 @@ public class MemberService : IMemberService
         _configuration = configuration;
         _auditLogService = auditLogService;
         _packageEntitlementService = packageEntitlementService;
+        _appEmailService = appEmailService;
         _environment = environment;
+        _logger = logger;
     }
 
     public async Task<MemberResponse> CreateAsync(Guid institutionId, Guid branchId, Guid libraryId, CreateMemberRequest request, string? userId, CancellationToken cancellationToken = default)
@@ -64,9 +70,40 @@ public class MemberService : IMemberService
 
         await _packageEntitlementService.EnsureCanCreateMemberAsync(_currentUserService.UserId, 1, cancellationToken);
 
-        // Validate duplicate email
-        if (await _userManager.FindByEmailAsync(request.Email) is not null)
-            throw new InvalidOperationException($"A user with email '{request.Email}' already exists.");
+        // Validate Phone Number (Required)
+        var rawPhone = request.PhoneNumber?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(rawPhone) || !System.Text.RegularExpressions.Regex.IsMatch(rawPhone, @"^[6-9]\d{9}$"))
+        {
+            throw new InvalidOperationException("A valid 10-digit mobile number is required.");
+        }
+
+        // Email is optional
+        var rawEmail = request.Email?.Trim();
+        var hasEmail = !string.IsNullOrWhiteSpace(rawEmail);
+        string effectiveEmail;
+        string effectiveUserName;
+
+        if (hasEmail)
+        {
+            if (await _userManager.FindByEmailAsync(rawEmail!) is not null)
+                throw new InvalidOperationException($"A user with email '{rawEmail}' already exists.");
+
+            effectiveEmail = rawEmail!;
+            effectiveUserName = rawEmail!;
+        }
+        else
+        {
+            // Generate synthetic username & email for member without email
+            effectiveUserName = rawPhone;
+            effectiveEmail = $"{rawPhone}@member.lexora.local";
+
+            // If existing user already has this phone/synthetic email, verify
+            var existingByPhone = await _userManager.FindByNameAsync(effectiveUserName);
+            if (existingByPhone is not null)
+            {
+                throw new InvalidOperationException($"A member account with phone number '{rawPhone}' already exists.");
+            }
+        }
 
         // Validate Plan
         var plan = await _dbContext.Plans.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.PlanId && x.IsActive, cancellationToken);
@@ -86,10 +123,10 @@ public class MemberService : IMemberService
             var applicationUser = new ApplicationUser
             {
                 FullName = request.FullName,
-                UserName = request.Email,
-                Email = request.Email,
-                PhoneNumber = request.PhoneNumber,
-                EmailConfirmed = true,
+                UserName = effectiveUserName,
+                Email = effectiveEmail,
+                PhoneNumber = rawPhone,
+                EmailConfirmed = hasEmail,
                 OnboardingStep = OnboardingStep.Completed,
                 UserType = UserType.Member,
                 IsActive = true,
@@ -165,8 +202,35 @@ public class MemberService : IMemberService
 
             await _auditLogService.WriteAsync(AuditEventTypes.Register, applicationUser.Id, $"User registered: {applicationUser.Email}", "", cancellationToken);
 
-
             await transaction.CommitAsync(cancellationToken);
+
+            // Send Welcome Email to Member with Credentials if email is provided
+            if (hasEmail)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var libraryName = await _dbContext.Libraries
+                            .Where(l => l.Id == libraryId)
+                            .Select(l => l.Name)
+                            .FirstOrDefaultAsync();
+
+                        await _appEmailService.SendMemberWelcomeAsync(
+                            applicationUser.Email,
+                            applicationUser.FullName ?? "Member",
+                            member.MembershipNo,
+                            libraryName,
+                            plan.Name,
+                            defaultPassword,
+                            CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send welcome email to member {Email}", applicationUser.Email);
+                    }
+                });
+            }
 
             return ToCreateResponse(member);
         }
@@ -256,6 +320,7 @@ public class MemberService : IMemberService
 
         var results = new List<BulkMemberUploadRowResult>();
         var seenEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenPhones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var row in rows)
         {
@@ -273,18 +338,35 @@ public class MemberService : IMemberService
                 continue;
             }
 
-            var normalizedEmail = row.Email.Trim();
-            if (!seenEmails.Add(normalizedEmail))
+            var normalizedPhone = row.PhoneNumber.Trim();
+            if (!seenPhones.Add(normalizedPhone))
             {
                 results.Add(new BulkMemberUploadRowResult
                 {
                     RowNumber = row.RowNumber,
                     FullName = row.FullName,
-                    Email = normalizedEmail,
+                    Email = row.Email,
                     Success = false,
-                    Message = $"Duplicate email '{normalizedEmail}' found in the uploaded file."
+                    Message = $"Duplicate phone number '{normalizedPhone}' found in the uploaded file."
                 });
                 continue;
+            }
+
+            var normalizedEmail = row.Email?.Trim();
+            if (!string.IsNullOrWhiteSpace(normalizedEmail))
+            {
+                if (!seenEmails.Add(normalizedEmail))
+                {
+                    results.Add(new BulkMemberUploadRowResult
+                    {
+                        RowNumber = row.RowNumber,
+                        FullName = row.FullName,
+                        Email = normalizedEmail,
+                        Success = false,
+                        Message = $"Duplicate email '{normalizedEmail}' found in the uploaded file."
+                    });
+                    continue;
+                }
             }
 
             if (!planByName.TryGetValue(row.PlanName.Trim(), out var plan))
@@ -293,7 +375,7 @@ public class MemberService : IMemberService
                 {
                     RowNumber = row.RowNumber,
                     FullName = row.FullName,
-                    Email = normalizedEmail,
+                    Email = normalizedEmail ?? string.Empty,
                     Success = false,
                     Message = $"Plan '{row.PlanName}' was not found for this library."
                 });
@@ -305,8 +387,8 @@ public class MemberService : IMemberService
                 var request = new CreateMemberRequest
                 {
                     FullName = row.FullName.Trim(),
-                    Email = normalizedEmail,
-                    PhoneNumber = row.PhoneNumber.Trim(),
+                    Email = !string.IsNullOrWhiteSpace(normalizedEmail) ? normalizedEmail : null,
+                    PhoneNumber = normalizedPhone,
                     DateOfBirth = row.DateOfBirth!.Value,
                     Gender = row.Gender.Trim(),
                     Shift = row.Shift.Trim(),
@@ -319,7 +401,7 @@ public class MemberService : IMemberService
                 {
                     RowNumber = row.RowNumber,
                     FullName = row.FullName,
-                    Email = normalizedEmail,
+                    Email = normalizedEmail ?? string.Empty,
                     Success = true,
                     Message = "Member created successfully.",
                     MemberId = created.Id
@@ -331,7 +413,7 @@ public class MemberService : IMemberService
                 {
                     RowNumber = row.RowNumber,
                     FullName = row.FullName,
-                    Email = normalizedEmail,
+                    Email = normalizedEmail ?? string.Empty,
                     Success = false,
                     Message = ex.Message
                 });
@@ -650,7 +732,7 @@ public class MemberService : IMemberService
 
             fullName = m.User.FullName,
             UserName = m.User.UserName,
-            Email = m.User.Email,
+            Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
             Phone = m.User.PhoneNumber,
 
             LibraryMapping = m.MemberLibraries
@@ -820,7 +902,7 @@ public class MemberService : IMemberService
                 m.PhotoStoragePath,
                 fullName = m.User.FullName,
                 UserName = m.User.UserName,
-                Email = m.User.Email,
+                Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
                 Phone = m.User.PhoneNumber,
                 LibraryMapping = m.MemberLibraries
                     .Where(ml =>
@@ -931,7 +1013,7 @@ public class MemberService : IMemberService
                 m.PhotoStoragePath,
 
                 fullName = m.User.FullName,
-                Email = m.User.Email,
+                Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
                 Phone = m.User.PhoneNumber,
 
                 LibraryMapping = m.MemberLibraries
@@ -1054,7 +1136,7 @@ public class MemberService : IMemberService
                 m.AadhaarStoragePath,
 
                 Name = m.User.FullName,
-                Email = m.User.Email,
+                Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
                 Phone = m.User.PhoneNumber,
 
                 Shift = m.Shift.ToString(),
@@ -1550,30 +1632,60 @@ public class MemberService : IMemberService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Email))
+        // Email update handling (can add, change, or remove)
+        if (request.Email != null)
         {
             var email = request.Email.Trim();
-            if (!string.Equals(member.User.Email, email, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(email))
             {
-                var existingUser = await _userManager.FindByEmailAsync(email);
-                if (existingUser is not null && existingUser.Id != member.UserId)
+                if (!string.Equals(member.User.Email, email, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException($"A user with email '{email}' already exists.");
-                }
+                    var existingUser = await _userManager.FindByEmailAsync(email);
+                    if (existingUser is not null && existingUser.Id != member.UserId)
+                    {
+                        throw new InvalidOperationException($"A user with email '{email}' already exists.");
+                    }
 
-                var setEmailResult = await _userManager.SetEmailAsync(member.User, email);
-                if (!setEmailResult.Succeeded)
+                    var setEmailResult = await _userManager.SetEmailAsync(member.User, email);
+                    if (!setEmailResult.Succeeded)
+                    {
+                        throw new InvalidOperationException(string.Join(Environment.NewLine, setEmailResult.Errors.Select(x => x.Description)));
+                    }
+
+                    var setUserNameResult = await _userManager.SetUserNameAsync(member.User, email);
+                    if (!setUserNameResult.Succeeded)
+                    {
+                        throw new InvalidOperationException(string.Join(Environment.NewLine, setUserNameResult.Errors.Select(x => x.Description)));
+                    }
+
+                    member.User.EmailConfirmed = true;
+                    hasChanges = true;
+                }
+            }
+            else
+            {
+                // Cleared email -> revert to synthetic email using phone
+                var phone = !string.IsNullOrWhiteSpace(request.PhoneNumber) ? request.PhoneNumber.Trim() : member.PhoneNumber;
+                var syntheticUserName = phone;
+                var syntheticEmail = $"{phone}@member.lexora.local";
+
+                if (!string.Equals(member.User.Email, syntheticEmail, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException(string.Join(Environment.NewLine, setEmailResult.Errors.Select(x => x.Description)));
-                }
+                    var setEmailResult = await _userManager.SetEmailAsync(member.User, syntheticEmail);
+                    if (!setEmailResult.Succeeded)
+                    {
+                        throw new InvalidOperationException(string.Join(Environment.NewLine, setEmailResult.Errors.Select(x => x.Description)));
+                    }
 
-                var setUserNameResult = await _userManager.SetUserNameAsync(member.User, email);
-                if (!setUserNameResult.Succeeded)
-                {
-                    throw new InvalidOperationException(string.Join(Environment.NewLine, setUserNameResult.Errors.Select(x => x.Description)));
-                }
+                    var setUserNameResult = await _userManager.SetUserNameAsync(member.User, syntheticUserName);
+                    if (!setUserNameResult.Succeeded)
+                    {
+                        throw new InvalidOperationException(string.Join(Environment.NewLine, setUserNameResult.Errors.Select(x => x.Description)));
+                    }
 
-                hasChanges = true;
+                    member.User.EmailConfirmed = false;
+                    hasChanges = true;
+                }
             }
         }
 
@@ -1589,6 +1701,15 @@ public class MemberService : IMemberService
             {
                 member.PhoneNumber = phoneNumber;
                 member.User.PhoneNumber = phoneNumber;
+
+                // If user currently uses synthetic email/username based on old phone, update it
+                if (member.User.Email != null && member.User.Email.EndsWith("@member.lexora.local", StringComparison.OrdinalIgnoreCase))
+                {
+                    var newSyntheticEmail = $"{phoneNumber}@member.lexora.local";
+                    await _userManager.SetEmailAsync(member.User, newSyntheticEmail);
+                    await _userManager.SetUserNameAsync(member.User, phoneNumber);
+                }
+
                 hasChanges = true;
             }
         }
@@ -1894,6 +2015,7 @@ public class MemberService : IMemberService
         {
             Id = entity.Id,
             FullName = entity.FullName,
+            Email = entity.User?.Email?.EndsWith("@member.lexora.local", StringComparison.OrdinalIgnoreCase) == true ? null : entity.User?.Email,
             PhoneNumber = entity.PhoneNumber,
         };
 

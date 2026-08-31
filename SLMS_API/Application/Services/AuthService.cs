@@ -38,6 +38,7 @@ public class AuthService : IAuthService
     private readonly IUserPackageService _userPackageService;
     private readonly IAddonService _addonService;
     private readonly IEmailSender _emailSender;
+    private readonly IAppEmailService _appEmailService;
     private readonly AppOptions _appOptions;
 
     public AuthService(
@@ -54,6 +55,7 @@ public class AuthService : IAuthService
         IUserPackageService userPackageService,
         IAddonService addonService,
         IEmailSender emailSender,
+        IAppEmailService appEmailService,
         IOptions<AppOptions> appOptions,
         ILogger<AuthService> logger)
     {
@@ -71,6 +73,7 @@ public class AuthService : IAuthService
         _userPackageService = userPackageService;
         _addonService = addonService;
         _emailSender = emailSender;
+        _appEmailService = appEmailService;
         _appOptions = appOptions.Value;
     }
 
@@ -153,6 +156,40 @@ public class AuthService : IAuthService
 
         await _auditLogService.WriteAsync(AuditEventTypes.Register, user.Id, $"User registered: {user.Email}", ipAddress, cancellationToken);
 
+        // Send Welcome & Registration Confirmation Email
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var addonSummaries = new List<string>();
+                if (request.SelectedAddons != null && request.SelectedAddons.Count > 0)
+                {
+                    foreach (var a in request.SelectedAddons.Where(x => x.Quantity > 0))
+                    {
+                        var ad = await _addonService.GetByIdAsync(a.AddonId, CancellationToken.None);
+                        if (ad != null)
+                        {
+                            addonSummaries.Add($"{ad.Name} (Qty: {a.Quantity})");
+                        }
+                    }
+                }
+
+                await _appEmailService.SendRegistrationConfirmationAsync(
+                    user.Email,
+                    user.FullName ?? user.UserName ?? "User",
+                    null,
+                    package.Name,
+                    package.Price,
+                    user.ApprovalStatus,
+                    addonSummaries,
+                    CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send registration confirmation email to {Email}", user.Email);
+            }
+        });
+
         var tokens = await IssueTokensAsync(user, cancellationToken);
         var currentUser = await GetCurrentUserAsync(user.Id, cancellationToken);
 
@@ -165,10 +202,13 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, string? ipAddress, CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var normalizedInput = request.Email?.Trim() ?? string.Empty;
+        var user = await _userManager.FindByEmailAsync(normalizedInput)
+            ?? await _userManager.FindByNameAsync(normalizedInput);
+
         if (user == null)
         {
-            throw new UnauthorizedAccessException("Email address is not registered.");
+            throw new UnauthorizedAccessException("Email or phone number is not registered.");
         }
 
         if (!user.IsActive)
@@ -326,20 +366,12 @@ public class AuthService : IAuthService
         var resetUrl =
             $"{frontendBase}/reset-password?email={Uri.EscapeDataString(request.Email.Trim())}&token={encodedToken}";
 
-        var htmlBody = $"""
-            <p>Hello{(string.IsNullOrWhiteSpace(user.FullName) ? "" : $" {WebUtility.HtmlEncode(user.FullName)}")},</p>
-            <p>We received a request to reset your SLMS account password.</p>
-            <p><a href="{WebUtility.HtmlEncode(resetUrl)}">Reset your password</a></p>
-            <p>If you did not request this, you can ignore this email.</p>
-            <p>This link expires when used or when a newer reset is requested.</p>
-            """;
-
         try
         {
-            await _emailSender.SendAsync(
+            await _appEmailService.SendForgotPasswordAsync(
                 request.Email.Trim(),
-                "Reset your SLMS password",
-                htmlBody,
+                user.FullName,
+                resetUrl,
                 cancellationToken);
         }
         catch (Exception ex)

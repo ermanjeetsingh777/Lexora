@@ -49,6 +49,11 @@ public static class ServiceCollectionExtensions
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+        services.Configure<DataProtectionTokenProviderOptions>(options =>
+        {
+            options.TokenLifespan = TimeSpan.FromHours(1);
+        });
+
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey));
 
@@ -90,6 +95,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<IAppEmailService, AppEmailService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();

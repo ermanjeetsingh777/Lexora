@@ -216,6 +216,7 @@ export class BulkUploadMembersComponent implements OnInit {
 
       const results: BulkMemberUploadRowResult[] = [];
       const seenEmails = new Set<string>();
+      const seenPhones = new Set<string>();
       let successCount = 0;
       let failedCount = 0;
 
@@ -228,13 +229,13 @@ export class BulkUploadMembersComponent implements OnInit {
       });
 
       for (const row of rows) {
-        const currentLabel = row.email.trim() || row.fullName.trim() || `Row ${row.rowNumber}`;
+        const currentLabel = row.phoneNumber.trim() || row.fullName.trim() || `Row ${row.rowNumber}`;
         this.uploadProgress.update((progress) => ({
           ...progress!,
           currentLabel,
         }));
 
-        const validationError = validateBulkMemberRow(row, planByName, seenEmails);
+        const validationError = validateBulkMemberRow(row, planByName, seenEmails, seenPhones);
         if (validationError) {
           failedCount++;
           results.push({
@@ -245,14 +246,17 @@ export class BulkUploadMembersComponent implements OnInit {
             message: validationError,
           });
         } else {
-          seenEmails.add(row.email.trim().toLowerCase());
+          if (row.email && row.email.trim()) {
+            seenEmails.add(row.email.trim().toLowerCase());
+          }
+          seenPhones.add(row.phoneNumber.trim());
           const plan = planByName.get(row.planName.trim().toLowerCase())!;
 
           try {
             const response = await firstValueFrom(
               this.memberService.createMember(institutionId, branchId, libraryId, {
                 fullName: row.fullName.trim(),
-                email: row.email.trim(),
+                email: row.email?.trim() ? row.email.trim() : undefined,
                 phoneNumber: row.phoneNumber.trim(),
                 dateOfBirth: row.dateOfBirth,
                 gender: row.gender.trim(),
@@ -265,7 +269,7 @@ export class BulkUploadMembersComponent implements OnInit {
             results.push({
               rowNumber: row.rowNumber,
               fullName: row.fullName,
-              email: row.email.trim(),
+              email: row.email?.trim() ?? '',
               success: true,
               message: 'Member created successfully.',
               memberId: response.data?.id,
@@ -276,7 +280,7 @@ export class BulkUploadMembersComponent implements OnInit {
             results.push({
               rowNumber: row.rowNumber,
               fullName: row.fullName,
-              email: row.email.trim(),
+              email: row.email?.trim() ?? '',
               success: false,
               message,
             });

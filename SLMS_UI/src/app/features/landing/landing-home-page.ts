@@ -194,7 +194,7 @@ export class LandingHomePage implements OnInit {
             'url': 'https://uniappx.in',
             'logo': 'https://uniappx.in/icons/icon-512x512.png',
             'description': 'Multi-tenant Smart Library & Seat Management Platform',
-            'email': 'support@lexora.app',
+            'email': 'support@uniappx.in',
           },
           {
             '@type': 'SoftwareApplication',

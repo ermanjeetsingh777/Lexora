@@ -38,7 +38,7 @@ export interface PolicyDocument {
   contactEmail: string;
 }
 
-export const POLICY_CONTACT_EMAIL = 'privacy@lexora.app';
+export const POLICY_CONTACT_EMAIL = 'support@uniappx.in';
 
 export const POLICY_CATALOG: PolicyDocument[] = [
   {
@@ -375,7 +375,7 @@ export const POLICY_CATALOG: PolicyDocument[] = [
         ],
       },
     ],
-    contactEmail: 'security@lexora.app',
+    contactEmail: 'support@uniappx.in',
   },
   {
     id: 'refund',
@@ -437,7 +437,7 @@ export const POLICY_CATALOG: PolicyDocument[] = [
         ],
       },
     ],
-    contactEmail: 'billing@lexora.app',
+    contactEmail: 'support@uniappx.in',
   },
 ];
 

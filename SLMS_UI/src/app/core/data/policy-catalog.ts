@@ -316,7 +316,7 @@ export const POLICY_CATALOG: PolicyDocument[] = [
         ],
       },
     ],
-    contactEmail: 'legal@lexora.app',
+    contactEmail: 'support@uniappx.in',
   },
   {
     id: 'security',

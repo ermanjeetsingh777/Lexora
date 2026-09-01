@@ -2,7 +2,7 @@ import { APP_NAME, APP_TAGLINE, PolicySection, PolicyTrustCard } from './policy-
 
 export const TERMS_VERSION = '2.0';
 export const TERMS_UPDATED_AT = 'August 2026';
-export const TERMS_CONTACT_EMAIL = 'legal@lexora.app';
+export const TERMS_CONTACT_EMAIL = 'support@uniappx.in';
 export const TERMS_CONTACT_ADDRESS = 'Gurgaon, Haryana, India';
 
 export interface TermsDocument {

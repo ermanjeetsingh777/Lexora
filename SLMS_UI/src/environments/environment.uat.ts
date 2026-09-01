@@ -33,8 +33,8 @@ export const environment = {
   lexoraTeam: [
     {
       name: 'Yogesh Yadav',
-      role: 'Founder & Product Lead',
-      bio: 'Leads Lexora product vision for multi-branch library institutions.',
+      role: 'Product Lead',
+      bio: 'Leading product vision and platform development for Lexora.',
       email: 'yogeshyadav@uniappx.in',
       linkedIn: 'https://www.linkedin.com/',
     },

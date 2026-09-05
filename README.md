@@ -26,7 +26,9 @@ ng serve
 - API: `http://localhost:5050` / `https://localhost:7050`
 - UI: `http://localhost:4200`
 
-### Development login (seeded)
+### Development login (seeded, local/dev only)
+
+These accounts are for local/dev databases. `Demo:Enabled` is `false` in `SLMS_API/appsettings.json` and `appsettings.Production.json`, so the demo org admin is not seeded in production. Rotate any SuperAdmin password that was created by first-boot seed on a shared host.
 
 | Role | Email | Password |
 |------|-------|----------|

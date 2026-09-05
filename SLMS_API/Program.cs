@@ -52,11 +52,12 @@ await DbSeeder.MigrateAndSeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 var isSwaggerEnabled = app.Configuration.GetValue<bool>("Swagger:Enabled",
-    app.Environment.IsDevelopment() ||
-    app.Environment.IsEnvironment("Local") ||
-    app.Environment.IsEnvironment("Dev") ||
-    app.Environment.IsEnvironment("QA") ||
-    app.Environment.IsEnvironment("UAT"));
+    !app.Environment.IsProduction() && (
+        app.Environment.IsDevelopment() ||
+        app.Environment.IsEnvironment("Local") ||
+        app.Environment.IsEnvironment("Dev") ||
+        app.Environment.IsEnvironment("QA") ||
+        app.Environment.IsEnvironment("UAT")));
 
 if (isSwaggerEnabled)
 {
@@ -78,7 +79,7 @@ app.MapControllers();
 
 app.MapGet("/", (IConfiguration config) =>
 {
-    var swaggerOn = config.GetValue<bool>("Swagger:Enabled", true);
+    var swaggerOn = config.GetValue<bool>("Swagger:Enabled", false);
     if (swaggerOn)
     {
         return Results.Redirect("/swagger");

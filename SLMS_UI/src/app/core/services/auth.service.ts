@@ -34,7 +34,7 @@ export class AuthService {
       tap(auth => {
          if (auth.data && auth.success) {
           this.storage.saveAuthentication(auth.data);
-          // this.scheduleRefresh();
+          this.scheduleRefresh();
         }
       })
     );
@@ -104,13 +104,15 @@ export class AuthService {
       refreshToken: this.storage.getRefreshToken()!
     };
 
-    return this.httpApi.post<APIResponseModel<AuthResponse>>('auth/refresh', request).pipe(
-      map(response => response.data),
+    return this.httpApi.post<AuthResponse>('auth/refresh-token', request).pipe(
       tap(auth => {
-        this.storage.saveAuthentication(auth.data);
-        this.refreshSubject.next(auth.data.accessToken);
-        this.scheduleRefresh();
+        if (auth.data && auth.success) {
+          this.storage.saveAuthentication(auth.data);
+          this.refreshSubject.next(auth.data.accessToken);
+          this.scheduleRefresh();
+        }
       }),
+      map(auth => auth.data),
       finalize(() => { this.refreshInProgress = false; }),
       catchError(error => {
         this.logout();

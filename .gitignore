@@ -12,6 +12,10 @@
 /package-lock.json
 /yarn.lock
 
+# Web Deploy / hosting credentials (never commit real passwords)
+*.publishSettings
+!*.publishSettings.example
+
 # Environment files
 /.env
 

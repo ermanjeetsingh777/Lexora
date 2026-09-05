@@ -4,8 +4,10 @@ import { LucideCheck, LucideLoader2, LucideX } from '@lucide/angular';
 import { AddonCatalogItem, PackageCatalogItem } from '@core/models/package-subscription.models';
 import { PackageService } from '@core/services/package.service';
 import { AddonService } from '@core/services/addon.service';
+import { LEXORA_PRICING_FAQS } from '@core/data/seo-aeo.content';
 import { SeoService } from '@core/services/seo.service';
 import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
+import { SeoFaqComponent } from '@shared/components/seo-faq/seo-faq.component';
 import {
   buildComparisonRows,
   featureLabel,
@@ -19,7 +21,7 @@ import {
 
 @Component({
   selector: 'app-prices',
-  imports: [AppIconComponent, RouterLink, LucideCheck, LucideX, LucideLoader2],
+  imports: [AppIconComponent, RouterLink, LucideCheck, LucideX, LucideLoader2, SeoFaqComponent],
   templateUrl: './prices.html',
   styleUrl: './prices.css',
 })
@@ -32,6 +34,9 @@ export class Prices implements OnInit {
   readonly addons = signal<AddonCatalogItem[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly pricingFaqs = LEXORA_PRICING_FAQS;
+  readonly pricingAnswerSummary =
+    'Lexora pricing is transparent SaaS subscriptions for single libraries and multi-branch institutions. Compare Basic, Value, and Premium plans with included modules on uniappx.in/prices; entry options emphasize low setup friction.';
 
   readonly comparisonRows = computed(() => buildComparisonRows(this.packages()));
   readonly gridClass = computed(() => pricingGridClass(this.packages().length));
@@ -53,6 +58,8 @@ export class Prices implements OnInit {
       title: 'Pricing Plans & Subscriptions | Lexora',
       description:
         'Transparent, flexible pricing for single libraries and multi-branch institutions. Explore Basic, Value, and Premium plans with instant onboarding and zero setup friction.',
+      answerSummary: this.pricingAnswerSummary,
+      faqs: LEXORA_PRICING_FAQS,
       path: '/prices',
       keywords: [
         'library software pricing',
@@ -68,19 +75,19 @@ export class Prices implements OnInit {
       structuredData: {
         '@context': 'https://schema.org',
         '@type': 'Product',
-        'name': 'Lexora Smart Library Subscription',
-        'description':
+        name: 'Lexora Smart Library Subscription',
+        description:
           'Cloud-hosted library management platform subscription with seat layouts, automated QR attendance, and multi-tenant management.',
-        'brand': {
+        brand: {
           '@type': 'Brand',
-          'name': 'Lexora',
+          name: 'Lexora',
         },
-        'offers': {
+        offers: {
           '@type': 'AggregateOffer',
-          'priceCurrency': 'INR',
-          'lowPrice': '0',
-          'offerCount': '3',
-          'priceValidUntil': '2026-12-31',
+          priceCurrency: 'INR',
+          lowPrice: '0',
+          offerCount: '3',
+          priceValidUntil: '2026-12-31',
         },
       },
     });

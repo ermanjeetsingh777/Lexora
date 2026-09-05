@@ -21,6 +21,8 @@ export class PolicyHub implements OnInit {
       title: 'Policies, Trust & Compliance Hub | Lexora',
       description:
         'Explore Lexora institutional compliance documentation, GDPR privacy commitments, cookie management, data processing agreements, and cloud security standards.',
+      answerSummary:
+        'Lexora publishes privacy, cookie, security, data-processing, acceptable-use, and refund policies for institutions using the smart library platform. Start at https://uniappx.in/policies.',
       path: '/policies',
       keywords: [
         'lexora policies',
@@ -33,15 +35,15 @@ export class PolicyHub implements OnInit {
       structuredData: {
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
-        'name': 'Lexora Policies & Compliance Hub',
-        'url': 'https://uniappx.in/policies',
-        'description':
+        name: 'Lexora Policies & Compliance Hub',
+        url: 'https://uniappx.in/policies',
+        description:
           'Official compliance and governance documentation for Lexora smart library platform.',
-        'hasPart': this.policies.map((p) => ({
+        hasPart: this.policies.map((p) => ({
           '@type': 'DigitalDocument',
-          'name': p.title,
-          'url': `https://uniappx.in${p.route}`,
-          'description': p.description,
+          name: p.title,
+          url: `https://uniappx.in${p.route}`,
+          description: p.description,
         })),
       },
     });

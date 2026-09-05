@@ -10,6 +10,8 @@ Allow: /data-processing
 Allow: /acceptable-use
 Allow: /security-policy
 Allow: /refund-policy
+Allow: /llms.txt
+Allow: /sitemap.xml
 
 # Disallow private authenticated/dashboard routes from indexation
 Disallow: /dashboard/
@@ -24,5 +26,40 @@ Disallow: /admin/
 Disallow: /users/
 Disallow: /roles/
 Disallow: /kiosk/
+Disallow: /login
+Disallow: /register
+Disallow: /onboarding/
+
+# Generative / answer engine crawlers (GEO) — allow public marketing content
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+Disallow: /dashboard/
+Disallow: /members/
+Disallow: /admin/
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /llms.txt
+
+User-agent: Google-Extended
+Allow: /
+Allow: /llms.txt
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /llms.txt
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: Bytespider
+Allow: /
+Allow: /llms.txt
 
 Sitemap: https://uniappx.in/sitemap.xml

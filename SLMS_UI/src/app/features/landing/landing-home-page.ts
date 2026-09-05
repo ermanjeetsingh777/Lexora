@@ -26,10 +26,12 @@ import { toLandingFeatures } from '@core/data/feature-catalog';
 import { PackageService } from '@core/services/package.service';
 import { CustomerReviewService } from '@core/services/customer-review.service';
 import { ToastService } from '@core/services/toast.service';
+import { LEXORA_ANSWER_SUMMARY, LEXORA_HOME_FAQS } from '@core/data/seo-aeo.content';
 import { SeoService } from '@core/services/seo.service';
 import { StorageService } from '@core/services/storage.service';
 import { QrScannerModalService } from '@core/services/qr-scanner-modal.service';
 import { AppIconComponent } from '@shared/components/app-icon/app-icon.component';
+import { SeoFaqComponent } from '@shared/components/seo-faq/seo-faq.component';
 import { environment } from '../../../environments/environment';
 import {
   buildComparisonRows,
@@ -49,6 +51,7 @@ import {
     FormsModule,
     RouterLink,
     AppIconComponent,
+    SeoFaqComponent,
     LucideCheck,
     LucideCheckCircle,
     LucideHeart,
@@ -74,6 +77,9 @@ export class LandingHomePage implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly seo = inject(SeoService);
   private readonly qrScanner = inject(QrScannerModalService);
+
+  protected readonly homeFaqs = LEXORA_HOME_FAQS;
+  protected readonly answerSummary = LEXORA_ANSWER_SUMMARY;
 
   protected readonly packages = signal<PackageCatalogItem[]>([]);
   protected readonly packagesLoading = signal(true);
@@ -170,6 +176,9 @@ export class LandingHomePage implements OnInit {
       title: 'Lexora - Smart Library & Seat Management Platform',
       description:
         'Run multi-branch libraries, real-time seat layouts, automated QR attendance, book catalog circulation, and member subscriptions with institutional precision.',
+      answerSummary: LEXORA_ANSWER_SUMMARY,
+      faqs: LEXORA_HOME_FAQS,
+      speakableSelectors: ['.seo-answer-summary', 'h1', '[data-aeo-answer]'],
       path: '/',
       keywords: [
         'smart library management system',
@@ -184,34 +193,41 @@ export class LandingHomePage implements OnInit {
       image: 'assets/landing/landing-hero-3d.png',
       imageAlt: 'Lexora Smart Library and Multi-Branch Management Platform',
       type: 'website',
+      sameAs: ['https://uniappx.in'],
       structuredData: {
         '@context': 'https://schema.org',
         '@graph': [
           {
             '@type': 'Organization',
             '@id': 'https://uniappx.in/#organization',
-            'name': 'Lexora',
-            'url': 'https://uniappx.in',
-            'logo': 'https://uniappx.in/icons/icon-512x512.png',
-            'description': 'Multi-tenant Smart Library & Seat Management Platform',
-            'email': 'support@uniappx.in',
+            name: 'Lexora',
+            url: 'https://uniappx.in',
+            logo: 'https://uniappx.in/icons/icon-512x512.png',
+            description: 'Multi-tenant Smart Library & Seat Management Platform',
+            email: 'support@uniappx.in',
+            contactPoint: {
+              '@type': 'ContactPoint',
+              contactType: 'customer support',
+              email: 'support@uniappx.in',
+              availableLanguage: ['English', 'Hindi'],
+            },
           },
           {
             '@type': 'SoftwareApplication',
             '@id': 'https://uniappx.in/#software',
-            'name': 'Lexora Smart Library Platform',
-            'applicationCategory': 'BusinessApplication',
-            'operatingSystem': 'Web, Android, iOS, Windows, macOS',
-            'url': 'https://uniappx.in',
-            'description':
+            name: 'Lexora Smart Library Platform',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web, Android, iOS, Windows, macOS',
+            url: 'https://uniappx.in',
+            description:
               'All-in-one smart library management SaaS with seat layouts, QR attendance, book circulation, and automated billing.',
-            'offers': {
+            offers: {
               '@type': 'AggregateOffer',
-              'priceCurrency': 'INR',
-              'lowPrice': '0',
-              'offerCount': '3',
+              priceCurrency: 'INR',
+              lowPrice: '0',
+              offerCount: '3',
             },
-            'featureList': [
+            featureList: [
               'Interactive Seat Matrix & Shift Allocation',
               'Instant QR Check-in / Check-out Attendance',
               'Multi-Branch & Multi-Institution Tenant Isolation',
@@ -223,9 +239,9 @@ export class LandingHomePage implements OnInit {
           {
             '@type': 'WebSite',
             '@id': 'https://uniappx.in/#website',
-            'url': 'https://uniappx.in',
-            'name': 'Lexora',
-            'publisher': { '@id': 'https://uniappx.in/#organization' },
+            url: 'https://uniappx.in',
+            name: 'Lexora',
+            publisher: { '@id': 'https://uniappx.in/#organization' },
           },
         ],
       },

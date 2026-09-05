@@ -211,6 +211,11 @@ Publish/
 
 # Test Results
 TestResults/
+SLMS_UI/test-results/
+SLMS_UI/playwright-report/
+SLMS_UI/blob-report/
+SLMS_UI/playwright/.cache/
+SLMS_UI/e2e/.auth/
 
 # Logs
 *.log

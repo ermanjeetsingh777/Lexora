@@ -42,6 +42,7 @@ See [auth-workflow.md](docs/workflow/auth-workflow.md) and [administration-workf
 | [docs/modules/README.md](docs/modules/README.md) | **Module index** — all features by ID with status |
 | [docs/workflow/README.md](docs/workflow/README.md) | Implementation workflows (routes, API, file maps) |
 | [docs/requirements/](docs/requirements/) | BRD, SRS, requirement documents |
+| [SLMS_UI/e2e/README.md](SLMS_UI/e2e/README.md) | **Playwright E2E** — all features + institution/branch/library/member details |
 
 ## Module workflows
 

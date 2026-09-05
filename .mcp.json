@@ -6,7 +6,19 @@
         "code-review-graph",
         "serve"
       ],
-      "cwd": "D:\\NewSmartLibraryManagementSystem",
+      "cwd": "D:\\New_Workspace\\Lexora",
+      "type": "stdio"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--browser",
+        "chromium",
+        "--caps",
+        "vision,pdf,tracing"
+      ],
+      "cwd": "D:\\New_Workspace\\Lexora\\SLMS_UI",
       "type": "stdio"
     }
   }

@@ -18,7 +18,7 @@ Open `http://localhost:4200/`. The app reloads on file changes.
 | Framework | Angular 21 (standalone components, signals) |
 | Styling | Tailwind CSS |
 | Components | PrimeNG, Lucide icons |
-| Tests | Vitest (`ng test`) |
+| Tests | Vitest (`ng test`) · Playwright E2E ([e2e/README.md](./e2e/README.md)) |
 
 ## Project layout
 
@@ -77,7 +77,18 @@ npm run build:local      # Local build
 
 # Testing
 ng test                  # Unit tests (Vitest)
+
+# Playwright E2E (see e2e/README.md)
+npm run e2e:ui           # All features (UI) — chromium + public
+npm run e2e:features     # Authenticated modules only
+npm run e2e:public       # Public pages only
+npm run e2e:ui:all       # All projects (auth-setup + chromium + public)
+npm run e2e:ui:details   # Institution / Branch / Library / Member details (UI)
+npm run e2e:details      # Same details suite (headless)
+npm run e2e:report       # Open last HTML report
 ```
+
+Full E2E docs: **[e2e/README.md](./e2e/README.md)**
 
 ## Progressive Web App (PWA) & Branding
 
@@ -89,4 +100,5 @@ ng test                  # Unit tests (Vitest)
 
 - Monorepo README: [../README.md](../README.md)
 - API README: [../SLMS_API/README.md](../SLMS_API/README.md)
+- Playwright E2E: [./e2e/README.md](./e2e/README.md)
 - All workflows: [../docs/workflow/README.md](../docs/workflow/README.md)

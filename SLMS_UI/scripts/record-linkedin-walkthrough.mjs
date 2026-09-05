@@ -1,11 +1,8 @@
 /**
- * Records a mobile Lexora walkthrough for LinkedIn (~6s per module, scroll to bottom).
- * Prerequisite: Live site at https://uniappx.in (or set LEXORA_BASE_URL)
+ * Mobile LinkedIn product walkthrough — all feature routes, scroll to buttons, ~5–7s/module.
+ * Landing: 15s. PWA + policy banners auto-dismissed.
  *
  * Usage (from SLMS_UI):
- *   npx playwright install chromium
- *   set LEXORA_EMAIL=you@example.com
- *   set LEXORA_PASSWORD=your-password
  *   node scripts/record-linkedin-walkthrough.mjs
  */
 import { chromium, devices } from 'playwright';
@@ -21,19 +18,136 @@ const LOGIN_PASSWORD = process.env.LEXORA_PASSWORD ?? 'SuperAdmin@123';
 const OUTPUT_DIR = path.resolve(__dirname, '../../docs/marketing/videos');
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'lexora-linkedin-walkthrough-mobile.webm');
 
-/** Per-module hold times (5–7s each). */
-const MODULE_HOLDS_MS = [6000, 5500, 6500, 6000, 5000, 7000, 6000, 5500, 6500];
-
 const MOBILE_DEVICE = devices['iPhone 14 Pro Max'];
 const VIEWPORT = MOBILE_DEVICE.viewport;
+const DEFAULT_HOLD_MS = 6000;
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function dismissPolicyBanner(page) {
-  const accept = page.getByRole('button', { name: /Accept & Continue/i });
-  if (await accept.isVisible({ timeout: 1500 }).catch(() => false)) {
-    await accept.click();
-    await pause(300);
+/** All scenes: landing 15s, others 5–7s. Scroll through page + key buttons before next route. */
+const SCENES = [
+  {
+    name: 'Landing',
+    url: BASE_URL,
+    holdMs: 15000,
+    continuousScroll: true,
+    scrollTargets: [
+      'a[href="/register"]',
+      'a[href="/login"]',
+      '#features',
+      '#dashboard',
+      '#workflow',
+      '#reviews',
+      '#pricing',
+    ],
+  },
+  {
+    name: 'Features',
+    url: `${BASE_URL}/features`,
+    holdMs: 6000,
+    scrollTargets: ['h1', 'section', 'a[href="/register"]', 'a[href="/login"]'],
+  },
+  {
+    name: 'Pricing',
+    url: `${BASE_URL}/prices`,
+    holdMs: 6500,
+    scrollTargets: ['h1', 'article', 'a[href*="/register"]', 'table'],
+  },
+  {
+    name: 'Login',
+    url: `${BASE_URL}/login`,
+    holdMs: 6000,
+    scroll: false,
+    login: true,
+  },
+  { name: 'Dashboard', url: `${BASE_URL}/dashboard`, holdMs: 6000, continuousScroll: true },
+  { name: 'Members', url: `${BASE_URL}/members`, holdMs: 6000, continuousScroll: true },
+  { name: 'Attendance Overview', url: `${BASE_URL}/attendance`, holdMs: 6000, continuousScroll: true },
+  { name: 'Attendance Scanner', url: `${BASE_URL}/attendance/scanner`, holdMs: 5500, continuousScroll: true },
+  { name: 'Attendance Records', url: `${BASE_URL}/attendance/records`, holdMs: 6000, continuousScroll: true },
+  { name: 'Attendance Calendar', url: `${BASE_URL}/attendance/calendar`, holdMs: 5500, continuousScroll: true },
+  { name: 'Institutions', url: `${BASE_URL}/institutions`, holdMs: 6000, continuousScroll: true },
+  { name: 'Branches', url: `${BASE_URL}/branches`, holdMs: 6000, continuousScroll: true },
+  {
+    name: 'Libraries',
+    url: `${BASE_URL}/libraries`,
+    holdMs: 7000,
+    action: async (page) => {
+      await tryClick(page, 'a[href*="/libraries/"]');
+      await pause(600);
+      await tryClick(page, page.getByRole('button', { name: /Full preview|Seat preview|preview/i }));
+      await pause(600);
+    },
+    continuousScroll: true,
+  },
+  { name: 'Subscriptions', url: `${BASE_URL}/subscriptions`, holdMs: 6000, continuousScroll: true },
+  { name: 'Books', url: `${BASE_URL}/books`, holdMs: 6000, continuousScroll: true },
+  { name: 'Users', url: `${BASE_URL}/users`, holdMs: 5500, continuousScroll: true },
+  { name: 'Roles', url: `${BASE_URL}/roles`, holdMs: 5500, continuousScroll: true },
+  { name: 'Admin Approvals', url: `${BASE_URL}/admin/approvals`, holdMs: 6000, continuousScroll: true },
+  { name: 'Profile', url: `${BASE_URL}/profile`, holdMs: 5000, continuousScroll: true },
+  { name: 'Support', url: `${BASE_URL}/support`, holdMs: 6000, continuousScroll: true },
+];
+
+async function waitForLoaderGone(page) {
+  await page
+    .waitForFunction(
+      () => {
+        const loader = document.getElementById('globalLoader');
+        if (!loader) return true;
+        const style = window.getComputedStyle(loader);
+        return (
+          style.display === 'none' ||
+          style.visibility === 'hidden' ||
+          style.pointerEvents === 'none' ||
+          Number(style.opacity) < 0.05
+        );
+      },
+      { timeout: 12000 },
+    )
+    .catch(() => {});
+  await pause(250);
+}
+
+/** Hide/dismiss popups without blocking on loader or intercepted clicks. */
+async function dismissOverlays(page) {
+  try {
+    await waitForLoaderGone(page);
+
+    await page.evaluate(() => {
+      localStorage.setItem('lexora_policy_consent_accepted_v1', 'true');
+
+      for (const sel of ['app-pwa-install-banner', 'app-policy-consent-banner']) {
+        document.querySelectorAll(sel).forEach((el) => {
+          el.style.setProperty('display', 'none', 'important');
+        });
+      }
+
+      const loader = document.getElementById('globalLoader');
+      if (loader) {
+        loader.style.setProperty('display', 'none', 'important');
+        loader.style.setProperty('pointer-events', 'none', 'important');
+      }
+    });
+
+    const softClicks = [
+      page.getByRole('button', { name: /Accept & Continue/i }),
+      page.getByRole('button', { name: /Not now/i }),
+      page.locator('app-pwa-install-banner button[aria-label="Close"]'),
+    ];
+
+    for (const locator of softClicks) {
+      try {
+        const el = locator.first();
+        if (await el.isVisible({ timeout: 400 }).catch(() => false)) {
+          await el.click({ force: true, timeout: 1500 });
+        }
+      } catch {
+        /* non-fatal */
+      }
+    }
+  } catch {
+    /* overlays must never stop recording */
   }
 }
 
@@ -41,6 +155,7 @@ async function tryClick(page, locator, timeout = 2000) {
   try {
     const el = typeof locator === 'string' ? page.locator(locator).first() : locator.first();
     if (await el.isVisible({ timeout })) {
+      await el.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
       await el.click();
       return true;
     }
@@ -50,58 +165,135 @@ async function tryClick(page, locator, timeout = 2000) {
   return false;
 }
 
-/** Smooth scroll from current position to page bottom. */
-async function scrollToBottom(page, durationMs = 2800) {
-  await page.evaluate(async (duration) => {
-    const startY = window.scrollY;
-    const maxY = Math.max(
-      document.documentElement.scrollHeight,
-      document.body?.scrollHeight ?? 0,
-    ) - window.innerHeight;
-    const distance = Math.max(0, maxY - startY);
-    if (distance <= 0) {
-      return;
-    }
-
-    const startedAt = performance.now();
-    await new Promise((resolve) => {
-      const tick = (now) => {
-        const progress = Math.min((now - startedAt) / duration, 1);
-        window.scrollTo(0, startY + distance * progress);
-        if (progress < 1) {
-          requestAnimationFrame(tick);
-        } else {
-          resolve();
-        }
-      };
-      requestAnimationFrame(tick);
-    });
-  }, durationMs);
+async function resetScrollTop(page) {
+  await page.evaluate(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  });
+  await pause(400);
 }
 
-/** Keep each module on screen for its hold time; scroll to bottom when possible. */
-async function holdModule(page, url, holdMs, action, { scroll = true } = {}) {
+async function getMaxScrollY(page) {
+  return page.evaluate(() => {
+    const height = Math.max(
+      document.documentElement.scrollHeight,
+      document.body?.scrollHeight ?? 0,
+      document.documentElement.offsetHeight,
+    );
+    return Math.max(0, height - window.innerHeight);
+  });
+}
+
+/** Eased smooth scroll (ease-in-out cubic) — reads naturally on video. */
+async function smoothScrollTo(page, targetY, durationMs) {
+  const duration = Math.max(800, Math.round(durationMs));
+  const y = Math.max(0, Math.round(targetY));
+
+  await page.evaluate(
+    ({ scrollY, duration }) =>
+      new Promise((resolve) => {
+        const startY = window.scrollY;
+        const distance = scrollY - startY;
+        if (Math.abs(distance) < 3) {
+          resolve();
+          return;
+        }
+
+        const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+        const started = performance.now();
+
+        const frame = (now) => {
+          const progress = Math.min((now - started) / duration, 1);
+          const nextY = Math.round(startY + distance * ease(progress));
+          window.scrollTo(0, nextY);
+          document.documentElement.scrollTop = nextY;
+          document.body.scrollTop = nextY;
+          if (progress < 1) {
+            requestAnimationFrame(frame);
+          } else {
+            resolve();
+          }
+        };
+
+        requestAnimationFrame(frame);
+      }),
+    { scrollY: y, duration },
+  );
+
+  await pause(duration + 80);
+}
+
+async function getScrollTargetY(page, selector) {
+  return page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return window.scrollY;
+    const top = el.getBoundingClientRect().top + window.scrollY - 64;
+    const max =
+      Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0) -
+      window.innerHeight;
+    return Math.max(0, Math.min(top, max));
+  }, selector);
+}
+
+/** Scroll to each target, then finish at page bottom — smooth eased motion. */
+async function scrollThroughModule(page, holdMs, scrollTargets = [], { continuous = false } = {}) {
   const start = Date.now();
-  if (url) {
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
-  }
-  if (action) {
-    await action(page);
+  await resetScrollTop(page);
+
+  const maxY = await getMaxScrollY(page);
+
+  // Long pages (landing): one slow continuous scroll top → bottom
+  if (continuous || scrollTargets.length === 0) {
+    const scrollTime = holdMs - 600;
+    await smoothScrollTo(page, maxY, scrollTime);
+    await pause(600);
+    return;
   }
 
-  const elapsed = Date.now() - start;
-  const scrollBudget = holdMs - elapsed - 400;
-  if (scroll && scrollBudget > 500) {
-    await scrollToBottom(page, Math.min(scrollBudget, 3200));
+  const holdAfterSection = 900;
+  const minScrollMs = 2200;
+  const maxScrollMs = 3800;
+
+  for (const selector of scrollTargets) {
+    const elapsed = Date.now() - start;
+    const remaining = holdMs - elapsed;
+    if (remaining < minScrollMs + holdAfterSection) break;
+
+    const targetY = await getScrollTargetY(page, selector);
+    const currentY = await page.evaluate(() => window.scrollY);
+    if (Math.abs(targetY - currentY) < 24) {
+      await pause(holdAfterSection);
+      continue;
+    }
+
+    const scrollMs = Math.min(maxScrollMs, Math.max(minScrollMs, remaining - holdAfterSection - 400));
+    await smoothScrollTo(page, targetY, scrollMs);
+    await pause(holdAfterSection);
   }
 
   const remaining = holdMs - (Date.now() - start);
-  if (remaining > 0) {
-    await pause(remaining);
+  if (remaining > 700) {
+    const currentY = await page.evaluate(() => window.scrollY);
+    if (maxY > currentY + 30) {
+      await smoothScrollTo(page, maxY, remaining - 300);
+      await pause(300);
+    } else {
+      await pause(remaining);
+    }
   }
 }
 
-/** Verify credentials against the same live API the Angular app uses. */
+async function incrementalScrollToBottom(page, durationMs) {
+  const maxY = await getMaxScrollY(page);
+  const currentY = await page.evaluate(() => window.scrollY);
+  if (maxY <= currentY + 10) {
+    await pause(durationMs);
+    return;
+  }
+  await smoothScrollTo(page, maxY, durationMs);
+}
+
 async function verifyApiLogin(email, password) {
   const loginUrl = `${API_URL}/auth/login`;
   console.log(`Checking login API: POST ${loginUrl}`);
@@ -116,8 +308,7 @@ async function verifyApiLogin(email, password) {
   if (!response.ok || !body.success) {
     throw new Error(
       `Login API failed (${response.status}): ${body.message ?? 'Unknown error'}\n` +
-        `API: ${loginUrl}\n` +
-        `Email: ${email}`,
+        `API: ${loginUrl}\nEmail: ${email}`,
     );
   }
 
@@ -125,8 +316,7 @@ async function verifyApiLogin(email, password) {
   return body;
 }
 
-/** Type into Angular ngModel fields (page.fill alone does not always update the model). */
-async function typeIntoInput(page, selector, value, delay = 12) {
+async function typeIntoInput(page, selector, value, delay = 10) {
   const input = page.locator(selector);
   await input.click();
   await input.fill('');
@@ -135,8 +325,7 @@ async function typeIntoInput(page, selector, value, delay = 12) {
 
 async function loginOnPage(page, email, password, holdMs) {
   const start = Date.now();
-  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
-
+  await dismissOverlays(page);
   await typeIntoInput(page, '#email', email);
   await typeIntoInput(page, '#password', password);
 
@@ -149,32 +338,57 @@ async function loginOnPage(page, email, password, holdMs) {
 
   const response = await loginResponsePromise;
   const body = await response.json().catch(() => ({}));
-
-  console.log(`Browser login API: ${response.url()} → ${response.status()} ${body.message ?? ''}`);
+  console.log(`Browser login API: ${response.status()} ${body.message ?? ''}`);
 
   if (!response.ok() || !body.success) {
     throw new Error(`Browser login failed: ${body.message ?? response.statusText()}`);
   }
 
   await page.waitForURL(/dashboard|onboarding|pending-approval/, { timeout: 30000 });
+  await dismissOverlays(page);
 
   const remaining = holdMs - (Date.now() - start);
-  if (remaining > 0) {
-    await pause(remaining);
+  if (remaining > 0) await pause(remaining);
+}
+
+async function recordScene(page, scene) {
+  const holdMs = scene.holdMs ?? DEFAULT_HOLD_MS;
+  console.log(`  → ${scene.name} (${holdMs / 1000}s)`);
+
+  if (scene.login) {
+    await page.goto(scene.url, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+    await loginOnPage(page, LOGIN_EMAIL, LOGIN_PASSWORD, holdMs);
+    return;
+  }
+
+  await page.goto(scene.url, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+  await dismissOverlays(page);
+
+  if (scene.action) {
+    await scene.action(page);
+    await dismissOverlays(page);
+  }
+
+  if (scene.scroll !== false) {
+    await scrollThroughModule(page, holdMs, scene.scrollTargets ?? [], {
+      continuous: scene.continuousScroll ?? false,
+    });
+  } else {
+    await pause(holdMs);
   }
 }
 
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-  const totalTargetSec = Math.round(MODULE_HOLDS_MS.reduce((a, b) => a + b, 0) / 1000);
+  const totalSec = Math.round(SCENES.reduce((sum, s) => sum + (s.holdMs ?? DEFAULT_HOLD_MS), 0) / 1000);
 
-  console.log(`Site: ${BASE_URL}`);
-  console.log(`API : ${API_URL}`);
-  console.log(`User: ${LOGIN_EMAIL}`);
-  console.log(
-    `Mobile: ${VIEWPORT.width}x${VIEWPORT.height} · holds ${MODULE_HOLDS_MS.map((ms) => `${ms / 1000}s`).join(', ')}`,
-  );
+  console.log(`Site : ${BASE_URL}`);
+  console.log(`API  : ${API_URL}`);
+  console.log(`User : ${LOGIN_EMAIL}`);
+  console.log(`Mobile: ${VIEWPORT.width}x${VIEWPORT.height} · ~${totalSec}s · ${SCENES.length} scenes`);
 
   await verifyApiLogin(LOGIN_EMAIL, LOGIN_PASSWORD);
 
@@ -191,48 +405,31 @@ async function main() {
     },
   });
 
+  await context.addInitScript(() => {
+    localStorage.setItem('lexora_policy_consent_accepted_v1', 'true');
+
+    const hidePopups = () => {
+      document.querySelectorAll('app-pwa-install-banner, app-policy-consent-banner').forEach((el) => {
+        el.style.setProperty('display', 'none', 'important');
+      });
+    };
+
+    hidePopups();
+    new MutationObserver(hidePopups).observe(document.documentElement, { childList: true, subtree: true });
+  });
+
   const page = await context.newPage();
-  page.setDefaultTimeout(15000);
+  page.setDefaultTimeout(20000);
 
-  console.log(`Recording mobile walkthrough from ${BASE_URL} ...`);
+  console.log('Recording mobile walkthrough...\n');
 
-  // Scene 1: Landing
-  await holdModule(page, BASE_URL, MODULE_HOLDS_MS[0], async (p) => {
-    await dismissPolicyBanner(p);
-  });
-
-  // Scene 2: Login (no scroll — form page)
-  await loginOnPage(page, LOGIN_EMAIL, LOGIN_PASSWORD, MODULE_HOLDS_MS[1]);
-
-  // Scene 3: Dashboard
-  const dashboardUrl = page.url().includes('/dashboard') ? null : `${BASE_URL}/dashboard`;
-  await holdModule(page, dashboardUrl, MODULE_HOLDS_MS[2]);
-
-  // Scene 4: Libraries + seat layout
-  await holdModule(page, `${BASE_URL}/libraries`, MODULE_HOLDS_MS[3], async (p) => {
-    await tryClick(p, 'a[href*="/libraries/"]');
-    await pause(350);
-    await tryClick(p, p.getByRole('button', { name: /Full preview|Seat preview|preview/i }));
-  });
-
-  // Scene 5: QR Attendance scanner
-  await holdModule(page, `${BASE_URL}/attendance/scanner`, MODULE_HOLDS_MS[4]);
-
-  // Scene 6: Members
-  await holdModule(page, `${BASE_URL}/members`, MODULE_HOLDS_MS[5]);
-
-  // Scene 7: Subscriptions
-  await holdModule(page, `${BASE_URL}/subscriptions`, MODULE_HOLDS_MS[6]);
-
-  // Scene 8: Institutions
-  await holdModule(page, `${BASE_URL}/institutions`, MODULE_HOLDS_MS[7]);
-
-  // Scene 9: Landing CTA — scroll to bottom then back to top
-  await holdModule(page, BASE_URL, MODULE_HOLDS_MS[8], async (p) => {
-    await scrollToBottom(p, 2200);
-    await pause(200);
-    await p.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-  });
+  for (const scene of SCENES) {
+    try {
+      await recordScene(page, scene);
+    } catch (err) {
+      console.warn(`  ⚠ ${scene.name} skipped: ${err.message ?? err}`);
+    }
+  }
 
   const video = page.video();
   if (!video) {
@@ -244,8 +441,9 @@ async function main() {
 
   await Promise.all([video.saveAs(OUTPUT_FILE), context.close()]);
   await browser.close();
+
   console.log(`\n✅ Video saved: ${OUTPUT_FILE}`);
-  console.log(`   Target length: ~${totalTargetSec}s (9 modules, 5–7s each, mobile scroll)`);
+  console.log(`   Scenes: ${SCENES.length} · target ~${totalSec}s + navigation`);
 }
 
 main().catch((err) => {

@@ -1,0 +1,4 @@
+# Locust — Lexora API load testing
+locust>=2.32.0
+requests>=2.32.0
+urllib3>=2.2.0

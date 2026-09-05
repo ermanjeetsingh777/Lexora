@@ -217,6 +217,16 @@ SLMS_UI/blob-report/
 SLMS_UI/playwright/.cache/
 SLMS_UI/e2e/.auth/
 
+# Locust load tests
+load-tests/locust/.venv/
+load-tests/locust/reports/*
+!load-tests/locust/reports/.gitkeep
+load-tests/locust/config/prod.env
+load-tests/locust/config/prod-1000.env
+load-tests/locust/**/*.log
+load-tests/locust/**/__pycache__/
+
+
 # Logs
 *.log
 

@@ -8,8 +8,8 @@ import { SeoFaqItem } from '@core/data/seo-aeo.content';
   selector: 'app-seo-faq',
   standalone: true,
   template: `
-    <section class="seo-faq mx-auto max-w-7xl px-4 py-10 md:px-6" aria-labelledby="seo-faq-heading">
-      <div class="mx-auto max-w-3xl">
+    <section class="seo-faq mx-auto max-w-7xl px-4 py-4 md:px-6" aria-labelledby="seo-faq-heading">
+      <div class="mx-auto">
         <p
           class="seo-answer-summary text-sm leading-relaxed text-[var(--muted-foreground)] md:text-base"
           data-aeo-answer
@@ -17,7 +17,7 @@ import { SeoFaqItem } from '@core/data/seo-aeo.content';
           {{ answerSummary() }}
         </p>
 
-        <h2 id="seo-faq-heading" class="mt-8 text-2xl font-semibold tracking-tight md:text-3xl">
+        <h2 id="seo-faq-heading" class="mt-4 text-2xl font-semibold tracking-tight md:text-3xl">
           {{ heading() }}
         </h2>
         <p class="mt-2 text-sm text-[var(--muted-foreground)]">

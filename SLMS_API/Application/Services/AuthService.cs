@@ -312,7 +312,7 @@ public class AuthService : IAuthService
         await _otpCodeRepository.AddAsync(otp, cancellationToken);
         await _otpCodeRepository.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("OTP sent for user {Email}, purpose {Purpose}. Code: {Code}", request.Email, request.Purpose, code);
+        _logger.LogInformation("OTP generated for user {Email}, purpose {Purpose}", request.Email, request.Purpose);
 
         return new MessageResponse { Message = "OTP sent successfully." };
     }
@@ -379,7 +379,7 @@ public class AuthService : IAuthService
             _logger.LogError(ex, "Failed to send password reset email to {Email}", request.Email);
         }
 
-        _logger.LogInformation("Password reset requested for {Email}. Reset URL: {ResetUrl}", request.Email, resetUrl);
+        _logger.LogInformation("Password reset requested for {Email}", request.Email);
 
         return new MessageResponse { Message = responseMessage };
     }

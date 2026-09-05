@@ -65,6 +65,6 @@ public static class SuperAdminSeedData
 
         await userManager.AddToRoleAsync(user, RoleDefinitions.SuperAdmin);
 
-        logger.LogInformation("SuperAdmin user seeded. Login with {Email} / {Password}", email, password);
+        logger.LogInformation("SuperAdmin user seeded for {Email}", email);
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Services.Interfaces;
@@ -6,6 +7,7 @@ using SLMS_API.Application.Services.Interfaces;
 namespace SLMS_API.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/test")]
     public class TestAttendanceController : ControllerBase
     {

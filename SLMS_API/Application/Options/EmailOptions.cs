@@ -12,7 +12,7 @@ public class EmailOptions
     public string? SmtpHost { get; set; } = "smtp.gmail.com";
     public int SmtpPort { get; set; } = 587;
     public string? SmtpUser { get; set; } = "support@uniappx.in";
-    public string? SmtpPassword { get; set; } = "adfdfasfdd";
+    public string? SmtpPassword { get; set; }
     public bool UseSsl { get; set; } = true;
 
     public EmailFeatureFlags Features { get; set; } = new();

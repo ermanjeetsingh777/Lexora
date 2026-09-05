@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copy to a local *.publishSettings file (gitignored). Never commit real credentials. -->
+<publishData>
+  <publishProfile
+    profileName="YOUR-SITE-WebDeploy"
+    publishMethod="MSDeploy"
+    publishUrl="YOUR_MSDEPLOY_HOST"
+    msdeploySite="YOUR_SITE_NAME"
+    userName="SET_VIA_HOSTING_PORTAL"
+    userPWD="SET_VIA_HOSTING_PORTAL"
+    destinationAppUrl="https://YOUR_API_HOST/"
+    />
+</publishData>

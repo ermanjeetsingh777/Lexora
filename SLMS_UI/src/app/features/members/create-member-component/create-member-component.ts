@@ -56,6 +56,7 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
     libraryId: ['', Validators.required],
     shift: this.fb.control<Shift>('General', Validators.required),
     planId: ['', Validators.required],
+    membershipNo: ['', [Validators.maxLength(40), Validators.pattern(/^$|^[A-Za-z0-9][A-Za-z0-9._\-]*$/)]],
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
     email: ['', [Validators.email, Validators.maxLength(150)]],
@@ -374,6 +375,7 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
       gender: formValue.gender,
       planId: formValue.planId,
       shift: formValue.shift,
+      membershipNo: formValue.membershipNo?.trim() ? formValue.membershipNo.trim() : undefined,
     };
 
     this.memberService.createMember(formValue.institutionId, formValue.branchId, formValue.libraryId, request).pipe(

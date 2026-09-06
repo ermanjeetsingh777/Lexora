@@ -8,6 +8,8 @@ public class CreateMemberRequest
     public string PhoneNumber { get; set; } = string.Empty;
     public string Gender { get; set; } = "Male";
     public Guid PlanId { get; set; }
-    public string Shift { get; set; } = string.Empty;    
+    public string Shift { get; set; } = string.Empty;
+    /// <summary>Optional custom member ID. Unique within the library. Blank = auto-generate library-wise.</summary>
+    public string? MembershipNo { get; set; }
     public bool IsActive { get; set; }
 }

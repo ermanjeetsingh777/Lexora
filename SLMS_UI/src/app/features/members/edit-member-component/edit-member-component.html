@@ -47,8 +47,15 @@
             <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Membership context</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div class="space-y-1.5">
-                <label class="text-sm font-medium">Membership no.</label>
-                <input type="text" formControlName="membershipNo" class="flex h-9 w-full rounded-md border border-input bg-muted/40 px-3 py-1 text-sm" />
+                <label class="text-sm font-medium">Membership no. / Member ID</label>
+                <input type="text" formControlName="membershipNo" placeholder="e.g. MEM-ID-00097" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                <p class="text-[11px] text-muted-foreground">Must be unique within this library.</p>
+                @if (memberForm.controls.membershipNo.touched && memberForm.controls.membershipNo.hasError('required')) {
+                  <p class="text-xs text-red-500">Member ID is required.</p>
+                }
+                @if (memberForm.controls.membershipNo.touched && memberForm.controls.membershipNo.hasError('pattern')) {
+                  <p class="text-xs text-red-500">Letters, numbers, dots, hyphens, underscores only.</p>
+                }
               </div>
               <div class="space-y-1.5">
                 <label class="text-sm font-medium">Status</label>

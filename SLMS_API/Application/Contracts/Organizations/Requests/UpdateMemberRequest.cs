@@ -8,4 +8,6 @@ public class UpdateMemberRequest
     public DateTime? DateOfBirth { get; set; }
     public string? Gender { get; set; }
     public string? Status { get; set; }
+    /// <summary>Optional custom member ID. Must stay unique within the member's current library.</summary>
+    public string? MembershipNo { get; set; }
 }

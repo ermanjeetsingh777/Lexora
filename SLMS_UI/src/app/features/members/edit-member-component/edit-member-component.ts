@@ -49,7 +49,7 @@ export class EditMemberComponent implements OnInit, OnDestroy {
     library: [{ value: '', disabled: true }],
     shift: [{ value: '', disabled: true }],
     plan: [{ value: '', disabled: true }],
-    membershipNo: [{ value: '', disabled: true }],
+    membershipNo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(40), Validators.pattern(/^[A-Za-z0-9][A-Za-z0-9._\-]*$/)]],
   });
 
   get routeParams(): Record<string, string> {
@@ -251,6 +251,12 @@ export class EditMemberComponent implements OnInit, OnDestroy {
     if (dobInput && dobInput !== originalDob) request.dateOfBirth = dobInput;
 
     if (formValue.gender !== (member.gender ?? '')) request.gender = formValue.gender;
+
+    const nextMembershipNo = formValue.membershipNo?.trim() ?? '';
+    const currentMembershipNo = member.membershipNo ?? '';
+    if (nextMembershipNo && nextMembershipNo.toUpperCase() !== currentMembershipNo.toUpperCase()) {
+      request.membershipNo = nextMembershipNo;
+    }
 
     const nextStatus = formValue.status;
     const currentStatus = member.isActive ? 'Active' : 'Inactive';

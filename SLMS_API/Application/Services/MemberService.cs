@@ -148,13 +148,19 @@ public class MemberService : IMemberService
             }
 
             // 2. Create Member
+            var membershipNo = await ResolveMembershipNoAsync(
+                libraryId,
+                request.MembershipNo,
+                excludeMemberId: null,
+                cancellationToken);
+
             var member = new Domain.Entities.Member
             {
                 Id = Guid.NewGuid(),
                 UserId = applicationUser.Id,
                 FullName = request.FullName,
                 PhoneNumber = request.PhoneNumber,
-                MembershipNo = await GenerateMembershipNumber(cancellationToken),
+                MembershipNo = membershipNo,
                 DateOfBirth = request.DateOfBirth.HasValue ? DateOnly.FromDateTime(request.DateOfBirth.Value) : null,
                 Gender = request.Gender,
                 Shift = request.Shift,
@@ -1566,29 +1572,161 @@ public class MemberService : IMemberService
         return CanAccessLibrary(institutionId.Value, branchId.Value, libraryId.Value, scope);
     }
 
-    private async Task<string> GenerateMembershipNumber(CancellationToken cancellationToken = default)
+    private async Task<string> ResolveMembershipNoAsync(
+        Guid libraryId,
+        string? requestedMembershipNo,
+        Guid? excludeMemberId,
+        CancellationToken cancellationToken = default)
     {
-        var currentYear = DateTime.UtcNow.Year;
+        if (!string.IsNullOrWhiteSpace(requestedMembershipNo))
+        {
+            var custom = NormalizeMembershipNo(requestedMembershipNo);
+            ValidateMembershipNoFormat(custom);
+            await EnsureMembershipNoUniqueInLibraryAsync(libraryId, custom, excludeMemberId, cancellationToken);
+            return custom;
+        }
 
-        var lastMembershipNo = await _dbContext.Members
-            .Where(x => x.MembershipNo.StartsWith($"MEM-{currentYear}-"))
-            .OrderByDescending(x => x.MembershipNo)
-            .Select(x => x.MembershipNo)
+        // Keep existing number on update when client sends blank intentionally? For create blank = auto.
+        // Update path always passes non-null when field is sent; empty string means regenerate is not wanted —
+        // callers should omit or send current value. Empty after normalize = auto only on create (excludeMemberId null).
+        if (excludeMemberId.HasValue && requestedMembershipNo is not null && string.IsNullOrWhiteSpace(requestedMembershipNo))
+        {
+            throw new InvalidOperationException("Membership ID cannot be empty.");
+        }
+
+        return await GenerateMembershipNumberForLibraryAsync(libraryId, cancellationToken);
+    }
+
+    private static string NormalizeMembershipNo(string value)
+    {
+        return value.Trim().ToUpperInvariant();
+    }
+
+    private static void ValidateMembershipNoFormat(string membershipNo)
+    {
+        if (membershipNo.Length < 2 || membershipNo.Length > 40)
+        {
+            throw new InvalidOperationException("Member ID must be between 2 and 40 characters.");
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(membershipNo, @"^[A-Z0-9][A-Z0-9._\-]*$"))
+        {
+            throw new InvalidOperationException(
+                "Member ID may only contain letters, numbers, dots, hyphens, and underscores.");
+        }
+    }
+
+    private async Task EnsureMembershipNoUniqueInLibraryAsync(
+        Guid libraryId,
+        string membershipNo,
+        Guid? excludeMemberId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.MemberLibraries
+            .AsNoTracking()
+            .Where(ml =>
+                ml.LibraryId == libraryId &&
+                ml.IsCurrent &&
+                !ml.IsDeleted &&
+                ml.Member != null &&
+                !ml.Member.IsDeleted);
+
+        if (excludeMemberId.HasValue)
+        {
+            query = query.Where(ml => ml.MemberId != excludeMemberId.Value);
+        }
+
+        var duplicate = await query
+            .AnyAsync(
+                ml => ml.Member.MembershipNo.ToLower() == membershipNo.ToLower(),
+                cancellationToken);
+
+        if (duplicate)
+        {
+            throw new InvalidOperationException(
+                $"Member ID '{membershipNo}' is already used in this library. Choose a different ID.");
+        }
+    }
+
+    private async Task<string> GenerateMembershipNumberForLibraryAsync(
+        Guid libraryId,
+        CancellationToken cancellationToken = default)
+    {
+        var libraryName = await _dbContext.Libraries.AsNoTracking()
+            .Where(x => x.Id == libraryId)
+            .Select(x => x.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
-        int nextNumber = 1;
+        var prefix = BuildLibraryMembershipPrefix(libraryName, libraryId);
 
-        if (!string.IsNullOrWhiteSpace(lastMembershipNo))
+        var existingNumbers = await _dbContext.MemberLibraries
+            .AsNoTracking()
+            .Where(ml =>
+                ml.LibraryId == libraryId &&
+                ml.IsCurrent &&
+                !ml.IsDeleted &&
+                ml.Member != null &&
+                !ml.Member.IsDeleted)
+            .Select(ml => ml.Member.MembershipNo)
+            .ToListAsync(cancellationToken);
+
+        var nextNumber = 1;
+        foreach (var existing in existingNumbers)
         {
-            var parts = lastMembershipNo.Split('-');
-
-            if (parts.Length == 3 && int.TryParse(parts[2], out int lastNumber))
+            if (string.IsNullOrWhiteSpace(existing))
             {
-                nextNumber = lastNumber + 1;
+                continue;
+            }
+
+            // Prefer PREFIX-##### sequence for this library; also accept any trailing digits.
+            if (existing.StartsWith(prefix + "-", StringComparison.OrdinalIgnoreCase))
+            {
+                var suffix = existing[(prefix.Length + 1)..];
+                if (int.TryParse(suffix, out var parsed) && parsed >= nextNumber)
+                {
+                    nextNumber = parsed + 1;
+                }
+            }
+            else
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(existing, @"(\d+)$");
+                if (match.Success &&
+                    int.TryParse(match.Groups[1].Value, out var trailing) &&
+                    trailing >= nextNumber)
+                {
+                    nextNumber = trailing + 1;
+                }
             }
         }
 
-        return $"MEM-{currentYear}-{nextNumber:D6}";
+        string candidate;
+        do
+        {
+            candidate = $"{prefix}-{nextNumber:D5}";
+            nextNumber++;
+        }
+        while (existingNumbers.Any(x =>
+            string.Equals(x, candidate, StringComparison.OrdinalIgnoreCase)));
+
+        return candidate;
+    }
+
+    private static string BuildLibraryMembershipPrefix(string? libraryName, Guid libraryId)
+    {
+        if (!string.IsNullOrWhiteSpace(libraryName))
+        {
+            var letters = new string(libraryName
+                .Where(char.IsLetterOrDigit)
+                .Select(char.ToUpperInvariant)
+                .ToArray());
+
+            if (letters.Length >= 2)
+            {
+                return letters.Length > 8 ? letters[..8] : letters;
+            }
+        }
+
+        return $"LIB{libraryId.ToString("N")[..4].ToUpperInvariant()}";
     }
 
     public async Task<MemberDetailResponse> UpdateAsync(
@@ -1738,6 +1876,26 @@ public class MemberService : IMemberService
             if (!string.Equals(member.Gender, gender, StringComparison.Ordinal))
             {
                 member.Gender = gender;
+                hasChanges = true;
+            }
+        }
+
+        if (request.MembershipNo is not null)
+        {
+            if (currentLibrary is null)
+            {
+                throw new InvalidOperationException("Member is not assigned to a library.");
+            }
+
+            var nextMembershipNo = await ResolveMembershipNoAsync(
+                currentLibrary.LibraryId,
+                request.MembershipNo,
+                excludeMemberId: member.Id,
+                cancellationToken);
+
+            if (!string.Equals(member.MembershipNo, nextMembershipNo, StringComparison.OrdinalIgnoreCase))
+            {
+                member.MembershipNo = nextMembershipNo;
                 hasChanges = true;
             }
         }

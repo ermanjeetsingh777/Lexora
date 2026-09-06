@@ -9,7 +9,9 @@ export interface CreateMemberRequest {
   dateOfBirth?: Date | null;
   gender?: string;
   planId: string;
-  shift: Shift | null
+  shift: Shift | null;
+  /** Optional custom member ID (unique per library). Omit/blank = auto-generate. */
+  membershipNo?: string | null;
 }
 export interface CreateMemberResponse {
   id: string;
@@ -42,6 +44,8 @@ export interface UpdateMemberRequest {
   dateOfBirth?: Date | string | null;
   gender?: string;
   status?: string;
+  /** Custom member ID; must stay unique within the current library. */
+  membershipNo?: string | null;
 }
 
 export interface MemberListResponse {

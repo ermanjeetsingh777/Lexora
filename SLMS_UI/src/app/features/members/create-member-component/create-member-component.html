@@ -239,8 +239,38 @@
         </div>
 
 
-        <!-- Full Name + Phone -->
+        <!-- Member ID + Full Name + Phone -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+          <!-- Member ID (custom, unique per library) -->
+          <div class="space-y-1.5 md:col-span-2">
+            <label class="text-sm font-medium">
+              Member ID <span class="text-muted-foreground font-normal">(optional)</span>
+            </label>
+
+            <input
+              type="text"
+              formControlName="membershipNo"
+              placeholder="e.g. MEM-ID-00097 — leave blank to auto-generate"
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
+               placeholder:text-muted-foreground
+               focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+
+            <p class="text-[11px] text-muted-foreground">
+              Unique within this library. Blank = auto ID from library name (e.g. CENTRAL-00001).
+            </p>
+
+            @if (memberForm.controls.membershipNo.touched && memberForm.controls.membershipNo.hasError('pattern')) {
+              <p class="text-xs text-red-500">
+                Use letters, numbers, dots, hyphens, or underscores only.
+              </p>
+            }
+            @if (memberForm.controls.membershipNo.touched && memberForm.controls.membershipNo.hasError('maxlength')) {
+              <p class="text-xs text-red-500">
+                Member ID cannot exceed 40 characters.
+              </p>
+            }
+          </div>
 
           <!-- Full Name -->
           <div class="space-y-1.5">

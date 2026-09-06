@@ -16,6 +16,10 @@ export interface CreateMemberRequest {
   planStartDate?: string | Date | null;
   /** Optional plan end (ISO date). Default start + plan duration. */
   planEndDate?: string | Date | null;
+  /** Optional amount actually paid. Default = full plan price. */
+  paidAmount?: number | null;
+  /** Manual outstanding due. Shortfall without due becomes Adjustment. */
+  dueAmount?: number | null;
 }
 export interface CreateMemberResponse {
   id: string;
@@ -84,6 +88,10 @@ export interface MemberListResponse {
   visits30d: number;
   attendanceRate: number;
   feesOwed: number;
+  planPrice?: number;
+  paidAmount?: number;
+  adjustmentAmount?: number;
+  dueAmount?: number;
   planStartDate: Date,
   planEndDate: Date,
   planDurationInDays: number;
@@ -118,6 +126,9 @@ export interface MemberDetailResponse {
   planId: string | null;
   plan: MemberPlanType;
   planPrice: number | null;
+  planPaidAmount?: number | null;
+  planAdjustmentAmount?: number | null;
+  planDueAmount?: number | null;
 
   planStartDate: string | null;
   planEndDate: string | null;
@@ -174,6 +185,7 @@ export interface MemberPlanResponse {
   endDate: string;
   paidAmount: number;
   adjustmentAmount: number;
+  dueAmount?: number;
   paymentStatus: string;
   paymentMethod?: string;
   isCurrent: boolean;
@@ -189,6 +201,12 @@ export interface ChangeMemberPlanShiftRequest {
   startDate?: string | Date | null;
   /** Optional plan end (ISO date). Default start + plan duration. */
   endDate?: string | Date | null;
+  /** Optional amount actually paid. */
+  paidAmount?: number | null;
+  /** Manual outstanding due. Plan − Paid without Due → Adjustment. */
+  dueAmount?: number | null;
+  /** Apply payment against current DueAmount (without full plan change). */
+  payDueAmount?: number | null;
 }
 
 export interface ChangeMemberPasswordRequest {

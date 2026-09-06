@@ -193,7 +193,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   readonly activeTab = signal<TabId>('overview');
   readonly actionsOpen = signal(false);
-  readonly dialog = signal<null | 'branch' | 'seat' | 'shift' | 'plan' | 'attendance' | 'password'>(null);
+  readonly dialog = signal<null | 'branch' | 'seat' | 'shift' | 'plan' | 'attendance' | 'password' | 'payDue'>(null);
   hexNumber = Math.floor(Math.random() * 360);
   readonly allTabs: { value: TabId; label: string }[] = [
     { value: 'overview', label: 'Overview' },
@@ -229,7 +229,11 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly selectedPlan = signal<PlanResponse | null>(null);
   readonly planStartDate = signal(todayIsoLocal());
   readonly planEndDate = signal(todayIsoLocal());
+  readonly planPaidAmount = signal(0);
+  readonly planDueAmount = signal(0);
+  readonly payDueAmount = signal(0);
   private planEndAuto = true;
+  private planPaidAuto = true;
   readonly dialogBusy = signal(false);
   readonly renewTarget = signal<RenewTarget | null>(null);
   readonly renewBusy = signal(false);
@@ -614,9 +618,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly paymentStats = computed(() => {
     const plans = this.memberDetails()?.plans ?? [];
     const paid = plans.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
-    const pending = plans
-      .filter(p => p.paymentStatus === 'Pending')
-      .reduce((sum, p) => sum + ((p.price || 0) - (p.paidAmount || 0)), 0);
+    const pending = plans.reduce((sum, p) => sum + (p.dueAmount || 0), 0);
     const outstanding = this.memberDetails()?.feesOwed ?? 0;
     const lastPaid = [...plans]
       .filter(p => p.paymentStatus === 'Paid')
@@ -1271,10 +1273,14 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
     this.selectedPlan.set(currentPlan ?? null);
     this.planEndAuto = true;
+    this.planPaidAuto = true;
     const start = todayIsoLocal();
     this.planStartDate.set(start);
     const duration = currentPlan?.durationInDays || member.planDurationInDays || 30;
     this.planEndDate.set(addDaysIso(start, duration));
+    const price = currentPlan?.price ?? member.planPrice ?? 0;
+    this.planPaidAmount.set(price);
+    this.planDueAmount.set(0);
   }
 
   onPlanChange(planId: string): void {
@@ -1284,8 +1290,11 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
     this.selectedPlan.set(plan ?? null);
     this.planEndAuto = true;
+    this.planPaidAuto = true;
     const days = plan?.durationInDays || 30;
     this.planEndDate.set(addDaysIso(this.planStartDate(), days));
+    this.planPaidAmount.set(plan?.price ?? 0);
+    this.planDueAmount.set(0);
   }
 
   onPlanStartDateChange(value: string): void {
@@ -1299,6 +1308,77 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   onPlanEndDateChange(value: string): void {
     this.planEndAuto = false;
     this.planEndDate.set(value);
+  }
+
+  onPlanPaidAmountChange(value: string | number): void {
+    this.planPaidAuto = false;
+    const n = typeof value === 'number' ? value : Number(value);
+    this.planPaidAmount.set(Number.isFinite(n) ? n : 0);
+  }
+
+  onPlanDueAmountChange(value: string | number): void {
+    const n = typeof value === 'number' ? value : Number(value);
+    this.planDueAmount.set(Number.isFinite(n) ? n : 0);
+  }
+
+  readonly changePlanDiscount = computed(() => {
+    const plan = this.selectedPlan()?.price ?? this.memberDetails()?.planPrice ?? 0;
+    const paid = Math.min(Math.max(0, this.planPaidAmount()), plan);
+    const due = Math.min(Math.max(0, this.planDueAmount()), Math.max(0, plan - paid));
+    return Math.max(0, Math.round((plan - paid - due) * 100) / 100);
+  });
+
+  openPayDueDialog(): void {
+    const due = this.memberDetails()?.planDueAmount ?? this.memberDetails()?.feesOwed ?? 0;
+    this.payDueAmount.set(due);
+    this.dialog.set('payDue');
+  }
+
+  confirmPayDue(): void {
+    const member = this.memberDetails();
+    if (!member) return;
+    const amount = this.payDueAmount();
+    if (amount <= 0) {
+      this.toast.error('Enter an amount greater than zero.');
+      return;
+    }
+    this.dialogBusy.set(true);
+    this.memberService.changePlanOrShift(member.id, { payDueAmount: amount }).subscribe({
+      next: (response) => {
+        this.memberDetails.set(response.data);
+        this.toast.success(response.message ?? 'Due payment recorded');
+        this.dialogBusy.set(false);
+        this.closeDialog();
+      },
+      error: (error) => {
+        this.dialogBusy.set(false);
+        this.toast.error(error.error?.message || 'Unable to record due payment.');
+      },
+    });
+  }
+
+  notifyPaymentWhatsApp(opts?: { expired?: boolean }): void {
+    const m = this.memberDetails();
+    if (!m?.phone) {
+      this.toast.error('Member phone number is required for WhatsApp.');
+      return;
+    }
+    const planAmount = m.planPrice ?? 0;
+    const paid = m.planPaidAmount ?? 0;
+    const due = m.planEndDate
+      ? new Date(m.planEndDate).toLocaleDateString()
+      : '—';
+    this.whatsapp.membershipRenewalPayment({
+      phone: m.phone,
+      memberName: m.name,
+      plan: m.plan || 'Plan',
+      planAmount,
+      paidAmount: paid,
+      dueAmount: m.planDueAmount ?? m.feesOwed ?? 0,
+      dueOrExpiry: due,
+      libraryName: m.library || 'Lexora Library',
+      expired: opts?.expired ?? (this.lifecycle().state === 'Expired' || this.lifecycle().state === 'Grace'),
+    });
   }
 
   openPasswordDialog(): void {
@@ -1353,6 +1433,9 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
       daysLeft: life.daysLeft,
       feesOwed: m.feesOwed ?? 0,
       planDurationInDays: m.planDurationInDays ?? 30,
+      planPrice: m.planPrice ?? 0,
+      paidAmount: m.planPrice ?? 0,
+      dueAmount: 0,
     });
   }
 
@@ -1366,7 +1449,10 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     const dates = {
       startDate: target.startDate || undefined,
       endDate: target.endDate || undefined,
+      paidAmount: target.paidAmount,
+      dueAmount: target.dueAmount ?? 0,
     };
+    const wasExpired = this.lifecycle().state === 'Expired' || this.lifecycle().state === 'Grace';
 
     if (!target.hasPlan) {
       const planId = target.selectedPlanId;
@@ -1381,6 +1467,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
           this.memberDetails.set(response.data ?? null);
           this.toast.success(response.message ?? `${target.name} plan assigned`);
           this.closeRenew();
+          this.sendRenewWhatsApp(response.data, target, wasExpired);
         },
         error: (error) => {
           this.renewBusy.set(false);
@@ -1395,11 +1482,37 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
         this.memberDetails.set(response.data ?? null);
         this.toast.success(response.message ?? `${target.name} renewed`);
         this.closeRenew();
+        this.sendRenewWhatsApp(response.data, target, wasExpired);
       },
       error: (error) => {
         this.renewBusy.set(false);
         this.toast.error(error.error?.message || 'Unable to renew plan. Please try again.');
       }
+    });
+  }
+
+  private sendRenewWhatsApp(
+    member: MemberDetailResponse | null | undefined,
+    target: RenewTarget,
+    expired: boolean,
+  ): void {
+    const phone = member?.phone;
+    if (!phone) return;
+    const planAmount = target.planPrice ?? member?.planPrice ?? 0;
+    const paid = target.paidAmount ?? member?.planPaidAmount ?? planAmount;
+    const due = member?.planEndDate
+      ? new Date(member.planEndDate).toLocaleDateString()
+      : (target.endDate || '—');
+    this.whatsapp.membershipRenewalPayment({
+      phone,
+      memberName: target.name,
+      plan: member?.plan || target.plan || 'Plan',
+      planAmount,
+      paidAmount: paid,
+      dueAmount: target.dueAmount ?? member?.planDueAmount ?? member?.feesOwed ?? 0,
+      dueOrExpiry: due,
+      libraryName: member?.library || 'Lexora Library',
+      expired,
     });
   }
 
@@ -1433,6 +1546,8 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
       request.planId = this.selectedPlanId();
       request.startDate = this.planStartDate();
       request.endDate = this.planEndDate();
+      request.paidAmount = this.planPaidAmount();
+      request.dueAmount = this.planDueAmount();
       if (request.endDate && request.startDate && request.endDate <= request.startDate) {
         this.toast.error('Plan end date must be after start date.');
         return;

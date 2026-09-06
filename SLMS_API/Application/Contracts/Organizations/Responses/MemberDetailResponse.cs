@@ -36,6 +36,10 @@ namespace SLMS_API.Application.Contracts.Organizations.Responses
         public Guid? PlanId { get; set; }
         public string? Plan { get; set; }
         public decimal? PlanPrice { get; set; }
+        /// <summary>Amount recorded as paid on the current member plan.</summary>
+        public decimal? PlanPaidAmount { get; set; }
+        public decimal? PlanAdjustmentAmount { get; set; }
+        public decimal? PlanDueAmount { get; set; }
 
         public DateOnly? PlanStartDate { get; set; }
         public DateOnly? PlanEndDate { get; set; }

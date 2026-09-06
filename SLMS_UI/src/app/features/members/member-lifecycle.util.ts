@@ -26,6 +26,11 @@ export interface RenewTarget {
   /** Editable renewal window (ISO yyyy-mm-dd). */
   startDate?: string;
   endDate?: string;
+  /** Custom amount actually paid on renew/assign. */
+  paidAmount?: number;
+  /** Manual due on renew/assign. Shortfall without due = Adjustment. */
+  dueAmount?: number;
+  planPrice?: number;
 }
 
 /** Add calendar days to an ISO date (yyyy-mm-dd). */
@@ -189,6 +194,9 @@ export function renewTargetFromListMember(m: {
   planEndDate?: string | Date | null;
   feesOwed?: number;
   planDurationInDays?: number;
+  planPrice?: number;
+  paidAmount?: number;
+  dueAmount?: number;
   life: MemberLifecycle;
 }): RenewTarget {
   const hasPlan = !!m.planEndDate;
@@ -202,5 +210,8 @@ export function renewTargetFromListMember(m: {
     feesOwed: m.feesOwed ?? 0,
     planDurationInDays: m.planDurationInDays ?? 30,
     hasPlan,
+    planPrice: m.planPrice ?? 0,
+    paidAmount: m.paidAmount ?? m.planPrice ?? 0,
+    dueAmount: m.dueAmount ?? m.feesOwed ?? 0,
   };
 }

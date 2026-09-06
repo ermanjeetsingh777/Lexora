@@ -15,5 +15,9 @@ public class CreateMemberRequest
     public DateTime? PlanStartDate { get; set; }
     /// <summary>Optional plan end. Must be after start. If omitted, start + plan.DurationInDays.</summary>
     public DateTime? PlanEndDate { get; set; }
+    /// <summary>Optional amount actually paid. Default = full plan price.</summary>
+    public decimal? PaidAmount { get; set; }
+    /// <summary>Optional outstanding due the member still owes (manual). Shortfall without due becomes Adjustment.</summary>
+    public decimal? DueAmount { get; set; }
     public bool IsActive { get; set; }
 }

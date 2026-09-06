@@ -448,7 +448,7 @@
             <th class="px-2 py-2 font-medium">
               <button type="button" (click)="onSort('feesOwed')"
                 class="inline-flex items-center gap-1 hover:text-foreground transition"
-                [class]="sortKey() === 'feesOwed' ? 'text-foreground' : 'text-muted-foreground'">Fees
+                [class]="sortKey() === 'feesOwed' ? 'text-foreground' : 'text-muted-foreground'">                Fees / Pay
                 @if (sortKey() === 'feesOwed') {
                 @if (sortDir() === 'asc') { <svg lucideArrowUp class="h-3 w-3"></svg> } @else { <svg lucideArrowDown class="h-3 w-3"></svg> }
                 } @else { <svg lucideChevronsUpDown class="h-3 w-3 opacity-50"></svg> }
@@ -553,11 +553,18 @@
               </div>
             </td>
             <td class="px-2 py-2.5 text-xs tabular-nums">
-              @if (m.feesOwed > 0) {
-              <span class="text-rose-500">₹{{ m.feesOwed.toLocaleString() }}</span>
-              } @else {
-              <span class="text-muted-foreground">Clear</span>
-              }
+              <div class="flex flex-col gap-0.5">
+                <span class="text-muted-foreground">Plan {{ (m.planPrice ?? 0) > 0 ? ('₹' + (m.planPrice ?? 0).toLocaleString()) : '—' }}</span>
+                <span>Paid {{ (m.paidAmount ?? 0) > 0 ? ('₹' + (m.paidAmount ?? 0).toLocaleString()) : '—' }}</span>
+                @if ((m.adjustmentAmount ?? 0) > 0) {
+                <span class="text-muted-foreground">Adj ₹{{ (m.adjustmentAmount ?? 0).toLocaleString() }}</span>
+                }
+                @if (m.feesOwed > 0) {
+                <span class="text-rose-500">Due ₹{{ m.feesOwed.toLocaleString() }}</span>
+                } @else {
+                <span class="text-muted-foreground">Clear</span>
+                }
+              </div>
             </td>
             <td class="px-4 py-2.5 text-right">
               <div class="inline-flex items-center gap-0.5">
@@ -566,6 +573,12 @@
                   <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
                   {{ m.life.state === 'No plan' ? 'Assign' : 'Renew' }}
                 </app-button>
+                }
+                @if (m.phone && (m.feesOwed > 0 || m.life.state === 'Expired' || m.life.state === 'Expiring soon' || m.life.state === 'Grace')) {
+                <button type="button" title="WhatsApp payment" (click)="notifyPaymentWhatsApp(m)"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-emerald-600 hover:text-emerald-700">
+                  <svg lucideMessageCircle class="h-4 w-4"></svg>
+                </button>
                 }
                 <button type="button" title="Copy member ID" (click)="copyId(m.id)"
                   class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
@@ -711,13 +724,27 @@
           </div>
         </div>
         <div class="mt-3 flex items-center justify-between relative">
-          <span class="text-xs text-muted-foreground pointer-events-none">Last visit {{ m.lastVisit }}</span>
+          <div class="text-xs text-muted-foreground pointer-events-none">
+            <div>Plan ₹{{ (m.planPrice ?? 0).toLocaleString() }} · Paid ₹{{ (m.paidAmount ?? 0).toLocaleString() }}</div>
+            @if ((m.adjustmentAmount ?? 0) > 0) {
+              <div class="text-muted-foreground">Adj ₹{{ (m.adjustmentAmount ?? 0).toLocaleString() }}</div>
+            }
+            @if (m.feesOwed > 0) {
+              <div class="text-rose-500">Due ₹{{ m.feesOwed.toLocaleString() }}</div>
+            }
+          </div>
           <div class="flex gap-1 relative z-10">
             @if (m.life.needsAction && m.life.state !== 'New' && canUpdate) {
             <app-button variant="outline" size="sm" class="h-7 text-xs" (click)="$event.preventDefault(); renewPlan(m)">
               <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
               {{ m.life.state === 'No plan' ? 'Assign' : 'Renew' }}
             </app-button>
+            }
+            @if (m.phone && (m.feesOwed > 0 || m.life.state === 'Expired' || m.life.state === 'Expiring soon' || m.life.state === 'Grace')) {
+            <button type="button" title="WhatsApp payment" (click)="$event.preventDefault(); notifyPaymentWhatsApp(m)"
+              class="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent text-emerald-600">
+              <svg lucideMessageCircle class="h-3.5 w-3.5"></svg>
+            </button>
             }
             <button type="button" title="Copy ID" (click)="$event.preventDefault(); copyId(m.id)"
               class="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">

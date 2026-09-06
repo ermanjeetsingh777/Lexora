@@ -216,6 +216,18 @@
           {{ m.feesOwed > 0 ? (m.feesOwed | currency:'INR') : 'Clear' }}
         </div>
         <div class="text-[10px] text-muted-foreground truncate mt-0.5">{{ m.feesOwed > 0 ? 'Action needed' : 'All paid' }}</div>
+        <div class="mt-2 flex flex-wrap gap-2">
+          @if (m.feesOwed > 0) {
+            <button type="button" class="text-[11px] font-medium text-primary hover:underline" (click)="openPayDueDialog()">
+              Record due payment
+            </button>
+          }
+          @if (m.phone && (m.feesOwed > 0 || lifecycle().state === 'Expired' || lifecycle().state === 'Expiring soon' || lifecycle().state === 'Grace')) {
+            <button type="button" class="text-[11px] font-medium text-emerald-600 hover:underline" (click)="notifyPaymentWhatsApp()">
+              WhatsApp payment
+            </button>
+          }
+        </div>
       </div>
       <div class="border rounded-lg p-3 bg-gradient-to-br from-amber-50/50 to-background border-amber-200">
         <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -243,6 +255,11 @@
         <svg lucideRotateCcw class="h-3.5 w-3.5 mr-1"></svg>
         {{ lifecycle().state === 'No plan' ? 'Assign plan' : 'Renew plan' }}
       </app-button>
+      @if (m.phone && lifecycle().state !== 'No plan') {
+      <app-button size="sm" variant="outline" (click)="notifyPaymentWhatsApp()">
+        WhatsApp pay
+      </app-button>
+      }
       }
     </div>
     }
@@ -407,6 +424,15 @@
           </div>
           <div class="text-sm font-semibold mt-1 truncate text-primary">
             {{m.planPrice | currency:'INR' }}
+          </div>
+          <div class="text-[10px] text-muted-foreground mt-0.5">
+            Paid {{ (m.planPaidAmount ?? 0) | currency:'INR' }}
+            @if ((m.planAdjustmentAmount ?? 0) > 0) {
+              · adj {{ (m.planAdjustmentAmount ?? 0) | currency:'INR' }}
+            }
+            @if ((m.planDueAmount ?? m.feesOwed ?? 0) > 0) {
+              · due {{ (m.planDueAmount ?? m.feesOwed) | currency:'INR' }}
+            }
           </div>
         </div>
         <div class="border rounded-lg p-3 bg-muted/20">
@@ -1072,6 +1098,49 @@
       </div>
     </div>
 
+    <div class="grid grid-cols-2 gap-3">
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Plan amount</label>
+        <input
+          type="text"
+          readonly
+          class="flex h-9 w-full rounded-md border border-input bg-muted/40 px-3 py-1 text-sm tabular-nums"
+          [value]="(selectedPlan()?.price ?? m.planPrice ?? 0) | currency:'INR'" />
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Paid amount</label>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring tabular-nums"
+          [ngModel]="planPaidAmount()"
+          (ngModelChange)="onPlanPaidAmountChange($event)"
+          name="planPaidAmount" />
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Due amount</label>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring tabular-nums"
+          [ngModel]="planDueAmount()"
+          (ngModelChange)="onPlanDueAmountChange($event)"
+          name="planDueAmount" />
+        <p class="text-[11px] text-muted-foreground">Optional collectible balance</p>
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Adjustment</label>
+        <input
+          type="text"
+          readonly
+          class="flex h-9 w-full rounded-md border border-input bg-muted/40 px-3 py-1 text-sm tabular-nums"
+          [value]="changePlanDiscount() | currency:'INR'" />
+        <p class="text-[11px] text-muted-foreground">Plan − paid − due</p>
+      </div>
+    </div>
+
     <!-- Adjustment Preview -->
     @if (selectedPlan()) {
     <div class="rounded-lg border bg-muted/30 p-4 space-y-2">
@@ -1160,6 +1229,36 @@
 
     </div>
 
+  </div>
+</div>
+}
+
+@if (dialog() === 'payDue') {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-md rounded-xl border bg-background shadow-xl p-6 space-y-5">
+    <div>
+      <h2 class="text-lg font-semibold">Record due payment</h2>
+      <p class="text-sm text-muted-foreground mt-0.5">
+        Outstanding due: {{ (m.planDueAmount ?? m.feesOwed ?? 0) | currency:'INR' }}
+      </p>
+    </div>
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium">Amount received</label>
+      <input
+        type="number"
+        min="0"
+        step="1"
+        class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring tabular-nums"
+        [ngModel]="payDueAmount()"
+        (ngModelChange)="payDueAmount.set(+$event || 0)"
+        name="payDueAmount" />
+    </div>
+    <div class="flex justify-end gap-2 pt-2 border-t">
+      <app-button variant="outline" (click)="closeDialog()">Cancel</app-button>
+      <app-button [disabled]="dialogBusy() || payDueAmount() <= 0" (click)="confirmPayDue()">
+        {{ dialogBusy() ? 'Saving…' : 'Save payment' }}
+      </app-button>
+    </div>
   </div>
 </div>
 }

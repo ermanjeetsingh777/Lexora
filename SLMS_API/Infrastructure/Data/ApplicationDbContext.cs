@@ -215,6 +215,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         builder.Entity<MemberPlan>(entity =>
         {
             entity.HasIndex(x => new { x.MemberId, x.IsDeleted });
+            entity.Property(x => x.Amount).HasPrecision(18, 2);
+            entity.Property(x => x.PaidAmount).HasPrecision(18, 2);
+            entity.Property(x => x.AdjustmentAmount).HasPrecision(18, 2);
+            entity.Property(x => x.DueAmount).HasPrecision(18, 2);
         });
 
         builder.Entity<Member>(entity =>

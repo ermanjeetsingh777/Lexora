@@ -177,6 +177,12 @@ public class MemberService : IMemberService
                 plan.DurationInDays,
                 DateTime.UtcNow);
 
+            var (paidAmount, adjustmentAmount, dueAmount) = MemberPlanMetricsHelper.ResolvePlanMoney(
+                plan.Price,
+                request.PaidAmount,
+                request.DueAmount,
+                plan.Price);
+
             await _dbContext.MemberPlans.AddAsync(new MemberPlan
             {
                 Id = Guid.NewGuid(),
@@ -185,8 +191,9 @@ public class MemberService : IMemberService
                 StartDate = startDate,
                 EndDate = endDate,
                 Amount = plan.Price,
-                PaidAmount = plan.Price,
-                AdjustmentAmount = 0,
+                PaidAmount = paidAmount,
+                AdjustmentAmount = adjustmentAmount,
+                DueAmount = dueAmount,
                 IsActive = true,
                 IsCurrent = true,
                 CreatedBy = _currentUserService.UserId
@@ -527,11 +534,12 @@ public class MemberService : IMemberService
     {
         var hasPlan = request.PlanId.HasValue;
         var hasShift = !string.IsNullOrWhiteSpace(request.Shift);
+        var hasDueUpdate = request.DueAmount.HasValue || request.PayDueAmount.HasValue;
 
         // At least one required
-        if (!hasPlan && !hasShift)
+        if (!hasPlan && !hasShift && !hasDueUpdate)
         {
-            throw new InvalidOperationException("Please provide PlanId or Shift.");
+            throw new InvalidOperationException("Please provide PlanId, Shift, DueAmount, or PayDueAmount.");
         }
 
         var member = await _dbContext.Members
@@ -629,6 +637,14 @@ public class MemberService : IMemberService
                     newPlan.DurationInDays,
                     now);
 
+                // Plan − Paid without Due → Adjustment (discount). Due is only manual.
+                // Prior plan-change credit is folded into Adjustment via lower default paid.
+                var (paidAmount, discountAdjustment, dueAmount) = MemberPlanMetricsHelper.ResolvePlanMoney(
+                    newPlan.Price,
+                    request.PaidAmount,
+                    request.DueAmount,
+                    amountToPay);
+
                 // Create new plan history
                 var memberPlan = new MemberPlan
                 {
@@ -638,9 +654,10 @@ public class MemberService : IMemberService
 
                     StartDate = startDate,
                     EndDate = endDate,
-                    AdjustmentAmount = adjustmentAmount,
+                    AdjustmentAmount = discountAdjustment,
                     Amount = newPlan.Price,
-                    PaidAmount = newPlan.Price - adjustmentAmount,
+                    PaidAmount = paidAmount,
+                    DueAmount = dueAmount,
 
                     IsCurrent = true,
                     IsActive = true,
@@ -651,6 +668,53 @@ public class MemberService : IMemberService
 
                 await _dbContext.MemberPlans.AddAsync(memberPlan, cancellationToken);
             //}
+        }
+
+        // Manual due set / due payment on current plan (without requiring a plan change)
+        if (hasDueUpdate)
+        {
+            var currentPlanForDue = member.MemberPlans
+                .FirstOrDefault(x => x.IsCurrent && x.IsActive);
+
+            if (currentPlanForDue is null && !hasPlan)
+            {
+                throw new InvalidOperationException("Member has no active plan to update dues.");
+            }
+
+            // If we just created a new plan above, dues were already applied on that row.
+            if (!hasPlan && currentPlanForDue is not null)
+            {
+                if (request.DueAmount.HasValue)
+                {
+                    var (_, adjustment, due) = MemberPlanMetricsHelper.ResolvePlanMoney(
+                        currentPlanForDue.Amount,
+                        currentPlanForDue.PaidAmount,
+                        request.DueAmount,
+                        currentPlanForDue.PaidAmount);
+                    currentPlanForDue.DueAmount = due;
+                    currentPlanForDue.AdjustmentAmount = adjustment;
+                    currentPlanForDue.UpdatedAtUtc = now;
+                    currentPlanForDue.UpdatedBy = userId;
+                }
+
+                if (request.PayDueAmount.HasValue)
+                {
+                    var pay = Math.Round(Math.Max(0, request.PayDueAmount.Value), 2, MidpointRounding.AwayFromZero);
+                    if (pay <= 0)
+                    {
+                        throw new InvalidOperationException("Pay due amount must be greater than zero.");
+                    }
+
+                    var apply = Math.Min(pay, currentPlanForDue.DueAmount);
+                    currentPlanForDue.PaidAmount = Math.Round(currentPlanForDue.PaidAmount + apply, 2, MidpointRounding.AwayFromZero);
+                    currentPlanForDue.DueAmount = Math.Max(0, Math.Round(currentPlanForDue.DueAmount - apply, 2, MidpointRounding.AwayFromZero));
+                    currentPlanForDue.AdjustmentAmount = Math.Max(
+                        0,
+                        Math.Round(currentPlanForDue.Amount - currentPlanForDue.PaidAmount - currentPlanForDue.DueAmount, 2, MidpointRounding.AwayFromZero));
+                    currentPlanForDue.UpdatedAtUtc = now;
+                    currentPlanForDue.UpdatedBy = userId;
+                }
+            }
         }
 
         member.UpdatedAtUtc = now;
@@ -693,6 +757,9 @@ public class MemberService : IMemberService
                 PlanId = request?.PlanId ?? member.CurrentPlanId,
                 StartDate = request?.StartDate,
                 EndDate = request?.EndDate,
+                PaidAmount = request?.PaidAmount,
+                DueAmount = request?.DueAmount,
+                PayDueAmount = request?.PayDueAmount,
             },
             userId,
             cancellationToken);
@@ -953,6 +1020,10 @@ public class MemberService : IMemberService
                         mp.PlanId,
                         PlanName = mp.Plan.Name,
                         mp.Plan.Price,
+                        Amount = mp.Amount,
+                        PaidAmount = mp.PaidAmount,
+                        AdjustmentAmount = mp.AdjustmentAmount ?? 0,
+                        DueAmount = mp.DueAmount,
                         mp.Plan.DurationInDays,
                         mp.StartDate,
                         mp.EndDate
@@ -978,10 +1049,15 @@ public class MemberService : IMemberService
                 Math.Round((decimal)x.Visits30d / totalMembershipDays * 100, 1),
                 100);
             var currentPlan = x.CurrentPlan;
-            var (daysRemaining, feesOwed, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
+            var planAmount = currentPlan?.Amount > 0 ? currentPlan.Amount : (currentPlan?.Price ?? 0);
+            var paidAmount = currentPlan?.PaidAmount ?? 0;
+            var adjustmentAmount = currentPlan?.AdjustmentAmount ?? 0;
+            var dueAmount = currentPlan?.DueAmount ?? 0;
+            var (daysRemaining, _, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
                 currentPlan?.EndDate,
-                currentPlan?.Price ?? 0,
+                planAmount,
                 today);
+            var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(dueAmount);
 
             return new MemberListResponse
             {
@@ -1009,6 +1085,10 @@ public class MemberService : IMemberService
                 Visits30d = x.Visits30d,
                 AttendanceRate = attendanceRate,
                 FeesOwed = feesOwed,
+                PlanPrice = planAmount,
+                PaidAmount = paidAmount,
+                AdjustmentAmount = adjustmentAmount,
+                DueAmount = dueAmount,
                 DaysRemaining = daysRemaining,
                 PlanStartDate = currentPlan?.StartDate,
                 PlanEndDate = currentPlan?.EndDate,
@@ -1064,6 +1144,10 @@ public class MemberService : IMemberService
                         x.PlanId,
                         PlanName = x.Plan.Name,
                         x.Plan.Price,
+                        Amount = x.Amount,
+                        PaidAmount = x.PaidAmount,
+                        AdjustmentAmount = x.AdjustmentAmount ?? 0,
+                        DueAmount = x.DueAmount,
                         x.Plan.DurationInDays,
                         x.StartDate,
                         x.EndDate
@@ -1091,10 +1175,15 @@ public class MemberService : IMemberService
                 attendanceRate = Math.Min(attendanceRate, 100);
                 var currentPlan = x.CurrentPlan;
 
-                var (daysRemaining, feesOwed, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
+                var planAmount = currentPlan?.Amount > 0 ? currentPlan.Amount : (currentPlan?.Price ?? 0);
+                var paidAmount = currentPlan?.PaidAmount ?? 0;
+                var adjustmentAmount = currentPlan?.AdjustmentAmount ?? 0;
+                var dueAmount = currentPlan?.DueAmount ?? 0;
+                var (daysRemaining, _, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
                     currentPlan?.EndDate,
-                    currentPlan?.Price ?? 0,
+                    planAmount,
                     today);
+                var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(dueAmount);
 
 
                 return new MemberListResponse
@@ -1131,6 +1220,10 @@ public class MemberService : IMemberService
                     Visits30d = x.Visits30d,
                     AttendanceRate = attendanceRate,
                     FeesOwed = feesOwed,
+                    PlanPrice = planAmount,
+                    PaidAmount = paidAmount,
+                    AdjustmentAmount = adjustmentAmount,
+                    DueAmount = dueAmount,
                     DaysRemaining = daysRemaining,
                     PlanStartDate = currentPlan?.StartDate,
                     PlanEndDate = currentPlan?.EndDate,
@@ -1189,6 +1282,10 @@ public class MemberService : IMemberService
                         x.PlanId,
                         PlanName = x.Plan.Name,
                         x.Plan.Price,
+                        Amount = x.Amount,
+                        PaidAmount = x.PaidAmount,
+                        AdjustmentAmount = x.AdjustmentAmount ?? 0,
+                        DueAmount = x.DueAmount,
                         x.Plan.DurationInDays,
                         x.StartDate,
                         x.EndDate
@@ -1237,7 +1334,10 @@ public class MemberService : IMemberService
                 EndDate = mp.EndDate,
                 PaidAmount = mp.PaidAmount,
                 AdjustmentAmount = mp.AdjustmentAmount,
-                PaymentStatus = "Paid",
+                DueAmount = mp.DueAmount,
+                PaymentStatus = mp.DueAmount <= 0 && (mp.PaidAmount > 0 || mp.Amount <= 0)
+                    ? "Paid"
+                    : mp.PaidAmount > 0 ? "Partial" : "Pending",
                 PaymentMethod = "Cash",
                 IsCurrent = mp.IsCurrent,
                 IsActive = mp.IsActive,
@@ -1312,11 +1412,17 @@ public class MemberService : IMemberService
         attendanceRate = Math.Min(attendanceRate, 100);
 
         var currentPlan = plans.FirstOrDefault(x => x.IsCurrent);
+        var planAmount = currentPlan?.Price ?? member.CurrentPlan?.Price ?? 0;
+        // MemberPlanResponse.Price is mapped from Amount
+        var paidOnPlan = currentPlan?.PaidAmount ?? 0;
+        var adjustmentOnPlan = currentPlan?.AdjustmentAmount ?? member.CurrentPlan?.AdjustmentAmount ?? 0;
+        var dueOnPlan = currentPlan?.DueAmount ?? member.CurrentPlan?.DueAmount ?? 0;
 
-        var (_, feesOwed, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
-            currentPlan?.EndDate,
-            currentPlan?.Price ?? 0,
+        var (_, _, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
+            currentPlan?.EndDate ?? member.CurrentPlan?.EndDate,
+            planAmount,
             today);
+        var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(dueOnPlan);
 
         return new MemberDetailResponse
         {
@@ -1339,7 +1445,10 @@ public class MemberService : IMemberService
             Library = member.Library?.LibraryName ?? string.Empty,
             PlanId = member.CurrentPlan?.PlanId,
             Plan = member.CurrentPlan?.PlanName,
-            PlanPrice = member.CurrentPlan?.Price,
+            PlanPrice = planAmount,
+            PlanPaidAmount = paidOnPlan,
+            PlanAdjustmentAmount = adjustmentOnPlan,
+            PlanDueAmount = dueOnPlan,
             PlanStartDate = member.CurrentPlan?.StartDate,
             PlanEndDate = member.CurrentPlan?.EndDate,
             PlanDurationInDays = member.CurrentPlan?.DurationInDays ?? 0,
@@ -1383,7 +1492,10 @@ public class MemberService : IMemberService
                 EndDate = mp.EndDate,
                 PaidAmount = mp.PaidAmount,
                 AdjustmentAmount = mp.AdjustmentAmount,
-                PaymentStatus = "Paid",
+                DueAmount = mp.DueAmount,
+                PaymentStatus = mp.DueAmount <= 0 && (mp.PaidAmount > 0 || mp.Price <= 0)
+                    ? "Paid"
+                    : mp.PaidAmount > 0 ? "Partial" : "Pending",
                 PaymentMethod = "Cash",
                 IsCurrent = mp.IsCurrent,
                 IsActive = mp.IsActive,
@@ -2195,6 +2307,21 @@ public class MemberService : IMemberService
             Email = entity.User?.Email?.EndsWith("@member.lexora.local", StringComparison.OrdinalIgnoreCase) == true ? null : entity.User?.Email,
             PhoneNumber = entity.PhoneNumber,
         };
+
+    private static decimal ResolvePaidAmount(decimal? requestedPaidAmount, decimal defaultAmount)
+    {
+        if (!requestedPaidAmount.HasValue)
+        {
+            return Math.Round(Math.Max(0, defaultAmount), 2, MidpointRounding.AwayFromZero);
+        }
+
+        if (requestedPaidAmount.Value < 0)
+        {
+            throw new InvalidOperationException("Paid amount cannot be negative.");
+        }
+
+        return Math.Round(requestedPaidAmount.Value, 2, MidpointRounding.AwayFromZero);
+    }
 
     private static (DateOnly Start, DateOnly End) ResolveMemberPlanDates(
         DateTime? requestedStart,

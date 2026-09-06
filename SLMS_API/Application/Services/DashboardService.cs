@@ -164,6 +164,10 @@ public class DashboardService : IDashboardService
                     .Where(mp => mp.IsCurrent && mp.IsActive && !mp.IsDeleted)
                     .Select(mp => (decimal?)mp.PaidAmount)
                     .FirstOrDefault(),
+                DueAmount = m.MemberPlans
+                    .Where(mp => mp.IsCurrent && mp.IsActive && !mp.IsDeleted)
+                    .Select(mp => (decimal?)mp.DueAmount)
+                    .FirstOrDefault(),
             })
             .Distinct()
             .ToListAsync(cancellationToken);
@@ -201,13 +205,7 @@ public class DashboardService : IDashboardService
                 suspendedMembers++;
             }
 
-            var planAmount = member.PlanAmount ?? 0m;
-            var paidAmount = member.PaidAmount ?? 0m;
-            totalFeesOwed += MemberPlanMetricsHelper.ComputeMemberFeesOwed(
-                member.PlanEndDate,
-                planAmount,
-                paidAmount,
-                today);
+            totalFeesOwed += MemberPlanMetricsHelper.ComputeMemberFeesOwed(member.DueAmount ?? 0m);
         }
 
         var memberCountsByLibrary = await InstitutionStatsHelper.GetLibraryMemberCountsAsync(

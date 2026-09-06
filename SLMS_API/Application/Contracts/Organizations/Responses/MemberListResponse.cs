@@ -28,6 +28,10 @@ namespace SLMS_API.Application.Contracts.Organizations.Responses
         public int Visits30d { get; set; }
         public decimal AttendanceRate { get; set; }
         public decimal FeesOwed { get; set; }
+        public decimal PlanPrice { get; set; }
+        public decimal PaidAmount { get; set; }
+        public decimal AdjustmentAmount { get; set; }
+        public decimal DueAmount { get; set; }
         public DateOnly? PlanStartDate { get; set; }
         public DateOnly? PlanEndDate { get; set; }
         public int PlanDurationInDays { get; set; }

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, input, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, input, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -59,6 +59,8 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
     planId: ['', Validators.required],
     planStartDate: [todayIsoLocal(), Validators.required],
     planEndDate: [addDaysIso(todayIsoLocal(), 30), Validators.required],
+    paidAmount: [0 as number, [Validators.required, Validators.min(0)]],
+    dueAmount: [0 as number, [Validators.required, Validators.min(0)]],
     membershipNo: ['', [Validators.maxLength(40), Validators.pattern(/^$|^[A-Za-z0-9][A-Za-z0-9._\-]*$/)]],
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
@@ -85,7 +87,20 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
   /** Full plan catalog for duration-based end-date calculation. */
   readonly planCatalog = signal<PlanResponse[]>([]);
   private planEndAuto = true;
+  private paidAuto = true;
   loader = signal(false);
+
+  readonly selectedPlanPrice = signal(0);
+  readonly paidPreview = signal(0);
+  readonly duePreview = signal(0);
+
+  readonly moneyPreview = computed(() => {
+    const plan = this.selectedPlanPrice();
+    const paid = Math.min(Math.max(0, this.paidPreview()), plan);
+    const due = Math.min(Math.max(0, this.duePreview()), Math.max(0, plan - paid));
+    const adjustment = Math.max(0, Math.round((plan - paid - due) * 100) / 100);
+    return { paid, due, adjustment };
+  });
 
   get routeParams(): Record<string, string> {
     return collectRouteParams(this.route.snapshot);
@@ -266,15 +281,25 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
       });
   }
 
+  private selectedPlanCatalog(): PlanResponse | undefined {
+    return this.planCatalog().find((p) => p.id === this.f.planId.value);
+  }
+
   private selectedPlanDurationDays(): number {
-    const planId = this.f.planId.value;
-    const catalog = this.planCatalog().find((p) => p.id === planId);
+    const catalog = this.selectedPlanCatalog();
     return catalog?.durationInDays && catalog.durationInDays > 0 ? catalog.durationInDays : 30;
   }
 
   onPlanIdChange(): void {
     this.planEndAuto = true;
+    this.paidAuto = true;
     this.recalculatePlanEndDate();
+    const price = this.selectedPlanCatalog()?.price ?? 0;
+    this.selectedPlanPrice.set(price);
+    this.f.paidAmount.setValue(price);
+    this.f.dueAmount.setValue(0);
+    this.paidPreview.set(price);
+    this.duePreview.set(0);
   }
 
   onPlanStartDateChange(): void {
@@ -285,6 +310,15 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
 
   onPlanEndDateChange(): void {
     this.planEndAuto = false;
+  }
+
+  onPaidAmountChange(): void {
+    this.paidAuto = false;
+    this.paidPreview.set(Number(this.f.paidAmount.value) || 0);
+  }
+
+  onDueAmountChange(): void {
+    this.duePreview.set(Number(this.f.dueAmount.value) || 0);
   }
 
   private recalculatePlanEndDate(): void {
@@ -429,6 +463,8 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
       membershipNo: formValue.membershipNo?.trim() ? formValue.membershipNo.trim() : undefined,
       planStartDate: formValue.planStartDate || undefined,
       planEndDate: formValue.planEndDate || undefined,
+      paidAmount: formValue.paidAmount ?? undefined,
+      dueAmount: formValue.dueAmount ?? 0,
     };
 
     this.memberService.createMember(formValue.institutionId, formValue.branchId, formValue.libraryId, request).pipe(

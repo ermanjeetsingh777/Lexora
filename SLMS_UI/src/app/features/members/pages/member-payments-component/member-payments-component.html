@@ -36,6 +36,7 @@
                     <th class="px-4 py-2 font-medium text-right">Amount</th>
                     <th class="px-4 py-2 font-medium text-right">Adjustment</th>
                     <th class="px-4 py-2 font-medium text-right">Paid</th>
+                    <th class="px-4 py-2 font-medium text-right">Due</th>
                     <th class="px-4 py-2 font-medium text-right w-36">Actions</th>
                 </tr>
             </thead>
@@ -59,6 +60,7 @@
                     <td class="px-4 py-2.5 text-right tabular-nums">₹{{ p.price.toLocaleString() }}</td>
                     <td class="px-4 py-2.5 text-right text-red-600 tabular-nums">₹{{ (p.adjustmentAmount || 0).toLocaleString() }}</td>
                     <td class="px-4 py-2.5 text-right text-green-600 tabular-nums">₹{{ (p.paidAmount || 0).toLocaleString() }}</td>
+                    <td class="px-4 py-2.5 text-right tabular-nums" [class.text-rose-600]="(p.dueAmount || 0) > 0">₹{{ (p.dueAmount || 0).toLocaleString() }}</td>
                     <td class="px-4 py-2.5">
                         <div class="flex items-center justify-end gap-1.5">
                             <button type="button" (click)="downloadPlan(p)"

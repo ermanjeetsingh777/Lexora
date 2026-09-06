@@ -40,23 +40,48 @@ public static class MemberPlanMetricsHelper
             return (daysRemaining, 0, MemberPlanStatus.Expired);
         }
 
-        return (daysRemaining, planPrice, MemberPlanStatus.Expired);
+        // Expired past grace — do not auto-create plan-price dues; dues are manual (DueAmount).
+        return (daysRemaining, 0, MemberPlanStatus.Expired);
     }
 
     /// <summary>
-    /// Pending plan payments: unpaid balance on the current plan, or full plan price after grace expiry.
+    /// Fees owed = manual DueAmount only.
+    /// Plan − Paid shortfall is Adjustment (discount), not due.
     /// </summary>
-    public static decimal ComputeMemberFeesOwed(
-        DateOnly? planEndDate,
-        decimal planAmount,
-        decimal paidAmount,
-        DateOnly today)
+    public static decimal ComputeMemberFeesOwed(decimal dueAmount)
     {
-        var (_, expiredDue, _) = ComputePlanMetrics(planEndDate, planAmount, today);
-        var partialDue = planAmount > 0
-            ? Math.Max(0, planAmount - paidAmount)
+        return Math.Max(0, dueAmount);
+    }
+
+    /// <summary>
+    /// Split plan money: Amount = Paid + Adjustment + Due.
+    /// Shortfall without due → Adjustment. Due is only what the user sets.
+    /// </summary>
+    public static (decimal Paid, decimal Adjustment, decimal Due) ResolvePlanMoney(
+        decimal planAmount,
+        decimal? requestedPaid,
+        decimal? requestedDue,
+        decimal defaultPaidFallback)
+    {
+        var paid = requestedPaid.HasValue
+            ? Math.Round(Math.Max(0, requestedPaid.Value), 2, MidpointRounding.AwayFromZero)
+            : Math.Round(Math.Max(0, defaultPaidFallback), 2, MidpointRounding.AwayFromZero);
+
+        var due = requestedDue.HasValue
+            ? Math.Round(Math.Max(0, requestedDue.Value), 2, MidpointRounding.AwayFromZero)
             : 0m;
 
-        return expiredDue > 0 ? expiredDue : partialDue;
+        if (paid > planAmount)
+        {
+            paid = planAmount;
+        }
+
+        if (paid + due > planAmount)
+        {
+            due = Math.Max(0, Math.Round(planAmount - paid, 2, MidpointRounding.AwayFromZero));
+        }
+
+        var adjustment = Math.Max(0, Math.Round(planAmount - paid - due, 2, MidpointRounding.AwayFromZero));
+        return (paid, adjustment, due);
     }
 }

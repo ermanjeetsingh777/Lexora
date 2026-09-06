@@ -11,6 +11,7 @@
         public DateOnly EndDate { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal? AdjustmentAmount { get; set; }
+        public decimal DueAmount { get; set; }
         public string? PaymentStatus { get; set; }
         public string? PaymentMethod { get; set; }
         public bool IsCurrent { get; set; }

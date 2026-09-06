@@ -43,6 +43,7 @@ function planRows(plans: MemberPlanResponse[]): string[][] {
     formatCurrency(p.price),
     formatCurrency(p.adjustmentAmount ?? 0),
     formatCurrency(p.paidAmount ?? 0),
+    formatCurrency(p.dueAmount ?? 0),
     p.paymentStatus ?? '—',
   ]);
 }
@@ -78,6 +79,7 @@ export function buildMemberPlanShareMessage(
       label('Amount', formatCurrency(p.price)),
       label('Adjustment', formatCurrency(p.adjustmentAmount ?? 0)),
       label('Paid', formatCurrency(p.paidAmount ?? 0)),
+      label('Due', formatCurrency(p.dueAmount ?? 0)),
       p.paymentStatus ? label('Payment', p.paymentStatus) : '',
       '',
     );
@@ -158,7 +160,7 @@ export function downloadMemberPlansPdf(
 
   autoTable(doc, {
     startY: tableStartY + 16,
-    head: [['Date', 'Plan', 'Status', 'Validity', 'Amount', 'Adjustment', 'Paid', 'Payment']],
+    head: [['Date', 'Plan', 'Status', 'Validity', 'Amount', 'Adjustment', 'Paid', 'Due', 'Payment']],
     body: planRows(targetPlans),
     styles: { fontSize: 8, cellPadding: 4 },
     headStyles: { fillColor: [37, 99, 235], textColor: 255 },

@@ -59,6 +59,47 @@
         <p class="text-xs text-destructive">End date must be after start date.</p>
       }
 
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Plan amount</label>
+          <input
+            type="text"
+            class="flex h-9 w-full rounded-md border border-input bg-muted/40 px-3 py-1 text-sm tabular-nums"
+            [value]="planAmount() | currency:'INR'"
+            readonly />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Paid amount</label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring tabular-nums"
+            [ngModel]="paidAmount()"
+            (ngModelChange)="onPaidAmountChange($event)" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Due amount</label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring tabular-nums"
+            [ngModel]="dueAmount()"
+            (ngModelChange)="onDueAmountChange($event)" />
+          <p class="text-[11px] text-muted-foreground">Optional collectible balance</p>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Adjustment</label>
+          <input
+            type="text"
+            class="flex h-9 w-full rounded-md border border-input bg-muted/40 px-3 py-1 text-sm tabular-nums"
+            [value]="adjustmentAmount() | currency:'INR'"
+            readonly />
+          <p class="text-[11px] text-muted-foreground">Plan − paid − due</p>
+        </div>
+      </div>
+
       <div class="rounded-lg border bg-muted/30 p-3">
         <div class="flex items-center gap-3">
           <div class="flex-1">

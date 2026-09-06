@@ -11,7 +11,9 @@ import {
   LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
   LucideFileSpreadsheet,
   LucideKeyRound,
+  LucideMessageCircle,
 } from '@lucide/angular';
+import { WhatsAppService } from '@core/services/whatsapp.service';
 import { AttendanceModuleQuery } from '@core/models/attendanceModels';
 import { AttendanceExportService } from '@features/attendance/attendance-export.service';
 import {
@@ -31,7 +33,7 @@ import { AuthService } from '@core/services/auth.service';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { PermissionKey } from '@core/constants/permissions';
 import { MemberService } from '../MemberService';
-import { MemberListResponse } from '@core/models/MemberRequest';
+import { MemberDetailResponse, MemberListResponse } from '@core/models/MemberRequest';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
 import { ViewMode } from '@core/constType';
 import { CommonService } from '@core/services/common.service';
@@ -89,6 +91,7 @@ interface MemberRow extends MemberListResponse {
     LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
     LucideFileSpreadsheet,
     LucideKeyRound,
+    LucideMessageCircle,
     RenewPlanDialogComponent,
     MemberAvatarComponent,
   ],
@@ -105,6 +108,7 @@ export class MembersListComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly entitlements = inject(OrganizationEntitlementService);
   private readonly exportService = inject(AttendanceExportService);
+  private readonly whatsapp = inject(WhatsAppService);
   readonly commonService = inject(CommonService);
 
   readonly loading = signal(true);
@@ -481,7 +485,10 @@ export class MembersListComponent implements OnInit {
     const dates = {
       startDate: target.startDate || undefined,
       endDate: target.endDate || undefined,
+      paidAmount: target.paidAmount,
+      dueAmount: target.dueAmount ?? 0,
     };
+    const wasExpired = target.daysLeft < 0;
 
     if (!target.hasPlan) {
       const planId = target.selectedPlanId;
@@ -496,6 +503,7 @@ export class MembersListComponent implements OnInit {
           this.toast.success(response.message ?? `${target.name} plan assigned`);
           this.closeRenew();
           this.loadAllMembers();
+          this.notifyRenewWhatsApp(response.data, target, wasExpired);
         },
         error: (error) => {
           this.renewBusy.set(false);
@@ -510,11 +518,55 @@ export class MembersListComponent implements OnInit {
         this.toast.success(response.message ?? `${target.name} renewed`);
         this.closeRenew();
         this.loadAllMembers();
+        this.notifyRenewWhatsApp(response.data, target, wasExpired);
       },
       error: (error) => {
         this.renewBusy.set(false);
         this.toast.error(error.error?.message || 'Unable to renew plan. Please try again.');
       }
+    });
+  }
+
+  notifyPaymentWhatsApp(m: MemberRow): void {
+    if (!m.phone) {
+      this.toast.error('Member phone number is required for WhatsApp.');
+      return;
+    }
+    this.whatsapp.membershipRenewalPayment({
+      phone: m.phone,
+      memberName: m.name,
+      plan: m.plan || 'Plan',
+      planAmount: m.planPrice ?? 0,
+      paidAmount: m.paidAmount ?? 0,
+      dueAmount: m.dueAmount ?? m.feesOwed ?? 0,
+      dueOrExpiry: m.life.expiry || '—',
+      libraryName: m.library || 'Lexora Library',
+      expired: m.life.state === 'Expired' || m.life.state === 'Grace',
+    });
+  }
+
+  private notifyRenewWhatsApp(
+    member: MemberDetailResponse | null | undefined,
+    target: RenewTarget,
+    expired: boolean,
+  ): void {
+    const phone = member?.phone;
+    if (!phone) return;
+    const planAmount = target.planPrice ?? member?.planPrice ?? 0;
+    const paid = target.paidAmount ?? member?.planPaidAmount ?? planAmount;
+    const due = member?.planEndDate
+      ? new Date(member.planEndDate).toLocaleDateString()
+      : (target.endDate || '—');
+    this.whatsapp.membershipRenewalPayment({
+      phone,
+      memberName: target.name,
+      plan: member?.plan || target.plan || 'Plan',
+      planAmount,
+      paidAmount: paid,
+      dueAmount: target.dueAmount ?? member?.planDueAmount ?? member?.feesOwed ?? 0,
+      dueOrExpiry: due,
+      libraryName: member?.library || 'Lexora Library',
+      expired,
     });
   }
 

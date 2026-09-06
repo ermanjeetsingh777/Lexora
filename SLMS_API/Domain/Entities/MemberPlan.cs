@@ -13,7 +13,10 @@ namespace SLMS_API.Domain.Entities
         public DateOnly EndDate { get; set; }
         public decimal Amount { get; set; }
         public decimal PaidAmount { get; set; }
+        /// <summary>Waived / discounted portion (plan − paid − due). Not collectible.</summary>
         public decimal? AdjustmentAmount { get; set; }
+        /// <summary>Outstanding amount the member still owes (manual). Fees due = this field.</summary>
+        public decimal DueAmount { get; set; }
         public bool IsCurrent { get; set; }
     }
 }

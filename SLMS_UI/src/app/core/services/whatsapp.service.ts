@@ -20,17 +20,17 @@ export class WhatsAppService {
     window.open(url, '_blank');
   }
 
-  paymentSuccess(phone: string, memberName: string,amount: number, plan: string,expiryDate: string, libraryName: string): void {
+  paymentSuccess(phone: string, memberName: string, amount: number, plan: string, expiryDate: string, libraryName: string): void {
 
-    const message = `🎉 *Payment Successful*
+    const message = `Payment Successful
 
 Hello ${memberName},
 
 Your payment has been received successfully.
 
-💰 Amount : ₹${amount}
-📚 Plan : ${plan}
-📅 Valid Till : ${expiryDate}
+Amount : Rs.${amount}
+Plan : ${plan}
+Valid Till : ${expiryDate}
 
 Thank you for choosing our library.
 
@@ -40,16 +40,16 @@ ${libraryName}`;
     this.send(phone, message);
   }
 
-  paymentPending(phone: string,memberName: string,amount: number, dueDate: string, libraryName: string ): void {
+  paymentPending(phone: string, memberName: string, amount: number, dueDate: string, libraryName: string): void {
 
-    const message = `⚠️ *Payment Pending*
+    const message = `Payment Pending
 
 Hello ${memberName},
 
 Your membership payment is still pending.
 
-💰 Amount : ₹${amount}
-📅 Due Date : ${dueDate}
+Amount Due : Rs.${amount}
+Due Date : ${dueDate}
 
 Please complete your payment before the due date.
 
@@ -59,16 +59,16 @@ ${libraryName}`;
     this.send(phone, message);
   }
 
-  paymentReminder(phone: string, memberName: string, amount: number, dueDate: string, libraryName: string ): void {
+  paymentReminder(phone: string, memberName: string, amount: number, dueDate: string, libraryName: string): void {
 
-    const message = `🔔 *Payment Reminder*
+    const message = `Payment Reminder
 
 Hello ${memberName},
 
 This is a friendly reminder.
 
-💰 Amount : ₹${amount}
-📅 Due Date : ${dueDate}
+Amount : Rs.${amount}
+Due Date : ${dueDate}
 
 Kindly pay before the due date.
 
@@ -78,9 +78,47 @@ ${libraryName}`;
     this.send(phone, message);
   }
 
-  attendanceAbsent(phone: string,memberName: string, libraryName: string): void {
+  /** Expired / renew payment request — Feature 1: WhatsApp payment notify */
+  membershipRenewalPayment(opts: {
+    phone: string;
+    memberName: string;
+    plan: string;
+    planAmount: number;
+    paidAmount: number;
+    /** Manual outstanding due only (not plan − paid). */
+    dueAmount?: number;
+    dueOrExpiry: string;
+    libraryName: string;
+    expired?: boolean;
+  }): void {
+    const balance = Math.max(0, Math.round((opts.dueAmount ?? 0) * 100) / 100);
+    const heading = opts.expired ? 'Membership Expired - Payment Request' : 'Membership Renewal - Payment';
+    const intro = opts.expired
+      ? `Your membership has expired. Please renew and complete payment to continue.`
+      : `Your membership has been renewed. Payment details are below.`;
 
-    const message = `⚠️ *Attendance Alert*
+    const message = `${heading}
+
+Hello ${opts.memberName},
+
+${intro}
+
+Plan : ${opts.plan}
+Plan Amount : Rs.${opts.planAmount}
+Paid Amount : Rs.${opts.paidAmount}${balance > 0 ? `\nBalance Due : Rs.${balance}` : ''}
+Valid / Due : ${opts.dueOrExpiry}
+
+Please complete any pending payment at the earliest.
+
+Regards,
+${opts.libraryName}`;
+
+    this.send(opts.phone, message);
+  }
+
+  attendanceAbsent(phone: string, memberName: string, libraryName: string): void {
+
+    const message = `Attendance Alert
 
 Hello,
 
@@ -101,16 +139,16 @@ ${libraryName}`;
     estimatedFine: number,
     libraryName: string,
   ): void {
-    const message = `📚 *Book Return Reminder*
+    const message = `Book Return Reminder
 
 Hello ${memberName},
 
 Please return the following book as soon as possible:
 
-📖 Book: ${bookTitle}
-📅 Due date: ${dueDate}
-⏰ Overdue by: ${daysOverdue} day(s)
-💰 Estimated fine: ₹${estimatedFine}
+Book: ${bookTitle}
+Due date: ${dueDate}
+Overdue by: ${daysOverdue} day(s)
+Estimated fine: Rs.${estimatedFine}
 
 Regards,
 ${libraryName}`;

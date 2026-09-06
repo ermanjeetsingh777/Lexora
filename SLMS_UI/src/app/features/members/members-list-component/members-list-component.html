@@ -59,7 +59,7 @@
 <app-glass-card class="block mb-4">
   <div class="members-attendance-export__header">
     <h4 class="members-attendance-export__title">Attendance report</h4>
-    <p class="members-attendance-export__desc">Download check-in records for all members you can access.</p>
+    <p class="members-attendance-export__desc">Open detailed records or download check-ins for members you can access.</p>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
     <div>
@@ -81,6 +81,12 @@
       />
     </div>
     <div class="flex flex-wrap items-end gap-2">
+      <a routerLink="/attendance/records"
+        [queryParams]="{ dateFrom: attendanceDateFrom(), dateTo: attendanceDateTo() }">
+        <app-button variant="default" size="sm">
+          View report
+        </app-button>
+      </a>
       <app-button variant="outline" size="sm" [disabled]="attendanceExporting()" (click)="exportAttendanceReport('excel')">
         <svg lucideFileSpreadsheet class="h-4 w-4 mr-1.5"></svg>
         Excel
@@ -544,13 +550,14 @@
               }
             </td>
             <td class="px-2 py-2.5 w-40">
-              <div class="flex items-center gap-2">
+              <a [routerLink]="['/members', m.id]" [queryParams]="attendanceReportQuery"
+                class="flex items-center gap-2 hover:opacity-80" title="Open attendance report">
                 <div class="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                   <div class="h-full rounded-full" [class]="commonService.attendanceBarClass(m.attendanceRate)"
                     [style.width]="m.attendanceRate + '%'"></div>
                 </div>
                 <span class="text-xs tabular-nums w-8 text-right">{{ m.attendanceRate }}%</span>
-              </div>
+              </a>
             </td>
             <td class="px-2 py-2.5 text-xs tabular-nums">
               <div class="flex flex-col gap-0.5">
@@ -599,6 +606,10 @@
                     <a [routerLink]="['/members', m.id]" (click)="closeDropdown()"
                       class="flex items-center gap-2 px-3 py-1.5 hover:bg-accent cursor-pointer">
                       <svg lucideEye class="h-4 w-4"></svg> View profile
+                    </a>
+                    <a [routerLink]="['/members', m.id]" [queryParams]="attendanceReportQuery" (click)="closeDropdown()"
+                      class="flex items-center gap-2 px-3 py-1.5 hover:bg-accent cursor-pointer">
+                      <svg lucideFileSpreadsheet class="h-4 w-4"></svg> Attendance report
                     </a>
                     @if (canUpdate) {
                       <button type="button" (click)="renewPlan(m); closeDropdown()"
@@ -714,14 +725,17 @@
           </button>
         </div>
         }
-        <div class="mt-3 relative pointer-events-none">
-          <div class="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>Attendance</span><span class="tabular-nums">{{ m.attendanceRate }}%</span>
-          </div>
-          <div class="h-1.5 rounded-full bg-muted overflow-hidden">
-            <div class="h-full rounded-full" [class]="commonService.attendanceBarClass(m.attendanceRate)"
-              [style.width]="m.attendanceRate + '%'"></div>
-          </div>
+        <div class="mt-3 relative z-10">
+          <a [routerLink]="['/members', m.id]" [queryParams]="attendanceReportQuery"
+            class="block" (click)="$event.stopPropagation()" title="Open attendance report">
+            <div class="flex justify-between text-xs text-muted-foreground mb-1">
+              <span>Attendance</span><span class="tabular-nums">{{ m.attendanceRate }}%</span>
+            </div>
+            <div class="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div class="h-full rounded-full" [class]="commonService.attendanceBarClass(m.attendanceRate)"
+                [style.width]="m.attendanceRate + '%'"></div>
+            </div>
+          </a>
         </div>
         <div class="mt-3 flex items-center justify-between relative">
           <div class="text-xs text-muted-foreground pointer-events-none">
@@ -855,14 +869,14 @@
         <div class="label-mono text-[10px]">Days left</div>
         <div class="text-sm truncate">{{ qm.life.relative }}</div>
       </div>
-      <div class="border rounded-md p-2">
+      <a [routerLink]="['/members', qm.id]" [queryParams]="attendanceReportQuery" (click)="closeQuick()" class="border rounded-md p-2 hover:border-primary/50 transition-colors block">
         <div class="label-mono text-[10px]">Attendance</div>
         <div class="text-sm truncate">{{ qm.attendanceRate }}%</div>
-      </div>
-      <div class="border rounded-md p-2">
+      </a>
+      <a [routerLink]="['/members', qm.id]" [queryParams]="attendanceReportQuery" (click)="closeQuick()" class="border rounded-md p-2 hover:border-primary/50 transition-colors block">
         <div class="label-mono text-[10px]">Visits · 30d</div>
         <div class="text-sm truncate">{{ qm.visits30d }}</div>
-      </div>
+      </a>
       <div class="border rounded-md p-2">
         <div class="label-mono text-[10px]">Fees due</div>
         <div class="text-sm truncate">{{ qm.feesOwed > 0 ? '₹' + qm.feesOwed.toLocaleString() : 'Clear' }}</div>

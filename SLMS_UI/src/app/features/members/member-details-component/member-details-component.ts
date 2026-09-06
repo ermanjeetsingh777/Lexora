@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { AppDatePipe, AppDateTimePipe, AppTimePipe } from '@core/pipes/app-date.pipes';
 import { FormsModule } from '@angular/forms';
@@ -143,6 +144,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly attendanceService = inject(AttendanceService);
   private readonly attendanceExportService = inject(AttendanceExportService);
   private readonly memberPortal = inject(MemberPortalService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly isMemberPortalView = computed(
     () => this.auth.isMemberPortalUser() && this.memberPortal.memberId() === this.memberId,
@@ -684,6 +686,26 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     this.loadAttendanceCalendar();
     this.loadRecentAttendance();
     this.loadAttendanceStatistics();
+    this.applyAttendanceDeepLinkFromQuery();
+  }
+
+  /** Open Attendance report tab (and optional date range) from ?tab=attendance&dateFrom=&dateTo= */
+  private applyAttendanceDeepLinkFromQuery(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const dateFrom = params.get('dateFrom');
+      const dateTo = params.get('dateTo');
+      if (dateFrom) {
+        this.attendanceDateFrom.set(dateFrom);
+      }
+      if (dateTo) {
+        this.attendanceDateTo.set(dateTo);
+      }
+
+      const tab = params.get('tab') as TabId | null;
+      if (tab && this.allTabs.some((t) => t.value === tab)) {
+        this.setTab(tab);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -1182,6 +1204,12 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   openAttendanceHistory(): void {
     this.setTab('attendance');
     this.attendanceLogPage.set(1);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: 'attendance' },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     setTimeout(() => {
       document.getElementById('attendance-check-in-log')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);

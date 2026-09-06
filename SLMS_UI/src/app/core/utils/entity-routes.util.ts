@@ -52,6 +52,17 @@ export function memberDetailLink(memberId: string, ctx: ScopedNavContext): strin
   return ['/members', memberId];
 }
 
+/** Query params to open member details on the Attendance report tab. */
+export function memberAttendanceReportQuery(opts?: {
+  dateFrom?: string | null;
+  dateTo?: string | null;
+}): { tab: string; dateFrom?: string; dateTo?: string } {
+  const q: { tab: string; dateFrom?: string; dateTo?: string } = { tab: 'attendance' };
+  if (opts?.dateFrom) q.dateFrom = opts.dateFrom;
+  if (opts?.dateTo) q.dateTo = opts.dateTo;
+  return q;
+}
+
 export function memberEditLink(memberId: string, ctx: ScopedNavContext): string[] {
   if (ctx.libraryId) {
     return ['/libraries', ctx.libraryId, 'members', memberId, 'edit'];

@@ -1,7 +1,8 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideChevronLeft, LucideChevronRight, LucideDownload, LucideFileSpreadsheet, LucideSearch } from '@lucide/angular';
 import {
   AttendanceModuleQuery,
@@ -14,7 +15,7 @@ import { ToastService } from '@core/services/toast.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
-import { memberDetailLink } from '@core/utils/entity-routes.util';
+import { memberDetailLink, memberAttendanceReportQuery } from '@core/utils/entity-routes.util';
 import { formatAttendanceDisplayTime } from '../attendance-format.util';
 import { AttendanceFilterService } from '../attendance-filter.service';
 import { AttendanceExportService } from '../attendance-export.service';
@@ -57,6 +58,8 @@ export class AttendanceRecordsComponent {
   private readonly filters = inject(AttendanceFilterService);
   private readonly toast = inject(ToastService);
   private readonly exportService = inject(AttendanceExportService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly exporting = signal(false);
@@ -77,6 +80,15 @@ export class AttendanceRecordsComponent {
   readonly Math = Math;
 
   constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const dateFrom = params.get('dateFrom');
+      const dateTo = params.get('dateTo');
+      const libraryId = params.get('libraryId');
+      if (dateFrom) this.dateFrom.set(dateFrom);
+      if (dateTo) this.dateTo.set(dateTo);
+      if (libraryId) this.filters.setLibraryId(libraryId);
+    });
+
     effect(() => {
       this.filters.libraryId();
       this.filters.librariesLoaded();
@@ -102,6 +114,13 @@ export class AttendanceRecordsComponent {
 
   memberLink(record: AttendanceRecordListItem): string[] {
     return memberDetailLink(record.memberId, { libraryId: record.libraryId });
+  }
+
+  memberAttendanceQuery() {
+    return memberAttendanceReportQuery({
+      dateFrom: this.dateFrom(),
+      dateTo: this.dateTo(),
+    });
   }
 
   onDateFromChange(value: string): void {

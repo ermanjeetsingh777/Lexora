@@ -15,7 +15,7 @@
     <div class="scoped-members-export-card__header">
       <div>
         <h4 class="scoped-members-export-card__title">Attendance report</h4>
-        <p class="scoped-members-export-card__desc">Download check-in records for all members in this library.</p>
+        <p class="scoped-members-export-card__desc">Open detailed records or download check-ins for this library.</p>
       </div>
     </div>
     <div class="scoped-members-export-card__controls">
@@ -38,6 +38,10 @@
         />
       </div>
       <div class="scoped-members-export-card__actions">
+        <a routerLink="/attendance/records"
+          [queryParams]="{ dateFrom: attendanceDateFrom(), dateTo: attendanceDateTo(), libraryId: libraryId() || null }">
+          <app-button variant="default" size="sm">View report</app-button>
+        </a>
         <app-button variant="outline" size="sm" [disabled]="attendanceExporting()" (click)="exportLibraryAttendance('excel')">
           <svg lucideFileSpreadsheet class="h-4 w-4 mr-1.5"></svg>
           Excel
@@ -193,13 +197,21 @@
               <td class="py-2.5 pr-4 align-middle text-muted-foreground">{{ m.shift || '—' }}</td>
               <td class="py-2.5 pr-4 align-middle tabular-nums">{{ m.seatNumber || m.seat || '—' }}</td>
               <td class="py-2.5 pr-4 align-middle text-muted-foreground whitespace-nowrap">
-                @if (m.lastVisit) {
-                  {{ m.lastVisit | appDate }}
-                } @else {
-                  —
-                }
+                <a [routerLink]="memberDetailLink(m.id)" [queryParams]="attendanceReportQuery"
+                  class="hover:text-primary" title="Open attendance report">
+                  @if (m.lastVisit) {
+                    {{ m.lastVisit | appDate }}
+                  } @else {
+                    View report
+                  }
+                </a>
               </td>
               <td class="py-2.5 align-middle text-right">
+                <a [routerLink]="memberDetailLink(m.id)" [queryParams]="attendanceReportQuery" title="Attendance report">
+                  <app-button variant="ghost" size="icon" class="h-7 w-7">
+                    <svg lucideFileSpreadsheet class="h-4 w-4"></svg>
+                  </app-button>
+                </a>
                 <a [routerLink]="memberDetailLink(m.id)" title="View member">
                   <app-button variant="ghost" size="icon" class="h-7 w-7">
                     <svg lucideEye class="h-4 w-4"></svg>

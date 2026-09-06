@@ -38,6 +38,7 @@ import { PlanResponse } from '@core/models/institution-dropdown.model';
 import { ViewMode } from '@core/constType';
 import { CommonService } from '@core/services/common.service';
 import { PlanStatus } from '@core/enums/OnbardingSteps';
+import { memberAttendanceReportQuery } from '@core/utils/entity-routes.util';
 import {
   computeMemberLifecycle, LIFECYCLE_OPTS, LIFECYCLE_TONE_CLASSES, MEMBERS_FILTER_STORAGE_KEY,
   LifecycleState, lifecycleRelativeClass, lifecycleRowClass, MemberLifecycle, RenewTarget, renewTargetFromListMember,
@@ -117,6 +118,7 @@ export class MembersListComponent implements OnInit {
   readonly attendanceExporting = signal(false);
   readonly attendanceDateFrom = signal(monthStartIsoDate());
   readonly attendanceDateTo = signal(todayIsoDate());
+  readonly attendanceReportQuery = memberAttendanceReportQuery();
 
   readonly query = signal('');
   readonly statuses = signal<string[]>([]);

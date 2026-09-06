@@ -87,7 +87,7 @@
             <tr>
               <td class="tabular-nums whitespace-nowrap">{{ record.attendanceDate | date:'mediumDate' }}</td>
               <td>
-                <a [routerLink]="memberLink(record)" class="font-medium hover:text-primary">
+                <a [routerLink]="memberLink(record)" [queryParams]="memberAttendanceQuery()" class="font-medium hover:text-primary">
                   {{ record.memberName }}
                 </a>
                 <p class="text-xs text-muted-foreground font-mono">{{ record.membershipNo }}</p>

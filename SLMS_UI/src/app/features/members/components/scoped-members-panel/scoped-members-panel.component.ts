@@ -32,7 +32,7 @@ import { MemberService } from '../../MemberService';
 import { MemberAvatarComponent } from '../member-avatar/member-avatar.component';
 import { CommonService } from '@core/services/common.service';
 import { computeMemberLifecycle, MemberLifecycle } from '../../member-lifecycle.util';
-import { memberCreateLink, memberDetailLink as buildMemberDetailLink } from '@core/utils/entity-routes.util';
+import { memberCreateLink, memberDetailLink as buildMemberDetailLink, memberAttendanceReportQuery } from '@core/utils/entity-routes.util';
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -97,6 +97,7 @@ export class ScopedMembersPanelComponent {
   readonly attendanceExporting = signal(false);
   readonly attendanceDateFrom = signal(monthStartIsoDate());
   readonly attendanceDateTo = signal(todayIsoDate());
+  readonly attendanceReportQuery = memberAttendanceReportQuery();
   readonly error = signal<string | null>(null);
   readonly membersList = signal<MemberListResponse[]>([]);
   readonly query = signal('');

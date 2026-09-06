@@ -18,7 +18,7 @@ public interface IMemberService
     Task<Guid?> GetCurrentMemberIdAsync(CancellationToken cancellationToken = default);
     Task<MemberContactResponse> AddContactAsync(Guid memberId, CreateMemberContactRequest request, string? userId, CancellationToken cancellationToken = default);
     Task<MemberDetailResponse> ChangePlanOrShiftAsync(Guid memberId, ChangeMemberPlanShiftRequest request, string? userId, CancellationToken cancellationToken = default);
-    Task<MemberDetailResponse> RenewMembershipAsync(Guid memberId, string? userId, CancellationToken cancellationToken = default);
+    Task<MemberDetailResponse> RenewMembershipAsync(Guid memberId, ChangeMemberPlanShiftRequest? request, string? userId, CancellationToken cancellationToken = default);
     Task<MembershipSummaryResponse> GetMembershipSummaryAsync(CancellationToken cancellationToken = default);
     Task<MemberDetailResponse> UploadPhotoAsync(Guid memberId, IFormFile file, string? userId, CancellationToken cancellationToken = default);
     Task<(string FilePath, string ContentType, string FileName)?> GetPhotoAsync(Guid memberId, CancellationToken cancellationToken = default);

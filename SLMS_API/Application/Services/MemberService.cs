@@ -171,8 +171,12 @@ public class MemberService : IMemberService
             await _dbContext.Members.AddAsync(member, cancellationToken);
 
             // 3. Assign Plan
-            var startDate = DateOnly.FromDateTime(now);
-            var endDate = startDate.AddDays(plan.DurationInDays);
+            var (startDate, endDate) = ResolveMemberPlanDates(
+                request.PlanStartDate,
+                request.PlanEndDate,
+                plan.DurationInDays,
+                DateTime.UtcNow);
+
             await _dbContext.MemberPlans.AddAsync(new MemberPlan
             {
                 Id = Guid.NewGuid(),
@@ -618,6 +622,13 @@ public class MemberService : IMemberService
                 var amountToPay = newPlan.Price - adjustmentAmount;
 
                 if (amountToPay < 0) amountToPay = 0;
+
+                var (startDate, endDate) = ResolveMemberPlanDates(
+                    request.StartDate,
+                    request.EndDate,
+                    newPlan.DurationInDays,
+                    now);
+
                 // Create new plan history
                 var memberPlan = new MemberPlan
                 {
@@ -625,9 +636,8 @@ public class MemberService : IMemberService
                     MemberId = member.Id,
                     PlanId = newPlan.Id,
 
-                    StartDate = DateOnly.FromDateTime(now),
-
-                    EndDate = DateOnly.FromDateTime(now.AddDays(newPlan.DurationInDays)),
+                    StartDate = startDate,
+                    EndDate = endDate,
                     AdjustmentAmount = adjustmentAmount,
                     Amount = newPlan.Price,
                     PaidAmount = newPlan.Price - adjustmentAmount,
@@ -652,7 +662,11 @@ public class MemberService : IMemberService
 
     }
 
-    public async Task<MemberDetailResponse> RenewMembershipAsync(Guid memberId, string? userId, CancellationToken cancellationToken = default)
+    public async Task<MemberDetailResponse> RenewMembershipAsync(
+        Guid memberId,
+        ChangeMemberPlanShiftRequest? request,
+        string? userId,
+        CancellationToken cancellationToken = default)
     {
         var member = await _dbContext.Members
             .AsNoTracking()
@@ -674,7 +688,12 @@ public class MemberService : IMemberService
 
         return await ChangePlanOrShiftAsync(
             memberId,
-            new ChangeMemberPlanShiftRequest { PlanId = member.CurrentPlanId },
+            new ChangeMemberPlanShiftRequest
+            {
+                PlanId = request?.PlanId ?? member.CurrentPlanId,
+                StartDate = request?.StartDate,
+                EndDate = request?.EndDate,
+            },
             userId,
             cancellationToken);
     }
@@ -2176,6 +2195,36 @@ public class MemberService : IMemberService
             Email = entity.User?.Email?.EndsWith("@member.lexora.local", StringComparison.OrdinalIgnoreCase) == true ? null : entity.User?.Email,
             PhoneNumber = entity.PhoneNumber,
         };
+
+    private static (DateOnly Start, DateOnly End) ResolveMemberPlanDates(
+        DateTime? requestedStart,
+        DateTime? requestedEnd,
+        int durationInDays,
+        DateTime fallbackStartUtc)
+    {
+        var start = requestedStart.HasValue
+            ? DateOnly.FromDateTime(requestedStart.Value)
+            : DateOnly.FromDateTime(fallbackStartUtc);
+
+        var duration = durationInDays > 0 ? durationInDays : 30;
+
+        DateOnly end;
+        if (requestedEnd.HasValue)
+        {
+            end = DateOnly.FromDateTime(requestedEnd.Value);
+        }
+        else
+        {
+            end = start.AddDays(duration);
+        }
+
+        if (end <= start)
+        {
+            throw new InvalidOperationException("Plan end date must be after the start date.");
+        }
+
+        return (start, end);
+    }
 
     private static decimal CalculateAdjustmentAmount(decimal currentPlanPrice, int currentPlanDurationInDays, DateOnly currentPlanEndDate)
     {

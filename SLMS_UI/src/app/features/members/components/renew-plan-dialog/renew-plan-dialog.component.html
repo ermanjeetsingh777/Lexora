@@ -14,7 +14,7 @@
     <div class="px-5 py-4 space-y-4">
       @if (isAssignMode()) {
       <p class="text-sm text-muted-foreground">
-        {{ t.name }} has no active plan. Select a plan to start membership from today.
+        {{ t.name }} has no active plan. Choose a plan and membership dates.
       </p>
 
       <div class="space-y-1.5">
@@ -22,7 +22,7 @@
         <select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm
                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           [ngModel]="selectedPlanId()"
-          (ngModelChange)="selectedPlanId.set($event)">
+          (ngModelChange)="onPlanSelect($event)">
           <option value="">Select plan</option>
           @for (plan of plans(); track plan.id) {
           <option [value]="plan.id">{{ plan.name }} — {{ plan.price | currency:'INR' }} · {{ plan.durationInDays }}d</option>
@@ -31,8 +31,32 @@
       </div>
       } @else {
       <p class="text-sm text-muted-foreground">
-        Extend {{ t.name }}'s {{ t.plan }} plan by {{ preview().label }} from today.
+        Extend {{ t.name }}'s {{ t.plan }} plan. Edit start/end dates if needed (end defaults to start + {{ previewDuration() }} days).
       </p>
+      }
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">Start date</label>
+          <input
+            type="date"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="startDate()"
+            (ngModelChange)="onStartDateChange($event)" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium">End date</label>
+          <input
+            type="date"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="endDate()"
+            (ngModelChange)="onEndDateChange($event)" />
+          <p class="text-[11px] text-muted-foreground">Auto from start + plan days; you can override.</p>
+        </div>
+      </div>
+
+      @if (endDate() && startDate() && endDate() <= startDate()) {
+        <p class="text-xs text-destructive">End date must be after start date.</p>
       }
 
       <div class="rounded-lg border bg-muted/30 p-3">
@@ -61,12 +85,14 @@
           </div>
           <svg lucideArrowRight class="h-4 w-4 text-muted-foreground shrink-0"></svg>
           <div class="flex-1">
-            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">New expiry</div>
+            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">New window</div>
             <div class="text-sm font-medium tabular-nums text-success flex items-center gap-1">
               <svg lucideCalendarCheck class="h-3.5 w-3.5"></svg>
-              {{ formatRenewDate(preview().date) }}
+              {{ formatRenewDate(endDate()) }}
             </div>
-            <div class="text-[11px] text-muted-foreground">{{ preview().label }}</div>
+            <div class="text-[11px] text-muted-foreground">
+              {{ formatRenewDate(startDate()) }} → {{ formatRenewDate(endDate()) }}
+            </div>
           </div>
         </div>
         @if (t.feesOwed > 0) {

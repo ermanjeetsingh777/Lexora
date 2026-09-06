@@ -77,8 +77,8 @@ export class MemberService {
         return this.httpApi.post<MemberDetailResponse>('members/' + memberId + '/plan-or-shift', request);
     }
 
-    renewMembership(memberId: string): Observable<APIResponseModel<MemberDetailResponse>> {
-        return this.httpApi.post<MemberDetailResponse>('members/' + memberId + '/renew', {});
+    renewMembership(memberId: string, request?: ChangeMemberPlanShiftRequest): Observable<APIResponseModel<MemberDetailResponse>> {
+        return this.httpApi.post<MemberDetailResponse>('members/' + memberId + '/renew', request ?? {});
     }
 
     getLibraryPlan(institutionId: string, branchId: string, libraryId: string): Observable<APIResponseModel<PlanResponse[]>> {

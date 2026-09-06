@@ -11,5 +11,9 @@ public class CreateMemberRequest
     public string Shift { get; set; } = string.Empty;
     /// <summary>Optional custom member ID. Unique within the library. Blank = auto-generate library-wise.</summary>
     public string? MembershipNo { get; set; }
+    /// <summary>Optional plan start. Default = today (UTC). End auto = start + plan duration when End omitted.</summary>
+    public DateTime? PlanStartDate { get; set; }
+    /// <summary>Optional plan end. Must be after start. If omitted, start + plan.DurationInDays.</summary>
+    public DateTime? PlanEndDate { get; set; }
     public bool IsActive { get; set; }
 }

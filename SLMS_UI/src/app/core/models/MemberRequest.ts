@@ -12,6 +12,10 @@ export interface CreateMemberRequest {
   shift: Shift | null;
   /** Optional custom member ID (unique per library). Omit/blank = auto-generate. */
   membershipNo?: string | null;
+  /** Optional plan start (ISO date). Default today. */
+  planStartDate?: string | Date | null;
+  /** Optional plan end (ISO date). Default start + plan duration. */
+  planEndDate?: string | Date | null;
 }
 export interface CreateMemberResponse {
   id: string;
@@ -181,6 +185,10 @@ export interface MemberPlanResponse {
 export interface ChangeMemberPlanShiftRequest {
   planId?: string | null;
   shift?: string | null;
+  /** Optional plan start (ISO date). Default today. */
+  startDate?: string | Date | null;
+  /** Optional plan end (ISO date). Default start + plan duration. */
+  endDate?: string | Date | null;
 }
 
 export interface ChangeMemberPasswordRequest {

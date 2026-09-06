@@ -58,7 +58,13 @@ import { AttendanceService } from '@core/services/attendance.service';
 import { AttendanceCalendarResponse, AttendanceResponse, AttendanceStatisticsResponse, AttendanceStatus, CheckInRequest, CheckOutRequest, UpdateAttendanceRequest } from '@core/models/attendanceModels';
 import { PlanStatus } from '@core/enums/OnbardingSteps';
 import {
-  computeMemberLifecycle, LIFECYCLE_TONE_CLASSES, lifecycleBannerClass, MemberLifecycle, RenewTarget,
+  addDaysIso,
+  computeMemberLifecycle,
+  LIFECYCLE_TONE_CLASSES,
+  lifecycleBannerClass,
+  MemberLifecycle,
+  RenewTarget,
+  todayIsoLocal,
 } from '../member-lifecycle.util';
 import { RenewPlanDialogComponent } from '../components/renew-plan-dialog/renew-plan-dialog.component';
 import { MemberAttendanceCalendarComponent } from '../components/member-attendance-calendar/member-attendance-calendar.component';
@@ -221,6 +227,9 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly toShift = signal<Shift>('Morning');
   readonly selectedPlanId = signal<string>('');
   readonly selectedPlan = signal<PlanResponse | null>(null);
+  readonly planStartDate = signal(todayIsoLocal());
+  readonly planEndDate = signal(todayIsoLocal());
+  private planEndAuto = true;
   readonly dialogBusy = signal(false);
   readonly renewTarget = signal<RenewTarget | null>(null);
   readonly renewBusy = signal(false);
@@ -1261,6 +1270,35 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     );
 
     this.selectedPlan.set(currentPlan ?? null);
+    this.planEndAuto = true;
+    const start = todayIsoLocal();
+    this.planStartDate.set(start);
+    const duration = currentPlan?.durationInDays || member.planDurationInDays || 30;
+    this.planEndDate.set(addDaysIso(start, duration));
+  }
+
+  onPlanChange(planId: string): void {
+    this.selectedPlanId.set(planId);
+
+    const plan = this.plans().find(x => x.id === planId);
+
+    this.selectedPlan.set(plan ?? null);
+    this.planEndAuto = true;
+    const days = plan?.durationInDays || 30;
+    this.planEndDate.set(addDaysIso(this.planStartDate(), days));
+  }
+
+  onPlanStartDateChange(value: string): void {
+    this.planStartDate.set(value);
+    if (this.planEndAuto) {
+      const days = this.selectedPlan()?.durationInDays || this.memberDetails()?.planDurationInDays || 30;
+      this.planEndDate.set(addDaysIso(value, days));
+    }
+  }
+
+  onPlanEndDateChange(value: string): void {
+    this.planEndAuto = false;
+    this.planEndDate.set(value);
   }
 
   openPasswordDialog(): void {
@@ -1325,6 +1363,10 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
 
   confirmRenew(target: RenewTarget): void {
     this.renewBusy.set(true);
+    const dates = {
+      startDate: target.startDate || undefined,
+      endDate: target.endDate || undefined,
+    };
 
     if (!target.hasPlan) {
       const planId = target.selectedPlanId;
@@ -1334,7 +1376,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
         return;
       }
 
-      this.memberService.changePlanOrShift(target.id, { planId }).subscribe({
+      this.memberService.changePlanOrShift(target.id, { planId, ...dates }).subscribe({
         next: (response) => {
           this.memberDetails.set(response.data ?? null);
           this.toast.success(response.message ?? `${target.name} plan assigned`);
@@ -1348,7 +1390,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.memberService.renewMembership(target.id).subscribe({
+    this.memberService.renewMembership(target.id, dates).subscribe({
       next: (response) => {
         this.memberDetails.set(response.data ?? null);
         this.toast.success(response.message ?? `${target.name} renewed`);
@@ -1364,14 +1406,6 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   closeDialog(): void {
     this.dialog.set(null);
     this.dialogBusy.set(false);
-  }
-
-  onPlanChange(planId: string): void {
-    this.selectedPlanId.set(planId);
-
-    const plan = this.plans().find(x => x.id === planId);
-
-    this.selectedPlan.set(plan ?? null);
   }
 
   async confirmChangeShift(): Promise<void> {
@@ -1397,6 +1431,12 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     // Plan changed AND valid plan selected
     if (this.selectedPlanId() && this.dialog() ==='plan') {
       request.planId = this.selectedPlanId();
+      request.startDate = this.planStartDate();
+      request.endDate = this.planEndDate();
+      if (request.endDate && request.startDate && request.endDate <= request.startDate) {
+        this.toast.error('Plan end date must be after start date.');
+        return;
+      }
     }
 
     if (!request.shift && !request.planId) {

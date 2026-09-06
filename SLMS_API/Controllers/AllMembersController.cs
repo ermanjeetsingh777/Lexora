@@ -178,11 +178,14 @@ namespace SLMS_API.Controllers
 
         [HttpPost("{memberId:guid}/renew")]
         [Permission(PermissionKey.MembersUpdate)]
-        public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> RenewMembership(Guid memberId, CancellationToken cancellationToken)
+        public async Task<ActionResult<ApiResponse<MemberDetailResponse>>> RenewMembership(
+            Guid memberId,
+            [FromBody] ChangeMemberPlanShiftRequest? request,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var member = await _memberService.RenewMembershipAsync(memberId, _currentUserService.UserId, cancellationToken);
+                var member = await _memberService.RenewMembershipAsync(memberId, request, _currentUserService.UserId, cancellationToken);
                 var expiryLabel = member.PlanEndDate?.ToString("dd MMM yyyy") ?? "—";
                 var message = $"{member.Name} renewed — valid until {expiryLabel}";
 

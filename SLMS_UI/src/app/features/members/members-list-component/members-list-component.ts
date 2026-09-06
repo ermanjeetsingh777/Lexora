@@ -478,6 +478,10 @@ export class MembersListComponent implements OnInit {
 
   confirmRenew(target: RenewTarget): void {
     this.renewBusy.set(true);
+    const dates = {
+      startDate: target.startDate || undefined,
+      endDate: target.endDate || undefined,
+    };
 
     if (!target.hasPlan) {
       const planId = target.selectedPlanId;
@@ -487,7 +491,7 @@ export class MembersListComponent implements OnInit {
         return;
       }
 
-      this.memberService.changePlanOrShift(target.id, { planId }).subscribe({
+      this.memberService.changePlanOrShift(target.id, { planId, ...dates }).subscribe({
         next: (response) => {
           this.toast.success(response.message ?? `${target.name} plan assigned`);
           this.closeRenew();
@@ -501,7 +505,7 @@ export class MembersListComponent implements OnInit {
       return;
     }
 
-    this.memberService.renewMembership(target.id).subscribe({
+    this.memberService.renewMembership(target.id, dates).subscribe({
       next: (response) => {
         this.toast.success(response.message ?? `${target.name} renewed`);
         this.closeRenew();

@@ -1050,6 +1050,28 @@
       </p>
     </div>
 
+    <div class="grid grid-cols-2 gap-3">
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">Start date</label>
+        <input
+          type="date"
+          class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          [ngModel]="planStartDate()"
+          (ngModelChange)="onPlanStartDateChange($event)"
+          name="planStartDate" />
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium">End date</label>
+        <input
+          type="date"
+          class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          [ngModel]="planEndDate()"
+          (ngModelChange)="onPlanEndDateChange($event)"
+          name="planEndDate" />
+        <p class="text-[11px] text-muted-foreground">Auto from start + plan days; editable.</p>
+      </div>
+    </div>
+
     <!-- Adjustment Preview -->
     @if (selectedPlan()) {
     <div class="rounded-lg border bg-muted/30 p-4 space-y-2">

@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Shift } from '@core/constType';
-import { BranchDropdownResponse, InstitutionDropdownResponse, KeyValueResponse, LibraryDropdownResponse } from '@core/models/institution-dropdown.model';
+import { BranchDropdownResponse, InstitutionDropdownResponse, KeyValueResponse, LibraryDropdownResponse, PlanResponse } from '@core/models/institution-dropdown.model';
 import { ToastService } from '@core/services/toast.service';
 import { BranchService } from '@features/branches/branch.service';
 import { InstitutionsService } from '@features/institutions/institutions.service';
@@ -16,6 +16,7 @@ import { APIResponseModel } from '@core/models/APIResponseModel';
 import { CreateMemberRequest, MemberDetailResponse } from '@core/models/MemberRequest';
 import { CommonService } from '@core/services/common.service';
 import { collectRouteParams, memberCreateBackNav } from '@core/utils/entity-routes.util';
+import { addDaysIso, todayIsoLocal } from '../member-lifecycle.util';
 
 @Component({
   selector: 'app-create-member-component',
@@ -56,6 +57,8 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
     libraryId: ['', Validators.required],
     shift: this.fb.control<Shift>('General', Validators.required),
     planId: ['', Validators.required],
+    planStartDate: [todayIsoLocal(), Validators.required],
+    planEndDate: [addDaysIso(todayIsoLocal(), 30), Validators.required],
     membershipNo: ['', [Validators.maxLength(40), Validators.pattern(/^$|^[A-Za-z0-9][A-Za-z0-9._\-]*$/)]],
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
@@ -79,6 +82,9 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
   branches: WritableSignal<BranchDropdownResponse[]> = signal([]);
   libraries: WritableSignal<LibraryDropdownResponse[]> = signal([]);
   plans: WritableSignal<KeyValueResponse[]> = signal([]);
+  /** Full plan catalog for duration-based end-date calculation. */
+  readonly planCatalog = signal<PlanResponse[]>([]);
+  private planEndAuto = true;
   loader = signal(false);
 
   get routeParams(): Record<string, string> {
@@ -245,6 +251,46 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
   private loadPlansForLibrary(libraryId: string): void {
     const library = this.libraries().find((l) => l.value === libraryId);
     this.plans.set(library?.plans ?? []);
+    this.planCatalog.set([]);
+    if (!libraryId) return;
+
+    const institutionId = this.f.institutionId.value;
+    const branchId = this.f.branchId.value;
+    if (!institutionId || !branchId) return;
+
+    this.memberService.getLibraryPlan(institutionId, branchId, libraryId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => this.planCatalog.set(response.data ?? []),
+        error: () => this.planCatalog.set([]),
+      });
+  }
+
+  private selectedPlanDurationDays(): number {
+    const planId = this.f.planId.value;
+    const catalog = this.planCatalog().find((p) => p.id === planId);
+    return catalog?.durationInDays && catalog.durationInDays > 0 ? catalog.durationInDays : 30;
+  }
+
+  onPlanIdChange(): void {
+    this.planEndAuto = true;
+    this.recalculatePlanEndDate();
+  }
+
+  onPlanStartDateChange(): void {
+    if (this.planEndAuto) {
+      this.recalculatePlanEndDate();
+    }
+  }
+
+  onPlanEndDateChange(): void {
+    this.planEndAuto = false;
+  }
+
+  private recalculatePlanEndDate(): void {
+    const start = this.f.planStartDate.value;
+    if (!start) return;
+    this.f.planEndDate.setValue(addDaysIso(start, this.selectedPlanDurationDays()));
   }
 
   onInstitutionChange(): void {
@@ -366,6 +412,11 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
     }
 
     const formValue = this.memberForm.getRawValue();
+    if (formValue.planEndDate && formValue.planStartDate && formValue.planEndDate <= formValue.planStartDate) {
+      this.toast.error('Plan end date must be after start date.');
+      return;
+    }
+
     this.loader.set(true);
     const request: CreateMemberRequest = {
       fullName: formValue.name,
@@ -376,6 +427,8 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
       planId: formValue.planId,
       shift: formValue.shift,
       membershipNo: formValue.membershipNo?.trim() ? formValue.membershipNo.trim() : undefined,
+      planStartDate: formValue.planStartDate || undefined,
+      planEndDate: formValue.planEndDate || undefined,
     };
 
     this.memberService.createMember(formValue.institutionId, formValue.branchId, formValue.libraryId, request).pipe(

@@ -23,6 +23,27 @@ export interface RenewTarget {
   planDurationInDays: number;
   hasPlan: boolean;
   selectedPlanId?: string;
+  /** Editable renewal window (ISO yyyy-mm-dd). */
+  startDate?: string;
+  endDate?: string;
+}
+
+/** Add calendar days to an ISO date (yyyy-mm-dd). */
+export function addDaysIso(isoDate: string, days: number): string {
+  const d = new Date(`${isoDate.slice(0, 10)}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function todayIsoLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export const LIFECYCLE_OPTS: LifecycleState[] = ['New', 'Active', 'Expiring soon', 'Grace', 'Expired', 'No plan'];
@@ -121,14 +142,13 @@ export function computeMemberLifecycle(input: {
   };
 }
 
-/** BR-06.3 — preview new expiry from today + plan duration. */
-export function previewRenewal(durationInDays: number): { date: string; label: string } {
+/** Preview new expiry from start + plan duration. */
+export function previewRenewal(durationInDays: number, startIso?: string): { date: string; label: string; start: string } {
   const days = durationInDays > 0 ? durationInDays : 30;
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + days);
+  const start = startIso?.slice(0, 10) || todayIsoLocal();
+  const date = addDaysIso(start, days);
   const label = days >= 365 ? '+12 months' : days >= 90 ? `+${Math.round(days / 30)} months` : `+${days} days`;
-  return { date: d.toISOString().slice(0, 10), label };
+  return { date, label, start };
 }
 
 export function formatRenewDate(iso: string): string {

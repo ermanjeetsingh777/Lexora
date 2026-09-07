@@ -13,9 +13,13 @@ const COLUMN_INSTRUCTIONS: [string, string, string][] = [
   ['Email', 'No', 'Email address (optional). Used for login and notifications.'],
   ['PhoneNumber', 'Yes', '10-digit Indian mobile number starting with 6–9 (required).'],
   ['DateOfBirth', 'No', 'Date in yyyy-MM-dd format (optional, e.g. 2000-01-15).'],
-  ['Gender', 'Yes', 'Male, Female, or Other.'],
-  ['Shift', 'Yes', 'Morning, Afternoon, Evening, Night, Full, or General.'],
-  ['PlanName', 'Yes', 'Must match an active plan name listed below.'],
+  ['Gender', 'Yes', 'Dropdown: Male, Female, or Other.'],
+  ['Shift', 'Yes', 'Dropdown: Morning, Afternoon, Evening, Night, Full, or General.'],
+  ['PlanName', 'Yes', 'Dropdown — must match an active plan name listed below.'],
+  ['PlanAmount', 'Auto', 'Auto-filled from selected PlanName (do not edit).'],
+  ['PaidAmount', 'No', 'Amount actually paid. Blank = full plan amount.'],
+  ['DueAmount', 'No', 'Manual collectible due. Blank = 0. Shortfall without due = Adjustment.'],
+  ['AdjustmentAmount', 'Auto', 'Auto: Plan − Paid − Due (discount / waived).'],
   ['MembershipNo', 'No', 'Optional custom Member ID (unique in this library). Blank = auto-generate.'],
   ['PlanStartDate', 'No', 'Optional plan start (yyyy-MM-dd). Default = today.'],
   ['PlanEndDate', 'No', 'Optional plan end (yyyy-MM-dd). Default = start + plan days. Must be after start.'],
@@ -108,17 +112,28 @@ export function downloadMemberBulkTemplatePdf(
   doc.text('Sample row (Excel)', margin, y);
 
   const samplePlanName = plans[0]?.name ?? 'Monthly';
+  const samplePrice = plans[0]?.price ?? 0;
   const sampleStart = todayIsoLocal();
   const sampleEnd = addDaysIso(sampleStart, plans[0]?.durationInDays ?? 30);
   autoTable(doc, {
     startY: y + 8,
     head: [[
-      'FullName', 'Email', 'PhoneNumber', 'DateOfBirth', 'Gender', 'Shift',
-      'PlanName', 'MembershipNo', 'PlanStartDate', 'PlanEndDate',
+      'FullName', 'Email', 'Phone', 'DOB', 'Gender', 'Shift',
+      'PlanName', 'PlanAmt', 'Paid', 'Due', 'Adj', 'MemberID', 'Start', 'End',
     ]],
-    body: [[...SAMPLE_ROW, samplePlanName, 'LIB-00001', sampleStart, sampleEnd]],
+    body: [[
+      ...SAMPLE_ROW,
+      samplePlanName,
+      String(samplePrice),
+      String(samplePrice),
+      '0',
+      '0',
+      'LIB-00001',
+      sampleStart,
+      sampleEnd,
+    ]],
     margin: { left: margin, right: margin },
-    styles: { fontSize: 7, cellPadding: 3 },
+    styles: { fontSize: 6.5, cellPadding: 2.5 },
     headStyles: { fillColor: [45, 55, 72], textColor: 255 },
     theme: 'grid',
   });
@@ -157,6 +172,8 @@ export function downloadMemberBulkTemplatePdf(
   doc.setTextColor(90, 90, 90);
   const notes = [
     '• Email must be unique across the system.',
+    '• PlanName uses a dropdown; PlanAmount and AdjustmentAmount auto-fill in Excel.',
+    '• PaidAmount blank = full plan; DueAmount blank = 0; shortfall without due becomes Adjustment.',
     '• MembershipNo is optional and must be unique within the library; leave blank to auto-generate.',
     '• PlanStartDate / PlanEndDate are optional (yyyy-MM-dd). End defaults to start + plan duration.',
     '• Upload only the filled Excel (.xlsx) file — PDF is for reference only.',

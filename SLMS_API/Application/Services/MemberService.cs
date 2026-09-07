@@ -431,6 +431,8 @@ public class MemberService : IMemberService
                     MembershipNo = row.MembershipNo,
                     PlanStartDate = row.PlanStartDate,
                     PlanEndDate = row.PlanEndDate,
+                    PaidAmount = row.PaidAmount,
+                    DueAmount = row.DueAmount ?? 0,
                     IsActive = true
                 };
 

@@ -269,6 +269,8 @@ export class BulkUploadMembersComponent implements OnInit {
                 membershipNo: row.membershipNo.trim() || undefined,
                 planStartDate: toBulkPlanDateIso(row.planStartDate),
                 planEndDate: toBulkPlanDateIso(row.planEndDate),
+                paidAmount: row.paidAmount ?? undefined,
+                dueAmount: row.dueAmount ?? 0,
               }),
             );
 

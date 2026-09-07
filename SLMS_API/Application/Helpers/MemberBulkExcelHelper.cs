@@ -21,11 +21,20 @@ public sealed class BulkMemberExcelRow
     public string? RawPlanStartDate { get; init; }
     public DateTime? PlanEndDate { get; init; }
     public string? RawPlanEndDate { get; init; }
+    /// <summary>Optional amount paid. Null = full plan price.</summary>
+    public decimal? PaidAmount { get; init; }
+    public string? RawPaidAmount { get; init; }
+    /// <summary>Optional manual due. Null/blank = 0 (shortfall becomes Adjustment).</summary>
+    public decimal? DueAmount { get; init; }
+    public string? RawDueAmount { get; init; }
 }
 
 public static class MemberBulkExcelHelper
 {
     private const string MembersSheetName = "Members";
+    private const string PlansSheetName = "Plans";
+    private const int TemplateDataRows = 200;
+
     private static readonly Regex PhoneRegex = new(@"^[6-9]\d{9}$", RegexOptions.Compiled);
     private static readonly Regex MembershipNoRegex = new(@"^[A-Za-z0-9][A-Za-z0-9._\-]*$", RegexOptions.Compiled);
     private static readonly HashSet<string> ValidGenders = new(StringComparer.OrdinalIgnoreCase)
@@ -37,6 +46,10 @@ public static class MemberBulkExcelHelper
         "Morning", "Afternoon", "Evening", "Night", "Full", "General"
     };
 
+    // Column order in template (1-based):
+    // 1 FullName, 2 Email, 3 PhoneNumber, 4 DateOfBirth, 5 Gender, 6 Shift,
+    // 7 PlanName, 8 PlanAmount (auto), 9 PaidAmount, 10 DueAmount, 11 AdjustmentAmount (auto),
+    // 12 MembershipNo, 13 PlanStartDate, 14 PlanEndDate
     private static readonly string[] Headers =
     [
         "FullName",
@@ -46,6 +59,10 @@ public static class MemberBulkExcelHelper
         "Gender",
         "Shift",
         "PlanName",
+        "PlanAmount",
+        "PaidAmount",
+        "DueAmount",
+        "AdjustmentAmount",
         "MembershipNo",
         "PlanStartDate",
         "PlanEndDate"
@@ -53,13 +70,18 @@ public static class MemberBulkExcelHelper
 
     private static readonly Dictionary<string, string> HeaderAliases = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["fullnameName"] = "FullName",
+        ["FullName"] = "FullName",
         ["Email"] = "Email",
         ["PhoneNumber"] = "PhoneNumber",
         ["DateOfBirth"] = "DateOfBirth",
         ["Gender"] = "Gender",
         ["Shift"] = "Shift",
         ["PlanName"] = "PlanName",
+        ["PlanAmount"] = "PlanAmount",
+        ["PaidAmount"] = "PaidAmount",
+        ["DueAmount"] = "DueAmount",
+        ["AdjustmentAmount"] = "AdjustmentAmount",
+        ["Adjustment"] = "AdjustmentAmount",
         ["MembershipNo"] = "MembershipNo",
         ["MemberId"] = "MembershipNo",
         ["MemberID"] = "MembershipNo",
@@ -69,7 +91,48 @@ public static class MemberBulkExcelHelper
 
     public static byte[] GenerateTemplate(IEnumerable<(string Name, int DurationInDays, decimal Price)> plans)
     {
+        var planList = plans.ToList();
         using var workbook = new XLWorkbook();
+
+        var plansSheet = workbook.Worksheets.Add(PlansSheetName);
+        plansSheet.Cell(1, 1).Value = "PlanName";
+        plansSheet.Cell(1, 2).Value = "DurationInDays";
+        plansSheet.Cell(1, 3).Value = "Price";
+        plansSheet.Range(1, 1, 1, 3).Style.Font.Bold = true;
+
+        var planRow = 2;
+        foreach (var plan in planList)
+        {
+            plansSheet.Cell(planRow, 1).Value = plan.Name;
+            plansSheet.Cell(planRow, 2).Value = plan.DurationInDays;
+            plansSheet.Cell(planRow, 3).Value = plan.Price;
+            planRow++;
+        }
+
+        if (planRow == 2)
+        {
+            plansSheet.Cell(2, 1).Value = "Monthly";
+            plansSheet.Cell(2, 2).Value = 30;
+            plansSheet.Cell(2, 3).Value = 0;
+            planRow = 3;
+        }
+
+        var lastPlanRow = planRow - 1;
+        plansSheet.Columns().AdjustToContents();
+
+        var listsSheet = workbook.Worksheets.Add("Lists");
+        listsSheet.Cell(1, 1).Value = "Gender";
+        listsSheet.Cell(2, 1).Value = "Male";
+        listsSheet.Cell(3, 1).Value = "Female";
+        listsSheet.Cell(4, 1).Value = "Other";
+        listsSheet.Cell(1, 2).Value = "Shift";
+        listsSheet.Cell(2, 2).Value = "Morning";
+        listsSheet.Cell(3, 2).Value = "Afternoon";
+        listsSheet.Cell(4, 2).Value = "Evening";
+        listsSheet.Cell(5, 2).Value = "Night";
+        listsSheet.Cell(6, 2).Value = "Full";
+        listsSheet.Cell(7, 2).Value = "General";
+        listsSheet.Visibility = XLWorksheetVisibility.Hidden;
 
         var membersSheet = workbook.Worksheets.Add(MembersSheetName);
         for (var i = 0; i < Headers.Length; i++)
@@ -78,19 +141,60 @@ public static class MemberBulkExcelHelper
             membersSheet.Cell(1, i + 1).Style.Font.Bold = true;
         }
 
-        var samplePlan = plans.FirstOrDefault().Name ?? "Monthly";
+        var samplePlan = planList.FirstOrDefault();
+        var samplePlanName = string.IsNullOrWhiteSpace(samplePlan.Name) ? "Monthly" : samplePlan.Name;
+        var samplePrice = samplePlan.Price;
+        var sampleDuration = samplePlan.DurationInDays > 0 ? samplePlan.DurationInDays : 30;
         var today = DateTime.UtcNow.Date;
+
         membersSheet.Cell(2, 1).Value = "John Doe";
         membersSheet.Cell(2, 2).Value = "john.doe@example.com";
         membersSheet.Cell(2, 3).Value = "9876543210";
         membersSheet.Cell(2, 4).Value = "2000-01-15";
         membersSheet.Cell(2, 5).Value = "Male";
         membersSheet.Cell(2, 6).Value = "General";
-        membersSheet.Cell(2, 7).Value = samplePlan;
-        membersSheet.Cell(2, 8).Value = "LIB-00001";
-        membersSheet.Cell(2, 9).Value = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        membersSheet.Cell(2, 10).Value = today.AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        membersSheet.Cell(2, 7).Value = samplePlanName;
+        membersSheet.Cell(2, 9).Value = samplePrice;
+        membersSheet.Cell(2, 10).Value = 0;
+        membersSheet.Cell(2, 12).Value = "LIB-00001";
+        membersSheet.Cell(2, 13).Value = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        membersSheet.Cell(2, 14).Value = today.AddDays(sampleDuration).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        // PlanAmount = VLOOKUP from Plans; Adjustment = Plan − Paid − Due (Paid blank → full plan)
+        for (var r = 2; r <= TemplateDataRows + 1; r++)
+        {
+            membersSheet.Cell(r, 8).FormulaA1 =
+                $"IFERROR(VLOOKUP(G{r},{PlansSheetName}!$A$2:$C${lastPlanRow},3,FALSE),\"\")";
+            membersSheet.Cell(r, 11).FormulaA1 =
+                $"IFERROR(MAX(0,N(H{r})-IF(I{r}=\"\",N(H{r}),N(I{r}))-IF(J{r}=\"\",0,N(J{r}))),\"\")";
+        }
+
+        membersSheet.Range(2, 8, TemplateDataRows + 1, 8).Style.Fill.BackgroundColor = XLColor.FromHtml("#F3F4F6");
+        membersSheet.Range(2, 11, TemplateDataRows + 1, 11).Style.Fill.BackgroundColor = XLColor.FromHtml("#F3F4F6");
+
+        var planDv = membersSheet.Range(2, 7, TemplateDataRows + 1, 7).CreateDataValidation();
+        planDv.AllowedValues = XLAllowedValues.List;
+        planDv.List(plansSheet.Range(2, 1, lastPlanRow, 1));
+        planDv.IgnoreBlanks = true;
+        planDv.InCellDropdown = true;
+        planDv.ShowErrorMessage = true;
+        planDv.ErrorTitle = "Invalid plan";
+        planDv.ErrorMessage = "Select a plan from the dropdown (Plans sheet).";
+
+        var genderDv = membersSheet.Range(2, 5, TemplateDataRows + 1, 5).CreateDataValidation();
+        genderDv.AllowedValues = XLAllowedValues.List;
+        genderDv.List(listsSheet.Range(2, 1, 4, 1));
+        genderDv.IgnoreBlanks = true;
+        genderDv.InCellDropdown = true;
+
+        var shiftDv = membersSheet.Range(2, 6, TemplateDataRows + 1, 6).CreateDataValidation();
+        shiftDv.AllowedValues = XLAllowedValues.List;
+        shiftDv.List(listsSheet.Range(2, 2, 7, 2));
+        shiftDv.IgnoreBlanks = true;
+        shiftDv.InCellDropdown = true;
+
         membersSheet.Columns().AdjustToContents();
+        membersSheet.SheetView.FreezeRows(1);
 
         var instructionsSheet = workbook.Worksheets.Add("Instructions");
         instructionsSheet.Cell(1, 1).Value = "Column";
@@ -104,9 +208,13 @@ public static class MemberBulkExcelHelper
             ("Email", "No", "Email address (optional). If provided, used for login and notifications."),
             ("PhoneNumber", "Yes", "10-digit Indian mobile number starting with 6–9 (required)."),
             ("DateOfBirth", "No", "Date in yyyy-MM-dd format (optional)."),
-            ("Gender", "Yes", "Male, Female, or Other."),
-            ("Shift", "Yes", "Morning, Afternoon, Evening, Night, Full, or General."),
-            ("PlanName", "Yes", "Must match an active plan name for the selected library (see Plans sheet)."),
+            ("Gender", "Yes", "Use dropdown: Male, Female, or Other."),
+            ("Shift", "Yes", "Use dropdown: Morning, Afternoon, Evening, Night, Full, or General."),
+            ("PlanName", "Yes", "Use dropdown — plans listed on the Plans sheet."),
+            ("PlanAmount", "Auto", "Auto-filled from selected PlanName (do not edit)."),
+            ("PaidAmount", "No", "Amount actually paid. Blank = full plan amount."),
+            ("DueAmount", "No", "Manual collectible due. Blank = 0. Shortfall without due becomes Adjustment."),
+            ("AdjustmentAmount", "Auto", "Auto: PlanAmount − Paid − Due (discount / waived, not collectible)."),
             ("MembershipNo", "No", "Optional custom Member ID (unique in this library). Leave blank to auto-generate."),
             ("PlanStartDate", "No", "Optional plan start (yyyy-MM-dd). Default = today."),
             ("PlanEndDate", "No", "Optional plan end (yyyy-MM-dd). Default = start + plan duration. Must be after start.")
@@ -121,21 +229,10 @@ public static class MemberBulkExcelHelper
         }
         instructionsSheet.Columns().AdjustToContents();
 
-        var plansSheet = workbook.Worksheets.Add("Plans");
-        plansSheet.Cell(1, 1).Value = "PlanName";
-        plansSheet.Cell(1, 2).Value = "DurationInDays";
-        plansSheet.Cell(1, 3).Value = "Price";
-        plansSheet.Range(1, 1, 1, 3).Style.Font.Bold = true;
-
-        var planRow = 2;
-        foreach (var plan in plans)
-        {
-            plansSheet.Cell(planRow, 1).Value = plan.Name;
-            plansSheet.Cell(planRow, 2).Value = plan.DurationInDays;
-            plansSheet.Cell(planRow, 3).Value = plan.Price;
-            planRow++;
-        }
-        plansSheet.Columns().AdjustToContents();
+        // Put Members first for user-friendliness
+        membersSheet.Position = 1;
+        instructionsSheet.Position = 2;
+        plansSheet.Position = 3;
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
@@ -168,7 +265,7 @@ public static class MemberBulkExcelHelper
             if (!columnMap.ContainsKey(key))
             {
                 throw new InvalidOperationException(
-                    "Invalid template. Required columns: FullName, Email, PhoneNumber, DateOfBirth, Gender, Shift, PlanName. Optional: MembershipNo, PlanStartDate, PlanEndDate.");
+                    "Invalid template. Required: FullName, PhoneNumber, Gender, Shift, PlanName. Optional: Email, DateOfBirth, MembershipNo, PlanStartDate, PlanEndDate, PaidAmount, DueAmount. PlanAmount/AdjustmentAmount are auto columns.");
             }
         }
 
@@ -187,8 +284,10 @@ public static class MemberBulkExcelHelper
             var membershipNo = GetMappedText(worksheet, rowNumber, columnMap, "MembershipNo");
             var planStartText = GetMappedText(worksheet, rowNumber, columnMap, "PlanStartDate");
             var planEndText = GetMappedText(worksheet, rowNumber, columnMap, "PlanEndDate");
+            var paidText = GetMappedText(worksheet, rowNumber, columnMap, "PaidAmount");
+            var dueText = GetMappedText(worksheet, rowNumber, columnMap, "DueAmount");
 
-            if (IsEmptyRow(fullName, email, phone, dobText, gender, shift, planName, membershipNo, planStartText, planEndText))
+            if (IsEmptyRow(fullName, email, phone, dobText, gender, shift, planName, membershipNo, planStartText, planEndText, paidText, dueText))
             {
                 continue;
             }
@@ -208,7 +307,11 @@ public static class MemberBulkExcelHelper
                 PlanStartDate = ParseDateCell(worksheet, rowNumber, columnMap, "PlanStartDate", planStartText),
                 RawPlanStartDate = planStartText,
                 PlanEndDate = ParseDateCell(worksheet, rowNumber, columnMap, "PlanEndDate", planEndText),
-                RawPlanEndDate = planEndText
+                RawPlanEndDate = planEndText,
+                PaidAmount = ParseDecimalCell(worksheet, rowNumber, columnMap, "PaidAmount", paidText),
+                RawPaidAmount = paidText,
+                DueAmount = ParseDecimalCell(worksheet, rowNumber, columnMap, "DueAmount", dueText),
+                RawDueAmount = dueText
             });
         }
 
@@ -268,6 +371,18 @@ public static class MemberBulkExcelHelper
         if (row.PlanStartDate.HasValue && row.PlanEndDate.HasValue && row.PlanEndDate.Value.Date <= row.PlanStartDate.Value.Date)
             return "PlanEndDate must be after PlanStartDate.";
 
+        if (!string.IsNullOrWhiteSpace(row.RawPaidAmount) && row.PaidAmount is null)
+            return "PaidAmount must be a valid number.";
+
+        if (!string.IsNullOrWhiteSpace(row.RawDueAmount) && row.DueAmount is null)
+            return "DueAmount must be a valid number.";
+
+        if (row.PaidAmount.HasValue && row.PaidAmount.Value < 0)
+            return "PaidAmount cannot be negative.";
+
+        if (row.DueAmount.HasValue && row.DueAmount.Value < 0)
+            return "DueAmount cannot be negative.";
+
         return null;
     }
 
@@ -324,12 +439,89 @@ public static class MemberBulkExcelHelper
         return null;
     }
 
+    private static decimal? ParseDecimalCell(
+        IXLWorksheet worksheet,
+        int rowNumber,
+        IReadOnlyDictionary<string, int> columnMap,
+        string field,
+        string text)
+    {
+        if (!columnMap.TryGetValue(field, out var column))
+        {
+            return null;
+        }
+
+        var cell = worksheet.Cell(rowNumber, column);
+        if (cell.DataType == XLDataType.Number)
+        {
+            return Convert.ToDecimal(cell.GetDouble(), CultureInfo.InvariantCulture);
+        }
+
+        if (cell.HasFormula)
+        {
+            try
+            {
+                if (cell.CachedValue.IsNumber)
+                {
+                    return Convert.ToDecimal(cell.CachedValue.GetNumber(), CultureInfo.InvariantCulture);
+                }
+            }
+            catch
+            {
+                // fall through
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.CurrentCulture, out parsed))
+        {
+            return parsed;
+        }
+
+        return null;
+    }
+
     private static string GetCellText(IXLWorksheet worksheet, int row, int column)
     {
         var cell = worksheet.Cell(row, column);
         if (cell.DataType == XLDataType.DateTime)
         {
             return cell.GetDateTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        if (cell.DataType == XLDataType.Number)
+        {
+            return cell.GetDouble().ToString(CultureInfo.InvariantCulture);
+        }
+
+        // Cached formula result (PlanAmount / AdjustmentAmount)
+        if (cell.HasFormula)
+        {
+            try
+            {
+                if (cell.CachedValue.IsNumber)
+                {
+                    return cell.CachedValue.GetNumber().ToString(CultureInfo.InvariantCulture);
+                }
+
+                if (cell.CachedValue.IsText)
+                {
+                    return cell.CachedValue.GetText().Trim();
+                }
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         return cell.GetString().Trim();

@@ -17,6 +17,12 @@ export interface ParsedBulkMemberRow {
   rawPlanStartDate?: string;
   planEndDate: Date | null;
   rawPlanEndDate?: string;
+  /** Null = use full plan price. */
+  paidAmount: number | null;
+  rawPaidAmount?: string;
+  /** Null/blank = 0. */
+  dueAmount: number | null;
+  rawDueAmount?: string;
 }
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -24,7 +30,21 @@ const MEMBERSHIP_NO_REGEX = /^[A-Za-z0-9][A-Za-z0-9._\-]*$/;
 const VALID_GENDERS = new Set(['male', 'female', 'other']);
 const VALID_SHIFTS = new Set(['morning', 'afternoon', 'evening', 'night', 'full', 'general']);
 
-type BulkField = keyof Omit<ParsedBulkMemberRow, 'rowNumber' | 'rawDateOfBirth' | 'rawPlanStartDate' | 'rawPlanEndDate'>;
+type BulkField =
+  | 'fullName'
+  | 'email'
+  | 'phoneNumber'
+  | 'dateOfBirth'
+  | 'gender'
+  | 'shift'
+  | 'planName'
+  | 'membershipNo'
+  | 'planStartDate'
+  | 'planEndDate'
+  | 'paidAmount'
+  | 'dueAmount'
+  | 'planAmount'
+  | 'adjustmentAmount';
 
 const HEADER_ALIASES: Record<string, BulkField> = {
   fullname: 'fullName',
@@ -38,6 +58,11 @@ const HEADER_ALIASES: Record<string, BulkField> = {
   memberid: 'membershipNo',
   planstartdate: 'planStartDate',
   planenddate: 'planEndDate',
+  paidamount: 'paidAmount',
+  dueamount: 'dueAmount',
+  planamount: 'planAmount',
+  adjustmentamount: 'adjustmentAmount',
+  adjustment: 'adjustmentAmount',
 };
 
 const REQUIRED_COLUMNS: BulkField[] = ['fullName', 'phoneNumber', 'gender', 'shift', 'planName'];
@@ -49,6 +74,7 @@ function normalizeHeader(value: unknown): string {
 function cellToString(value: unknown): string {
   if (value == null) return '';
   if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   return String(value).trim();
 }
 
@@ -70,6 +96,14 @@ function parseExcelDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function parseExcelNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const text = cellToString(value);
+  if (!text) return null;
+  const n = Number(text.replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
 function toIsoDate(value: Date | null): string | undefined {
   if (!value) return undefined;
   const y = value.getFullYear();
@@ -87,7 +121,7 @@ export async function parseMemberBulkExcel(file: File): Promise<ParsedBulkMember
   const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
   const sheetName = workbook.SheetNames.find((name) => name.toLowerCase() === 'members') ?? workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' }) as unknown[][];
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', raw: true }) as unknown[][];
 
   if (matrix.length < 2) {
     return [];
@@ -106,7 +140,7 @@ export async function parseMemberBulkExcel(file: File): Promise<ParsedBulkMember
   const mappedColumns = new Set(columnMap.values());
   if (!REQUIRED_COLUMNS.every((column) => mappedColumns.has(column))) {
     throw new Error(
-      'Invalid template. Required columns: FullName, PhoneNumber, Gender, Shift, PlanName. Optional: Email, DateOfBirth, MembershipNo, PlanStartDate, PlanEndDate.',
+      'Invalid template. Required: FullName, PhoneNumber, Gender, Shift, PlanName. Optional: Email, DateOfBirth, MembershipNo, PlanStartDate, PlanEndDate, PaidAmount, DueAmount.',
     );
   }
 
@@ -129,10 +163,15 @@ export async function parseMemberBulkExcel(file: File): Promise<ParsedBulkMember
       membershipNo: '',
       planStartDate: null,
       planEndDate: null,
+      paidAmount: null,
+      dueAmount: null,
     };
 
     columnMap.forEach((field, columnIndex) => {
       const rawValue = rawRow[columnIndex];
+      // Auto columns — ignore on import (server uses PlanName + Paid/Due)
+      if (field === 'planAmount' || field === 'adjustmentAmount') return;
+
       if (field === 'dateOfBirth') {
         parsed.rawDateOfBirth = cellToString(rawValue);
         parsed.dateOfBirth = parseExcelDate(rawValue);
@@ -146,6 +185,16 @@ export async function parseMemberBulkExcel(file: File): Promise<ParsedBulkMember
       if (field === 'planEndDate') {
         parsed.rawPlanEndDate = cellToString(rawValue);
         parsed.planEndDate = parseExcelDate(rawValue);
+        return;
+      }
+      if (field === 'paidAmount') {
+        parsed.rawPaidAmount = cellToString(rawValue);
+        parsed.paidAmount = parseExcelNumber(rawValue);
+        return;
+      }
+      if (field === 'dueAmount') {
+        parsed.rawDueAmount = cellToString(rawValue);
+        parsed.dueAmount = parseExcelNumber(rawValue);
         return;
       }
       parsed[field] = cellToString(rawValue) as never;
@@ -203,7 +252,8 @@ export function validateBulkMemberRow(
   }
 
   if (!row.planName.trim()) return 'PlanName is required.';
-  if (!planByName.has(row.planName.trim().toLowerCase())) {
+  const plan = planByName.get(row.planName.trim().toLowerCase());
+  if (!plan) {
     return `Plan '${row.planName}' was not found for this library.`;
   }
 
@@ -230,6 +280,24 @@ export function validateBulkMemberRow(
     const start = toIsoDate(row.planStartDate)!;
     const end = toIsoDate(row.planEndDate)!;
     if (end <= start) return 'PlanEndDate must be after PlanStartDate.';
+  }
+
+  if (row.rawPaidAmount && row.rawPaidAmount.trim() && row.paidAmount == null) {
+    return 'PaidAmount must be a valid number.';
+  }
+
+  if (row.rawDueAmount && row.rawDueAmount.trim() && row.dueAmount == null) {
+    return 'DueAmount must be a valid number.';
+  }
+
+  if (row.paidAmount != null && row.paidAmount < 0) return 'PaidAmount cannot be negative.';
+  if (row.dueAmount != null && row.dueAmount < 0) return 'DueAmount cannot be negative.';
+
+  const planPrice = plan.price ?? 0;
+  const paid = row.paidAmount ?? planPrice;
+  const due = row.dueAmount ?? 0;
+  if (paid + due > planPrice + 0.001) {
+    return `PaidAmount + DueAmount cannot exceed plan amount ₹${planPrice}.`;
   }
 
   return null;

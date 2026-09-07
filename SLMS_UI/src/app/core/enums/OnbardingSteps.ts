@@ -8,6 +8,12 @@ export enum OnboardingSteps {
     Rejected = 7
 }
 
+export enum WorkspaceSetupMode {
+    Auto = 1,
+    Manual = 2,
+    Later = 3
+}
+
 export enum UserTypes {
     OrganizationOwner = 1,
     Teacher = 2,

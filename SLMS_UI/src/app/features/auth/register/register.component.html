@@ -200,6 +200,77 @@
             }
         </div>
 
+        <div class="space-y-2">
+            <label class="ui-label">Workspace setup</label>
+
+            <label class="flex items-start gap-2.5 cursor-pointer rounded-lg border p-3 {{ setupMode() === SetupMode.Auto ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)]' }}">
+                <input type="radio" name="setupMode" [value]="SetupMode.Auto" [(ngModel)]="setupMode"
+                    class="mt-0.5 shrink-0" />
+                <span class="text-xs leading-relaxed text-[var(--muted-foreground)]">
+                    <strong class="block text-sm font-medium text-[var(--foreground)]">Create it for me</strong>
+                    Institution, Branch &amp; Library named
+                    <strong class="font-medium text-[var(--foreground)]">{{ defaultWorkspaceName() }}</strong>
+                    with capacity 150. Straight to your dashboard.
+                </span>
+            </label>
+
+            @if(setupMode() === SetupMode.Auto){
+            <div class="rounded-lg border border-[var(--border)] bg-[var(--muted)]/30 p-3 space-y-3">
+                <div class="flex items-start justify-between gap-3">
+                    <p class="text-xs leading-relaxed text-[var(--muted-foreground)]">
+                        All three will be named
+                        <strong class="font-medium text-[var(--foreground)]">{{ defaultWorkspaceName() }}</strong>.
+                    </p>
+                    <button type="button" (click)="setCustomizeNames(!customizeNames())"
+                        class="shrink-0 text-xs font-medium text-[var(--primary)] hover:underline cursorPointer">
+                        {{ customizeNames() ? 'Use suggested' : 'Change names' }}
+                    </button>
+                </div>
+
+                @if(customizeNames()){
+                <div class="space-y-2.5">
+                    <div class="space-y-1.5">
+                        <label appLabel for="institutionName">Institution name</label>
+                        <input appInput id="institutionName" name="institutionName" [(ngModel)]="institutionName"
+                            maxlength="100" [placeholder]="defaultWorkspaceName()" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label appLabel for="branchName">Branch name</label>
+                        <input appInput id="branchName" name="branchName" [(ngModel)]="branchName" maxlength="100"
+                            [placeholder]="defaultWorkspaceName()" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label appLabel for="libraryName">Library name</label>
+                        <input appInput id="libraryName" name="libraryName" [(ngModel)]="libraryName" maxlength="100"
+                            [placeholder]="defaultWorkspaceName()" />
+                    </div>
+                    <p class="text-xs text-[var(--muted-foreground)]">
+                        Leave a field blank to use {{ defaultWorkspaceName() }}. You can rename these later too.
+                    </p>
+                </div>
+                }
+            </div>
+            }
+
+            <label class="flex items-start gap-2.5 cursor-pointer rounded-lg border p-3 {{ setupMode() === SetupMode.Manual ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)]' }}">
+                <input type="radio" name="setupMode" [value]="SetupMode.Manual" [(ngModel)]="setupMode"
+                    class="mt-0.5 shrink-0" />
+                <span class="text-xs leading-relaxed text-[var(--muted-foreground)]">
+                    <strong class="block text-sm font-medium text-[var(--foreground)]">I'll set it up myself</strong>
+                    Fill in your institution, branch and library details step by step after signing up.
+                </span>
+            </label>
+
+            <label class="flex items-start gap-2.5 cursor-pointer rounded-lg border p-3 {{ setupMode() === SetupMode.Later ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)]' }}">
+                <input type="radio" name="setupMode" [value]="SetupMode.Later" [(ngModel)]="setupMode"
+                    class="mt-0.5 shrink-0" />
+                <span class="text-xs leading-relaxed text-[var(--muted-foreground)]">
+                    <strong class="block text-sm font-medium text-[var(--foreground)]">Do it later</strong>
+                    Sends your request to SuperAdmin now; set up your library once it's approved.
+                </span>
+            </label>
+        </div>
+
         <label class="flex items-start gap-2.5 cursor-pointer">
             <input type="checkbox" [(ngModel)]="terms" name="terms"
                 class="mt-0.5 shrink-0 rounded border-[var(--border)]"

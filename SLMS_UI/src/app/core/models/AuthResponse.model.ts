@@ -1,4 +1,4 @@
-import { OnboardingSteps, UserTypes } from "@core/enums/OnbardingSteps";
+import { OnboardingSteps, UserTypes, WorkspaceSetupMode } from "@core/enums/OnbardingSteps";
 
 export interface AuthResponse {
     accessToken: string;
@@ -46,6 +46,11 @@ export interface RegisterRequest {
   packageId: string;
   userType: UserTypes;
   selectedAddons?: RegisterAddonItem[];
+  setupMode?: WorkspaceSetupMode;
+  /** Used with Auto mode; empty falls back to "<Organization> Main". */
+  institutionName?: string;
+  branchName?: string;
+  libraryName?: string;
 }
 
 export interface RefreshTokenRequest {

@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SLMS_API.Application.Contracts.Admin;
 using SLMS_API.Application.Contracts.Auth.Requests;
 using SLMS_API.Application.Contracts.Auth.Responses;
+using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Package.Request;
 using SLMS_API.Application.Options;
 using SLMS_API.Application.Services.Interfaces;
@@ -40,6 +42,10 @@ public class AuthService : IAuthService
     private readonly IEmailSender _emailSender;
     private readonly IAppEmailService _appEmailService;
     private readonly AppOptions _appOptions;
+    private readonly IServiceScopeFactory _scopeFactory;
+
+    private const string DefaultWorkspaceName = "Main";
+    private const int DefaultWorkspaceCapacity = 150;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -57,6 +63,7 @@ public class AuthService : IAuthService
         IEmailSender emailSender,
         IAppEmailService appEmailService,
         IOptions<AppOptions> appOptions,
+        IServiceScopeFactory scopeFactory,
         ILogger<AuthService> logger)
     {
         _userManager = userManager;
@@ -75,6 +82,7 @@ public class AuthService : IAuthService
         _emailSender = emailSender;
         _appEmailService = appEmailService;
         _appOptions = appOptions.Value;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress, CancellationToken cancellationToken = default)
@@ -153,6 +161,26 @@ public class AuthService : IAuthService
 
         await EnsureRoleExistsAsync(RoleDefinitions.OrganisationAdmin, cancellationToken);
         await _userManager.AddToRoleAsync(user, RoleDefinitions.OrganisationAdmin);
+
+        if (request.SetupMode == WorkspaceSetupMode.Auto)
+        {
+            await BootstrapDefaultWorkspaceAsync(user, request, cancellationToken);
+            // The workspace services run in their own scope, so refresh the tracked user
+            // to pick up the onboarding step they advanced it to.
+            await _dbContext.Entry(user).ReloadAsync(cancellationToken);
+        }
+        else if (request.SetupMode == WorkspaceSetupMode.Later)
+        {
+            // Defer setup — always queue for SuperAdmin (including trial).
+            user.OnboardingStep = OnboardingStep.PendingApproval;
+            user.ApprovalStatus = "Pending";
+            user.AdminRemarks = "Library setup deferred — awaiting SuperAdmin approval";
+            user.ApprovedAtUtc = null;
+            user.FinalApprovedAmount = null;
+            user.UpdatedAtUtc = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+        }
+        // Manual: leave the user on OnboardingStep.Registered so the wizard takes over.
 
         await _auditLogService.WriteAsync(AuditEventTypes.Register, user.Id, $"User registered: {user.Email}", ipAddress, cancellationToken);
 
@@ -512,6 +540,69 @@ public class AuthService : IAuthService
 
         return new MessageResponse { Message = "Two-factor authentication has been disabled." };
     }
+
+    private async Task BootstrapDefaultWorkspaceAsync(ApplicationUser user, RegisterRequest request, CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(user.Id, out var userId))
+        {
+            throw new InvalidOperationException("Invalid user id.");
+        }
+
+        var email = request.Email;
+        var fallbackName = BuildDefaultWorkspaceName(request.Name);
+        var institutionName = Coalesce(request.InstitutionName, fallbackName);
+        var branchName = Coalesce(request.BranchName, fallbackName);
+        var libraryName = Coalesce(request.LibraryName, fallbackName);
+
+        // Resolve org services from a new scope to avoid circular DI with AuthService.
+        using var scope = _scopeFactory.CreateScope();
+        var institutionService = scope.ServiceProvider.GetRequiredService<IInstitutionService>();
+        var branchService = scope.ServiceProvider.GetRequiredService<IBranchService>();
+        var libraryService = scope.ServiceProvider.GetRequiredService<ILibraryService>();
+
+        var institution = await institutionService.CreateAsync(new CreateInstitutionRequest
+        {
+            Name = institutionName,
+            Type = "Library",
+            Email = email,
+            IsActive = true,
+            IsPrimary = true,
+            IsOnboarding = true,
+            Status = InstitutionStatus.Active
+        }, userId, cancellationToken);
+
+        var branch = await branchService.CreateAsync(institution.Id, new CreateBranchRequest
+        {
+            Name = branchName,
+            InstitutionId = institution.Id,
+            Email = email,
+            Capacity = DefaultWorkspaceCapacity,
+            IsActive = true,
+            IsPrimary = true,
+            IsOnboarding = true,
+            Status = InstitutionStatus.Active
+        }, userId, cancellationToken);
+
+        await libraryService.CreateAsync(institution.Id, branch.Id, new CreateLibraryRequest
+        {
+            Name = libraryName,
+            Email = email,
+            Capacity = DefaultWorkspaceCapacity,
+            IsActive = true,
+            IsPrimary = true,
+            IsOnboarding = true,
+            Status = InstitutionStatus.Active
+        }, user.Id, cancellationToken);
+    }
+
+    private static string BuildDefaultWorkspaceName(string? organizationName)
+    {
+        var org = organizationName?.Trim();
+        return string.IsNullOrEmpty(org) ? DefaultWorkspaceName : $"{org} {DefaultWorkspaceName}";
+    }
+
+    private static string Coalesce(string? value, string fallback)
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
 
     private async Task<Contracts.Auth.TokenResult> IssueTokensAsync(ApplicationUser user, CancellationToken cancellationToken)
     {

@@ -199,9 +199,14 @@
           </div>
 
           <div class="flex justify-end gap-2 pt-3 border-t">
-            <app-button type="button" variant="outline" (click)="cancel()">Cancel</app-button>
+            <app-button type="button" variant="outline" [disabled]="saving()" (click)="cancel()">Cancel</app-button>
             <app-button type="submit" [disabled]="saving()">
-              {{ saving() ? 'Saving…' : 'Save changes' }}
+              @if (saving()) {
+                <svg lucideLoaderCircle class="h-4 w-4 mr-1.5 animate-spin"></svg>
+                Saving…
+              } @else {
+                Save changes
+              }
             </app-button>
           </div>
         </form>

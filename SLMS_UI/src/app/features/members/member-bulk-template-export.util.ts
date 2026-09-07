@@ -16,6 +16,9 @@ const COLUMN_INSTRUCTIONS: [string, string, string][] = [
   ['Gender', 'Yes', 'Male, Female, or Other.'],
   ['Shift', 'Yes', 'Morning, Afternoon, Evening, Night, Full, or General.'],
   ['PlanName', 'Yes', 'Must match an active plan name listed below.'],
+  ['MembershipNo', 'No', 'Optional custom Member ID (unique in this library). Blank = auto-generate.'],
+  ['PlanStartDate', 'No', 'Optional plan start (yyyy-MM-dd). Default = today.'],
+  ['PlanEndDate', 'No', 'Optional plan end (yyyy-MM-dd). Default = start + plan days. Must be after start.'],
 ];
 
 const SAMPLE_ROW = [
@@ -26,6 +29,23 @@ const SAMPLE_ROW = [
   'Male',
   'General',
 ];
+
+function todayIsoLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function addDaysIso(isoDate: string, days: number): string {
+  const d = new Date(`${isoDate.slice(0, 10)}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function formatCurrency(amount: number): string {
   return `Rs. ${(amount ?? 0).toLocaleString('en-IN')}`;
@@ -88,12 +108,17 @@ export function downloadMemberBulkTemplatePdf(
   doc.text('Sample row (Excel)', margin, y);
 
   const samplePlanName = plans[0]?.name ?? 'Monthly';
+  const sampleStart = todayIsoLocal();
+  const sampleEnd = addDaysIso(sampleStart, plans[0]?.durationInDays ?? 30);
   autoTable(doc, {
     startY: y + 8,
-    head: [['FullName', 'Email', 'PhoneNumber', 'DateOfBirth', 'Gender', 'Shift', 'PlanName']],
-    body: [[...SAMPLE_ROW, samplePlanName]],
+    head: [[
+      'FullName', 'Email', 'PhoneNumber', 'DateOfBirth', 'Gender', 'Shift',
+      'PlanName', 'MembershipNo', 'PlanStartDate', 'PlanEndDate',
+    ]],
+    body: [[...SAMPLE_ROW, samplePlanName, 'LIB-00001', sampleStart, sampleEnd]],
     margin: { left: margin, right: margin },
-    styles: { fontSize: 8, cellPadding: 4 },
+    styles: { fontSize: 7, cellPadding: 3 },
     headStyles: { fillColor: [45, 55, 72], textColor: 255 },
     theme: 'grid',
   });
@@ -132,6 +157,8 @@ export function downloadMemberBulkTemplatePdf(
   doc.setTextColor(90, 90, 90);
   const notes = [
     '• Email must be unique across the system.',
+    '• MembershipNo is optional and must be unique within the library; leave blank to auto-generate.',
+    '• PlanStartDate / PlanEndDate are optional (yyyy-MM-dd). End defaults to start + plan duration.',
     '• Upload only the filled Excel (.xlsx) file — PDF is for reference only.',
     '• Default member password is applied automatically (same as single add member).',
   ];

@@ -12,7 +12,7 @@ import { LucideFileSpreadsheet, LucideFileText, LucideLoaderCircle, LucideUpload
 import { firstValueFrom } from 'rxjs';
 import { MemberService } from '../MemberService';
 import { downloadMemberBulkTemplatePdf } from '../member-bulk-template-export.util';
-import { parseMemberBulkExcel, toCreateMemberShift, validateBulkMemberRow } from '../member-bulk-upload.util';
+import { parseMemberBulkExcel, toBulkPlanDateIso, toCreateMemberShift, validateBulkMemberRow } from '../member-bulk-upload.util';
 
 @Component({
   selector: 'app-bulk-upload-members-component',
@@ -217,6 +217,7 @@ export class BulkUploadMembersComponent implements OnInit {
       const results: BulkMemberUploadRowResult[] = [];
       const seenEmails = new Set<string>();
       const seenPhones = new Set<string>();
+      const seenMembershipNos = new Set<string>();
       let successCount = 0;
       let failedCount = 0;
 
@@ -235,7 +236,7 @@ export class BulkUploadMembersComponent implements OnInit {
           currentLabel,
         }));
 
-        const validationError = validateBulkMemberRow(row, planByName, seenEmails, seenPhones);
+        const validationError = validateBulkMemberRow(row, planByName, seenEmails, seenPhones, seenMembershipNos);
         if (validationError) {
           failedCount++;
           results.push({
@@ -250,6 +251,9 @@ export class BulkUploadMembersComponent implements OnInit {
             seenEmails.add(row.email.trim().toLowerCase());
           }
           seenPhones.add(row.phoneNumber.trim());
+          if (row.membershipNo.trim()) {
+            seenMembershipNos.add(row.membershipNo.trim().toLowerCase());
+          }
           const plan = planByName.get(row.planName.trim().toLowerCase())!;
 
           try {
@@ -262,6 +266,9 @@ export class BulkUploadMembersComponent implements OnInit {
                 gender: row.gender.trim(),
                 shift: toCreateMemberShift(row.shift),
                 planId: plan.id,
+                membershipNo: row.membershipNo.trim() || undefined,
+                planStartDate: toBulkPlanDateIso(row.planStartDate),
+                planEndDate: toBulkPlanDateIso(row.planEndDate),
               }),
             );
 

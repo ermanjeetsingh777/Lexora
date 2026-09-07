@@ -10,6 +10,7 @@ import { InstitutionsService } from '@features/institutions/institutions.service
 import { LibraryService } from '@features/libraries/library.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { LucideLoaderCircle } from '@lucide/angular';
 import { MemberService } from '../MemberService';
 import { switchMap, of, concat, last, Observable } from 'rxjs';
 import { APIResponseModel } from '@core/models/APIResponseModel';
@@ -20,7 +21,7 @@ import { addDaysIso, todayIsoLocal } from '../member-lifecycle.util';
 
 @Component({
   selector: 'app-create-member-component',
-  imports: [FormsModule, ButtonComponent, PageHeaderComponent, GlassCardComponent, ReactiveFormsModule],
+  imports: [FormsModule, ButtonComponent, PageHeaderComponent, GlassCardComponent, ReactiveFormsModule, LucideLoaderCircle],
   templateUrl: './create-member-component.html',
   styleUrl: './create-member-component.css',
   providers: [InstitutionsService, MemberService],
@@ -88,7 +89,6 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
   readonly planCatalog = signal<PlanResponse[]>([]);
   private planEndAuto = true;
   private paidAuto = true;
-  loader = signal(false);
 
   readonly selectedPlanPrice = signal(0);
   readonly paidPreview = signal(0);
@@ -440,6 +440,7 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
   }
 
   async onSubmit(): Promise<void> {
+    if (this.busy()) return;
     if (this.memberForm.invalid) {
       this.memberForm.markAllAsTouched();
       return;
@@ -451,7 +452,7 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.loader.set(true);
+    this.busy.set(true);
     const request: CreateMemberRequest = {
       fullName: formValue.name,
       email: formValue.email?.trim() ? formValue.email.trim() : undefined,
@@ -486,7 +487,7 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
       next: () => {
         this.toast.success('Member created successfully.');
         this.navigateBack();
-        this.loader.set(false);
+        this.busy.set(false);
       },
       error: (error) => {
         const message = error?.error?.message;
@@ -495,7 +496,7 @@ export class CreateMemberComponent implements OnInit, OnDestroy {
         } else {
           this.toast.error(message || 'Unable to create member. Please try again.');
         }
-        this.loader.set(false);
+        this.busy.set(false);
       },
     });
   }

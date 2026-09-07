@@ -472,12 +472,17 @@
         <!-- Actions -->
         <div class="flex justify-end gap-2 pt-3 border-t">
 
-          <app-button type="button" variant="outline" (click)="cancel()">
+          <app-button type="button" variant="outline" [disabled]="busy()" (click)="cancel()">
             Cancel
           </app-button>
 
           <app-button type="submit" [disabled]="busy()">
-            {{ busy() ? 'Creating…' : 'Create Member' }}
+            @if (busy()) {
+              <svg lucideLoaderCircle class="h-4 w-4 mr-1.5 animate-spin"></svg>
+              Creating…
+            } @else {
+              Create Member
+            }
           </app-button>
 
         </div>

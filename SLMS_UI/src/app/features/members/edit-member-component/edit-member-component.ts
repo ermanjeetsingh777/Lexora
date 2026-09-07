@@ -7,13 +7,14 @@ import { ToastService } from '@core/services/toast.service';
 import { collectRouteParams, memberBackNav } from '@core/utils/entity-routes.util';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { LucideLoaderCircle } from '@lucide/angular';
 import { concat, last, Observable, of, switchMap } from 'rxjs';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { MemberService } from '../MemberService';
 
 @Component({
   selector: 'app-edit-member-component',
-  imports: [ReactiveFormsModule, ButtonComponent, PageHeaderComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, PageHeaderComponent, LucideLoaderCircle],
   templateUrl: './edit-member-component.html',
   styleUrl: './edit-member-component.css',
   providers: [MemberService],
@@ -228,6 +229,7 @@ export class EditMemberComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
+    if (this.saving()) return;
     if (this.memberForm.invalid) {
       this.memberForm.markAllAsTouched();
       return;

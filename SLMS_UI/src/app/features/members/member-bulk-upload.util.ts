@@ -12,12 +12,21 @@ export interface ParsedBulkMemberRow {
   gender: string;
   shift: string;
   planName: string;
+  membershipNo: string;
+  planStartDate: Date | null;
+  rawPlanStartDate?: string;
+  planEndDate: Date | null;
+  rawPlanEndDate?: string;
 }
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
+const MEMBERSHIP_NO_REGEX = /^[A-Za-z0-9][A-Za-z0-9._\-]*$/;
 const VALID_GENDERS = new Set(['male', 'female', 'other']);
 const VALID_SHIFTS = new Set(['morning', 'afternoon', 'evening', 'night', 'full', 'general']);
-const HEADER_ALIASES: Record<string, keyof Omit<ParsedBulkMemberRow, 'rowNumber'>> = {
+
+type BulkField = keyof Omit<ParsedBulkMemberRow, 'rowNumber' | 'rawDateOfBirth' | 'rawPlanStartDate' | 'rawPlanEndDate'>;
+
+const HEADER_ALIASES: Record<string, BulkField> = {
   fullname: 'fullName',
   email: 'email',
   phonenumber: 'phoneNumber',
@@ -25,7 +34,13 @@ const HEADER_ALIASES: Record<string, keyof Omit<ParsedBulkMemberRow, 'rowNumber'
   gender: 'gender',
   shift: 'shift',
   planname: 'planName',
+  membershipno: 'membershipNo',
+  memberid: 'membershipNo',
+  planstartdate: 'planStartDate',
+  planenddate: 'planEndDate',
 };
+
+const REQUIRED_COLUMNS: BulkField[] = ['fullName', 'phoneNumber', 'gender', 'shift', 'planName'];
 
 function normalizeHeader(value: unknown): string {
   return String(value ?? '').trim().toLowerCase().replace(/\s+/g, '');
@@ -37,7 +52,7 @@ function cellToString(value: unknown): string {
   return String(value).trim();
 }
 
-function parseDateOfBirth(value: unknown): Date | null {
+function parseExcelDate(value: unknown): Date | null {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return value;
   }
@@ -53,6 +68,14 @@ function parseDateOfBirth(value: unknown): Date | null {
 
   const parsed = new Date(text);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function toIsoDate(value: Date | null): string | undefined {
+  if (!value) return undefined;
+  const y = value.getFullYear();
+  const m = String(value.getMonth() + 1).padStart(2, '0');
+  const d = String(value.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function isEmptyRow(values: string[]): boolean {
@@ -71,7 +94,7 @@ export async function parseMemberBulkExcel(file: File): Promise<ParsedBulkMember
   }
 
   const headerRow = matrix[0] ?? [];
-  const columnMap = new Map<number, keyof Omit<ParsedBulkMemberRow, 'rowNumber'>>();
+  const columnMap = new Map<number, BulkField>();
 
   headerRow.forEach((header, index) => {
     const mapped = HEADER_ALIASES[normalizeHeader(header)];
@@ -80,10 +103,11 @@ export async function parseMemberBulkExcel(file: File): Promise<ParsedBulkMember
     }
   });
 
-  const requiredColumns = Object.values(HEADER_ALIASES);
   const mappedColumns = new Set(columnMap.values());
-  if (!requiredColumns.every((column) => mappedColumns.has(column))) {
-    throw new Error('Invalid template. Required columns: FullName, Email, PhoneNumber, DateOfBirth, Gender, Shift, PlanName.');
+  if (!REQUIRED_COLUMNS.every((column) => mappedColumns.has(column))) {
+    throw new Error(
+      'Invalid template. Required columns: FullName, PhoneNumber, Gender, Shift, PlanName. Optional: Email, DateOfBirth, MembershipNo, PlanStartDate, PlanEndDate.',
+    );
   }
 
   const rows: ParsedBulkMemberRow[] = [];
@@ -102,16 +126,29 @@ export async function parseMemberBulkExcel(file: File): Promise<ParsedBulkMember
       gender: '',
       shift: '',
       planName: '',
+      membershipNo: '',
+      planStartDate: null,
+      planEndDate: null,
     };
 
     columnMap.forEach((field, columnIndex) => {
       const rawValue = rawRow[columnIndex];
       if (field === 'dateOfBirth') {
         parsed.rawDateOfBirth = cellToString(rawValue);
-        parsed.dateOfBirth = parseDateOfBirth(rawValue);
+        parsed.dateOfBirth = parseExcelDate(rawValue);
         return;
       }
-      parsed[field] = cellToString(rawValue);
+      if (field === 'planStartDate') {
+        parsed.rawPlanStartDate = cellToString(rawValue);
+        parsed.planStartDate = parseExcelDate(rawValue);
+        return;
+      }
+      if (field === 'planEndDate') {
+        parsed.rawPlanEndDate = cellToString(rawValue);
+        parsed.planEndDate = parseExcelDate(rawValue);
+        return;
+      }
+      parsed[field] = cellToString(rawValue) as never;
     });
 
     rows.push(parsed);
@@ -125,6 +162,7 @@ export function validateBulkMemberRow(
   planByName: Map<string, PlanResponse>,
   seenEmails: Set<string>,
   seenPhones: Set<string>,
+  seenMembershipNos: Set<string>,
 ): string | null {
   if (!row.fullName.trim()) return 'FullName is required.';
   if (row.fullName.trim().length < 2 || row.fullName.trim().length > 100) {
@@ -169,6 +207,31 @@ export function validateBulkMemberRow(
     return `Plan '${row.planName}' was not found for this library.`;
   }
 
+  const membershipNo = row.membershipNo.trim();
+  if (membershipNo) {
+    if (membershipNo.length > 40) return 'MembershipNo must be 40 characters or fewer.';
+    if (!MEMBERSHIP_NO_REGEX.test(membershipNo)) {
+      return "MembershipNo must start with a letter or digit and may contain letters, digits, '.', '_' or '-'.";
+    }
+    if (seenMembershipNos.has(membershipNo.toLowerCase())) {
+      return `Duplicate MembershipNo '${membershipNo}' found in the uploaded file.`;
+    }
+  }
+
+  if (row.rawPlanStartDate && row.rawPlanStartDate.trim() && !row.planStartDate) {
+    return 'PlanStartDate must be in yyyy-MM-dd format.';
+  }
+
+  if (row.rawPlanEndDate && row.rawPlanEndDate.trim() && !row.planEndDate) {
+    return 'PlanEndDate must be in yyyy-MM-dd format.';
+  }
+
+  if (row.planStartDate && row.planEndDate) {
+    const start = toIsoDate(row.planStartDate)!;
+    const end = toIsoDate(row.planEndDate)!;
+    if (end <= start) return 'PlanEndDate must be after PlanStartDate.';
+  }
+
   return null;
 }
 
@@ -176,4 +239,8 @@ export function toCreateMemberShift(shift: string): Shift {
   const normalized = shift.trim();
   const options: Shift[] = ['Morning', 'Afternoon', 'Evening', 'Night', 'Full', 'General'];
   return options.find((option) => option.toLowerCase() === normalized.toLowerCase()) ?? 'General';
+}
+
+export function toBulkPlanDateIso(value: Date | null): string | undefined {
+  return toIsoDate(value);
 }

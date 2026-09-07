@@ -338,6 +338,7 @@ public class MemberService : IMemberService
         var results = new List<BulkMemberUploadRowResult>();
         var seenEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var seenPhones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenMembershipNos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var row in rows)
         {
@@ -386,6 +387,23 @@ public class MemberService : IMemberService
                 }
             }
 
+            var membershipNo = row.MembershipNo?.Trim();
+            if (!string.IsNullOrWhiteSpace(membershipNo))
+            {
+                if (!seenMembershipNos.Add(membershipNo))
+                {
+                    results.Add(new BulkMemberUploadRowResult
+                    {
+                        RowNumber = row.RowNumber,
+                        FullName = row.FullName,
+                        Email = normalizedEmail ?? string.Empty,
+                        Success = false,
+                        Message = $"Duplicate MembershipNo '{membershipNo}' found in the uploaded file."
+                    });
+                    continue;
+                }
+            }
+
             if (!planByName.TryGetValue(row.PlanName.Trim(), out var plan))
             {
                 results.Add(new BulkMemberUploadRowResult
@@ -410,6 +428,9 @@ public class MemberService : IMemberService
                     Gender = row.Gender.Trim(),
                     Shift = row.Shift.Trim(),
                     PlanId = plan.Id,
+                    MembershipNo = row.MembershipNo,
+                    PlanStartDate = row.PlanStartDate,
+                    PlanEndDate = row.PlanEndDate,
                     IsActive = true
                 };
 

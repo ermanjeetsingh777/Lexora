@@ -15,12 +15,19 @@ public sealed class BulkMemberExcelRow
     public string Gender { get; init; } = string.Empty;
     public string Shift { get; init; } = string.Empty;
     public string PlanName { get; init; } = string.Empty;
+    /// <summary>Optional custom member ID (unique per library).</summary>
+    public string? MembershipNo { get; init; }
+    public DateTime? PlanStartDate { get; init; }
+    public string? RawPlanStartDate { get; init; }
+    public DateTime? PlanEndDate { get; init; }
+    public string? RawPlanEndDate { get; init; }
 }
 
 public static class MemberBulkExcelHelper
 {
     private const string MembersSheetName = "Members";
     private static readonly Regex PhoneRegex = new(@"^[6-9]\d{9}$", RegexOptions.Compiled);
+    private static readonly Regex MembershipNoRegex = new(@"^[A-Za-z0-9][A-Za-z0-9._\-]*$", RegexOptions.Compiled);
     private static readonly HashSet<string> ValidGenders = new(StringComparer.OrdinalIgnoreCase)
     {
         "Male", "Female", "Other"
@@ -38,8 +45,27 @@ public static class MemberBulkExcelHelper
         "DateOfBirth",
         "Gender",
         "Shift",
-        "PlanName"
+        "PlanName",
+        "MembershipNo",
+        "PlanStartDate",
+        "PlanEndDate"
     ];
+
+    private static readonly Dictionary<string, string> HeaderAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["fullnameName"] = "FullName",
+        ["Email"] = "Email",
+        ["PhoneNumber"] = "PhoneNumber",
+        ["DateOfBirth"] = "DateOfBirth",
+        ["Gender"] = "Gender",
+        ["Shift"] = "Shift",
+        ["PlanName"] = "PlanName",
+        ["MembershipNo"] = "MembershipNo",
+        ["MemberId"] = "MembershipNo",
+        ["MemberID"] = "MembershipNo",
+        ["PlanStartDate"] = "PlanStartDate",
+        ["PlanEndDate"] = "PlanEndDate",
+    };
 
     public static byte[] GenerateTemplate(IEnumerable<(string Name, int DurationInDays, decimal Price)> plans)
     {
@@ -52,13 +78,18 @@ public static class MemberBulkExcelHelper
             membersSheet.Cell(1, i + 1).Style.Font.Bold = true;
         }
 
+        var samplePlan = plans.FirstOrDefault().Name ?? "Monthly";
+        var today = DateTime.UtcNow.Date;
         membersSheet.Cell(2, 1).Value = "John Doe";
         membersSheet.Cell(2, 2).Value = "john.doe@example.com";
         membersSheet.Cell(2, 3).Value = "9876543210";
         membersSheet.Cell(2, 4).Value = "2000-01-15";
         membersSheet.Cell(2, 5).Value = "Male";
         membersSheet.Cell(2, 6).Value = "General";
-        membersSheet.Cell(2, 7).Value = plans.FirstOrDefault().Name ?? "Monthly";
+        membersSheet.Cell(2, 7).Value = samplePlan;
+        membersSheet.Cell(2, 8).Value = "LIB-00001";
+        membersSheet.Cell(2, 9).Value = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        membersSheet.Cell(2, 10).Value = today.AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         membersSheet.Columns().AdjustToContents();
 
         var instructionsSheet = workbook.Worksheets.Add("Instructions");
@@ -75,7 +106,10 @@ public static class MemberBulkExcelHelper
             ("DateOfBirth", "No", "Date in yyyy-MM-dd format (optional)."),
             ("Gender", "Yes", "Male, Female, or Other."),
             ("Shift", "Yes", "Morning, Afternoon, Evening, Night, Full, or General."),
-            ("PlanName", "Yes", "Must match an active plan name for the selected library (see Plans sheet).")
+            ("PlanName", "Yes", "Must match an active plan name for the selected library (see Plans sheet)."),
+            ("MembershipNo", "No", "Optional custom Member ID (unique in this library). Leave blank to auto-generate."),
+            ("PlanStartDate", "No", "Optional plan start (yyyy-MM-dd). Default = today."),
+            ("PlanEndDate", "No", "Optional plan end (yyyy-MM-dd). Default = start + plan duration. Must be after start.")
         };
 
         for (var i = 0; i < instructions.Length; i++)
@@ -115,20 +149,46 @@ public static class MemberBulkExcelHelper
             string.Equals(x.Name, MembersSheetName, StringComparison.OrdinalIgnoreCase))
             ?? workbook.Worksheets.First();
 
+        var headerRow = worksheet.Row(1);
+        var lastColumn = headerRow.LastCellUsed()?.Address.ColumnNumber ?? 0;
+        var columnMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        for (var col = 1; col <= lastColumn; col++)
+        {
+            var headerText = NormalizeHeader(headerRow.Cell(col).GetString());
+            if (HeaderAliases.TryGetValue(headerText, out var canonical) && !columnMap.ContainsKey(canonical))
+            {
+                columnMap[canonical] = col;
+            }
+        }
+
+        string[] required = ["FullName", "PhoneNumber", "Gender", "Shift", "PlanName"];
+        foreach (var key in required)
+        {
+            if (!columnMap.ContainsKey(key))
+            {
+                throw new InvalidOperationException(
+                    "Invalid template. Required columns: FullName, Email, PhoneNumber, DateOfBirth, Gender, Shift, PlanName. Optional: MembershipNo, PlanStartDate, PlanEndDate.");
+            }
+        }
+
         var rows = new List<BulkMemberExcelRow>();
         var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
 
         for (var rowNumber = 2; rowNumber <= lastRow; rowNumber++)
         {
-            var fullName = GetCellText(worksheet, rowNumber, 1);
-            var email = GetCellText(worksheet, rowNumber, 2);
-            var phone = GetCellText(worksheet, rowNumber, 3);
-            var dobText = GetCellText(worksheet, rowNumber, 4);
-            var gender = GetCellText(worksheet, rowNumber, 5);
-            var shift = GetCellText(worksheet, rowNumber, 6);
-            var planName = GetCellText(worksheet, rowNumber, 7);
+            var fullName = GetMappedText(worksheet, rowNumber, columnMap, "FullName");
+            var email = GetMappedText(worksheet, rowNumber, columnMap, "Email");
+            var phone = GetMappedText(worksheet, rowNumber, columnMap, "PhoneNumber");
+            var dobText = GetMappedText(worksheet, rowNumber, columnMap, "DateOfBirth");
+            var gender = GetMappedText(worksheet, rowNumber, columnMap, "Gender");
+            var shift = GetMappedText(worksheet, rowNumber, columnMap, "Shift");
+            var planName = GetMappedText(worksheet, rowNumber, columnMap, "PlanName");
+            var membershipNo = GetMappedText(worksheet, rowNumber, columnMap, "MembershipNo");
+            var planStartText = GetMappedText(worksheet, rowNumber, columnMap, "PlanStartDate");
+            var planEndText = GetMappedText(worksheet, rowNumber, columnMap, "PlanEndDate");
 
-            if (IsEmptyRow(fullName, email, phone, dobText, gender, shift, planName))
+            if (IsEmptyRow(fullName, email, phone, dobText, gender, shift, planName, membershipNo, planStartText, planEndText))
             {
                 continue;
             }
@@ -139,11 +199,16 @@ public static class MemberBulkExcelHelper
                 FullName = fullName,
                 Email = email,
                 PhoneNumber = phone,
-                DateOfBirth = ParseDateOfBirth(worksheet, rowNumber, dobText),
+                DateOfBirth = ParseDateCell(worksheet, rowNumber, columnMap, "DateOfBirth", dobText),
                 RawDateOfBirth = dobText,
                 Gender = gender,
                 Shift = shift,
-                PlanName = planName
+                PlanName = planName,
+                MembershipNo = string.IsNullOrWhiteSpace(membershipNo) ? null : membershipNo.Trim(),
+                PlanStartDate = ParseDateCell(worksheet, rowNumber, columnMap, "PlanStartDate", planStartText),
+                RawPlanStartDate = planStartText,
+                PlanEndDate = ParseDateCell(worksheet, rowNumber, columnMap, "PlanEndDate", planEndText),
+                RawPlanEndDate = planEndText
             });
         }
 
@@ -185,6 +250,77 @@ public static class MemberBulkExcelHelper
         if (string.IsNullOrWhiteSpace(row.PlanName))
             return "PlanName is required.";
 
+        if (!string.IsNullOrWhiteSpace(row.MembershipNo))
+        {
+            var membershipNo = row.MembershipNo.Trim();
+            if (membershipNo.Length > 40)
+                return "MembershipNo must be 40 characters or fewer.";
+            if (!MembershipNoRegex.IsMatch(membershipNo))
+                return "MembershipNo must start with a letter or digit and may contain letters, digits, '.', '_' or '-'.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(row.RawPlanStartDate) && row.PlanStartDate is null)
+            return "PlanStartDate must be in yyyy-MM-dd format.";
+
+        if (!string.IsNullOrWhiteSpace(row.RawPlanEndDate) && row.PlanEndDate is null)
+            return "PlanEndDate must be in yyyy-MM-dd format.";
+
+        if (row.PlanStartDate.HasValue && row.PlanEndDate.HasValue && row.PlanEndDate.Value.Date <= row.PlanStartDate.Value.Date)
+            return "PlanEndDate must be after PlanStartDate.";
+
+        return null;
+    }
+
+    private static string NormalizeHeader(string value) =>
+        Regex.Replace(value.Trim(), @"\s+", "");
+
+    private static string GetMappedText(
+        IXLWorksheet worksheet,
+        int row,
+        IReadOnlyDictionary<string, int> columnMap,
+        string field)
+    {
+        if (!columnMap.TryGetValue(field, out var column))
+        {
+            return string.Empty;
+        }
+
+        return GetCellText(worksheet, row, column);
+    }
+
+    private static DateTime? ParseDateCell(
+        IXLWorksheet worksheet,
+        int rowNumber,
+        IReadOnlyDictionary<string, int> columnMap,
+        string field,
+        string text)
+    {
+        if (!columnMap.TryGetValue(field, out var column))
+        {
+            return null;
+        }
+
+        var cell = worksheet.Cell(rowNumber, column);
+        if (cell.DataType == XLDataType.DateTime)
+        {
+            return cell.GetDateTime().Date;
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        if (DateTime.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            return parsed.Date;
+        }
+
+        if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
+        {
+            return parsed.Date;
+        }
+
         return null;
     }
 
@@ -197,27 +333,6 @@ public static class MemberBulkExcelHelper
         }
 
         return cell.GetString().Trim();
-    }
-
-    private static DateTime? ParseDateOfBirth(IXLWorksheet worksheet, int rowNumber, string dobText)
-    {
-        var cell = worksheet.Cell(rowNumber, 4);
-        if (cell.DataType == XLDataType.DateTime)
-        {
-            return cell.GetDateTime().Date;
-        }
-
-        if (DateTime.TryParseExact(dobText, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
-        {
-            return parsed.Date;
-        }
-
-        if (DateTime.TryParse(dobText, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
-        {
-            return parsed.Date;
-        }
-
-        return null;
     }
 
     private static bool IsEmptyRow(params string[] values) =>

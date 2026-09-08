@@ -9,7 +9,7 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 | Doc | Module | Summary |
 |-----|--------|---------|
 | [auth-workflow.md](./auth-workflow.md) | M-01 Authentication | Login, register, OTP, password reset, JWT, guards, Trial auto-approval |
-| [onboarding-workflow.md](./onboarding-workflow.md) | M-03 Onboarding | Institution → branch → library wizard, pending approval redirect |
+| [onboarding-workflow.md](./onboarding-workflow.md) | M-03 Onboarding | Workspace setup modes (auto / manual / later), institution → branch → library wizard, pending approval redirect |
 | [profile-workflow.md](./profile-workflow.md) | M-11 Profile | Account, security, workspace access, permissions |
 | [dashboard-workflow.md](./dashboard-workflow.md) | M-07 Dashboard | Overview + Activity tabs, period filter, revenue/dues logic |
 

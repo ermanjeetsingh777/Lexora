@@ -34,6 +34,13 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Do NOT use `ngStyle`, use `style` bindings instead
 - When using external templates/styles, use paths relative to the component TS file.
 
+## Responsive & Mobile
+
+- Tab strips are a native `<nav>` of `<button>` pills inside an `overflow-x-auto` wrapper, each button `shrink-0 whitespace-nowrap`. Do not use PrimeNG `SelectButton` for page tabs — it wraps on narrow screens.
+- Wide tables go in an `overflow-x-auto` wrapper with an explicit `min-w-[...]` on the `<table>`; give scrolling flex children `min-w-0` so they can shrink.
+- Header actions collapse to icon-only below `sm`: wrap the label in `<span class="hidden sm:inline">` and keep `title` + `aria-label` on the control.
+- `position: fixed` elements must carry the safe-area utilities from `styles.css` (`safe-top`, `safe-bottom`, `safe-mb`) so they clear the iOS notch and home indicator in the installed PWA.
+
 ## State Management
 
 - Use signals for local component state

@@ -48,7 +48,7 @@ Nested under institution: `/institutions/:institutionId/branches/:branchId/*`
 
 ### 2.3 Branch detail
 
-- **Tabs:** overview, libraries, members, analytics (query `?tab=`)
+- **Tabs:** overview, libraries, members, analytics (query `?tab=`) — rendered as a scrollable `<nav>` pill strip (`overflow-x-auto`, `shrink-0 whitespace-nowrap`) rather than PrimeNG `SelectButton`, so they don't wrap on mobile
 - **Library Creation in Branch:**
   - `canCreateLibrary` checks `OrganizationEntitlementService.canCreateLibrary()` (Value, Premium, Trial permitted; Basic blocked) and `AuthService.hasPermission(PermissionKey.LibrariesCreate)`.
 - **Scoped members panel:** [scoped-members-workflow.md](./scoped-members-workflow.md)

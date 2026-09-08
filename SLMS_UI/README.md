@@ -96,6 +96,23 @@ Full E2E docs: **[e2e/README.md](./e2e/README.md)**
 - Scalable vector assets and multi-resolution favicons (`/assets/logo/`, `public/favicon.ico`).
 - Generated asset script: `node scripts/generate-icons.js`.
 
+### iOS safe areas (notch / Dynamic Island / home indicator)
+
+- `index.html` sets `apple-mobile-web-app-status-bar-style` to **`default`** so iOS keeps the status bar area out of the web view; with `black-translucent` the fixed topbar slid under the camera cutout on installed PWAs.
+- `position: fixed` elements ignore the safe-area padding on `<body>`, so `styles.css` exposes three utilities used by every fixed element:
+
+  | Utility | Applies | Used by |
+  |---------|---------|---------|
+  | `.safe-top` | `padding-top: env(safe-area-inset-top)` | topbar, sidebar, members list side panel |
+  | `.safe-bottom` | `padding-bottom: env(safe-area-inset-bottom)` | sidebar, side panels |
+  | `.safe-mb` | `margin-bottom: env(safe-area-inset-bottom)` | PWA install banner, policy consent banner |
+
+- The topbar keeps its `h-14` bar in an inner `div` so the safe-area padding sits above it rather than growing the row.
+
+### Mobile tab strips
+
+Detail pages (institution, branch, library, member) render tabs as a native `<nav>` of `<button>` pills inside an `overflow-x-auto` wrapper, with `shrink-0 whitespace-nowrap` on each button — the same pattern as the attendance page. PrimeNG `SelectButton` was removed from those pages because it wrapped on narrow screens. Where `p-selectbutton` is still used, `styles.css` constrains it (`max-width: 100%`, `overflow-x: auto`, non-shrinking buttons, smaller text below `640px`).
+
 ## Documentation
 
 - Monorepo README: [../README.md](../README.md)

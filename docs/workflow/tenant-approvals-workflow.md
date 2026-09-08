@@ -10,7 +10,7 @@ End-to-end workflow for **M-18 Tenant & Subscription Approvals Console** across 
 
 Lexora implements a comprehensive verification and approval workflow managed by SuperAdmins:
 1. **Tenant Registrations Approval:** When a new organization registers on a paid plan, their account enters `ApprovalStatus = "Pending"`. After completing the onboarding wizard, they are redirected to a `/pending-approval` waiting page. SuperAdmin reviews organization details, verifies payment receipts, sets approved amounts, adds remarks, and activates the tenant with 1 click.
-2. **Trial Auto-Approval:** New registrations on the `Trial` package are **auto-approved immediately** (`ApprovalStatus = "Approved"`, `IsActive = true`) without requiring SuperAdmin action.
+2. **Trial Auto-Approval:** New registrations on the `Trial` package are **auto-approved immediately** (`ApprovalStatus = "Approved"`, `IsActive = true`) without requiring SuperAdmin action — *unless* the user picked **Do it later** for workspace setup (`WorkspaceSetupMode.Later`), which always queues the account as `Pending` with the remark "Library setup deferred — awaiting SuperAdmin approval". Such tenants arrive in the queue with **no Institution / Branch / Library** yet.
 3. **Capacity Add-ons Approval:** When a tenant requests add-on capacity packs (extra branches, libraries, members, staff users, institutions), the request is queued in `Pending` state. Quotas are only expanded once SuperAdmin approves the request.
 4. **Plan Renewal & Upgrade Approval:** When a logged-in user requests a plan renewal or upgrade, the request is submitted to SuperAdmin for approval. If a SuperAdmin performs the renewal/upgrade, it is **auto-approved instantly**.
 5. **Direct Outreach & WhatsApp Hotline:** Both user and SuperAdmin screens feature pre-filled 1-click WhatsApp messaging templates (Payment Request, Discount Offer, Follow-up Reminder, and Slip Submission).
@@ -54,9 +54,10 @@ flowchart TD
 
 ### 2.3 User Experience Flows
 
-- **Post-Registration Wizard:**
+- **Post-Registration Wizard:** (skipped entirely when the user chose **Create it for me** or **Do it later** at sign-up — see [onboarding-workflow.md](./onboarding-workflow.md))
   - If registered with `Trial`: Wizard completes and navigates directly to `/dashboard`.
   - If registered with Paid Plan: Wizard completes and navigates to `/pending-approval` showing SuperAdmin hotline numbers, email, and WhatsApp slip submission.
+  - If registered with **Do it later**: goes straight to `/pending-approval`, regardless of plan.
 - **Subscriptions Page (`/subscriptions`):**
   - Displays a top warning banner if a Renew or Upgrade request is pending SuperAdmin review, with a direct **"Send Slip via WhatsApp"** button.
   - Displays add-on request status badges (`Pending`, `Approved`, `Declined`) with WhatsApp slip actions.

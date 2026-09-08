@@ -61,7 +61,7 @@ Entry from list: `routerLink="['/institutions', item.id]"`.
 ```
 PageHeader (back, refresh, institution name + subtitle)
 ├── Summary KPI cards (Overview, Branches, Libraries, Billing tabs only)
-├── PrimeNG SelectButton tab nav (pill style, allowEmpty=false)
+├── Tab nav — plain `<nav>` of pill buttons in a horizontally scrollable wrapper
 └── Tab content
     ├── Overview — revenue, occupancy, member mix, attendance, heatmap
     ├── Branches — filters, table, sidebar cards, pagination
@@ -112,7 +112,7 @@ sequenceDiagram
 **Tab switch (`setTab`):**
 
 - Ignores `null`/invalid values (prevents tab clear on double-click).
-- `p-selectbutton` uses `[allowEmpty]="false"` so the active tab cannot be deselected.
+- The tab strip is a native `<nav>` with `<button>` pills (PrimeNG `SelectButton` was dropped here): the wrapper is `overflow-x-auto` and each button is `shrink-0 whitespace-nowrap`, so on mobile the tabs scroll sideways instead of wrapping and breaking the layout. The active tab is marked with `aria-current="page"` and can never be deselected. Branch, library and member detail pages use the same pattern.
 - Clears branch, library, and billing filters when tab actually changes.
 - Closes invoice detail sheet.
 - Updates `?tab` query param (`overview` omits the param).

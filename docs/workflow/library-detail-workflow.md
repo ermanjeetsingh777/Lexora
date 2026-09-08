@@ -38,6 +38,8 @@ flowchart LR
 
 ### 2.2 Tabs
 
+Rendered as a scrollable `<nav>` pill strip (`overflow-x-auto` wrapper, `shrink-0 whitespace-nowrap` buttons) instead of PrimeNG `SelectButton`, so the strip scrolls sideways on mobile rather than wrapping.
+
 | Tab | Features |
 |-----|----------|
 | Overview | KPIs, occupancy chart, activity feed |

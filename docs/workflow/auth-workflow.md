@@ -88,9 +88,15 @@ Seeded on API startup (see [administration-workflow.md](./administration-workflo
 6. If a paid package (`Basic`, `Value`, `Premium`) is selected:
    - Capacity Add-ons accordion allows users to attach extra libraries, staff user seats, or member capacity packs during sign-up with live total pricing.
    - Account enters `ApprovalStatus = "Pending"`.
-7. `AuthService.register()` sends `RegisterRequest` with `packageId` and `selectedAddons`.
-8. API creates user, subscribes base package, attaches selected add-ons, and sets initial `OrganisationAdmin` role.
-9. Redirects to `/onboarding/institution`.
+7. **Workspace setup mode** (radio group, default **Create it for me**) decides what happens after the account is created — see [onboarding-workflow.md §2.5](./onboarding-workflow.md).
+8. `AuthService.register()` sends `RegisterRequest` with `packageId`, `selectedAddons`, `setupMode`, and (for `Auto`) `institutionName` / `branchName` / `libraryName`.
+9. API creates user, subscribes base package, attaches selected add-ons, and sets initial `OrganisationAdmin` role.
+10. Post-register navigation is driven by the `onboardingStep` returned in the response (via `CommonService.onboardingConfig`), not hard-coded:
+    - `Completed` → `/dashboard`
+    - `PendingApproval` → `/pending-approval`
+    - `Registered` → `/onboarding/institution`
+
+**Password fields** on `/login` and `/register` have a show/hide eye toggle (`showPassword` / `showConfirmPassword` signals, `LucideEye` / `LucideEyeOff`); the toggle button is `tabindex="-1"` so it stays out of the tab order.
 
 ---
 
@@ -101,7 +107,7 @@ Seeded on API startup (see [administration-workflow.md](./administration-workflo
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| POST | `/register` | New user registration (auto-approves Trial; sets Pending for Paid) |
+| POST | `/register` | New user registration (auto-approves Trial; sets Pending for Paid). Honours `SetupMode`: `Auto` bootstraps Institution/Branch/Library, `Manual` leaves the wizard, `Later` forces the SuperAdmin queue |
 | POST | `/login` | Issue access + refresh tokens |
 | POST | `/refresh-token` | Rotate access token |
 | POST | `/logout` | Invalidate refresh token |
@@ -151,6 +157,11 @@ SLMS_API/
 - [x] Invalid credentials → error toast, no redirect
 - [x] Register with Trial plan → auto-approved, completes onboarding → dashboard
 - [x] Register with Paid plan → completes onboarding → `/pending-approval`
+- [ ] Register with **Create it for me** + Trial → Institution/Branch/Library created, lands on `/dashboard`
+- [ ] Register with **Create it for me** + Paid → entities created, lands on `/pending-approval`
+- [ ] Register with **I'll set it up myself** → no entities, lands on `/onboarding/institution`
+- [ ] Register with **Do it later** → no entities, `PendingApproval` even on Trial
+- [ ] Password eye toggle reveals/hides text on `/login` and `/register`
 - [x] Expired access token → silent refresh
 - [x] Logout clears tokens and blocks protected routes
 - [x] Incomplete onboarding user cannot reach `/dashboard` (redirect to wizard)

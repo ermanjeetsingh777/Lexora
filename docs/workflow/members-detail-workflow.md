@@ -54,9 +54,11 @@ PageHeader (back, copy ID, actions)
     ├── KPI strip (plan, attendance %, visits, books, fees, tenure)
     ├── Lifecycle banner + Renew CTA
     ├── Today's attendance card (check-in / check-out)
-    ├── Tab selector (PrimeNG SelectButton)
+    ├── Tab selector (`<nav>` of pill buttons, horizontally scrollable)
     └── Tab content
 ```
+
+**Mobile:** the tab strip wrapper is `min-w-0 max-w-full overflow-x-auto` with `shrink-0 whitespace-nowrap` buttons (the PrimeNG `SelectButton` it replaced wrapped and stretched the page), and the main column carries `min-w-0`. Header actions in `app-page-header` collapse to icon-only below `sm` — labels are wrapped in `<span class="hidden sm:inline">` and each control keeps a `title` / `aria-label`.
 
 ### 2.3 Tabs
 

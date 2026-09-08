@@ -8,23 +8,35 @@ End-to-end workflow for **M-03 Onboarding & Tenant Approvals** across **SLMS_UI*
 
 ## 1. Overview
 
-Post-registration wizard: institution → branch → library → **Dashboard or SuperAdmin Approval Pending**. `onboardingGuard` and `onboardingCompleteGuard` ensure that newly registered organizations complete setup:
-- If on a **Trial** package: The user is auto-approved upon completing library setup and lands directly on `/dashboard`.
-- If on a **Paid** package: The user transitions to `PendingApproval` and is routed to `/pending-approval` with SuperAdmin contact hotline details until reviewed and activated.
+At registration the user picks **how** the workspace gets created (`RegisterRequest.SetupMode`). From there the wizard (institution → branch → library) is either skipped, walked manually, or deferred. `onboardingGuard` and `onboardingCompleteGuard` route the user by `OnboardingStep` in every case.
+
+| Setup mode | Value | What register does | Where the user lands |
+|------------|-------|--------------------|----------------------|
+| **Create it for me** (default) | `Auto` = 1 | Creates Institution + Branch + Library server-side | Trial → `/dashboard`; Paid → `/pending-approval` |
+| **I'll set it up myself** | `Manual` = 2 | Nothing; step stays `Registered` | `/onboarding/institution` (3-step wizard) |
+| **Do it later** | `Later` = 3 | Nothing; forces `PendingApproval` + `ApprovalStatus = Pending` **even on Trial** | `/pending-approval` |
+
+Package rules still apply on top: **Trial** is auto-approved, **Paid** waits for SuperAdmin.
 
 ```mermaid
 flowchart TD
-  Register[User Registers with Package & Addons] --> Inst[/onboarding/institution]
+  Register[User registers: package, addons, setup mode] --> Mode{SetupMode}
+  Mode -- Auto --> Bootstrap[API creates Institution + Branch + Library]
+  Bootstrap --> CheckTrial{Is Trial Package?}
+  Mode -- Manual --> Inst[/onboarding/institution]
   Inst --> Branch[/onboarding/branch]
   Branch --> Lib[/onboarding/library]
-  Lib --> CheckTrial{Is Trial Package?}
+  Lib --> CheckTrial
   CheckTrial -- Yes --> Completed[Set Completed -> Navigate to /dashboard]
   CheckTrial -- No --> Pending[/pending-approval - Waiting for SuperAdmin]
+  Mode -- Later --> Pending
   Pending --> Contact[SuperAdmin WhatsApp / Call / Email Hotline]
   Pending --> AdminReview{SuperAdmin Reviews Request in Console}
   AdminReview -->|Approve with Final Amount & Remarks| Approved[Account Activated -> /dashboard]
   AdminReview -->|Decline / Request info| Rejected[Status & Remarks Updated on User Page]
 ```
+
+> **Open item:** a `Later` tenant is approved without any Institution/Branch/Library. The post-approval path that walks them through creating those entities is not implemented yet.
 
 ---
 
@@ -50,8 +62,8 @@ flowchart TD
 
 ### 2.3 Post-Registration & Approval User Experience
 
-1. User registers choosing Package + optional Add-ons.
-2. Completes 3-step setup (Institution -> Branch -> Library).
+1. User registers choosing Package + optional Add-ons + **workspace setup mode**.
+2. In `Manual` mode, completes the 3-step setup (Institution -> Branch -> Library). `Auto` skips it; `Later` defers it.
 3. On Library creation:
    - If user `ApprovalStatus === 'Approved'` (e.g. Trial user): `onboardingStep` is set to `Completed` (7) and user navigates directly to `/dashboard`.
    - If user `ApprovalStatus === 'Pending'`: `onboardingStep` is set to `PendingApproval` (6) and redirected to `/pending-approval`.
@@ -73,6 +85,27 @@ flowchart TD
   - Final Approved Amount field (SuperAdmin can edit/negotiate final billing).
   - Admin Remarks / Comments textarea with quick template buttons ("Payment Verified", "Slip Confirmed", "Slip Required").
   - **Approve & Activate** and **Reject Request** action buttons.
+- Mobile: the section switcher and status tabs scroll horizontally (`overflow-x-auto`, `shrink-0 whitespace-nowrap` buttons) and the tables sit in an `overflow-x-auto` wrapper with a `min-w-[900px]` table, so nothing wraps or stretches the page.
+
+### 2.5 Workspace Setup Mode on `/register`
+
+**Files:** `features/auth/register/register.component.{ts,html}` · enum `WorkspaceSetupMode` in `core/enums/OnbardingSteps.ts` · `RegisterRequest` in `core/models/AuthResponse.model.ts`
+
+- Three radio options render under the password fields; **Create it for me** is pre-selected (`setupMode` signal defaults to `WorkspaceSetupMode.Auto`).
+- With `Auto` selected, a panel shows the suggested name — **`<Organization> Main`** — and a **Change names** button that reveals editable Institution / Branch / Library name inputs (`customizeNames` signal). Blank fields fall back to the suggested name, and the API applies the same fallback.
+- After a successful register the component reads `response.data.user.onboardingStep` and navigates via `CommonService.onboardingConfig`, so the three modes need no route branching in the UI.
+
+### 2.6 Onboarding Form Defaults (Manual mode)
+
+The wizard reuses the standard create screens with `isOnboarding = true`. On init each one pre-fills workspace-wide defaults, only when the field is still empty so a user's own input is never overwritten:
+
+| Screen | Prefill |
+|--------|---------|
+| `institution-create` | Contact email ← signed-up user's email |
+| `branch-create` | Contact email ← signed-up email · Capacity ← `150` (`DEFAULT_ONBOARDING_CAPACITY`) |
+| `create-library` | Contact email ← signed-up email |
+
+Outside onboarding (creating a branch/library from the menu) no defaults are applied.
 
 ---
 
@@ -86,6 +119,24 @@ flowchart TD
 | `GET` | `/api/v1/admin/tenant-registrations` | `[Authorize(Roles="SuperAdmin")]` | List tenant registrations with optional status filter |
 | `POST` | `/api/v1/admin/tenant-registrations/{userId}/approve` | `[Authorize(Roles="SuperAdmin")]` | Approve tenant registration, unlock onboarding/dashboard access, audit event |
 | `POST` | `/api/v1/admin/tenant-registrations/{userId}/reject` | `[Authorize(Roles="SuperAdmin")]` | Reject tenant registration with reason |
+
+### 3.2 Workspace Bootstrap at Registration
+
+**Files:** `Application/Services/AuthService.cs` · `Application/Contracts/Auth/Requests/RegisterRequest.cs` · `Common/Enums/WorkspaceSetupMode.cs`
+
+`RegisterRequest` carries `SetupMode` (defaults to `Auto`) plus optional `InstitutionName`, `BranchName`, `LibraryName`. After the user, package and add-ons are persisted, `RegisterAsync` branches:
+
+- **`Auto`** → `BootstrapDefaultWorkspaceAsync` creates the Institution, then the Branch, then the Library, each marked `IsPrimary = true`, `IsOnboarding = true`, `Status = Active`, with the registered email as contact. Defaults:
+
+  | Setting | Value |
+  |---------|-------|
+  | Name (all three) | Request value, else `"{Organization} Main"` |
+  | Branch / Library capacity | `150` (`DefaultWorkspaceCapacity`) |
+  | Branch hours | `06:00` – `18:00` (`DefaultWorkspaceOpenAt` / `DefaultWorkspaceClosesAt`) |
+
+  The org services are resolved from a fresh scope via `IServiceScopeFactory` to avoid circular DI with `AuthService`. Because they advance `OnboardingStep` in *their* `DbContext`, `RegisterAsync` calls `_dbContext.Entry(user).ReloadAsync()` afterwards — without it the response would still carry the stale `Registered` step and push the user back into the wizard.
+- **`Later`** → sets `OnboardingStep = PendingApproval`, `ApprovalStatus = "Pending"`, `AdminRemarks = "Library setup deferred — awaiting SuperAdmin approval"`, and clears `ApprovedAtUtc` / `FinalApprovedAmount`. This overrides Trial auto-approval.
+- **`Manual`** → nothing; the user stays on `OnboardingStep.Registered` and the wizard takes over.
 
 ---
 

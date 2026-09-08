@@ -12,6 +12,7 @@ import { InputDirective } from '@shared/components/input/input.directive';
 import { LabelDirective } from '@shared/components/label/label.directive';
 import { AuthLayoutComponent } from 'src/app/layouts/auth-layout/auth-layout.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { LucideEye, LucideEyeOff } from '@lucide/angular';
 import { OnboardingSteps, UserTypes, WorkspaceSetupMode } from '@core/enums/OnbardingSteps';
 
 export interface SelectedAddonState {
@@ -22,7 +23,7 @@ export interface SelectedAddonState {
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, AuthLayoutComponent, InputDirective, LabelDirective],
+  imports: [FormsModule, RouterLink, AuthLayoutComponent, InputDirective, LabelDirective, LucideEye, LucideEyeOff],
   templateUrl: './register.component.html',
 })
 export class RegisterComponent implements OnInit {
@@ -41,6 +42,8 @@ export class RegisterComponent implements OnInit {
   readonly confirmPassword = signal('');
   readonly busy = signal(false);
   readonly terms = signal(false);
+  readonly showPassword = signal(false);
+  readonly showConfirmPassword = signal(false);
   readonly SetupMode = WorkspaceSetupMode;
   /** Default: create the institution / branch / library automatically. */
   readonly setupMode = signal<WorkspaceSetupMode>(WorkspaceSetupMode.Auto);

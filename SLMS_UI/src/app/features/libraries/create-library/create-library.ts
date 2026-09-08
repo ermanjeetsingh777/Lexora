@@ -90,6 +90,8 @@ export class CreateLibrary implements OnInit {
   });
 
   ngOnInit() {
+    this.prefillContactEmail();
+
     if (!this.isOnboarding()) {
       this.organizationEntitlements.load().subscribe((entitlements) => {
         if (!entitlements?.canCreateLibrary) {
@@ -137,6 +139,14 @@ export class CreateLibrary implements OnInit {
           this.disabledBranchSelect.set(false);
         },
       });
+  }
+
+  /** During onboarding the signed-up email is the contact for the whole workspace. */
+  private prefillContactEmail(): void {
+    const email = this.storageService.user()?.email;
+    if (this.isOnboarding() && email && !this.librariesForm.controls.email.value) {
+      this.librariesForm.controls.email.setValue(email);
+    }
   }
 
   cancel(): void {

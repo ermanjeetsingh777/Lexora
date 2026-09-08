@@ -46,6 +46,8 @@ public class AuthService : IAuthService
 
     private const string DefaultWorkspaceName = "Main";
     private const int DefaultWorkspaceCapacity = 150;
+    private static readonly TimeOnly DefaultWorkspaceOpenAt = new(6, 0);
+    private static readonly TimeOnly DefaultWorkspaceClosesAt = new(18, 0);
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -577,6 +579,8 @@ public class AuthService : IAuthService
             InstitutionId = institution.Id,
             Email = email,
             Capacity = DefaultWorkspaceCapacity,
+            OpenAt = DefaultWorkspaceOpenAt,
+            ClosesAt = DefaultWorkspaceClosesAt,
             IsActive = true,
             IsPrimary = true,
             IsOnboarding = true,

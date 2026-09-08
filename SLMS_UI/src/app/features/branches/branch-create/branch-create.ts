@@ -14,6 +14,9 @@ import { InstitutionDropdownResponse } from '@core/models/institution-dropdown.m
 import { BranchService } from '../branch.service';
 import { catchError, map, of, switchMap } from 'rxjs';
 
+/** Seats suggested for the first branch created during onboarding. */
+const DEFAULT_ONBOARDING_CAPACITY = 150;
+
 @Component({
   selector: 'app-branch-create',
   imports: [PageHeaderComponent, FormsModule, ReactiveFormsModule],
@@ -76,6 +79,8 @@ export class BranchCreate implements OnInit {
   });
 
   ngOnInit() {
+    this.prefillOnboardingDefaults();
+
     if (!this.isOnboarding()) {
       this.organizationEntitlements.load().subscribe((entitlements) => {
         if (!entitlements?.canCreateBranch) {
@@ -100,6 +105,22 @@ export class BranchCreate implements OnInit {
         this.disabledInstitutionSelect.set(false);
       },
     });
+  }
+
+  /** During onboarding the signed-up email is the contact for the whole workspace. */
+  private prefillOnboardingDefaults(): void {
+    if (!this.isOnboarding()) {
+      return;
+    }
+
+    const email = this.storageService.user()?.email;
+    if (email && !this.branchForm.controls.email.value) {
+      this.branchForm.controls.email.setValue(email);
+    }
+
+    if (!this.branchForm.controls.capacity.value) {
+      this.branchForm.controls.capacity.setValue(DEFAULT_ONBOARDING_CAPACITY);
+    }
   }
 
   cancel(): void {

@@ -55,6 +55,8 @@ export class InstitutionCreate implements OnInit {
   });
 
   ngOnInit(): void {
+    this.prefillContactEmail();
+
     if (this.isOnboarding()) {
       return;
     }
@@ -65,6 +67,14 @@ export class InstitutionCreate implements OnInit {
         void this.router.navigate(['/institutions']);
       }
     });
+  }
+
+  /** During onboarding the signed-up email is the contact for the whole workspace. */
+  private prefillContactEmail(): void {
+    const email = this.storageService.user()?.email;
+    if (this.isOnboarding() && email && !this.form.controls.email.value) {
+      this.form.controls.email.setValue(email);
+    }
   }
 
   createAndContinue() {

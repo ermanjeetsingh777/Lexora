@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Role } from '@core/models/auth.model';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
-import { LucideShield, LucideUser, LucideUsers } from '@lucide/angular';
+import { LucideEye, LucideEyeOff, LucideShield, LucideUser, LucideUsers } from '@lucide/angular';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { InputDirective } from '@shared/components/input/input.directive';
 import { LabelDirective } from '@shared/components/label/label.directive';
@@ -25,6 +25,8 @@ import { environment } from '../../../../environments/environment';
     AuthLayoutComponent,
     InputDirective,
     LabelDirective,
+    LucideEye,
+    LucideEyeOff,
   ],
   templateUrl: './login.component.html',
 })
@@ -40,6 +42,7 @@ export class LoginComponent {
   readonly email = signal('');
   readonly password = signal('');
   readonly loader = signal(false);
+  readonly showPassword = signal(false);
   readonly showDemoLogin = !environment.production;
 
   submit() {

@@ -23,8 +23,20 @@
                 <label appLabel for="password">Password</label>
                 <a routerLink="/forgot-password" class="text-xs text-primary hover:underline">Forgot?</a>
             </div>
-            <input appInput id="password" type="password" name="password" [(ngModel)]="password" #passwordCtrl="ngModel"
-                placeholder="demo123" required />
+            <div class="relative">
+                <input appInput id="password" [type]="showPassword() ? 'text' : 'password'" name="password"
+                    class="pr-10" [(ngModel)]="password" #passwordCtrl="ngModel" placeholder="demo123" required />
+                <button type="button" (click)="showPassword.set(!showPassword())" tabindex="-1"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursorPointer"
+                    [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                    [attr.aria-pressed]="showPassword()">
+                    @if (showPassword()) {
+                    <svg lucideEyeOff class="h-4 w-4"></svg>
+                    } @else {
+                    <svg lucideEye class="h-4 w-4"></svg>
+                    }
+                </button>
+            </div>
             @if(passwordCtrl.invalid && (passwordCtrl.touched || loginForm.submitted)) {
             <div class="space-y-1 text-sm text-red-500">
                 @if(passwordCtrl.errors?.['required']) {

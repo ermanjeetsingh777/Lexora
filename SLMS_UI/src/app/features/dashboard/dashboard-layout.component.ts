@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { NewWorkspaceBannerComponent } from '@shared/components/new-workspace-banner/new-workspace-banner.component';
 import { DashboardHeaderService } from './dashboard-header.service';
 
 interface DashboardTab {
@@ -16,9 +17,11 @@ interface DashboardTab {
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, PageHeaderComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, PageHeaderComponent, NewWorkspaceBannerComponent],
   template: `
     <div class="space-y-4">
+      <app-new-workspace-banner />
+
       <app-page-header
         [eyebrow]="pageHeader().eyebrow"
         [title]="pageHeader().title"

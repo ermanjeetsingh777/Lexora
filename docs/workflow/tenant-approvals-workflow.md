@@ -51,13 +51,14 @@ flowchart TD
   - **Editable Financials:** SuperAdmin can set `FinalApprovedAmount` (e.g. after discounts/negotiations) and `AdminRemarks`.
   - **WhatsApp Direct Outreach Module:** Switch between pre-configured message templates (`payment`, `discount`, `reminder`) or edit text with a 1-click **"Send on WhatsApp"** button.
   - **One-Click Actions:** `Approve & Activate` (or `Reject Request`) with live submission states.
+- **Approving a tenant with no workspace:** if the tenant owns no Institution (they registered with **Do it later**), approval sets `ApprovalStatus = Approved` but leaves `OnboardingStep = Registered`, so their next sign-in starts the onboarding wizard instead of an empty dashboard. Finishing the wizard promotes them to `Completed` automatically — no second approval needed.
 
 ### 2.3 User Experience Flows
 
 - **Post-Registration Wizard:** (skipped entirely when the user chose **Create it for me** or **Do it later** at sign-up — see [onboarding-workflow.md](./onboarding-workflow.md))
   - If registered with `Trial`: Wizard completes and navigates directly to `/dashboard`.
   - If registered with Paid Plan: Wizard completes and navigates to `/pending-approval` showing SuperAdmin hotline numbers, email, and WhatsApp slip submission.
-  - If registered with **Do it later**: goes straight to `/pending-approval`, regardless of plan.
+  - If registered with **Do it later**: goes straight to `/pending-approval`, regardless of plan; once approved, `/pending-approval` routes them into `/onboarding/institution` to build the workspace they skipped.
 - **Subscriptions Page (`/subscriptions`):**
   - Displays a top warning banner if a Renew or Upgrade request is pending SuperAdmin review, with a direct **"Send Slip via WhatsApp"** button.
   - Displays add-on request status badges (`Pending`, `Approved`, `Declined`) with WhatsApp slip actions.

@@ -3,6 +3,7 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { CommonService } from '@core/services/common.service';
 import { StorageService } from '@core/services/storage.service';
 import { ToastService } from '@core/services/toast.service';
 import { OnboardingSteps } from '@core/enums/OnbardingSteps';
@@ -68,6 +69,7 @@ import {
 export class PendingApprovalComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly storage = inject(StorageService);
+  private readonly commonService = inject(CommonService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
@@ -193,18 +195,33 @@ export class PendingApprovalComponent implements OnInit {
       data.approvalStatus?.toLowerCase() === 'approved' ||
       data.onboardingStep === OnboardingSteps.Completed;
 
-    if (isApproved) {
-      const currentUser = this.storage.user();
-      if (currentUser) {
-        currentUser.onboardingStep = OnboardingSteps.Completed;
-        currentUser.approvalStatus = 'Approved';
-        this.storage.setUser(currentUser);
-      }
-      this.toast.success('Congratulations! Your organization account has been approved.');
-      void this.router.navigate(['/dashboard']);
-      return true;
+    if (!isApproved) {
+      return false;
     }
-    return false;
+
+    // Tenants who deferred setup are approved on a pre-wizard step — send them to
+    // the wizard instead of an empty dashboard.
+    const step = data.onboardingStep ?? OnboardingSteps.Completed;
+    const setupPending = step !== OnboardingSteps.Completed;
+
+    const currentUser = this.storage.user();
+    if (currentUser) {
+      currentUser.onboardingStep = step;
+      currentUser.approvalStatus = 'Approved';
+      this.storage.setUser(currentUser);
+    }
+
+    this.toast.success(
+      setupPending
+        ? 'Your account is approved. Let\'s finish setting up your library.'
+        : 'Congratulations! Your organization account has been approved.',
+    );
+
+    const route = setupPending
+      ? this.commonService.onboardingConfig[step]?.route ?? '/onboarding/institution'
+      : '/dashboard';
+    void this.router.navigate([route]);
+    return true;
   }
 
   copyToClipboard(text: string): void {

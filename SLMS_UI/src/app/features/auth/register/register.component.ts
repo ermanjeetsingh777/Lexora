@@ -8,6 +8,7 @@ import { PackageService } from '@core/services/package.service';
 import { AddonService } from '@core/services/addon.service';
 import { ToastService } from '@core/services/toast.service';
 import { CommonService } from '@core/services/common.service';
+import { WorkspaceSetupNoticeService } from '@core/services/workspace-setup-notice.service';
 import { InputDirective } from '@shared/components/input/input.directive';
 import { LabelDirective } from '@shared/components/label/label.directive';
 import { AuthLayoutComponent } from 'src/app/layouts/auth-layout/auth-layout.component';
@@ -35,6 +36,7 @@ export class RegisterComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly commonService = inject(CommonService);
+  private readonly workspaceNotice = inject(WorkspaceSetupNoticeService);
 
   readonly name = signal('');
   readonly email = signal('');
@@ -209,7 +211,9 @@ export class RegisterComponent implements OnInit {
       setupMode: this.setupMode(),
     };
 
-    if (this.setupMode() === WorkspaceSetupMode.Auto) {
+    const isAutoSetup = this.setupMode() === WorkspaceSetupMode.Auto;
+
+    if (isAutoSetup) {
       const fallback = this.defaultWorkspaceName();
       const pick = (value: string) => value.trim() || fallback;
       request.institutionName = this.customizeNames() ? pick(this.institutionName()) : fallback;
@@ -223,6 +227,15 @@ export class RegisterComponent implements OnInit {
           const step = response.data.user.onboardingStep;
           const config = this.commonService.onboardingConfig[step]
             ?? { route: '/dashboard', message: '' };
+
+          if (isAutoSetup) {
+            this.workspaceNotice.remember({
+              email: request.email,
+              institutionName: request.institutionName!,
+              branchName: request.branchName!,
+              libraryName: request.libraryName!,
+            });
+          }
 
           if (step === OnboardingSteps.Completed) {
             this.toast.success('Account created. Your workspace is ready.');

@@ -161,6 +161,8 @@ SLMS_API/
 - [ ] Register with **Create it for me** + Paid → entities created, lands on `/pending-approval`
 - [ ] Register with **I'll set it up myself** → no entities, lands on `/onboarding/institution`
 - [ ] Register with **Do it later** → no entities, `PendingApproval` even on Trial
+- [ ] Approve a **Do it later** tenant → `/pending-approval` sends them to `/onboarding/institution`, not `/dashboard`
+- [ ] Dashboard shows the "Your workspace is ready" banner once after an `Auto` registration, and stays hidden after dismiss
 - [ ] Password eye toggle reveals/hides text on `/login` and `/register`
 - [x] Expired access token → silent refresh
 - [x] Logout clears tokens and blocks protected routes

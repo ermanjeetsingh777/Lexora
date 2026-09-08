@@ -1757,12 +1757,19 @@ public class AdminService : IAdminService
         var user = await _userManager.FindByIdAsync(userId)
             ?? throw new InvalidOperationException("User not found.");
 
+        // // // Tenants who deferred setup (WorkspaceSetupMode.Later) have no institution yet.
+        // // // Sending them straight to Completed would drop them on an empty dashboard with no
+        // // // way back into the wizard, so keep them on Registered until they finish setup.
+        // // var hasWorkspace = await _dbContext.Institutions
+        // //     .AnyAsync(i => i.CreatedBy == userId && !i.IsDeleted, cancellationToken);
+
+        // // user.OnboardingStep = hasWorkspace ? OnboardingStep.Completed : OnboardingStep.Registered;
         user.OnboardingStep = OnboardingStep.Completed;
         user.ApprovalStatus = "Approved";
         user.IsActive = true;
         user.AdminRemarks = request.Remarks;
         if (request.FinalAmount.HasValue)
-        {
+        {   
             user.FinalApprovedAmount = request.FinalAmount.Value;
         }
         user.ApprovedAtUtc = DateTime.UtcNow;

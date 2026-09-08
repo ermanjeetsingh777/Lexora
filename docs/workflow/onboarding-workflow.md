@@ -36,7 +36,7 @@ flowchart TD
   AdminReview -->|Decline / Request info| Rejected[Status & Remarks Updated on User Page]
 ```
 
-> **Open item:** a `Later` tenant is approved without any Institution/Branch/Library. The post-approval path that walks them through creating those entities is not implemented yet.
+A `Later` tenant has no Institution/Branch/Library when SuperAdmin approves them, so approval routes them into the wizard instead of the dashboard — see [§3.3](#33-approval-of-a-tenant-without-a-workspace).
 
 ---
 
@@ -107,6 +107,12 @@ The wizard reuses the standard create screens with `isOnboarding = true`. On ini
 
 Outside onboarding (creating a branch/library from the menu) no defaults are applied.
 
+### 2.7 "Your workspace is ready" banner (Auto mode)
+
+**Files:** `core/services/workspace-setup-notice.service.ts` · `shared/components/new-workspace-banner/` · rendered by `dashboard-layout.component.ts`
+
+After an `Auto` registration the register component stores the three generated names in `localStorage` (`lexora_auto_workspace_notice_v1`, keyed by the signing-up email). The dashboard shows a dismissible banner listing the Institution / Branch / Library that were created, with a **Review & rename** link to `/institutions`. Dismissing removes the record, and the banner only renders for the account that registered — the API has no "auto-created" flag, so this is deliberately client-side and one-time.
+
 ---
 
 ## 3. .NET API Workflow (SLMS_API)
@@ -137,6 +143,23 @@ Outside onboarding (creating a branch/library from the menu) no defaults are app
   The org services are resolved from a fresh scope via `IServiceScopeFactory` to avoid circular DI with `AuthService`. Because they advance `OnboardingStep` in *their* `DbContext`, `RegisterAsync` calls `_dbContext.Entry(user).ReloadAsync()` afterwards — without it the response would still carry the stale `Registered` step and push the user back into the wizard.
 - **`Later`** → sets `OnboardingStep = PendingApproval`, `ApprovalStatus = "Pending"`, `AdminRemarks = "Library setup deferred — awaiting SuperAdmin approval"`, and clears `ApprovedAtUtc` / `FinalApprovedAmount`. This overrides Trial auto-approval.
 - **`Manual`** → nothing; the user stays on `OnboardingStep.Registered` and the wizard takes over.
+
+### 3.3 Approval of a tenant without a workspace
+
+**File:** `Application/Services/AdminService.cs` → `ApproveTenantRegistrationAsync`
+
+Approval no longer forces `OnboardingStep.Completed`. It first checks whether the tenant owns an institution:
+
+```csharp
+var hasWorkspace = await _dbContext.Institutions
+    .AnyAsync(i => i.CreatedBy == userId && !i.IsDeleted, cancellationToken);
+
+user.OnboardingStep = hasWorkspace ? OnboardingStep.Completed : OnboardingStep.Registered;
+```
+
+`ApprovalStatus` becomes `Approved` either way, so the console still shows the tenant as approved and their package/add-ons activate. A `Later` tenant lands on `Registered`, which the guards translate to `/onboarding/institution`; when they finish the library step, `UpdateOnboardingStepAsync` sees `ApprovalStatus == "Approved"` and promotes them straight to `Completed` without a second approval round.
+
+On the UI side `PendingApprovalComponent.checkIfApproved` navigates to `commonService.onboardingConfig[step].route` rather than a hard-coded `/dashboard`, and stores the step the API actually returned.
 
 ---
 

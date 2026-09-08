@@ -438,6 +438,40 @@ body {
     }
 }
 
+/* PrimeNG SelectButton used as a tab strip (institution / branch / library / member details).
+   Without this the strip overflows its column on small screens and stretches the page. */
+p-selectbutton {
+    display: block;
+    max-width: 100%;
+}
+
+.p-selectbutton {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.p-selectbutton::-webkit-scrollbar {
+    display: none;
+}
+
+.p-selectbutton .p-togglebutton {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .p-selectbutton .p-togglebutton {
+        font-size: 0.75rem;
+    }
+
+    .p-selectbutton .p-togglebutton-content {
+        padding-inline: 0.625rem;
+    }
+}
+
 .mono-label {
     font-family: var(--font-mono);
     letter-spacing: .08em;

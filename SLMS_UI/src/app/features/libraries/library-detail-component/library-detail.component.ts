@@ -46,7 +46,6 @@ import {
 } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { ChartModule } from 'primeng/chart';
-import { SelectButtonModule } from 'primeng/selectbutton';
 import { LibraryService } from '../library.service';
 import {
   branchDefaultHours,
@@ -102,7 +101,6 @@ import { collectRouteParams, libraryBackNav } from '@core/utils/entity-routes.ut
     StatusBadgeComponent,
     ButtonComponent,
     ChartModule,
-    SelectButtonModule,
     LucideArrowLeft,
     LucideBuilding2,
     LucideBookOpen,

@@ -25,11 +25,11 @@
   </div>
 
   <!-- Top-Level Section Switcher: Tenant Registrations vs Capacity Add-on Requests -->
-  <div class="flex items-center gap-2 p-1.5 bg-muted/60 rounded-xl border border-border/80 w-full sm:w-auto self-start">
+  <div class="flex items-center gap-2 p-1.5 bg-muted/60 rounded-xl border border-border/80 w-full sm:w-auto self-start overflow-x-auto">
     <button
       type="button"
       (click)="setSection('tenants')"
-      class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+      class="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
       [ngClass]="activeSection() === 'tenants'
         ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
         : 'text-muted-foreground hover:text-foreground'"
@@ -46,7 +46,7 @@
     <button
       type="button"
       (click)="setSection('addons')"
-      class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+      class="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
       [ngClass]="activeSection() === 'addons'
         ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
         : 'text-muted-foreground hover:text-foreground'"
@@ -63,7 +63,7 @@
     <button
       type="button"
       (click)="setSection('plans')"
-      class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+      class="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
       [ngClass]="activeSection() === 'plans'
         ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
         : 'text-muted-foreground hover:text-foreground'"
@@ -80,7 +80,7 @@
     <button
       type="button"
       (click)="setSection('reviews')"
-      class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+      class="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
       [ngClass]="activeSection() === 'reviews'
         ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
         : 'text-muted-foreground hover:text-foreground'"
@@ -165,11 +165,11 @@
     <!-- Search & Filter Controls -->
     <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border">
       <!-- Filter Tabs -->
-      <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-lg w-full sm:w-auto">
+      <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-lg w-full sm:w-auto overflow-x-auto">
         <button
           type="button"
           (click)="setTab('all')"
-          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium transition-all"
           [ngClass]="activeTab() === 'all' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
         >
           All ({{ totalCount() }})
@@ -177,7 +177,7 @@
         <button
           type="button"
           (click)="setTab('pending')"
-          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium transition-all"
           [ngClass]="activeTab() === 'pending' ? 'bg-card text-amber-500 shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'"
         >
           Pending ({{ pendingCount() }})
@@ -185,7 +185,7 @@
         <button
           type="button"
           (click)="setTab('approved')"
-          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium transition-all"
           [ngClass]="activeTab() === 'approved' ? 'bg-card text-emerald-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
         >
           Approved ({{ approvedCount() }})
@@ -193,7 +193,7 @@
         <button
           type="button"
           (click)="setTab('rejected')"
-          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium transition-all"
           [ngClass]="activeTab() === 'rejected' ? 'bg-card text-rose-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
         >
           Rejected ({{ rejectedCount() }})
@@ -230,7 +230,7 @@
         </div>
       } @else {
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
+          <table class="w-full min-w-[900px] text-left text-sm">
             <thead class="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground font-semibold">
               <tr>
                 <th class="px-4 py-3">Applicant / Owner</th>
@@ -427,11 +427,11 @@
 
     <!-- Search & Filter Controls for Addons -->
     <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border">
-      <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-lg w-full sm:w-auto">
+      <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-lg w-full sm:w-auto overflow-x-auto">
         <button
           type="button"
           (click)="setAddonTab('all')"
-          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium transition-all"
           [ngClass]="addonTab() === 'all' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
         >
           All ({{ totalAddonCount() }})
@@ -439,7 +439,7 @@
         <button
           type="button"
           (click)="setAddonTab('pending')"
-          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium transition-all"
           [ngClass]="addonTab() === 'pending' ? 'bg-card text-amber-500 shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'"
         >
           Pending ({{ pendingAddonCount() }})
@@ -447,7 +447,7 @@
         <button
           type="button"
           (click)="setAddonTab('approved')"
-          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium transition-all"
           [ngClass]="addonTab() === 'approved' ? 'bg-card text-emerald-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
         >
           Approved ({{ approvedAddonCount() }})
@@ -455,7 +455,7 @@
         <button
           type="button"
           (click)="setAddonTab('rejected')"
-          class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium transition-all"
           [ngClass]="addonTab() === 'rejected' ? 'bg-card text-rose-500 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
         >
           Rejected ({{ rejectedAddonCount() }})
@@ -486,7 +486,7 @@
         </div>
       } @else {
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
+          <table class="w-full min-w-[880px] text-left text-sm">
             <thead class="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground font-semibold">
               <tr>
                 <th class="px-4 py-3">User & Organization</th>
@@ -655,7 +655,7 @@
         <button
           type="button"
           (click)="setPlanTab('all')"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
           [ngClass]="planTab() === 'all' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'"
         >
           All Requests ({{ totalPlanCount() }})
@@ -663,7 +663,7 @@
         <button
           type="button"
           (click)="setPlanTab('pending')"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
           [ngClass]="planTab() === 'pending' ? 'bg-amber-500 text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'"
         >
           <span>Pending</span>
@@ -674,7 +674,7 @@
         <button
           type="button"
           (click)="setPlanTab('approved')"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
           [ngClass]="planTab() === 'approved' ? 'bg-emerald-600 text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'"
         >
           Approved ({{ approvedPlanCount() }})
@@ -682,7 +682,7 @@
         <button
           type="button"
           (click)="setPlanTab('rejected')"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
           [ngClass]="planTab() === 'rejected' ? 'bg-rose-600 text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'"
         >
           Rejected ({{ rejectedPlanCount() }})
@@ -690,7 +690,7 @@
       </div>
 
       <!-- Search Box -->
-      <div class="relative min-w-[240px]">
+      <div class="relative w-full sm:w-auto sm:min-w-[240px]">
         <svg lucideSearch class="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"></svg>
         <input
           type="text"
@@ -720,7 +720,7 @@
         </div>
       } @else {
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
+          <table class="w-full min-w-[900px] text-left text-xs">
             <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
               <tr>
                 <th class="px-4 py-3">Applicant & Institution</th>
@@ -893,7 +893,7 @@
         <button
           type="button"
           (click)="setReviewsTab('all')"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
           [ngClass]="reviewsTab() === 'all' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
         >
           All ({{ totalReviewCount() }})
@@ -901,7 +901,7 @@
         <button
           type="button"
           (click)="setReviewsTab('pending')"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
           [ngClass]="reviewsTab() === 'pending' ? 'bg-amber-500 text-white font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
         >
           Pending ({{ pendingReviewCount() }})
@@ -909,7 +909,7 @@
         <button
           type="button"
           (click)="setReviewsTab('approved')"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
           [ngClass]="reviewsTab() === 'approved' ? 'bg-emerald-600 text-white font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
         >
           Approved ({{ approvedReviewCount() }})
@@ -917,7 +917,7 @@
         <button
           type="button"
           (click)="setReviewsTab('rejected')"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
           [ngClass]="reviewsTab() === 'rejected' ? 'bg-rose-600 text-white font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
         >
           Rejected ({{ rejectedReviewCount() }})
@@ -925,7 +925,7 @@
       </div>
 
       <!-- Search Box -->
-      <div class="relative min-w-[240px]">
+      <div class="relative w-full sm:w-auto sm:min-w-[240px]">
         <svg lucideSearch class="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"></svg>
         <input
           type="text"
@@ -951,7 +951,7 @@
         </div>
       } @else {
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs sm:text-sm border-collapse">
+          <table class="w-full min-w-[880px] text-left text-xs sm:text-sm border-collapse">
             <thead>
               <tr class="border-b border-border bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider font-semibold">
                 <th class="px-4 py-3">Reviewer Details</th>
@@ -1117,11 +1117,11 @@
 
   <!-- MODAL 1: Tenant Review Modal -->
   @if (modalOpen() && selectedRegistration(); as reg) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
-      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+    <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-4 sm:my-8 animate-in fade-in zoom-in-95 duration-150">
         
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-border flex items-center justify-between"
+        <div class="px-4 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-3"
           [ngClass]="{
             'bg-amber-500/10 border-b-amber-500/20': isPending(reg),
             'bg-emerald-500/10 border-b-emerald-500/20': isApproved(reg),
@@ -1165,7 +1165,7 @@
         </div>
 
         <!-- Modal Body Content -->
-        <div class="p-6 space-y-5 max-h-[72vh] overflow-y-auto">
+        <div class="p-4 sm:p-6 space-y-5 max-h-[70vh] sm:max-h-[72vh] overflow-y-auto">
           
           <!-- Applicant & Organization Details Cards -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1267,7 +1267,7 @@
                   <button
                     type="button"
                     (click)="setOutreachTemplate('payment')"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
                     [ngClass]="activeOutreachTemplate() === 'payment'
                       ? 'bg-emerald-600 text-white shadow-sm font-semibold'
                       : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
@@ -1279,7 +1279,7 @@
                   <button
                     type="button"
                     (click)="setOutreachTemplate('discount')"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
                     [ngClass]="activeOutreachTemplate() === 'discount'
                       ? 'bg-emerald-600 text-white shadow-sm font-semibold'
                       : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
@@ -1291,7 +1291,7 @@
                   <button
                     type="button"
                     (click)="setOutreachTemplate('reminder')"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
                     [ngClass]="activeOutreachTemplate() === 'reminder'
                       ? 'bg-emerald-600 text-white shadow-sm font-semibold'
                       : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
@@ -1529,7 +1529,7 @@
         </div>
 
         <!-- Modal Footer Actions -->
-        <div class="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/30">
+        <div class="px-4 sm:px-6 py-4 border-t border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-muted/30">
           <button
             type="button"
             (click)="closeModal()"
@@ -1576,11 +1576,11 @@
 
   <!-- MODAL 2: Add-on Request Review Modal -->
   @if (addonModalOpen() && selectedAddonRequest(); as req) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
-      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+    <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-4 sm:my-8 animate-in fade-in zoom-in-95 duration-150">
         
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-border flex items-center justify-between"
+        <div class="px-4 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-3"
           [ngClass]="{
             'bg-amber-500/10 border-b-amber-500/20': isAddonItemPending(req),
             'bg-emerald-500/10 border-b-emerald-500/20': isAddonItemApproved(req),
@@ -1624,7 +1624,7 @@
         </div>
 
         <!-- Modal Body Content -->
-        <div class="p-6 space-y-5 max-h-[72vh] overflow-y-auto">
+        <div class="p-4 sm:p-6 space-y-5 max-h-[70vh] sm:max-h-[72vh] overflow-y-auto">
           
           <!-- User & Org Details Cards -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1729,7 +1729,7 @@
                   <button
                     type="button"
                     (click)="setAddonOutreachTemplate('payment')"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
                     [ngClass]="activeAddonOutreachTemplate() === 'payment'
                       ? 'bg-emerald-600 text-white shadow-sm font-semibold'
                       : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
@@ -1741,7 +1741,7 @@
                   <button
                     type="button"
                     (click)="setAddonOutreachTemplate('discount')"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
                     [ngClass]="activeAddonOutreachTemplate() === 'discount'
                       ? 'bg-emerald-600 text-white shadow-sm font-semibold'
                       : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
@@ -1753,7 +1753,7 @@
                   <button
                     type="button"
                     (click)="setAddonOutreachTemplate('reminder')"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
                     [ngClass]="activeAddonOutreachTemplate() === 'reminder'
                       ? 'bg-emerald-600 text-white shadow-sm font-semibold'
                       : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border'"
@@ -1956,7 +1956,7 @@
         </div>
 
         <!-- Modal Footer Actions -->
-        <div class="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/30">
+        <div class="px-4 sm:px-6 py-4 border-t border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-muted/30">
           <button
             type="button"
             (click)="closeAddonModal()"
@@ -2001,11 +2001,11 @@
 
   <!-- MODAL 3: Plan Renew & Upgrade Review Modal -->
   @if (planModalOpen() && selectedPlanRequest(); as req) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
-      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+    <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-4 sm:my-8 animate-in fade-in zoom-in-95 duration-150">
         
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-border flex items-center justify-between"
+        <div class="px-4 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-3"
           [ngClass]="{
             'bg-amber-500/10 border-b-amber-500/20': isPlanItemPending(req),
             'bg-emerald-500/10 border-b-emerald-500/20': isPlanItemApproved(req),
@@ -2057,7 +2057,7 @@
         </div>
 
         <!-- Modal Body -->
-        <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <div class="p-4 sm:p-6 space-y-5 max-h-[70vh] sm:max-h-[75vh] overflow-y-auto">
           
           <!-- User & Organization Details -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-muted/30 p-3.5 rounded-xl border border-border">
@@ -2371,7 +2371,7 @@
         </div>
 
         <!-- Modal Footer Actions -->
-        <div class="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/30">
+        <div class="px-4 sm:px-6 py-4 border-t border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-muted/30">
           <button
             type="button"
             (click)="closePlanModal()"
@@ -2416,11 +2416,11 @@
 
   <!-- MODAL 4: Customer Review Detail & Moderation Modal -->
   @if (reviewModalOpen() && selectedReview(); as rev) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
-      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+    <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+      <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-4 sm:my-8 animate-in fade-in zoom-in-95 duration-150">
         
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-border flex items-center justify-between"
+        <div class="px-4 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-3"
           [ngClass]="{
             'bg-amber-500/10 border-b-amber-500/20': isReviewPending(rev),
             'bg-emerald-500/10 border-b-emerald-500/20': isReviewApproved(rev),
@@ -2464,7 +2464,7 @@
         </div>
 
         <!-- Modal Body -->
-        <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <div class="p-4 sm:p-6 space-y-5 max-h-[70vh] sm:max-h-[75vh] overflow-y-auto">
           <!-- Reviewer Info Card -->
           <div class="p-4 rounded-xl bg-muted/40 border border-border space-y-3">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/60 pb-3">
@@ -2539,7 +2539,7 @@
         </div>
 
         <!-- Modal Footer Actions -->
-        <div class="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/30">
+        <div class="px-4 sm:px-6 py-4 border-t border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-muted/30">
           <button
             type="button"
             (click)="closeCustomerReviewModal()"

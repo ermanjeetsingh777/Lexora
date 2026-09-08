@@ -47,7 +47,6 @@ import {
 } from '@shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { ChartModule } from 'primeng/chart';
-import { SelectButtonModule } from 'primeng/selectbutton';
 import {
   activityDotClass,
   buildBranchOccupancyAreaChartData,
@@ -112,7 +111,6 @@ const ACTIVITY_PAGE_SIZE_OPTS = [15, 25, 50] as const;
     StatusBadgeComponent,
     ButtonComponent,
     ChartModule,
-    SelectButtonModule,
     LucideArrowLeft,
     LucideBuilding2,
     LucideIndianRupee,

@@ -174,16 +174,18 @@
   </section>
 
   <div class="inst-detail-tab-nav mb-4">
-    <p-selectbutton
-      [options]="tabs"
-      [ngModel]="tab()"
-      (ngModelChange)="setTab($event)"
-      [allowEmpty]="false"
-      optionLabel="label"
-      optionValue="id"
-      size="small"
-      aria-label="Library sections"
-    />
+    <nav class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1" aria-label="Library sections">
+      @for (item of tabs; track item.id) {
+        <button
+          type="button"
+          (click)="setTab(item.id)"
+          [attr.aria-current]="tab() === item.id ? 'page' : null"
+          class="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors cursorPointer {{ tab() === item.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground' }}"
+        >
+          {{ item.label }}
+        </button>
+      }
+    </nav>
   </div>
 
   @if (tab() === 'overview') {

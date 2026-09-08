@@ -4,26 +4,30 @@
   [description]="(m.membershipNo ?? '') + ' · joined ' + (m.joinedOn | appDate)">
   <div actions class="flex items-center gap-2">
     @if (!isMemberPortalView()) {
-      <a [routerLink]="backLink" [queryParams]="backQueryParams">
+      <a [routerLink]="backLink" [queryParams]="backQueryParams" [attr.aria-label]="backLabel" [title]="backLabel">
         <app-button variant="outline" size="sm">
-          <svg lucideArrowLeft class="h-4 w-4 mr-1"></svg> {{ backLabel }}
+          <svg lucideArrowLeft class="h-4 w-4 sm:mr-1"></svg>
+          <span class="hidden sm:inline">{{ backLabel }}</span>
         </app-button>
       </a>
     }
-    <app-button variant="outline" size="sm" (click)="copyId(m.id)">
-      <svg lucideCopy class="h-4 w-4 mr-1"></svg> Copy ID
+    <app-button variant="outline" size="sm" (click)="copyId(m.id)" title="Copy ID">
+      <svg lucideCopy class="h-4 w-4 sm:mr-1"></svg>
+      <span class="hidden sm:inline">Copy ID</span>
     </app-button>
     @if (!isMemberPortalView() && canUpdateMember()) {
-      <a [routerLink]="editLink">
+      <a [routerLink]="editLink" aria-label="Edit profile" title="Edit profile">
         <app-button variant="outline" size="sm">
-          <svg lucidePencil class="h-4 w-4 mr-1"></svg> Edit profile
+          <svg lucidePencil class="h-4 w-4 sm:mr-1"></svg>
+          <span class="hidden sm:inline">Edit profile</span>
         </app-button>
       </a>
 
       <!-- Actions dropdown -->
       <div class="relative">
-      <app-button variant="outline" size="sm" (click)="actionsOpen.set(!actionsOpen())">
-        <svg lucideSettings2 class="h-4 w-4 mr-1"></svg> Actions
+      <app-button variant="outline" size="sm" (click)="actionsOpen.set(!actionsOpen())" title="Actions">
+        <svg lucideSettings2 class="h-4 w-4 sm:mr-1"></svg>
+        <span class="hidden sm:inline">Actions</span>
       </app-button>
       @if (actionsOpen()) {
       <div class="fixed inset-0 z-30" (click)="actionsOpen.set(false)"></div>
@@ -165,7 +169,7 @@
   </app-glass-card>
 
   <!-- Main content tabs -->
-  <div class="lg:col-span-2 space-y-4">
+  <div class="lg:col-span-2 min-w-0 space-y-4">
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
       <div class="border rounded-lg p-3 bg-gradient-to-br from-muted/30 to-background">
         <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -393,9 +397,19 @@
     </div>
 
     <!-- Tab nav -->
-    <div class="flex gap-1">
-      <p-selectbutton [options]="tabs()" [ngModel]="activeTab()" (ngModelChange)="setTab($event)" optionLabel="label" size="small" optionValue="value"
-        aria-labelledby="basic" />
+    <div class="flex min-w-0 max-w-full overflow-x-auto">
+      <nav class="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1" aria-label="Member sections">
+        @for (item of tabs(); track item.value) {
+          <button
+            type="button"
+            (click)="setTab(item.value)"
+            [attr.aria-current]="activeTab() === item.value ? 'page' : null"
+            class="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors cursorPointer {{ activeTab() === item.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground' }}"
+          >
+            {{ item.label }}
+          </button>
+        }
+      </nav>
     </div>
 
     <!-- OVERVIEW TAB -->

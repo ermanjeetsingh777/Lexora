@@ -54,7 +54,6 @@ import { MemberDigitalBooksComponent } from "../pages/member-digital-books-compo
 import { EVENT_DOT, Shift } from '@core/constType';
 import { KeyValueResponse, PlanDropdownResponse, PlanResponse } from '@core/models/institution-dropdown.model';
 import { MemberPaymentsComponent } from "../pages/member-payments-component/member-payments-component";
-import { SelectButtonModule } from 'primeng/selectbutton';
 import { AttendanceService } from '@core/services/attendance.service';
 import { AttendanceCalendarResponse, AttendanceResponse, AttendanceStatisticsResponse, AttendanceStatus, CheckInRequest, CheckOutRequest, UpdateAttendanceRequest } from '@core/models/attendanceModels';
 import { PlanStatus } from '@core/enums/OnbardingSteps';
@@ -116,7 +115,7 @@ interface HeatmapCell {
     LucideHistory, LucidePencil, LucideCalendarClock, LucideClock3, LucideSun,
     LucideFlame, LucideCalendarCheck, LucideActivity, LucideBookMarked, LucideRotateCcw,
     LucideDownload, LucideFileSpreadsheet,
-    MemberPaymentsComponent, SelectButtonModule, LucideCrown, LucideSparkles, LucideLogIn, LucideLogOut,
+    MemberPaymentsComponent, LucideCrown, LucideSparkles, LucideLogIn, LucideLogOut,
     RenewPlanDialogComponent,
     MemberAttendanceCalendarComponent,
     LibraryCalendarComponent,

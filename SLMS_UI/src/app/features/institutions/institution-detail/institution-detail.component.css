@@ -129,7 +129,14 @@
   display: flex;
   gap: 0.25rem;
  /* margin-bottom: 1.25rem;*/
+  max-width: 100%;
   overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inst-detail-tab-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .inst-detail-tab-nav :where(p-selectbutton) {

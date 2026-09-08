@@ -53,7 +53,6 @@ import { PermissionKey } from '@core/constants/permissions';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { ToastService } from '@core/services/toast.service';
 import { ChartModule } from 'primeng/chart';
-import { SelectButtonModule } from 'primeng/selectbutton';
 import {
   buildAttendanceChartData,
   buildAttendanceChartOptions,
@@ -113,7 +112,6 @@ const LIST_PAGE_SIZE_OPTS = [5, 10, 15, 30] as const;
     ButtonComponent,
     InvoiceDetailSheetComponent,
     ChartModule,
-    SelectButtonModule,
     LucideArrowLeft,
     LucideBuilding2,
     LucideLibrary,

@@ -818,7 +818,7 @@
 <!-- Quick-view side panel -->
 @if (quickId()) {
 <div class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity" (click)="closeQuick()"></div>
-<aside class="fixed top-0 right-0 z-50 h-screen w-full max-w-md bg-background border-l shadow-2xl overflow-y-auto transform transition-transform duration-300 ease-out">
+<aside class="fixed top-0 right-0 z-50 h-screen w-full max-w-md safe-top safe-bottom bg-background border-l shadow-2xl overflow-y-auto transform transition-transform duration-300 ease-out">
   @if (quickMember(); as qm) {
   <div class="p-6">
     <div class="flex items-center justify-between mb-5">

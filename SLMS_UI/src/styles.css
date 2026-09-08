@@ -136,6 +136,20 @@ body {
 }
 
 @layer utilities {
+    /* iOS notch / Dynamic Island helpers. `position: fixed` elements ignore the
+       safe-area padding on <body>, so they need their own inset. */
+    .safe-top {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .safe-mb {
+        margin-bottom: env(safe-area-inset-bottom);
+    }
+
     .blueprint-grid {
         background-image:
             linear-gradient(to right, var(--grid-line) 1px, transparent 1px),

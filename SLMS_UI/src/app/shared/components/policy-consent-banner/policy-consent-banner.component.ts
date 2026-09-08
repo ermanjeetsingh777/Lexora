@@ -11,7 +11,7 @@ import { ToastService } from '@core/services/toast.service';
   template: `
     @if (!consent.accepted()) {
       <div
-        class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-lg z-[60] animate-in fade-in slide-in-from-bottom-4 duration-300 rounded-2xl border border-primary/20 bg-background/95 backdrop-blur-xl p-4 shadow-2xl ring-1 ring-black/5"
+        class="fixed bottom-4 safe-mb left-4 right-4 md:left-auto md:right-4 md:max-w-lg z-[60] animate-in fade-in slide-in-from-bottom-4 duration-300 rounded-2xl border border-primary/20 bg-background/95 backdrop-blur-xl p-4 shadow-2xl ring-1 ring-black/5"
         role="dialog"
         aria-label="Privacy and policy consent"
       >

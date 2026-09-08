@@ -16,7 +16,8 @@ import { InputDirective } from '@shared/components/input/input.directive';
   standalone: true,
   imports: [RouterLink, InputDirective, LucideLogOut, LucideUser],
   template: `
-    <header class="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 backdrop-blur px-3 md:px-4">
+    <header class="fixed inset-x-0 top-0 z-30 safe-top border-b bg-background/80 backdrop-blur">
+      <div class="flex h-14 items-center gap-3 px-3 md:px-4">
       @if (!memberPortalMode()) {
         <button type="button" (click)="sidebar.toggle()" class="rounded-md border p-1.5 hover:bg-muted/50" aria-label="Toggle sidebar">
           <span class="block h-4 w-4">☰</span>
@@ -68,6 +69,7 @@ import { InputDirective } from '@shared/components/input/input.directive';
             </div>
           }
         </div>
+      </div>
       </div>
     </header>
   `,

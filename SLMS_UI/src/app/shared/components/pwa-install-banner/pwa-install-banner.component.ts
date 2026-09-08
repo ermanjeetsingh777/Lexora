@@ -11,7 +11,7 @@ import { PwaService } from '@core/services/pwa.service';
     <!-- New Version Available Toast -->
     @if (pwa.hasUpdate()) {
       <div
-        class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 rounded-xl border border-primary/20 bg-background/95 backdrop-blur-md p-4 shadow-2xl flex items-center justify-between gap-3"
+        class="fixed bottom-4 safe-mb left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 rounded-xl border border-primary/20 bg-background/95 backdrop-blur-md p-4 shadow-2xl flex items-center justify-between gap-3"
       >
         <div class="flex items-center gap-3">
           <div class="h-9 w-9 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">
@@ -35,7 +35,7 @@ import { PwaService } from '@core/services/pwa.service';
     <!-- Install App Prompt (Android / Chrome / Edge Desktop) -->
     @if (pwa.canInstall() && !pwa.isInstalled() && !dismissed()) {
       <div
-        class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-[380px] z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 rounded-2xl border border-primary/20 bg-background/95 backdrop-blur-xl p-4 shadow-2xl ring-1 ring-black/5"
+        class="fixed bottom-4 safe-mb left-4 right-4 md:left-auto md:right-4 md:w-[380px] z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 rounded-2xl border border-primary/20 bg-background/95 backdrop-blur-xl p-4 shadow-2xl ring-1 ring-black/5"
       >
         <div class="flex items-start gap-3">
           <div class="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white grid place-items-center font-bold text-sm shadow-md shrink-0 ring-2 ring-white/20">
@@ -83,7 +83,7 @@ import { PwaService } from '@core/services/pwa.service';
     <!-- iOS Add to Home Screen Helper Guide (Manual on Safari) -->
     @if (pwa.isIOS() && showIosGuide() && !dismissed()) {
       <div
-        class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-[360px] z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 rounded-2xl border border-primary/20 bg-background/95 backdrop-blur-xl p-4 shadow-2xl"
+        class="fixed bottom-4 safe-mb left-4 right-4 md:left-auto md:right-4 md:w-[360px] z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 rounded-2xl border border-primary/20 bg-background/95 backdrop-blur-xl p-4 shadow-2xl"
       >
         <div class="flex items-start justify-between gap-2">
           <div class="flex items-center gap-2.5">

@@ -27,7 +27,7 @@ import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component
     }
 
     <aside
-      class="fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-200 w-64 -translate-x-full md:translate-x-0 md:w-16"
+      class="fixed inset-y-0 left-0 z-40 flex h-screen flex-col safe-top safe-bottom border-r bg-sidebar text-sidebar-foreground transition-all duration-200 w-64 -translate-x-full md:translate-x-0 md:w-16"
       [class.translate-x-0]="sidebar.mobileOpen()"
       [class.lg:w-64]="sidebar.isDesktop() && !sidebar.collapsed()"
     >

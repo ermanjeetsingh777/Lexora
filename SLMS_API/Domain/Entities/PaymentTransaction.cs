@@ -36,6 +36,9 @@ public class PaymentTransaction
 
     public Guid? UserPackageId { get; set; }
 
+    /// <summary>Set when the tenant is paying for a capacity add-on rather than a package.</summary>
+    public Guid? UserPackageAddonId { get; set; }
+
     public decimal Amount { get; set; }
 
     public string Currency { get; set; } = "INR";

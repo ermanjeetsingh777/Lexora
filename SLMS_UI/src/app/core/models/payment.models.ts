@@ -15,6 +15,7 @@ export enum PaymentProvider {
 export enum PaymentPurpose {
   MemberFee = 1,
   TenantSubscription = 2,
+  TenantAddon = 3,
 }
 
 /** Mirrors SLMS_API `PaymentStatus`. */

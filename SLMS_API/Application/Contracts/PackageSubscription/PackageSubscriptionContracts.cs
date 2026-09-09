@@ -136,6 +136,13 @@ public class ApproveSubscriptionRequest
     public decimal? FinalApprovedAmount { get; set; }
 
     public string? AdminRemarks { get; set; }
+
+    /// <summary>
+    /// A SuperAdmin approving an offline slip clears the tenant's pending add-ons along with
+    /// the package, because the one transfer covered everything. An online payment covers only
+    /// what was charged, so that path passes false and leaves add-ons to be paid separately.
+    /// </summary>
+    public bool ApproveLinkedAddons { get; set; } = true;
 }
 
 public class RejectSubscriptionRequest

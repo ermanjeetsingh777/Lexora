@@ -37,9 +37,9 @@ flowchart TD
 
 - **Overview KPI Cards:** Total active packages, expiring soon count (within 14 days, configurable via `appsettings.json`), expired count, and all-time total revenue.
 - **Expiring / Expired Alert Banners:** Top notification banners with remaining days, renewal status, and contextual action buttons ("Upgrade Plan" / "Renew Now").
-- **Pending Plan Request Banner:** Alerts user if a Renew or Upgrade request is pending SuperAdmin review, with transaction reference and 1-click **"Send Slip via WhatsApp"** button.
+- **Pending Plan Request Banner:** Alerts user if a Renew or Upgrade request is pending SuperAdmin review, with transaction reference, **"Pay online"** (when Lexora Razorpay is enabled — activates instantly on capture) and **"Send Slip via WhatsApp"** for the offline route.
 - **Current Plan & Inclusions:** Displays active subscription details, renewal status, dates, and quota inclusions.
-- **Active Capacity Add-ons & Status Table:** Displays purchased add-ons with status badges (`Pending Approval`, `Applied to Quotas`, `Declined`), admin remarks, and WhatsApp slip submission.
+- **Active Capacity Add-ons & Status Table:** Displays purchased add-ons with status badges (`Pending Approval`, `Applied to Quotas`, `Declined`), admin remarks, **Pay online** (instant activation when Lexora Razorpay is on) and WhatsApp slip submission.
 - **Available Plans & Quotas Grid:** Interactive cards showing prices, duration, feature sets, and resource limits (`MaxInstitutions`, `MaxBranches`, `MaxLibraries`, `MaxUsers`, `MaxMembers`).
 - **Trial Plan Specific Handling:**
   - Cannot be renewed; forced to upgrade to a paid tier.

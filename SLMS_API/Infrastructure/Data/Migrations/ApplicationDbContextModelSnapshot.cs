@@ -1758,6 +1758,9 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<Guid?>("UserPackageAddonId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("UserPackageId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1786,6 +1789,8 @@ namespace SLMS_API.Infrastructure.Data.Migrations
                     b.HasIndex("InstitutionId", "Status", "CreatedAtUtc");
 
                     b.HasIndex("UserId", "Purpose", "Status");
+
+                    b.HasIndex("UserPackageAddonId");
 
                     b.ToTable("PaymentTransactions");
                 });

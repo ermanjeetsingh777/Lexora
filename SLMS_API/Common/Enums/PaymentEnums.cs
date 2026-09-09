@@ -37,7 +37,10 @@ public enum PaymentPurpose
     MemberFee = 1,
 
     /// <summary>A tenant paying Lexora for their subscription package.</summary>
-    TenantSubscription = 2
+    TenantSubscription = 2,
+
+    /// <summary>A tenant paying Lexora for a capacity add-on on top of their package.</summary>
+    TenantAddon = 3
 }
 
 public enum PaymentStatus

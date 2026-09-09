@@ -142,7 +142,21 @@
               </p>
             </div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            @if (onlinePaymentEnabled() && !isSuperAdmin()) {
+              <button
+                type="button"
+                [disabled]="payingPlan()"
+                (click)="payPlanOnline(pr)"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition shadow-sm disabled:opacity-60 cursorPointer"
+              >
+                <svg lucideCreditCard class="h-4 w-4"></svg>
+                {{ payingPlan() ? 'Opening…' : 'Pay online' }}
+                @if (onlinePaymentIsTestMode()) {
+                  <span class="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-200">Test</span>
+                }
+              </button>
+            }
             <a
               [href]="getWhatsAppPlanSlipUrl(pr)"
               target="_blank"
@@ -471,17 +485,31 @@
                       </td>
                       <td class="px-4 py-3 text-right">
                         @if (isAddonPending(item)) {
-                          <a
-                            [href]="getWhatsAppAddonSlipUrl(item)"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm"
-                            title="Share Payment Confirmation on WhatsApp for Instant Approval"
-                          >
-                            <svg lucideMessageCircle class="w-3.5 h-3.5"></svg>
-                            <span>Send Slip</span>
-                            <svg lucideExternalLink class="w-3 h-3 opacity-80"></svg>
-                          </a>
+                          <div class="inline-flex flex-wrap items-center justify-end gap-2">
+                            @if (onlinePaymentEnabled() && !isSuperAdmin()) {
+                              <button
+                                type="button"
+                                [disabled]="payingAddonId() === item.id"
+                                (click)="payAddonOnline(item)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm disabled:opacity-60 cursorPointer"
+                                title="Pay online and activate instantly"
+                              >
+                                <svg lucideCreditCard class="w-3.5 h-3.5"></svg>
+                                <span>{{ payingAddonId() === item.id ? 'Opening…' : 'Pay online' }}</span>
+                              </button>
+                            }
+                            <a
+                              [href]="getWhatsAppAddonSlipUrl(item)"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm"
+                              title="Share Payment Confirmation on WhatsApp for Instant Approval"
+                            >
+                              <svg lucideMessageCircle class="w-3.5 h-3.5"></svg>
+                              <span>Send Slip</span>
+                              <svg lucideExternalLink class="w-3 h-3 opacity-80"></svg>
+                            </a>
+                          </div>
                         } @else if (isAddonApproved(item)) {
                           <span class="text-xs font-medium text-emerald-600">
                             Applied to Quotas
@@ -639,10 +667,10 @@
             <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-600 dark:text-amber-400 space-y-1">
               <div class="flex items-center gap-1.5 font-semibold">
                 <svg lucideClock class="w-4 h-4"></svg>
-                <span>SuperAdmin Approval Workflow</span>
+                <span>How activation works</span>
               </div>
               <p class="leading-relaxed">
-                After submitting, this add-on request will be sent to the SuperAdmin for verification. Once approved, the extra capacity will be immediately added to your organization quotas.
+                After submitting, pay online to activate instantly, or send your payment slip on WhatsApp for SuperAdmin verification. Capacity is added as soon as payment is confirmed.
               </p>
             </div>
           </div>
@@ -810,8 +838,13 @@
             </div>
 
             @if (!isSuperAdmin()) {
-              <div class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-700 dark:text-blue-300">
-                ⚡ <strong>Approval Process:</strong> After submitting this {{ mode }} request, SuperAdmin will verify your payment and activate your package.
+              <div class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                <p>
+                  <strong>After you submit:</strong> pay online for instant activation, or send your payment slip on WhatsApp for SuperAdmin verification.
+                </p>
+                @if (onlinePaymentIsTestMode()) {
+                  <p class="font-medium text-amber-700 dark:text-amber-300">Gateway is in test mode — no real money is charged.</p>
+                }
               </div>
             }
           }

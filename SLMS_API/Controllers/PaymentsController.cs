@@ -118,6 +118,28 @@ public class PaymentsController : ControllerBase
         }
     }
 
+    [HttpPost("addons/{userPackageAddonId:guid}/initiate")]
+    public async Task<ActionResult<ApiResponse<PaymentInstructionResponse>>> InitiateAddon(
+        Guid userPackageAddonId,
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(ApiResponse<PaymentInstructionResponse>.Fail("Sign in to continue."));
+        }
+
+        try
+        {
+            var instruction = await _paymentService.InitiateAddonAsync(userPackageAddonId, userId, cancellationToken);
+            return Ok(ApiResponse<PaymentInstructionResponse>.Ok(instruction));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<PaymentInstructionResponse>.Fail(ex.Message));
+        }
+    }
+
     #endregion
 
     #region Confirming a payment

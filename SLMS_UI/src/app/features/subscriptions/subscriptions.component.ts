@@ -7,12 +7,14 @@ import {
   LucideBuilding,
   LucideCheckCircle,
   LucideClock,
+  LucideCreditCard,
   LucideDownload,
   LucideExternalLink,
   LucideHistory,
   LucideLayers,
   LucideLoader2,
   LucideMessageCircle,
+  LucideMessageSquare,
   LucidePlus,
   LucideRefreshCw,
   LucideSettings,
@@ -32,6 +34,7 @@ import {
 import { PackageSubscriptionService } from '@core/services/package-subscription.service';
 import { PackageService } from '@core/services/package.service';
 import { AddonService } from '@core/services/addon.service';
+import { PaymentService } from '@core/services/payment.service';
 import { ToastService } from '@core/services/toast.service';
 import { environment } from '@env/environment';
 import {
@@ -65,6 +68,7 @@ type DialogMode = 'renew' | 'upgrade' | 'update' | 'buy-addon' | 'edit-package' 
     LucideBuilding,
     LucideCheckCircle,
     LucideClock,
+    LucideCreditCard,
     LucideRefreshCw,
     LucideHistory,
     LucideSparkles,
@@ -73,6 +77,7 @@ type DialogMode = 'renew' | 'upgrade' | 'update' | 'buy-addon' | 'edit-package' 
     LucideExternalLink,
     LucideLayers,
     LucideMessageCircle,
+    LucideMessageSquare,
     LucidePlus,
     LucideSettings,
     LucideUsers,
@@ -85,11 +90,16 @@ export class SubscriptionsComponent {
   private readonly subscriptionsApi = inject(PackageSubscriptionService);
   private readonly packageService = inject(PackageService);
   private readonly addonService = inject(AddonService);
+  private readonly payments = inject(PaymentService);
   private readonly toast = inject(ToastService);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly quoteLoading = signal(false);
+  readonly payingPlan = signal(false);
+  readonly payingAddonId = signal<string | null>(null);
+  readonly onlinePaymentEnabled = signal(false);
+  readonly onlinePaymentIsTestMode = signal(false);
   readonly overview = signal<PackageSubscriptionOverview | null>(null);
   readonly dialogMode = signal<DialogMode>(null);
   readonly selectedSubscription = signal<PackageSubscriptionItem | null>(null);
@@ -151,6 +161,13 @@ export class SubscriptionsComponent {
 
   constructor() {
     this.loadOverview();
+    this.payments.getPlatformStatus().subscribe({
+      next: (status) => {
+        this.onlinePaymentEnabled.set(status.enabled);
+        this.onlinePaymentIsTestMode.set(status.isTestMode);
+      },
+      error: () => this.onlinePaymentEnabled.set(false),
+    });
   }
 
   loadOverview(): void {
@@ -539,6 +556,95 @@ export class SubscriptionsComponent {
 
   isAddonRejected(addon: UserAddonItem): boolean {
     return addon.approvalStatus?.toLowerCase() === 'rejected';
+  }
+
+  /**
+   * Pays a waiting renew/upgrade request online. Capture activates the new package the
+   * same way a SuperAdmin approval does — WhatsApp stays available as the offline path.
+   */
+  async payPlanOnline(sub: PackageSubscriptionItem): Promise<void> {
+    if (this.payingPlan() || this.isSuperAdmin()) {
+      return;
+    }
+
+    this.payingPlan.set(true);
+    this.payments.initiateSubscription(sub.id).subscribe({
+      next: async (instruction) => {
+        try {
+          const result = await this.payments.openRazorpayCheckout(instruction);
+          if (!result) {
+            this.payingPlan.set(false);
+            this.toast.info('Payment window closed.');
+            return;
+          }
+
+          this.payments.verifyRazorpay(result).subscribe({
+            next: () => {
+              this.payingPlan.set(false);
+              this.toast.success('Payment received. Your plan is activating…');
+              this.loadOverview();
+            },
+            error: (error) => {
+              this.payingPlan.set(false);
+              this.toast.error(
+                error?.error?.message ?? 'We could not confirm the payment yet. It will update automatically.',
+              );
+              this.loadOverview();
+            },
+          });
+        } catch (error) {
+          this.payingPlan.set(false);
+          this.toast.error(error instanceof Error ? error.message : 'Could not open the payment window.');
+        }
+      },
+      error: (error) => {
+        this.payingPlan.set(false);
+        this.toast.error(error?.error?.message ?? 'Could not start the payment.');
+      },
+    });
+  }
+
+  /** Pays a waiting capacity add-on; capture applies the extra quota immediately. */
+  async payAddonOnline(addon: UserAddonItem): Promise<void> {
+    if (this.payingAddonId() || this.isSuperAdmin()) {
+      return;
+    }
+
+    this.payingAddonId.set(addon.id);
+    this.payments.initiateAddon(addon.id).subscribe({
+      next: async (instruction) => {
+        try {
+          const result = await this.payments.openRazorpayCheckout(instruction);
+          if (!result) {
+            this.payingAddonId.set(null);
+            this.toast.info('Payment window closed.');
+            return;
+          }
+
+          this.payments.verifyRazorpay(result).subscribe({
+            next: () => {
+              this.payingAddonId.set(null);
+              this.toast.success('Payment received. Extra capacity is being applied…');
+              this.loadAddons();
+            },
+            error: (error) => {
+              this.payingAddonId.set(null);
+              this.toast.error(
+                error?.error?.message ?? 'We could not confirm the payment yet. It will update automatically.',
+              );
+              this.loadAddons();
+            },
+          });
+        } catch (error) {
+          this.payingAddonId.set(null);
+          this.toast.error(error instanceof Error ? error.message : 'Could not open the payment window.');
+        }
+      },
+      error: (error) => {
+        this.payingAddonId.set(null);
+        this.toast.error(error?.error?.message ?? 'Could not start the payment.');
+      },
+    });
   }
 
   getWhatsAppPlanSlipUrl(sub: PackageSubscriptionItem): string {

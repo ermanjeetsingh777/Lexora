@@ -3,7 +3,9 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QRCoder;
+using SLMS_API.Application.Contracts.Addon;
 using SLMS_API.Application.Contracts.Admin;
+using SLMS_API.Application.Contracts.PackageSubscription;
 using SLMS_API.Application.Contracts.Payments;
 using SLMS_API.Application.Options;
 using SLMS_API.Application.Services.Interfaces;
@@ -255,21 +257,7 @@ public class PaymentService : IPaymentService
         InitiateSubscriptionPaymentRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!_platformOptions.Enabled ||
-            string.IsNullOrWhiteSpace(_platformOptions.KeyId) ||
-            string.IsNullOrWhiteSpace(_platformOptions.KeySecret))
-        {
-            throw new InvalidOperationException(
-                "Online subscription payment is not enabled. Please use the offline payment option.");
-        }
-
-        var keyMismatch = RazorpayKeys.DescribeMismatch(_platformOptions.KeyId, _isProduction);
-        if (keyMismatch is not null)
-        {
-            _logger.LogError("Platform Razorpay key does not match this environment. {Detail}", keyMismatch);
-            throw new InvalidOperationException(
-                "Online subscription payment is misconfigured on the server. Please use the offline payment option.");
-        }
+        EnsurePlatformGatewayIsUsable();
 
         var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new InvalidOperationException("User not found.");
@@ -278,7 +266,10 @@ public class PaymentService : IPaymentService
             .Include(x => x.Package)
             .Where(x => x.UserId == userId)
             .Where(x => request.UserPackageId == null || x.Id == request.UserPackageId)
-            .OrderByDescending(x => x.CreatedAtUtc)
+            // Without an explicit id, a waiting renew/upgrade request is what the tenant means
+            // to pay — their settled current package would otherwise win on date alone.
+            .OrderByDescending(x => x.ApprovalStatus == "Pending")
+            .ThenByDescending(x => x.CreatedAtUtc)
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("No subscription found for this account.");
 
@@ -290,20 +281,42 @@ public class PaymentService : IPaymentService
                 x => x.UserPackageId == userPackage.Id && x.Status == PaymentStatus.Captured,
                 cancellationToken);
 
+        var packageIsSettled = string.Equals(userPackage.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(userPackage.ApprovalStatus, "Pending", StringComparison.OrdinalIgnoreCase);
+
         var tenantIsLive = string.Equals(user.ApprovalStatus, "Approved", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(userPackage.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase);
+            && packageIsSettled;
 
         if (alreadyCaptured || tenantIsLive)
         {
             throw new InvalidOperationException("This subscription is already paid.");
         }
 
-        var addonTotal = await _dbContext.UserPackageAddons
-            .Where(x => x.UserId == userId && x.ApprovalStatus != "Rejected")
-            .SumAsync(x => (decimal?)x.AmountPaid, cancellationToken) ?? 0m;
+        // A renew/upgrade request already carries its own price, worked out with any prorated
+        // credit, and it does not drag the tenant's separate add-on requests along with it.
+        // A first registration has no such figure, so the plan price plus whatever add-ons were
+        // picked at signup is what is owed.
+        var isChangeRequest = !string.IsNullOrWhiteSpace(userPackage.RequestType)
+            && string.Equals(userPackage.ApprovalStatus, "Pending", StringComparison.OrdinalIgnoreCase);
 
-        var amount = userPackage.FinalApprovedAmount
-            ?? ((userPackage.Package?.Price ?? userPackage.AmountPaid) + addonTotal);
+        decimal amount;
+        string note;
+
+        if (isChangeRequest)
+        {
+            amount = userPackage.FinalApprovedAmount ?? userPackage.AmountPaid;
+            note = $"Lexora {userPackage.RequestType?.ToLowerInvariant()} — {userPackage.Package?.Name ?? "Plan"}";
+        }
+        else
+        {
+            var addonTotal = await _dbContext.UserPackageAddons
+                .Where(x => x.UserId == userId && x.ApprovalStatus != "Rejected")
+                .SumAsync(x => (decimal?)x.AmountPaid, cancellationToken) ?? 0m;
+
+            amount = userPackage.FinalApprovedAmount
+                ?? ((userPackage.Package?.Price ?? userPackage.AmountPaid) + addonTotal);
+            note = $"Lexora subscription — {userPackage.Package?.Name ?? "Plan"}";
+        }
 
         if (amount <= 0)
         {
@@ -321,11 +334,99 @@ public class PaymentService : IPaymentService
             PayerName = user.FullName,
             PayerEmail = user.Email,
             PayerPhone = user.PhoneNumber,
-            Note = $"Lexora subscription — {userPackage.Package?.Name ?? "Plan"}",
+            Note = note,
             CreatedBy = userId
         };
 
         return await BuildInstructionAsync(transaction, account: null, cancellationToken);
+    }
+
+    public async Task<PaymentInstructionResponse> InitiateAddonAsync(
+        Guid userPackageAddonId,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        EnsurePlatformGatewayIsUsable();
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken)
+            ?? throw new InvalidOperationException("User not found.");
+
+        var userAddon = await _dbContext.UserPackageAddons
+            .Include(x => x.Addon)
+            .FirstOrDefaultAsync(x => x.Id == userPackageAddonId, cancellationToken)
+            ?? throw new InvalidOperationException("Add-on request not found.");
+
+        if (!string.Equals(userAddon.UserId, userId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("This add-on request belongs to another account.");
+        }
+
+        if (string.Equals(userAddon.ApprovalStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("This add-on is already active.");
+        }
+
+        if (string.Equals(userAddon.ApprovalStatus, "Rejected", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("This add-on request was declined. Please raise a new one.");
+        }
+
+        var alreadyCaptured = await _dbContext.PaymentTransactions
+            .AnyAsync(
+                x => x.UserPackageAddonId == userAddon.Id && x.Status == PaymentStatus.Captured,
+                cancellationToken);
+
+        if (alreadyCaptured)
+        {
+            throw new InvalidOperationException("This add-on is already paid.");
+        }
+
+        var amount = userAddon.FinalApprovedAmount ?? userAddon.AmountPaid;
+        if (amount <= 0)
+        {
+            throw new InvalidOperationException("This add-on has nothing to pay.");
+        }
+
+        var transaction = new PaymentTransaction
+        {
+            Purpose = PaymentPurpose.TenantAddon,
+            Reference = GenerateReference(),
+            UserId = userId,
+            UserPackageId = userAddon.UserPackageId,
+            UserPackageAddonId = userAddon.Id,
+            Amount = amount,
+            Currency = _platformOptions.Currency,
+            PayerName = user.FullName,
+            PayerEmail = user.Email,
+            PayerPhone = user.PhoneNumber,
+            Note = $"Lexora add-on — {userAddon.Addon?.Name ?? "Extra capacity"}",
+            CreatedBy = userId
+        };
+
+        return await BuildInstructionAsync(transaction, account: null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Lexora's own gateway has to be switched on and keyed for the environment before a
+    /// tenant can be sent to checkout; otherwise they stay on the offline route.
+    /// </summary>
+    private void EnsurePlatformGatewayIsUsable()
+    {
+        if (!_platformOptions.Enabled ||
+            string.IsNullOrWhiteSpace(_platformOptions.KeyId) ||
+            string.IsNullOrWhiteSpace(_platformOptions.KeySecret))
+        {
+            throw new InvalidOperationException(
+                "Online payment is not enabled. Please use the offline payment option.");
+        }
+
+        var keyMismatch = RazorpayKeys.DescribeMismatch(_platformOptions.KeyId, _isProduction);
+        if (keyMismatch is not null)
+        {
+            _logger.LogError("Platform Razorpay key does not match this environment. {Detail}", keyMismatch);
+            throw new InvalidOperationException(
+                "Online payment is misconfigured on the server. Please use the offline payment option.");
+        }
     }
 
     /// <summary>
@@ -698,6 +799,10 @@ public class PaymentService : IPaymentService
         {
             await ActivateSubscriptionAsync(transaction, ipAddress, cancellationToken);
         }
+        else if (transaction.Purpose == PaymentPurpose.TenantAddon)
+        {
+            await ActivateAddonAsync(transaction, ipAddress, cancellationToken);
+        }
 
         await _auditLogService.WriteAsync(
             AuditEventTypes.PaymentCaptured,
@@ -737,17 +842,52 @@ public class PaymentService : IPaymentService
             return;
         }
 
+        var isChangeRequest = false;
+
         if (transaction.UserPackageId is Guid userPackageId)
         {
             var userPackage = await _dbContext.UserPackages.FirstOrDefaultAsync(x => x.Id == userPackageId, cancellationToken);
             if (userPackage is not null)
             {
+                isChangeRequest = !string.IsNullOrWhiteSpace(userPackage.RequestType)
+                    && string.Equals(userPackage.ApprovalStatus, "Pending", StringComparison.OrdinalIgnoreCase);
+
                 userPackage.PaymentStatus = "Paid";
                 userPackage.PaymentMethod = transaction.Provider.ToString();
                 userPackage.TransactionId = transaction.ProviderPaymentId ?? transaction.Reference;
                 userPackage.UpdatedAtUtc = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
+        }
+
+        // A renew or upgrade is not a registration: it has to retire the old package, take over
+        // as the current one and recompute its dates. Only the subscription approval does that,
+        // and it must not sweep in add-ons the tenant has not paid for.
+        if (isChangeRequest)
+        {
+            try
+            {
+                using var changeScope = _scopeFactory.CreateScope();
+                var subscriptions = changeScope.ServiceProvider.GetRequiredService<IPackageSubscriptionService>();
+
+                await subscriptions.ApproveSubscriptionRequestAsync(
+                    transaction.UserPackageId!.Value,
+                    new ApproveSubscriptionRequest
+                    {
+                        FinalApprovedAmount = transaction.Amount,
+                        AdminRemarks = $"Paid online — {transaction.Provider} {transaction.ProviderPaymentId ?? transaction.Reference}",
+                        ApproveLinkedAddons = false
+                    },
+                    approverUserId: transaction.UserId!,
+                    ipAddress,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Payment {Reference} captured but the plan change could not be activated.", transaction.Reference);
+            }
+
+            return;
         }
 
         try
@@ -772,6 +912,47 @@ public class PaymentService : IPaymentService
         {
             // The money is already recorded; activation can be retried from the console.
             _logger.LogError(ex, "Payment {Reference} captured but tenant activation failed.", transaction.Reference);
+        }
+    }
+
+    /// <summary>
+    /// A paid add-on runs the same approval the SuperAdmin console does, so the extra quota
+    /// lands on the tenant's account without anyone having to check a payment slip.
+    /// </summary>
+    private async Task ActivateAddonAsync(PaymentTransaction transaction, string? ipAddress, CancellationToken cancellationToken)
+    {
+        if (transaction.UserPackageAddonId is not Guid addonId || string.IsNullOrWhiteSpace(transaction.UserId))
+        {
+            return;
+        }
+
+        var userAddon = await _dbContext.UserPackageAddons.FirstOrDefaultAsync(x => x.Id == addonId, cancellationToken);
+        if (userAddon is not null)
+        {
+            userAddon.PaymentMethod = transaction.Provider.ToString();
+            userAddon.TransactionId = transaction.ProviderPaymentId ?? transaction.Reference;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var addonService = scope.ServiceProvider.GetRequiredService<IAddonService>();
+
+            await addonService.ApproveAddonRequestAsync(
+                addonId,
+                new ApproveAddonRequest
+                {
+                    FinalAmount = transaction.Amount,
+                    Remarks = $"Paid online — {transaction.Provider} {transaction.ProviderPaymentId ?? transaction.Reference}"
+                },
+                approverUserId: transaction.UserId!,
+                ipAddress,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Payment {Reference} captured but the add-on could not be activated.", transaction.Reference);
         }
     }
 

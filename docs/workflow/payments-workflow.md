@@ -141,6 +141,15 @@ The card only appears when the platform gateway is configured **and** the tenant
 
 `GET payments/platform/status` decides whether the card renders at all. When Lexora's gateway is off, the page keeps only the existing WhatsApp-slip route. Paying opens Razorpay, verifies, then re-reads the registration status — which by then is approved, so the existing redirect logic takes the tenant to their dashboard.
 
+### Upgrade / renew / add-on — `features/subscriptions/`
+
+After a tenant submits a renew, upgrade, or capacity add-on request, the pending banner / add-on row shows **both** paths when the platform gateway is on:
+
+- **Pay online** → `POST payments/subscription/initiate` with that `userPackageId`, or `POST payments/addons/{id}/initiate`. Capture activates via `PackageSubscriptionService.ApproveSubscriptionRequestAsync` (with `ApproveLinkedAddons = false`) or `AddonService.ApproveAddonRequestAsync` — not the registration approval path, so the old package is retired correctly and unpaid add-ons are left alone.
+- **Send Slip via WhatsApp** → unchanged offline route for SuperAdmin verification.
+
+`PaymentPurpose.TenantAddon` and `PaymentTransaction.UserPackageAddonId` link add-on payments; plan-change amounts use the pending request's own prorated `AmountPaid`, not a fresh package price + every pending add-on.
+
 ---
 
 ## 5. Configuration
@@ -213,3 +222,7 @@ The seam is `PaymentAccountMode` + `BuildInstructionAsync`. To add, say, Cashfre
 - [ ] Register on a paid plan → the `UserPackage` sits at `PendingApproval`/`Pending`, and *Pay now* opens checkout instead of reporting "already paid"
 - [ ] Register on the free trial → no *Pay now* card at all (nothing is owed)
 - [ ] Pay a subscription, then reopen `/pending-approval` → *Pay now* is refused, because a captured transaction now exists for that package
+- [ ] Submit a plan upgrade → pending banner shows **Pay online** and **Send Slip via WhatsApp**; online pay activates the new plan and retires the old one
+- [ ] Submit a capacity add-on → row shows **Pay online** and **Send Slip**; online pay applies quota without touching other pending add-ons
+- [ ] Online upgrade does not auto-approve an unpaid pending add-on (`ApproveLinkedAddons = false`)
+- [ ] `Razorpay:Enabled = false` → subscriptions page keeps only WhatsApp; no Pay online buttons

@@ -633,20 +633,23 @@ public class PackageSubscriptionService : IPackageSubscriptionService
         userPackage.UpdatedAtUtc = DateTime.UtcNow;
 
         // Auto-approve any pending addons for this user/subscription so SuperAdmin doesn't need to approve them separately
-        var pendingAddons = await _db.UserPackageAddons
-            .Where(ua => ua.UserId == userPackage.UserId && (ua.ApprovalStatus == "Pending" || !ua.IsActive))
-            .ToListAsync(cancellationToken);
-
-        foreach (var ua in pendingAddons)
+        if (request.ApproveLinkedAddons)
         {
-            ua.IsActive = true;
-            ua.ApprovalStatus = "Approved";
-            ua.ApprovedAtUtc = DateTime.UtcNow;
-            ua.ApprovedByUserId = approverUserId;
-            ua.AdminRemarks = request.AdminRemarks ?? ua.AdminRemarks;
-            ua.PaymentStatus = "Paid";
-            ua.UserPackageId = userPackage.Id;
-            ua.EndDateUtc = userPackage.EndDateUtc;
+            var pendingAddons = await _db.UserPackageAddons
+                .Where(ua => ua.UserId == userPackage.UserId && (ua.ApprovalStatus == "Pending" || !ua.IsActive))
+                .ToListAsync(cancellationToken);
+
+            foreach (var ua in pendingAddons)
+            {
+                ua.IsActive = true;
+                ua.ApprovalStatus = "Approved";
+                ua.ApprovedAtUtc = DateTime.UtcNow;
+                ua.ApprovedByUserId = approverUserId;
+                ua.AdminRemarks = request.AdminRemarks ?? ua.AdminRemarks;
+                ua.PaymentStatus = "Paid";
+                ua.UserPackageId = userPackage.Id;
+                ua.EndDateUtc = userPackage.EndDateUtc;
+            }
         }
 
         await _db.SaveChangesAsync(cancellationToken);

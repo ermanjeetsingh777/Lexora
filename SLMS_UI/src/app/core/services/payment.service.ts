@@ -55,6 +55,12 @@ export class PaymentService {
       .pipe(map((r) => r.data!));
   }
 
+  initiateAddon(userPackageAddonId: string): Observable<PaymentInstruction> {
+    return this.api
+      .post<PaymentInstruction>(`payments/addons/${userPackageAddonId}/initiate`, {})
+      .pipe(map((r) => r.data!));
+  }
+
   submitUpiReference(transactionId: string, utr: string, note?: string): Observable<PaymentTransaction> {
     return this.api
       .post<PaymentTransaction>(`payments/${transactionId}/upi-reference`, { utr, note: note ?? null })

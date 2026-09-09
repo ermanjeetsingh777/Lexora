@@ -461,6 +461,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(x => new { x.InstitutionId, x.Status, x.CreatedAtUtc });
             entity.HasIndex(x => new { x.MemberId, x.Status });
             entity.HasIndex(x => new { x.UserId, x.Purpose, x.Status });
+            entity.HasIndex(x => x.UserPackageAddonId);
             entity.HasOne(x => x.PaymentAccount)
                 .WithMany()
                 .HasForeignKey(x => x.PaymentAccountId)

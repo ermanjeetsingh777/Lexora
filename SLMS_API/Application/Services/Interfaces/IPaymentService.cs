@@ -21,9 +21,18 @@ public interface IPaymentService
         string? userId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Pays a tenant's package: their first registration, or a waiting renew/upgrade request.
+    /// </summary>
     Task<PaymentInstructionResponse> InitiateSubscriptionAsync(
         string userId,
         InitiateSubscriptionPaymentRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Pays a waiting capacity add-on request; capture applies the extra quota.</summary>
+    Task<PaymentInstructionResponse> InitiateAddonAsync(
+        Guid userPackageAddonId,
+        string userId,
         CancellationToken cancellationToken = default);
 
     Task<PaymentTransactionResponse> SubmitUpiReferenceAsync(

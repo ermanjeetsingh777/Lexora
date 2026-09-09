@@ -6,6 +6,7 @@ import { AuthService } from '@core/services/auth.service';
 import { CommonService } from '@core/services/common.service';
 import { StorageService } from '@core/services/storage.service';
 import { ToastService } from '@core/services/toast.service';
+import { PaymentService } from '@core/services/payment.service';
 import { OnboardingSteps } from '@core/enums/OnbardingSteps';
 import { TenantRegistrationStatusResponse, SuperAdminContactInfo } from '@core/models/tenant-registration.models';
 import { AppLogoComponent } from '@shared/components/app-logo/app-logo.component';
@@ -72,14 +73,24 @@ export class PendingApprovalComponent implements OnInit {
   private readonly commonService = inject(CommonService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly payments = inject(PaymentService);
 
   readonly isLoading = signal(true);
   readonly isRefreshing = signal(false);
   readonly statusData = signal<TenantRegistrationStatusResponse | null>(null);
   readonly copiedPhone = signal(false);
   readonly copiedField = signal<string | null>(null);
+  readonly onlinePaymentEnabled = signal(false);
+  readonly onlinePaymentIsTestMode = signal(false);
+  readonly isPaying = signal(false);
 
   readonly user = this.storage.user;
+
+  /** Trial and fully-discounted plans owe nothing, so the pay card stays hidden for them. */
+  readonly amountDue = computed(() => {
+    const status = this.statusData();
+    return status?.finalApprovedAmount ?? status?.totalCalculatedAmount ?? 0;
+  });
 
   // Outreach Template State
   readonly activeTemplate = signal<'slip' | 'status' | 'discount'>('slip');
@@ -152,6 +163,61 @@ export class PendingApprovalComponent implements OnInit {
 
   ngOnInit(): void {
     this.fetchStatus();
+    this.payments.getPlatformStatus().subscribe({
+      next: (status) => {
+        this.onlinePaymentEnabled.set(status.enabled);
+        this.onlinePaymentIsTestMode.set(status.isTestMode);
+      },
+      // Offline payment stays available either way, so a failure here is not worth a toast.
+      error: () => this.onlinePaymentEnabled.set(false),
+    });
+  }
+
+  /**
+   * Pays the pending subscription through Razorpay. A captured payment activates the
+   * tenant the same way a SuperAdmin approval does, so we just re-read the status.
+   */
+  async payNow(): Promise<void> {
+    if (this.isPaying()) {
+      return;
+    }
+
+    this.isPaying.set(true);
+
+    this.payments.initiateSubscription().subscribe({
+      next: async (instruction) => {
+        try {
+          const result = await this.payments.openRazorpayCheckout(instruction);
+
+          if (!result) {
+            this.isPaying.set(false);
+            this.toast.info('Payment window closed.');
+            return;
+          }
+
+          this.payments.verifyRazorpay(result).subscribe({
+            next: () => {
+              this.isPaying.set(false);
+              this.toast.success('Payment received. Activating your account…');
+              this.refreshStatus();
+            },
+            error: (error) => {
+              this.isPaying.set(false);
+              this.toast.error(
+                error?.error?.message ?? 'We could not confirm the payment yet. It will update automatically.',
+              );
+            },
+          });
+        } catch (error) {
+          this.isPaying.set(false);
+          this.toast.error(error instanceof Error ? error.message : 'Could not open the payment window.');
+        }
+      },
+      error: (error) => {
+        this.isPaying.set(false);
+        this.toast.error(error?.error?.message ?? 'Could not start the payment.');
+      },
+    });
   }
 
   fetchStatus(): void {

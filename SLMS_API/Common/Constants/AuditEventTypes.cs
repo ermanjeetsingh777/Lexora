@@ -12,4 +12,7 @@ public static class AuditEventTypes
     public const string RegistrationApproval = "RegistrationApproval";
     public const string AddonApproval = "AddonApproval";
     public const string SubscriptionApproval = "SubscriptionApproval";
+    public const string PaymentAccountUpdate = "PaymentAccountUpdate";
+    public const string PaymentCaptured = "PaymentCaptured";
+    public const string PaymentRejected = "PaymentRejected";
 }

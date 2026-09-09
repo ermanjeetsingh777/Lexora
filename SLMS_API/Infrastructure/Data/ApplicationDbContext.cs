@@ -51,6 +51,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<BookAuditEntry> BookAuditEntries => Set<BookAuditEntry>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<CustomerReview> CustomerReviews => Set<CustomerReview>();
+    public DbSet<PaymentAccount> PaymentAccounts => Set<PaymentAccount>();
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -413,6 +415,56 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(x => x.Status).HasMaxLength(50).HasDefaultValue("Pending");
             entity.Property(x => x.AdminRemarks).HasMaxLength(1000);
             entity.HasIndex(x => new { x.IsApproved, x.IsDeleted, x.CreatedAtUtc });
+        });
+
+        builder.Entity<PaymentAccount>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.UpiPayeeName).HasMaxLength(100);
+            entity.Property(x => x.UpiVpa).HasMaxLength(120);
+            entity.Property(x => x.RazorpayKeyId).HasMaxLength(100);
+            entity.Property(x => x.RazorpayKeySecretProtected).HasMaxLength(1000);
+            entity.Property(x => x.RazorpayWebhookSecretProtected).HasMaxLength(1000);
+            entity.Property(x => x.WebhookToken).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.WebhookToken).IsUnique();
+            entity.HasIndex(x => x.InstitutionId).IsUnique();
+            entity.HasOne(x => x.Institution)
+                .WithMany()
+                .HasForeignKey(x => x.InstitutionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PaymentTransaction>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Reference).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Currency).HasMaxLength(3).HasDefaultValue("INR");
+            entity.Property(x => x.Amount).HasPrecision(18, 2);
+            entity.Property(x => x.UserId).HasMaxLength(450);
+            entity.Property(x => x.PayerName).HasMaxLength(200);
+            entity.Property(x => x.PayerEmail).HasMaxLength(255);
+            entity.Property(x => x.PayerPhone).HasMaxLength(20);
+            entity.Property(x => x.Note).HasMaxLength(500);
+            entity.Property(x => x.ProviderOrderId).HasMaxLength(100);
+            entity.Property(x => x.ProviderPaymentId).HasMaxLength(100);
+            entity.Property(x => x.ProviderSignature).HasMaxLength(256);
+            entity.Property(x => x.UpiUtr).HasMaxLength(40);
+            entity.Property(x => x.FailureReason).HasMaxLength(500);
+            entity.Property(x => x.VerifiedByUserId).HasMaxLength(450);
+            entity.Property(x => x.CreatedBy).HasMaxLength(450);
+            entity.HasIndex(x => x.Reference).IsUnique();
+            entity.HasIndex(x => x.ProviderOrderId);
+            // Gateways retry webhooks; this is what stops a payment being credited twice.
+            entity.HasIndex(x => x.ProviderPaymentId)
+                .IsUnique()
+                .HasFilter("[ProviderPaymentId] IS NOT NULL");
+            entity.HasIndex(x => new { x.InstitutionId, x.Status, x.CreatedAtUtc });
+            entity.HasIndex(x => new { x.MemberId, x.Status });
+            entity.HasIndex(x => new { x.UserId, x.Purpose, x.Status });
+            entity.HasOne(x => x.PaymentAccount)
+                .WithMany()
+                .HasForeignKey(x => x.PaymentAccountId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

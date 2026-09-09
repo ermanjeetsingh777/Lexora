@@ -67,6 +67,7 @@ import {
   todayIsoLocal,
 } from '../member-lifecycle.util';
 import { RenewPlanDialogComponent } from '../components/renew-plan-dialog/renew-plan-dialog.component';
+import { CollectPaymentDialogComponent } from '../../payments/collect-payment-dialog/collect-payment-dialog.component';
 import { MemberAttendanceCalendarComponent } from '../components/member-attendance-calendar/member-attendance-calendar.component';
 import { LibraryCalendarComponent } from '@features/libraries/library-detail-component/library-calendar/library-calendar.component';
 import { AttendanceSeatPickerComponent } from '@features/attendance/components/attendance-seat-picker/attendance-seat-picker.component';
@@ -125,6 +126,7 @@ interface HeatmapCell {
     LucideEyeOff,
     LucideShieldCheck,
     LucideLock,
+    CollectPaymentDialogComponent,
   ],
   templateUrl: './member-details-component.html',
   styleUrl: './member-details-component.css',
@@ -1359,6 +1361,22 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     const due = this.memberDetails()?.planDueAmount ?? this.memberDetails()?.feesOwed ?? 0;
     this.payDueAmount.set(due);
     this.dialog.set('payDue');
+  }
+
+  /** Online collection — UPI or gateway, whichever the institution has configured. */
+  readonly showOnlinePayment = signal(false);
+
+  openOnlinePayment(): void {
+    this.showOnlinePayment.set(true);
+  }
+
+  closeOnlinePayment(): void {
+    this.showOnlinePayment.set(false);
+  }
+
+  onOnlinePaymentCompleted(): void {
+    // A captured gateway payment already cleared the dues; a UPI reference has not.
+    this.loadMemberDetails();
   }
 
   confirmPayDue(): void {

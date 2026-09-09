@@ -75,6 +75,8 @@ PageHeader (back, copy ID, actions)
 
 > `payments` exists in `TabId` type but is merged into the Plans tab in the UI.
 
+The **Fees due** KPI card carries two actions when dues exist: **Pay online**, which opens `CollectPaymentDialogComponent` (Razorpay checkout or a UPI QR + UTR, depending on the institution's collection mode — see [payments-workflow.md](./payments-workflow.md)), and **Record due payment**, the existing offline entry that is hidden in the member portal view.
+
 ### 2.4 Initial load sequence
 
 ```mermaid

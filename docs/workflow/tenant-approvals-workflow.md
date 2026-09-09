@@ -59,6 +59,7 @@ flowchart TD
   - If registered with `Trial`: Wizard completes and navigates directly to `/dashboard`.
   - If registered with Paid Plan: Wizard completes and navigates to `/pending-approval` showing SuperAdmin hotline numbers, email, and WhatsApp slip submission.
   - If registered with **Do it later**: goes straight to `/pending-approval`, regardless of plan; once approved, `/pending-approval` routes them into `/onboarding/institution` to build the workspace they skipped.
+- **Pay now (skips the queue):** when Lexora's own gateway is configured (`Razorpay:Enabled`, checked via `GET payments/platform/status`), `/pending-approval` shows a **Pay online and activate instantly** card. A captured payment runs the same `ApproveTenantRegistrationAsync` path this console uses, so the tenant activates without SuperAdmin action and the approval simply shows up as already approved with the remark `Paid online — Razorpay <payment id>`. With the gateway off, only the WhatsApp slip route renders. See [payments-workflow.md](./payments-workflow.md).
 - **Subscriptions Page (`/subscriptions`):**
   - Displays a top warning banner if a Renew or Upgrade request is pending SuperAdmin review, with a direct **"Send Slip via WhatsApp"** button.
   - Displays add-on request status badges (`Pending`, `Approved`, `Declined`) with WhatsApp slip actions.

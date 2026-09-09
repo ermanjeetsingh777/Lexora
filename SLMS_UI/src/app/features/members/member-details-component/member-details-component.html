@@ -228,9 +228,14 @@
         <div class="text-[10px] text-muted-foreground truncate mt-0.5">{{ m.feesOwed > 0 ? 'Action needed' : 'All paid' }}</div>
         <div class="mt-2 flex flex-wrap gap-2">
           @if (m.feesOwed > 0) {
-            <button type="button" class="text-[11px] font-medium text-primary hover:underline" (click)="openPayDueDialog()">
-              Record due payment
+            <button type="button" class="text-[11px] font-medium text-primary hover:underline" (click)="openOnlinePayment()">
+              Pay online
             </button>
+            @if (!isMemberPortalView()) {
+              <button type="button" class="text-[11px] font-medium text-primary hover:underline" (click)="openPayDueDialog()">
+                Record due payment
+              </button>
+            }
           }
           @if (m.phone && (m.feesOwed > 0 || lifecycle().state === 'Expired' || lifecycle().state === 'Expiring soon' || lifecycle().state === 'Grace')) {
             <button type="button" class="text-[11px] font-medium text-emerald-600 hover:underline" (click)="notifyPaymentWhatsApp()">
@@ -1370,6 +1375,15 @@
   [busy]="renewBusy()"
   (confirm)="confirmRenew($event)"
   (closed)="closeRenew()" />
+
+@if (showOnlinePayment() && memberDetails(); as member) {
+<app-collect-payment-dialog
+  [memberId]="member.id"
+  [memberName]="member.name"
+  [dueAmount]="member.planDueAmount ?? member.feesOwed ?? 0"
+  (completed)="onOnlinePaymentCompleted()"
+  (closed)="closeOnlinePayment()" />
+}
 
 }@else {
 <div class="flex min-h-[calc(100vh-64px)] items-center justify-center">

@@ -1,11 +1,22 @@
+using Microsoft.Extensions.Options;
 using Serilog;
 using SLMS_API;
+using SLMS_API.Application.Options;
 using SLMS_API.Extensions;
 using SLMS_API.Infrastructure.Data;
 using SLMS_API.Infrastructure.DependencyInjection;
+using SLMS_API.Infrastructure.Payments;
 using System.Reflection;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+// User secrets load automatically only under Development, but the Local/Dev/QA/UAT profiles
+// need them too — gateway keys must never sit in a checked-in appsettings file.
+if (!builder.Environment.IsProduction() && !builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddUserSecrets<Program>(optional: true);
+}
+
 builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 {
     loggerConfiguration
@@ -49,6 +60,25 @@ if (args.Contains("--seed-superadmin", StringComparer.OrdinalIgnoreCase))
 }
 
 await DbSeeder.MigrateAndSeedAsync(app.Services);
+
+// A test key on the live site would mark subscriptions paid without any money arriving,
+// so say out loud which Razorpay account this instance is wired to.
+var razorpayOptions = app.Services.GetRequiredService<IOptions<RazorpayOptions>>().Value;
+if (razorpayOptions.Enabled)
+{
+    var keyMismatch = RazorpayKeys.DescribeMismatch(razorpayOptions.KeyId, app.Environment.IsProduction());
+    if (keyMismatch is not null)
+    {
+        app.Logger.LogError("Razorpay is misconfigured for the {Environment} environment. {Detail}",
+            app.Environment.EnvironmentName, keyMismatch);
+    }
+    else
+    {
+        app.Logger.LogInformation("Razorpay enabled in {Mode} mode ({Environment}).",
+            RazorpayKeys.IsTestKey(razorpayOptions.KeyId) ? "TEST" : "LIVE",
+            app.Environment.EnvironmentName);
+    }
+}
 
 // Configure the HTTP request pipeline.
 var isSwaggerEnabled = app.Configuration.GetValue<bool>("Swagger:Enabled",

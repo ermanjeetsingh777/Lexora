@@ -1,0 +1,130 @@
+<div
+  class="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-background/80 p-3 sm:p-4 backdrop-blur-sm"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Collect payment"
+>
+  <div class="my-auto w-full max-w-md rounded-xl border bg-background shadow-2xl">
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-3 border-b p-4">
+      <div class="min-w-0">
+        <h3 class="text-sm font-semibold tracking-tight">Collect payment</h3>
+        <p class="mt-0.5 truncate text-xs text-muted-foreground">
+          {{ memberName() || 'Member' }} · dues {{ dueAmount() | currency: 'INR' : 'symbol' : '1.0-2' }}
+        </p>
+      </div>
+      <button
+        type="button"
+        (click)="close()"
+        aria-label="Close"
+        title="Close"
+        class="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursorPointer"
+      >
+        ✕
+      </button>
+    </div>
+
+    @if (instruction()?.razorpay?.isTestMode) {
+      <p class="border-b bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-600">
+        Test mode — no real money moves. Use the Razorpay test card 4111 1111 1111 1111 with any
+        future expiry and CVV.
+      </p>
+    }
+
+    <div class="p-4">
+      <!-- Step 1: amount -->
+      @if (step() === 'amount') {
+        <div class="space-y-3">
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium" for="payAmount">Amount</label>
+            <input
+              id="payAmount"
+              type="number"
+              min="1"
+              class="inst-field"
+              [placeholder]="dueAmount() ? dueAmount().toString() : 'Enter amount'"
+              [(ngModel)]="amount"
+              name="payAmount"
+            />
+            <p class="text-xs text-muted-foreground">Leave blank to collect the full outstanding amount.</p>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-1">
+            <app-button type="button" variant="outline" (click)="close()">Cancel</app-button>
+            <app-button type="button" [disabled]="busy()" (click)="start()">
+              {{ busy() ? 'Starting…' : 'Continue' }}
+            </app-button>
+          </div>
+        </div>
+      }
+
+      <!-- Step 2: UPI transfer -->
+      @if (step() === 'upi' && instruction(); as payment) {
+        @if (payment.upi; as upi) {
+          <div class="space-y-3">
+            <div class="rounded-lg border bg-muted/20 p-3 text-center">
+              <img
+                [src]="upi.qrCodeBase64"
+                alt="UPI payment QR code"
+                class="mx-auto h-44 w-44 rounded-lg bg-white p-2"
+              />
+              <p class="mt-2 text-sm font-semibold">
+                {{ payment.amount | currency: 'INR' : 'symbol' : '1.0-2' }} to {{ upi.payeeName }}
+              </p>
+              <button
+                type="button"
+                (click)="copyUpiId()"
+                class="mt-1 font-mono text-xs text-primary hover:underline cursorPointer"
+              >
+                {{ upi.vpa }}
+              </button>
+              <p class="mt-1 text-xs text-muted-foreground">
+                Reference <span class="font-medium text-foreground">{{ payment.reference }}</span>
+              </p>
+            </div>
+
+            <a
+              [href]="upi.paymentUri"
+              class="flex w-full items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:hidden"
+            >
+              Pay in UPI app
+            </a>
+
+            <div class="space-y-1.5">
+              <label class="text-sm font-medium" for="utr">UPI reference / UTR</label>
+              <input
+                id="utr"
+                class="inst-field"
+                placeholder="e.g. 402512345678"
+                [(ngModel)]="utr"
+                name="utr"
+                maxlength="40"
+              />
+              <p class="text-xs text-muted-foreground">
+                After paying, enter the reference from your UPI app. The library confirms it and the dues clear.
+              </p>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-1">
+              <app-button type="button" variant="outline" (click)="close()">Later</app-button>
+              <app-button type="button" [disabled]="busy()" (click)="submitUtr()">
+                {{ busy() ? 'Submitting…' : 'I have paid' }}
+              </app-button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- Step 3: done -->
+      @if (step() === 'done') {
+        <div class="space-y-4 py-2 text-center">
+          <div class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-emerald-500/10 text-emerald-600">
+            ✓
+          </div>
+          <p class="text-sm">{{ doneMessage() }}</p>
+          <app-button type="button" (click)="close()">Done</app-button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

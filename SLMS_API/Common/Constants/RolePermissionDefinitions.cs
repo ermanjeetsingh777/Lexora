@@ -13,33 +13,37 @@ public static class RolePermissionDefinitions
 
     private static PermissionKey[] S(PermissionKey key) => [key];
 
+    // Module 8 is Payments. Anyone who collects member fees needs M(8): confirming a UPI
+    // transfer is PaymentsUpdate, so read-only access leaves the payment stuck in the queue.
     private static PermissionKey[] PlatformOperator() => Combine(
         R(0), M(1), M(2), M(3), S(PermissionKey.AttendanceScannerUse),
-        M(4), M(5), M(6), M(7), R(8),
+        M(4), M(5), M(6), M(7), M(8),
         M(9), M(10), M(11), M(12), R(13), M(14), R(15), M(16), R(17));
 
     private static PermissionKey[] InstitutionScope() => Combine(
         R(0), M(1), M(2), M(3), S(PermissionKey.AttendanceScannerUse),
-        M(4), M(5), M(6), M(7), R(8), M(9), M(10), M(11), M(12), R(13), M(14), R(15), M(16), R(17));
+        M(4), M(5), M(6), M(7), M(8), M(9), M(10), M(11), M(12), R(13), M(14), R(15), M(16), R(17));
 
     private static PermissionKey[] InstitutionOps() => Combine(
         R(0), R(1), M(1), R(2), M(2), R(3), M(3), S(PermissionKey.AttendanceScannerUse),
-        M(4), M(5), M(6), R(7), M(7), R(8), R(9), M(10), R(13), M(14), R(15), R(17));
+        M(4), M(5), M(6), R(7), M(7), M(8), R(9), M(10), R(13), M(14), R(15), R(17));
 
     private static PermissionKey[] BranchAdminScope() => Combine(
-        R(0), M(1), M(2), M(3), M(5), M(6), M(11), R(13), M(14), M(16));
+        R(0), M(1), M(2), M(3), M(5), M(6), M(8), M(11), R(13), M(14), M(16));
 
     private static PermissionKey[] BranchOps() => Combine(
-        R(0), R(1), M(1), R(2), M(2), R(3), M(3), M(5), M(6), R(9), M(10), R(13), M(14), R(15));
+        R(0), R(1), M(1), R(2), M(2), R(3), M(3), M(5), M(6), M(8), R(9), M(10), R(13), M(14), R(15));
 
     private static PermissionKey[] LibraryAdminScope() => Combine(
-        R(0), M(1), M(2), M(3), S(PermissionKey.AttendanceScannerUse), M(5), M(6), M(9), M(10), M(11), R(13), M(14));
+        R(0), M(1), M(2), M(3), S(PermissionKey.AttendanceScannerUse), M(5), M(6), M(8), M(9), M(10), M(11), R(13), M(14));
 
     private static PermissionKey[] LibraryOps() => Combine(
-        R(0), R(1), R(2), R(3), S(PermissionKey.AttendanceScannerUse), M(6), R(9), M(10), R(13), R(15));
+        R(0), R(1), R(2), R(3), S(PermissionKey.AttendanceScannerUse), M(6), M(8), R(9), M(10), R(13), R(15));
 
+    // Front-desk staff can see the ledger but not confirm money; a SuperAdmin can widen
+    // this per role at runtime if a library wants its librarians verifying transfers.
     private static PermissionKey[] LibraryStaff() => Combine(
-        R(0), R(1), R(2), R(3), S(PermissionKey.AttendanceScannerUse), R(9), M(10), R(15));
+        R(0), R(1), R(2), R(3), S(PermissionKey.AttendanceScannerUse), R(8), R(9), M(10), R(15));
 
     private static PermissionKey[] TeacherScope() => Combine(R(0), R(1), R(3), R(7), R(9), R(13), R(15));
 

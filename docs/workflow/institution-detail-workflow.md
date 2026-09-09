@@ -229,6 +229,8 @@ Shared invoice utilities: `SLMS_UI/src/app/shared/utils/invoice-pdf.util.ts`
 
 `saveSettings()` validates name, calls `updateInstitution()`, refreshes institution signal and toast.
 
+Below the profile form the tab also renders `<app-payment-settings>` (choose UPI or Razorpay for member fee collection) and `<app-payment-queue>` (confirm UPI transfers, review captured payments) — see [payments-workflow.md](./payments-workflow.md).
+
 ### 2.6 Angular services & models
 
 | Service | Path | Scope |

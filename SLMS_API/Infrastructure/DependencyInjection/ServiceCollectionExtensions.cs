@@ -15,6 +15,7 @@ using SLMS_API.Domain.Entities;
 using SLMS_API.Infrastructure.Authorization;
 using SLMS_API.Infrastructure.Data;
 using SLMS_API.Infrastructure.Email;
+using SLMS_API.Infrastructure.Payments;
 using SLMS_API.Infrastructure.Repositories;
 using SLMS_API.Infrastructure.Repositories.Interfaces;
 using SLMS_API.Infrastructure.Support;
@@ -29,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.Configure<DemoOptions>(configuration.GetSection(DemoOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
         services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
+        services.Configure<RazorpayOptions>(configuration.GetSection(RazorpayOptions.SectionName));
 
         services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -121,6 +123,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBookService, BookService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<ICustomerReviewService, CustomerReviewService>();
+
+        // Payments: institution gateway credentials are encrypted at rest, so the data
+        // protection keyring must be available.
+        services.AddDataProtection();
+        services.AddScoped<ISecretProtector, SecretProtector>();
+        services.AddHttpClient<IRazorpayClient, RazorpayClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.razorpay.com/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddScoped<IPaymentService, PaymentService>();
 
         services.AddHttpContextAccessor();
 

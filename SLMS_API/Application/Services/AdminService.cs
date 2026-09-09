@@ -608,6 +608,10 @@ public class AdminService : IAdminService
         AuditEventTypes.Login,
         AuditEventTypes.Logout,
         AuditEventTypes.PasswordReset,
+        // Money movement is the tenant's own business, so they see it in their audit log.
+        AuditEventTypes.PaymentAccountUpdate,
+        AuditEventTypes.PaymentCaptured,
+        AuditEventTypes.PaymentRejected,
     };
 
     public async Task<IReadOnlyCollection<AdminAuditLogResponse>> GetAuditLogsAsync(string callerUserId, CancellationToken cancellationToken = default)

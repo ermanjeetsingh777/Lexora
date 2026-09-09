@@ -28,6 +28,7 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 | M-17 | Package entitlements, Add-ons & RBAC | Global creation limits & `[Permission]` claims | [package-entitlements-workflow.md](../workflow/package-entitlements-workflow.md) | Implemented |
 | M-18 | Tenant & Subscription Approvals | `/admin/tenant-approvals` | [tenant-approvals-workflow.md](../workflow/tenant-approvals-workflow.md) | Implemented |
 | M-19 | Customer Reviews & Suggestions | `/`, `/admin/tenant-approvals` | [customer-reviews-workflow.md](../workflow/customer-reviews-workflow.md) | Implemented |
+| M-20 | Payments (UPI / Razorpay) | `/institutions/:id` (Settings), member details, `/pending-approval` | [payments-workflow.md](../workflow/payments-workflow.md) | Implemented |
 
 ## Planned / not yet routed
 

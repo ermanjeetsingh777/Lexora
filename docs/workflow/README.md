@@ -52,6 +52,7 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 | [customer-reviews-workflow.md](./customer-reviews-workflow.md) | M-19 Customer Reviews & Suggestions | Public landing page rating & feedback submission, live verified reviews display, and SuperAdmin moderation workflow |
 | [support-workflow.md](./support-workflow.md) | M-09 Support | Institution-scoped tickets, attachments, KB, status |
 | [subscriptions-workflow.md](./subscriptions-workflow.md) | M-10 SaaS subscriptions & Add-ons | Package quotas, capacity add-on purchase, renewals, upgrades, trial handling, 14-day expiry alerts, PDF billing history |
+| [payments-workflow.md](./payments-workflow.md) | M-20 Payments | Tenant subscription payment and member fee collection, per-institution UPI or Razorpay mode, webhooks, UTR verification queue |
 
 ## Requirements (source)
 

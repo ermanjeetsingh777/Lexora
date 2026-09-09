@@ -69,6 +69,8 @@ import {
 } from './institution-detail.util';
 import { libraryDetailLink as buildLibraryDetailLink, memberDetailLink as buildMemberDetailLink } from '@core/utils/entity-routes.util';
 import { ScopedMembersPanelComponent } from '../../members/components/scoped-members-panel/scoped-members-panel.component';
+import { PaymentSettingsComponent } from '../../payments/payment-settings/payment-settings.component';
+import { PaymentQueueComponent } from '../../payments/payment-queue/payment-queue.component';
 
 type BranchStatusFilter = 'all' | 'Active' | 'Maintenance' | 'Closed';
 type BranchCapFilter = 'any' | 'small' | 'mid' | 'large';
@@ -135,6 +137,8 @@ const LIST_PAGE_SIZE_OPTS = [5, 10, 15, 30] as const;
     LucideDownload,
     LucideIndianRupee,
     ScopedMembersPanelComponent,
+    PaymentSettingsComponent,
+    PaymentQueueComponent,
   ],
   templateUrl: './institution-detail.component.html',
   styleUrls: ['./institution-detail.component.css', '../institutions-list/institutions-list.css'],

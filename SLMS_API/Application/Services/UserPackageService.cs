@@ -77,6 +77,11 @@ namespace SLMS_API.Application.Services
                 existing.UpdatedAtUtc = DateTime.UtcNow;
             }
 
+            // Choosing a paid plan does not settle it — the money still has to arrive, either
+            // through the gateway or through a SuperAdmin approving an offline transfer. Only
+            // free and trial plans start out paid.
+            var isFree = package.Price <= 0;
+
             var userPackage = new UserPackage
             {
                 UserId = userId,
@@ -91,7 +96,8 @@ namespace SLMS_API.Application.Services
                 IsActive = true,
                 IsCurrentPackage = true,
 
-                PaymentStatus = "Paid",
+                PaymentStatus = isFree ? "Paid" : "PendingApproval",
+                ApprovalStatus = isFree ? "Approved" : "Pending",
                 CreatedAtUtc = DateTime.UtcNow
             };
 

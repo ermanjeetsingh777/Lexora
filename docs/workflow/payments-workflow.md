@@ -27,7 +27,7 @@ Lexora never holds member money. In UPI mode the transfer goes straight to the i
 
 ## 2. Data model
 
-**Files:** `Domain/Entities/PaymentAccount.cs` · `Domain/Entities/PaymentTransaction.cs` · configured in `Infrastructure/Data/ApplicationDbContext.cs` · migration `AddPaymentAccountsAndTransactions`
+**Files:** `Domain/Entities/PaymentAccount.cs` · `Domain/Entities/PaymentTransaction.cs` · configured in `Infrastructure/Data/ApplicationDbContext.cs` · migrations `AddPaymentAccountsAndTransactions`, `AddPaymentTransactionUserPackageAddonId`
 
 ### `PaymentAccount` — one row per institution
 
@@ -43,7 +43,7 @@ Lexora never holds member money. In UPI mode the transfer goes straight to the i
 
 ### `PaymentTransaction` — the ledger
 
-Every attempt is a row, whatever the route. Key fields: `Purpose` (`MemberFee` / `TenantSubscription`), `Provider` (`Upi` / `Razorpay`), `Status`, `Reference` (`LEX-XXXXXXXX`, shown to the payer), `Amount`, `ProviderOrderId`, `ProviderPaymentId`, `UpiUtr`, `RawPayload`, `VerifiedByUserId`.
+Every attempt is a row, whatever the route. Key fields: `Purpose` (`MemberFee` / `TenantSubscription` / `TenantAddon`), `Provider` (`Upi` / `Razorpay`), `Status`, `Reference` (`LEX-XXXXXXXX`, shown to the payer), `Amount`, `UserPackageId`, `UserPackageAddonId` (add-on payments), `ProviderOrderId`, `ProviderPaymentId`, `UpiUtr`, `RawPayload`, `VerifiedByUserId`.
 
 `ProviderPaymentId` carries a **unique filtered index**. Gateways retry webhooks, and a verifier may click *Confirm* while a webhook is in flight — this index plus the early return in `CaptureAsync` is what stops a payment being credited twice.
 
@@ -68,7 +68,8 @@ Created ──────────────► Captured          (Razorpa
 | GET | `institutions/{institutionId}/account` | `SettingsView` | Current collection setup (no secrets) |
 | PUT | `institutions/{institutionId}/account` | `SettingsUpdate` | Save mode + credentials |
 | POST | `member-fees/{memberId}/initiate` | authenticated | Create the order / UPI instruction |
-| POST | `subscription/initiate` | authenticated | Tenant pays their own pending package |
+| POST | `subscription/initiate` | authenticated | Tenant pays registration package or a pending renew/upgrade (`userPackageId` optional; prefers pending change request) |
+| POST | `addons/{userPackageAddonId}/initiate` | authenticated | Tenant pays a pending capacity add-on |
 | POST | `razorpay/verify` | authenticated | Verify the checkout callback signature |
 | POST | `{transactionId}/upi-reference` | authenticated | Member submits their UTR |
 | POST | `{transactionId}/approve` | `PaymentsUpdate` | Staff confirm a UPI transfer |

@@ -48,11 +48,11 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 | [administration-workflow.md](./administration-workflow.md) | M-15 Admin | Roles, permissions seeding |
 | [users-admin-workflow.md](./users-admin-workflow.md) | M-15 Users | User directory and role assignment |
 | [package-entitlements-workflow.md](./package-entitlements-workflow.md) | M-17 Entitlements, Add-ons & RBAC | Tiered dynamic limits (Basic/Value/Premium), Capacity Add-ons, active-only counts, SuperAdmin runtime management, and PermissionKey claims |
-| [tenant-approvals-workflow.md](./tenant-approvals-workflow.md) | M-18 Tenant & Subscription Approvals | SuperAdmin console for tenant registration, capacity add-on, and plan renew/upgrade approvals with WhatsApp outreach |
+| [tenant-approvals-workflow.md](./tenant-approvals-workflow.md) | M-18 Tenant & Subscription Approvals | SuperAdmin console for registration, capacity add-on, and plan renew/upgrade approvals; WhatsApp outreach (online capture auto-approves elsewhere) |
 | [customer-reviews-workflow.md](./customer-reviews-workflow.md) | M-19 Customer Reviews & Suggestions | Public landing page rating & feedback submission, live verified reviews display, and SuperAdmin moderation workflow |
 | [support-workflow.md](./support-workflow.md) | M-09 Support | Institution-scoped tickets, attachments, KB, status |
-| [subscriptions-workflow.md](./subscriptions-workflow.md) | M-10 SaaS subscriptions & Add-ons | Package quotas, capacity add-on purchase, renewals, upgrades, trial handling, 14-day expiry alerts, PDF billing history |
-| [payments-workflow.md](./payments-workflow.md) | M-20 Payments | Tenant subscription payment and member fee collection, per-institution UPI or Razorpay mode, webhooks, UTR verification queue |
+| [subscriptions-workflow.md](./subscriptions-workflow.md) | M-10 SaaS subscriptions & Add-ons | Package quotas, capacity add-ons, renewals/upgrades, dual-path **Pay online** + WhatsApp, trial handling, PDF billing history |
+| [payments-workflow.md](./payments-workflow.md) | M-20 Payments | Tenant registration, renew/upgrade, add-on, and member fee payments; per-institution UPI or Razorpay; test/live key guard; webhooks and UTR queue |
 
 ## Requirements (source)
 

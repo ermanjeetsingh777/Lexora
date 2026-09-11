@@ -28,17 +28,17 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 | M-17 | Package entitlements, Add-ons & RBAC | Global creation limits & `[Permission]` claims | [package-entitlements-workflow.md](../workflow/package-entitlements-workflow.md) | Implemented |
 | M-18 | Tenant & Subscription Approvals | `/admin/tenant-approvals` | [tenant-approvals-workflow.md](../workflow/tenant-approvals-workflow.md) | Implemented |
 | M-19 | Customer Reviews & Suggestions | `/`, `/admin/tenant-approvals` | [customer-reviews-workflow.md](../workflow/customer-reviews-workflow.md) | Implemented |
-| M-20 | Payments (UPI / Razorpay) | `/institutions/:id` (Settings), member details, `/pending-approval` | [payments-workflow.md](../workflow/payments-workflow.md) | Implemented |
+| M-20 | Payments (UPI / Razorpay) | Institution Settings, member details, `/subscriptions`, `/pending-approval` | [payments-workflow.md](../workflow/payments-workflow.md) | Implemented |
 
 ## Planned / not yet routed
 
 | Area | Notes |
 |------|-------|
-| Payments | Route commented out |
 | Seats | Route commented out |
 | Reports, Notifications | Sidebar entries exist; routes not wired |
 | Settings (legacy) | Redirects to `/profile` |
 | Dashboard sub-tabs | Analytics, occupancy, revenue, etc. routed but hidden from shell nav |
+| `/payments` sidebar link | Nav target exists but has no `app.routes` entry — payment UX is embedded in institution Settings, member details, `/subscriptions`, and `/pending-approval` (M-20) |
 
 ## Requirements (source)
 

@@ -13,7 +13,7 @@
         <label
           class="flex items-start gap-2.5 cursor-pointer rounded-lg border p-3 transition-colors {{ mode() === Mode.None ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40' }}"
         >
-          <input type="radio" name="paymentMode" class="mt-0.5 shrink-0" [value]="Mode.None" [(ngModel)]="mode" />
+          <input type="radio" name="paymentMode" class="mt-1 h-4 w-4 shrink-0 accent-primary" [value]="Mode.None" [(ngModel)]="mode" />
           <span class="text-xs leading-relaxed text-muted-foreground">
             <strong class="block text-sm font-medium text-foreground">Offline only</strong>
             Fees are recorded by hand. No online payment option is shown to members.
@@ -23,7 +23,7 @@
         <label
           class="flex items-start gap-2.5 cursor-pointer rounded-lg border p-3 transition-colors {{ mode() === Mode.UpiManual ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40' }}"
         >
-          <input type="radio" name="paymentMode" class="mt-0.5 shrink-0" [value]="Mode.UpiManual" [(ngModel)]="mode" />
+          <input type="radio" name="paymentMode" class="mt-1 h-4 w-4 shrink-0 accent-primary" [value]="Mode.UpiManual" [(ngModel)]="mode" />
           <span class="text-xs leading-relaxed text-muted-foreground">
             <strong class="block text-sm font-medium text-foreground">UPI ID</strong>
             Members scan a QR and pay you directly. You confirm each payment using its UTR.
@@ -33,7 +33,7 @@
         <label
           class="flex items-start gap-2.5 cursor-pointer rounded-lg border p-3 transition-colors {{ mode() === Mode.Razorpay ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40' }}"
         >
-          <input type="radio" name="paymentMode" class="mt-0.5 shrink-0" [value]="Mode.Razorpay" [(ngModel)]="mode" />
+          <input type="radio" name="paymentMode" class="mt-1 h-4 w-4 shrink-0 accent-primary" [value]="Mode.Razorpay" [(ngModel)]="mode" />
           <span class="text-xs leading-relaxed text-muted-foreground">
             <strong class="block text-sm font-medium text-foreground">Razorpay</strong>
             Cards, UPI and netbanking with automatic confirmation. Uses your own Razorpay account.
@@ -44,21 +44,29 @@
       <!-- UPI fields -->
       @if (mode() === Mode.UpiManual) {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border border-border bg-muted/20 p-4">
-          <div class="space-y-1.5">
-            <label class="text-sm font-medium" for="upiVpa">UPI ID</label>
-            <input id="upiVpa" class="inst-field" placeholder="library@okhdfcbank" [(ngModel)]="upiVpa" name="upiVpa" />
-            <p class="text-xs text-muted-foreground">Money reaches this account directly — Lexora never holds it.</p>
+          <div>
+            <label class="ui-label" for="upiVpa">UPI ID</label>
+            <input
+              id="upiVpa"
+              class="ui-input bg-[var(--background)] text-[var(--foreground)] placeholder:text-muted-foreground"
+              placeholder="library@okhdfcbank"
+              [(ngModel)]="upiVpa"
+              name="upiVpa"
+              autocomplete="off"
+            />
+            <p class="mt-1.5 text-xs text-muted-foreground">Money reaches this account directly — Lexora never holds it.</p>
           </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-medium" for="upiPayeeName">Payee name</label>
+          <div>
+            <label class="ui-label" for="upiPayeeName">Payee name</label>
             <input
               id="upiPayeeName"
-              class="inst-field"
+              class="ui-input bg-[var(--background)] text-[var(--foreground)] placeholder:text-muted-foreground"
               placeholder="Sharma Study Library"
               [(ngModel)]="upiPayeeName"
               name="upiPayeeName"
+              autocomplete="organization"
             />
-            <p class="text-xs text-muted-foreground">Shown in the member's UPI app before they confirm.</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">Shown in the member's UPI app before they confirm.</p>
           </div>
         </div>
       }
@@ -66,9 +74,9 @@
       <!-- Gateway fields -->
       @if (mode() === Mode.Razorpay) {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border border-border bg-muted/20 p-4">
-          <div class="space-y-1.5">
-            <div class="flex items-center gap-2">
-              <label class="text-sm font-medium" for="razorpayKeyId">Key ID</label>
+          <div>
+            <div class="mb-1.5 flex items-center gap-2">
+              <label class="text-sm font-medium text-[var(--foreground)]" for="razorpayKeyId">Key ID</label>
               @if (isTestKey()) {
                 <span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600">
                   Test mode
@@ -77,12 +85,14 @@
             </div>
             <input
               id="razorpayKeyId"
-              class="inst-field"
+              class="ui-input bg-[var(--background)] text-[var(--foreground)] placeholder:text-muted-foreground font-mono text-xs sm:text-sm"
               placeholder="rzp_live_xxxxxxxx"
               [(ngModel)]="razorpayKeyId"
               name="razorpayKeyId"
+              autocomplete="off"
+              spellcheck="false"
             />
-            <p class="text-xs text-muted-foreground">
+            <p class="mt-1.5 text-xs text-muted-foreground">
               @if (isTestKey()) {
                 Test keys never move real money — use them only while trying the flow out.
               } @else {
@@ -91,44 +101,44 @@
               }
             </p>
           </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-medium" for="razorpayKeySecret">Key secret</label>
+          <div>
+            <label class="ui-label" for="razorpayKeySecret">Key secret</label>
             <input
               id="razorpayKeySecret"
               type="password"
-              class="inst-field"
+              class="ui-input bg-[var(--background)] text-[var(--foreground)] placeholder:text-muted-foreground"
               [placeholder]="hasKeySecret() ? 'Saved — leave blank to keep it' : 'Paste the key secret'"
               [(ngModel)]="razorpayKeySecret"
               name="razorpayKeySecret"
               autocomplete="new-password"
             />
           </div>
-          <div class="space-y-1.5 md:col-span-2">
-            <label class="text-sm font-medium" for="razorpayWebhookSecret">Webhook secret</label>
+          <div class="md:col-span-2">
+            <label class="ui-label" for="razorpayWebhookSecret">Webhook secret</label>
             <input
               id="razorpayWebhookSecret"
               type="password"
-              class="inst-field"
+              class="ui-input bg-[var(--background)] text-[var(--foreground)] placeholder:text-muted-foreground"
               [placeholder]="hasWebhookSecret() ? 'Saved — leave blank to keep it' : 'From the Razorpay webhook page'"
               [(ngModel)]="razorpayWebhookSecret"
               name="razorpayWebhookSecret"
               autocomplete="new-password"
             />
-            <p class="text-xs text-muted-foreground">
+            <p class="mt-1.5 text-xs text-muted-foreground">
               Secrets are encrypted before they are stored and are never sent back to this screen.
             </p>
           </div>
 
           @if (webhookUrl(); as url) {
-            <div class="md:col-span-2 rounded-lg border border-border bg-background p-3">
+            <div class="md:col-span-2 rounded-lg border border-border bg-[var(--background)] p-3">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <div class="text-sm font-medium">Webhook URL</div>
+                  <div class="text-sm font-medium text-[var(--foreground)]">Webhook URL</div>
                   <p class="mt-0.5 break-all font-mono text-xs text-muted-foreground">{{ url }}</p>
                   <p class="mt-1 text-xs text-muted-foreground">
                     Add this on the Razorpay dashboard for the events
-                    <span class="font-medium">payment.captured</span> and
-                    <span class="font-medium">payment.failed</span>.
+                    <span class="font-medium text-foreground">payment.captured</span> and
+                    <span class="font-medium text-foreground">payment.failed</span>.
                   </p>
                 </div>
                 <button
@@ -136,7 +146,7 @@
                   (click)="copyWebhookUrl()"
                   title="Copy webhook URL"
                   aria-label="Copy webhook URL"
-                  class="shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted cursorPointer"
+                  class="shrink-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs font-medium text-[var(--foreground)] transition-colors hover:bg-muted cursorPointer"
                 >
                   Copy
                 </button>
@@ -147,14 +157,19 @@
       }
 
       @if (mode() !== Mode.None) {
-        <div class="flex items-center justify-between rounded-lg border border-border p-3">
-          <div>
-            <div class="text-sm font-medium">Accept online payments</div>
+        <div class="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-[var(--foreground)]">Accept online payments</div>
             <p class="text-xs text-muted-foreground">
               Turn this off to pause collection without deleting your settings.
             </p>
           </div>
-          <input type="checkbox" class="h-4 w-4" [(ngModel)]="isActive" name="paymentsActive" />
+          <input
+            type="checkbox"
+            class="h-4 w-4 shrink-0 accent-primary"
+            [(ngModel)]="isActive"
+            name="paymentsActive"
+          />
         </div>
       }
 

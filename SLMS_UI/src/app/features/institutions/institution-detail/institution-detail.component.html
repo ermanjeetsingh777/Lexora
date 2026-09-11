@@ -969,12 +969,12 @@
 
     <div class="mt-4 space-y-4">
       <app-payment-settings [institutionId]="institutionId()" />
-      <app-payment-queue [institutionId]="institutionId()" />
+      <app-payment-queue class="pt-4" [institutionId]="institutionId()" />
     </div>
   }
 }
 
-<app-invoice-detail-sheet
+<app-invoice-detail-sheet class="mt-4"
   [invoice]="selectedInvoiceDocument()"
   (closed)="closeInvoice()"
 />

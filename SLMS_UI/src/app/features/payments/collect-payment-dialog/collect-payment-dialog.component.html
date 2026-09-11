@@ -41,7 +41,7 @@
               id="payAmount"
               type="number"
               min="1"
-              class="inst-field"
+              class="ui-input bg-[var(--background)] text-[var(--foreground)] placeholder:text-muted-foreground"
               [placeholder]="dueAmount() ? dueAmount().toString() : 'Enter amount'"
               [(ngModel)]="amount"
               name="payAmount"
@@ -94,11 +94,12 @@
               <label class="text-sm font-medium" for="utr">UPI reference / UTR</label>
               <input
                 id="utr"
-                class="inst-field"
+                class="ui-input bg-[var(--background)] text-[var(--foreground)] placeholder:text-muted-foreground"
                 placeholder="e.g. 402512345678"
                 [(ngModel)]="utr"
                 name="utr"
                 maxlength="40"
+                autocomplete="off"
               />
               <p class="text-xs text-muted-foreground">
                 After paying, enter the reference from your UPI app. The library confirms it and the dues clear.

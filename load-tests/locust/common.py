@@ -1,5 +1,5 @@
 """
-Shared Locust helpers — login, auth header, safe GET weight tasks.
+Shared Locust helpers — login, auth header, ID bootstrap, safe GET helpers.
 """
 from __future__ import annotations
 
@@ -21,6 +21,15 @@ _shared_institution_id: str | None = None
 _shared_branch_id: str | None = None
 _shared_library_id: str | None = None
 _shared_member_id: str | None = None
+_shared_package_id: str | None = None
+_shared_addon_id: str | None = None
+_shared_subscription_id: str | None = None
+_shared_plan_id: str | None = None
+_shared_book_id: str | None = None
+_shared_seat_id: str | None = None
+_shared_ticket_id: str | None = None
+_shared_article_id: str | None = None
+_shared_payment_id: str | None = None
 _shared_bootstrapped = False
 
 
@@ -57,6 +66,15 @@ class LexoraApiUser(HttpUser):
     branch_id: str | None = None
     library_id: str | None = None
     member_id: str | None = None
+    package_id: str | None = None
+    addon_id: str | None = None
+    subscription_id: str | None = None
+    plan_id: str | None = None
+    book_id: str | None = None
+    seat_id: str | None = None
+    ticket_id: str | None = None
+    article_id: str | None = None
+    payment_id: str | None = None
 
     def on_start(self) -> None:
         verify = env_bool("LOCUST_VERIFY_SSL", default=True)
@@ -94,19 +112,46 @@ class LexoraApiUser(HttpUser):
             _shared_institution_id, \
             _shared_branch_id, \
             _shared_library_id, \
-            _shared_member_id
+            _shared_member_id, \
+            _shared_package_id, \
+            _shared_addon_id, \
+            _shared_subscription_id, \
+            _shared_plan_id, \
+            _shared_book_id, \
+            _shared_seat_id, \
+            _shared_ticket_id, \
+            _shared_article_id, \
+            _shared_payment_id
         with _shared_lock:
             if _shared_bootstrapped:
                 self.institution_id = _shared_institution_id
                 self.branch_id = _shared_branch_id
                 self.library_id = _shared_library_id
                 self.member_id = _shared_member_id
+                self.package_id = _shared_package_id
+                self.addon_id = _shared_addon_id
+                self.subscription_id = _shared_subscription_id
+                self.plan_id = _shared_plan_id
+                self.book_id = _shared_book_id
+                self.seat_id = _shared_seat_id
+                self.ticket_id = _shared_ticket_id
+                self.article_id = _shared_article_id
+                self.payment_id = _shared_payment_id
                 return
             self._bootstrap_ids()
             _shared_institution_id = self.institution_id
             _shared_branch_id = self.branch_id
             _shared_library_id = self.library_id
             _shared_member_id = self.member_id
+            _shared_package_id = self.package_id
+            _shared_addon_id = self.addon_id
+            _shared_subscription_id = self.subscription_id
+            _shared_plan_id = self.plan_id
+            _shared_book_id = self.book_id
+            _shared_seat_id = self.seat_id
+            _shared_ticket_id = self.ticket_id
+            _shared_article_id = self.article_id
+            _shared_payment_id = self.payment_id
             _shared_bootstrapped = True
 
     def _login(self) -> None:
@@ -142,14 +187,14 @@ class LexoraApiUser(HttpUser):
             return {}
         return {"Authorization": f"Bearer {self.access_token}"}
 
+    def _url(self, path: str) -> str:
+        if path.startswith(API_PREFIX):
+            return path
+        return f"{API_PREFIX}/{path.lstrip('/')}"
+
     def api_get(self, path: str, name: str | None = None, **kwargs: Any):
         """Authenticated GET under /api/v1."""
-        url = path if path.startswith("/") else f"{API_PREFIX}/{path}"
-        if not url.startswith(API_PREFIX) and url.startswith("/api/"):
-            pass
-        elif not url.startswith(API_PREFIX):
-            url = f"{API_PREFIX}/{path.lstrip('/')}"
-
+        url = self._url(path)
         headers = {**self.auth_headers(), **(kwargs.pop("headers", {}) or {})}
         return self.client.get(
             url,
@@ -159,7 +204,7 @@ class LexoraApiUser(HttpUser):
         )
 
     def api_post(self, path: str, json_body: dict | None = None, name: str | None = None, **kwargs: Any):
-        url = path if path.startswith(API_PREFIX) else f"{API_PREFIX}/{path.lstrip('/')}"
+        url = self._url(path)
         headers = {**self.auth_headers(), **(kwargs.pop("headers", {}) or {})}
         return self.client.post(
             url,
@@ -180,97 +225,132 @@ class LexoraApiUser(HttpUser):
                     if row.get(k):
                         return str(row[k])
         if isinstance(data, dict):
-            items = data.get("items") or data.get("results") or data.get("data")
-            if isinstance(items, list) and items and isinstance(items[0], dict):
-                for k in keys:
-                    if items[0].get(k):
-                        return str(items[0][k])
+            for nested_key in (
+                "items",
+                "results",
+                "data",
+                "currentSubscription",
+                "history",
+                "packages",
+                "addons",
+                "tickets",
+                "articles",
+            ):
+                items = data.get(nested_key)
+                if isinstance(items, list) and items and isinstance(items[0], dict):
+                    for k in keys:
+                        if items[0].get(k):
+                            return str(items[0][k])
+                if isinstance(items, dict):
+                    for k in keys:
+                        if items.get(k):
+                            return str(items[k])
             for k in keys:
                 if data.get(k):
                     return str(data[k])
         return None
 
+    def _get_json(self, path: str, name: str) -> Any | None:
+        with self.client.get(
+            self._url(path),
+            headers=self.auth_headers(),
+            name=name,
+            catch_response=True,
+        ) as res:
+            if res.status_code != 200:
+                res.failure(f"{res.status_code}")
+                return None
+            try:
+                payload = res.json()
+                res.success()
+                return payload
+            except Exception as exc:
+                res.failure(str(exc))
+                return None
+
     def _bootstrap_ids(self) -> None:
-        """Resolve institution / branch / library / member ids for nested routes."""
+        """Resolve ids used by nested / detail routes across modules."""
         if not self.access_token:
             return
 
-        # Institutions
-        with self.client.get(
-            f"{API_PREFIX}/institutions/list",
-            headers=self.auth_headers(),
-            name="BOOTSTRAP GET /institutions/list",
-            catch_response=True,
-        ) as res:
-            if res.status_code == 200:
-                try:
-                    self.institution_id = self._first_id(res.json(), "id", "institutionId")
-                    res.success()
-                except Exception as exc:
-                    res.failure(str(exc))
-            else:
-                res.failure(f"{res.status_code}")
+        payload = self._get_json("institutions/list", "BOOTSTRAP GET /institutions/list")
+        if payload:
+            self.institution_id = self._first_id(payload, "id", "institutionId")
 
         if not self.institution_id:
-            with self.client.get(
-                f"{API_PREFIX}/institutions/my-institution",
-                headers=self.auth_headers(),
-                name="BOOTSTRAP GET /institutions/my-institution",
-                catch_response=True,
-            ) as res:
-                if res.status_code == 200:
-                    try:
-                        self.institution_id = self._first_id(res.json(), "id", "institutionId")
-                        res.success()
-                    except Exception:
-                        res.failure("parse")
-                else:
-                    res.failure(f"{res.status_code}")
+            payload = self._get_json(
+                "institutions/my-institution",
+                "BOOTSTRAP GET /institutions/my-institution",
+            )
+            if payload:
+                self.institution_id = self._first_id(payload, "id", "institutionId")
 
-        # Branches
-        with self.client.get(
-            f"{API_PREFIX}/branches/list",
-            headers=self.auth_headers(),
-            name="BOOTSTRAP GET /branches/list",
-            catch_response=True,
-        ) as res:
-            if res.status_code == 200:
-                try:
-                    self.branch_id = self._first_id(res.json(), "id", "branchId")
-                    res.success()
-                except Exception:
-                    res.failure("parse")
-            else:
-                res.failure(f"{res.status_code}")
+        payload = self._get_json("branches/list", "BOOTSTRAP GET /branches/list")
+        if payload:
+            self.branch_id = self._first_id(payload, "id", "branchId")
 
-        # Libraries
-        with self.client.get(
-            f"{API_PREFIX}/libraries/list",
-            headers=self.auth_headers(),
-            name="BOOTSTRAP GET /libraries/list",
-            catch_response=True,
-        ) as res:
-            if res.status_code == 200:
-                try:
-                    self.library_id = self._first_id(res.json(), "id", "libraryId")
-                    res.success()
-                except Exception:
-                    res.failure("parse")
-            else:
-                res.failure(f"{res.status_code}")
+        payload = self._get_json("libraries/list", "BOOTSTRAP GET /libraries/list")
+        if payload:
+            self.library_id = self._first_id(payload, "id", "libraryId")
 
-        # Members
-        with self.client.get(
-            f"{API_PREFIX}/members",
-            headers=self.auth_headers(),
-            name="BOOTSTRAP GET /members",
-            catch_response=True,
-        ) as res:
-            if res.status_code == 200:
-                try:
-                    self.member_id = self._first_id(res.json(), "id", "memberId")
-                    res.success()
-                except Exception:
-                    res.failure("parse")
-            else:
-                res.failure(f"{res.status_code}")
+        payload = self._get_json("members", "BOOTSTRAP GET /members")
+        if payload:
+            self.member_id = self._first_id(payload, "id", "memberId")
+
+        payload = self._get_json("packages", "BOOTSTRAP GET /packages")
+        if payload:
+            self.package_id = self._first_id(payload, "id", "packageId")
+
+        payload = self._get_json("addons", "BOOTSTRAP GET /addons")
+        if payload:
+            self.addon_id = self._first_id(payload, "id", "addonId")
+
+        payload = self._get_json(
+            "package-subscriptions/overview",
+            "BOOTSTRAP GET /package-subscriptions/overview",
+        )
+        if payload:
+            self.subscription_id = self._first_id(
+                payload,
+                "id",
+                "subscriptionId",
+                "userPackageId",
+            )
+            if not self.package_id:
+                self.package_id = self._first_id(payload, "packageId")
+
+        if self.institution_id and self.branch_id and self.library_id:
+            plans_path = (
+                f"institutions/{self.institution_id}/branches/{self.branch_id}"
+                f"/libraries/{self.library_id}/plans"
+            )
+            payload = self._get_json(plans_path, "BOOTSTRAP GET /.../plans")
+            if payload:
+                self.plan_id = self._first_id(payload, "id", "planId")
+
+            books_path = (
+                f"institutions/{self.institution_id}/branches/{self.branch_id}"
+                f"/libraries/{self.library_id}/books"
+            )
+            payload = self._get_json(books_path, "BOOTSTRAP GET /.../books")
+            if payload:
+                self.book_id = self._first_id(payload, "id", "bookId")
+
+            seats_path = (
+                f"institutions/{self.institution_id}/branches/{self.branch_id}/seats"
+            )
+            payload = self._get_json(seats_path, "BOOTSTRAP GET /.../seats")
+            if payload:
+                self.seat_id = self._first_id(payload, "id", "seatId")
+
+        payload = self._get_json("support/tickets", "BOOTSTRAP GET /support/tickets")
+        if payload:
+            self.ticket_id = self._first_id(payload, "id", "ticketId")
+
+        payload = self._get_json("support/articles", "BOOTSTRAP GET /support/articles")
+        if payload:
+            self.article_id = self._first_id(payload, "id", "articleId")
+
+        payload = self._get_json("payments", "BOOTSTRAP GET /payments")
+        if payload:
+            self.payment_id = self._first_id(payload, "id", "transactionId")

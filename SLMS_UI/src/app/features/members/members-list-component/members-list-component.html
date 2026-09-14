@@ -2,14 +2,16 @@
   <div actions class="flex flex-wrap items-center gap-2">
     <app-quota-badge resourceType="member" variant="pill" />
     @if (canCreate()) {
-      <a routerLink="/members/bulk-upload">
+      <a routerLink="/members/bulk-upload" title="Bulk upload">
         <app-button size="sm" variant="outline">
-          <svg lucideFileSpreadsheet class="h-4 w-4 mr-1"></svg> Bulk upload
+          <svg lucideFileSpreadsheet class="h-4 w-4 md:mr-1"></svg>
+          <span class="hidden md:inline">Bulk upload</span>
         </app-button>
       </a>
-      <a routerLink="/members/create">
+      <a routerLink="/members/create" title="Add member">
         <app-button size="sm">
-          <svg lucidePlus class="h-4 w-4 mr-1"></svg> Add member
+          <svg lucidePlus class="h-4 w-4 md:mr-1"></svg>
+          <span class="hidden md:inline">Add member</span>
         </app-button>
       </a>
     }
@@ -57,11 +59,24 @@
 }
 
 <app-glass-card class="block mb-4">
-  <div class="members-attendance-export__header">
-    <h4 class="members-attendance-export__title">Attendance report</h4>
-    <p class="members-attendance-export__desc">Open detailed records or download check-ins for members you can access.</p>
+  <div class="members-attendance-export__header flex flex-wrap items-center justify-between gap-2">
+    <div>
+      <h4 class="members-attendance-export__title">Attendance report</h4>
+      <p class="members-attendance-export__desc">Open detailed records or download check-ins for members you can access.</p>
+    </div>
+    <app-button
+      variant="outline"
+      size="sm"
+      (click)="toggleAttendanceDownloadPanel()"
+      [attr.aria-expanded]="showAttendanceDownloadPanel()"
+    >
+      <svg lucideDownload class="h-4 w-4 mr-1.5"></svg>
+      {{ showAttendanceDownloadPanel() ? 'Hide download' : 'Download' }}
+    </app-button>
   </div>
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+  @if (showAttendanceDownloadPanel()) {
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
     <div>
       <label class="text-sm font-medium">From</label>
       <input
@@ -97,6 +112,7 @@
       </app-button>
     </div>
   </div>
+  }
 </app-glass-card>
 
 <app-glass-card class="block">

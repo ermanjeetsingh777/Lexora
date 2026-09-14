@@ -95,6 +95,7 @@ export class ScopedMembersPanelComponent {
 
   readonly loading = signal(false);
   readonly attendanceExporting = signal(false);
+  readonly showAttendanceDownloadPanel = signal(false);
   readonly attendanceDateFrom = signal(monthStartIsoDate());
   readonly attendanceDateTo = signal(todayIsoDate());
   readonly attendanceReportQuery = memberAttendanceReportQuery();
@@ -270,6 +271,10 @@ export class ScopedMembersPanelComponent {
 
   onAttendanceDateToChange(value: string): void {
     this.attendanceDateTo.set(value);
+  }
+
+  toggleAttendanceDownloadPanel(): void {
+    this.showAttendanceDownloadPanel.update((open) => !open);
   }
 
   exportLibraryAttendance(format: 'excel' | 'pdf'): void {

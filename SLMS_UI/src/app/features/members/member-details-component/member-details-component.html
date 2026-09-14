@@ -606,6 +606,23 @@
     <!-- ATTENDANCE TAB -->
     @if (activeTab() === 'attendance') {
     <div class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 class="text-sm font-semibold text-foreground">Attendance report</h3>
+          <p class="text-xs text-muted-foreground mt-0.5">Download check-ins for a date range.</p>
+        </div>
+        <app-button
+          variant="outline"
+          size="sm"
+          (click)="toggleAttendanceDownloadPanel()"
+          [attr.aria-expanded]="showAttendanceDownloadPanel()"
+        >
+          <svg lucideDownload class="h-4 w-4 mr-1.5"></svg>
+          {{ showAttendanceDownloadPanel() ? 'Hide download' : 'Download' }}
+        </app-button>
+      </div>
+
+      @if (showAttendanceDownloadPanel()) {
       <app-glass-card class="block">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
@@ -638,6 +655,7 @@
           </div>
         </div>
       </app-glass-card>
+      }
 
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <div class="border rounded-lg p-3 bg-muted/20">

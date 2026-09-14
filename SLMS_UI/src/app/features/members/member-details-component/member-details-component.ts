@@ -254,6 +254,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly calendarLoading = signal(false);
   readonly memberReportLoading = signal(false);
   readonly attendanceExporting = signal(false);
+  readonly showAttendanceDownloadPanel = signal(false);
   readonly attendanceDateFrom = signal(monthStartIsoDate());
   readonly attendanceDateTo = signal(todayIsoDate());
   readonly librarySeats = signal<AttendanceSeatOption[]>([]);
@@ -736,6 +737,10 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     this.attendanceDateTo.set(value);
     this.attendanceLogPage.set(1);
     this.loadMemberAttendanceReport();
+  }
+
+  toggleAttendanceDownloadPanel(): void {
+    this.showAttendanceDownloadPanel.update((open) => !open);
   }
 
   loadMemberAttendanceReport(): void {

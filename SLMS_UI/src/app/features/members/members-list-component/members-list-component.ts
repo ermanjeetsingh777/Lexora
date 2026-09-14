@@ -116,6 +116,7 @@ export class MembersListComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly membersList = signal<MemberListResponse[]>([]);
   readonly attendanceExporting = signal(false);
+  readonly showAttendanceDownloadPanel = signal(false);
   readonly attendanceDateFrom = signal(monthStartIsoDate());
   readonly attendanceDateTo = signal(todayIsoDate());
   readonly attendanceReportQuery = memberAttendanceReportQuery();
@@ -809,6 +810,10 @@ export class MembersListComponent implements OnInit {
 
   onAttendanceDateToChange(value: string): void {
     this.attendanceDateTo.set(value);
+  }
+
+  toggleAttendanceDownloadPanel(): void {
+    this.showAttendanceDownloadPanel.update((open) => !open);
   }
 
   exportAttendanceReport(format: 'excel' | 'pdf'): void {

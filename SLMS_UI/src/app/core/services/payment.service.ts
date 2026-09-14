@@ -11,6 +11,7 @@ import {
   VerifyRazorpayPaymentRequest,
 } from '@core/models/payment.models';
 import { ApiService } from './api.service';
+import { environment } from '../../../environments/environment';
 
 const RAZORPAY_CHECKOUT_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
 
@@ -25,10 +26,23 @@ export class PaymentService {
   private readonly api = inject(ApiService);
   private checkoutScript?: Promise<void>;
 
+  /** UI build flag — must be true and API PaymentGateway:Enabled for Razorpay. */
+  isPaymentGatewayEnabled(): boolean {
+    return environment.paymentGatewayEnabled === true;
+  }
+
   getPlatformStatus(): Observable<PlatformPaymentStatus> {
     return this.api
       .get<PlatformPaymentStatus>('payments/platform/status')
-      .pipe(map((r) => r.data!));
+      .pipe(
+        map((r) => {
+          const status = r.data!;
+          return {
+            ...status,
+            enabled: this.isPaymentGatewayEnabled() && !!status.enabled,
+          };
+        }),
+      );
   }
 
   getAccount(institutionId: string): Observable<PaymentAccount> {
@@ -96,6 +110,10 @@ export class PaymentService {
    * Resolves `null` when the payer closes the dialog without paying.
    */
   async openRazorpayCheckout(instruction: PaymentInstruction): Promise<VerifyRazorpayPaymentRequest | null> {
+    if (!this.isPaymentGatewayEnabled()) {
+      throw new Error('Online payment gateway is not enabled. Please use the offline payment option.');
+    }
+
     const config = instruction.razorpay;
     if (!config) {
       throw new Error('This payment is not a gateway payment.');

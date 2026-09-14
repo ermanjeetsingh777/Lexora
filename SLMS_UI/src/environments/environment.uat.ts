@@ -7,6 +7,8 @@ export const environment = {
   apiUrl: 'https://uat-api.lexora.app/api/v1',
   siteUrl: 'https://uniappx.in',
   mockApi: false,
+  /** When false, Razorpay Pay online is hidden; WhatsApp/offline still work. */
+  paymentGatewayEnabled: false,
   appName: 'Lexora',
   appVersion: 'v1.0.0-beta',
   appEdition: 'UAT Release',

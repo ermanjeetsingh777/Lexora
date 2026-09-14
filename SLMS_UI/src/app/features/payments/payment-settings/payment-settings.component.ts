@@ -36,6 +36,8 @@ export class PaymentSettingsComponent {
   private readonly auth = inject(AuthService);
 
   protected readonly Mode = PaymentAccountMode;
+  /** Razorpay radio only when UI + API gateway flag is on. */
+  protected readonly gatewayEnabled = this.payments.isPaymentGatewayEnabled();
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -72,7 +74,11 @@ export class PaymentSettingsComponent {
     this.loading.set(true);
     this.payments.getAccount(institutionId).subscribe({
       next: (account) => {
-        this.mode.set(account.mode);
+        this.mode.set(
+          !this.gatewayEnabled && account.mode === PaymentAccountMode.Razorpay
+            ? PaymentAccountMode.None
+            : account.mode,
+        );
         this.isActive.set(account.isActive ?? true);
         this.upiPayeeName.set(account.upiPayeeName ?? '');
         this.upiVpa.set(account.upiVpa ?? '');

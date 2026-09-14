@@ -30,15 +30,21 @@
           </span>
         </label>
 
-        <label
-          class="flex items-start gap-2.5 cursor-pointer rounded-lg border p-3 transition-colors {{ mode() === Mode.Razorpay ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40' }}"
-        >
-          <input type="radio" name="paymentMode" class="mt-1 h-4 w-4 shrink-0 accent-primary" [value]="Mode.Razorpay" [(ngModel)]="mode" />
-          <span class="text-xs leading-relaxed text-muted-foreground">
-            <strong class="block text-sm font-medium text-foreground">Razorpay</strong>
-            Cards, UPI and netbanking with automatic confirmation. Uses your own Razorpay account.
-          </span>
-        </label>
+        @if (gatewayEnabled) {
+          <label
+            class="flex items-start gap-2.5 cursor-pointer rounded-lg border p-3 transition-colors {{ mode() === Mode.Razorpay ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40' }}"
+          >
+            <input type="radio" name="paymentMode" class="mt-1 h-4 w-4 shrink-0 accent-primary" [value]="Mode.Razorpay" [(ngModel)]="mode" />
+            <span class="text-xs leading-relaxed text-muted-foreground">
+              <strong class="block text-sm font-medium text-foreground">Razorpay</strong>
+              Cards, UPI and netbanking with automatic confirmation. Uses your own Razorpay account.
+            </span>
+          </label>
+        } @else {
+          <p class="text-xs text-muted-foreground rounded-lg border border-dashed border-border px-3 py-2">
+            Online payment gateway is currently off. Use Offline or UPI until it is enabled.
+          </p>
+        }
       </div>
 
       <!-- UPI fields -->

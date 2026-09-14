@@ -61,10 +61,10 @@ if (args.Contains("--seed-superadmin", StringComparer.OrdinalIgnoreCase))
 
 await DbSeeder.MigrateAndSeedAsync(app.Services);
 
-// A test key on the live site would mark subscriptions paid without any money arriving,
-// so say out loud which Razorpay account this instance is wired to.
+// Online checkout is gated by PaymentGateway:Enabled. Keys still live under Razorpay:*.
+var paymentGateway = app.Services.GetRequiredService<IOptions<PaymentGatewayOptions>>().Value;
 var razorpayOptions = app.Services.GetRequiredService<IOptions<RazorpayOptions>>().Value;
-if (razorpayOptions.Enabled)
+if (paymentGateway.Enabled)
 {
     var keyMismatch = RazorpayKeys.DescribeMismatch(razorpayOptions.KeyId, app.Environment.IsProduction());
     if (keyMismatch is not null)
@@ -74,10 +74,14 @@ if (razorpayOptions.Enabled)
     }
     else
     {
-        app.Logger.LogInformation("Razorpay enabled in {Mode} mode ({Environment}).",
+        app.Logger.LogInformation("Payment gateway enabled in {Mode} mode ({Environment}).",
             RazorpayKeys.IsTestKey(razorpayOptions.KeyId) ? "TEST" : "LIVE",
             app.Environment.EnvironmentName);
     }
+}
+else
+{
+    app.Logger.LogInformation("Payment gateway is OFF (PaymentGateway:Enabled=false). Offline / UPI flows only.");
 }
 
 // Configure the HTTP request pipeline.

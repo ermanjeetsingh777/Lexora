@@ -9,7 +9,10 @@ public class RazorpayOptions
 {
     public const string SectionName = "Razorpay";
 
-    /// <summary>When false, tenants can only pay offline (slip + SuperAdmin approval).</summary>
+    /// <summary>
+    /// Legacy per-Razorpay toggle. Prefer <c>PaymentGateway:Enabled</c> as the master kill switch.
+    /// Kept so older env vars still bind; payment service ignores this for enablement.
+    /// </summary>
     public bool Enabled { get; set; }
 
     public string? KeyId { get; set; }

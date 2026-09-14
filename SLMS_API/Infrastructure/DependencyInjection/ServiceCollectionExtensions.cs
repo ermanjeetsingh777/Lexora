@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.Configure<DemoOptions>(configuration.GetSection(DemoOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
         services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
+        services.Configure<PaymentGatewayOptions>(configuration.GetSection(PaymentGatewayOptions.SectionName));
         services.Configure<RazorpayOptions>(configuration.GetSection(RazorpayOptions.SectionName));
 
         services.AddDbContext<ApplicationDbContext>(options =>

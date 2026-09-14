@@ -25,6 +25,7 @@ public class PaymentService : IPaymentService
     private readonly IAuditLogService _auditLogService;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly RazorpayOptions _platformOptions;
+    private readonly PaymentGatewayOptions _gatewayOptions;
     private readonly bool _isProduction;
     private readonly ILogger<PaymentService> _logger;
 
@@ -35,6 +36,7 @@ public class PaymentService : IPaymentService
         IAuditLogService auditLogService,
         IServiceScopeFactory scopeFactory,
         IOptions<RazorpayOptions> platformOptions,
+        IOptions<PaymentGatewayOptions> gatewayOptions,
         IHostEnvironment hostEnvironment,
         ILogger<PaymentService> logger)
     {
@@ -44,15 +46,19 @@ public class PaymentService : IPaymentService
         _auditLogService = auditLogService;
         _scopeFactory = scopeFactory;
         _platformOptions = platformOptions.Value;
+        _gatewayOptions = gatewayOptions.Value;
         _isProduction = hostEnvironment.IsProduction();
         _logger = logger;
     }
+
+    /// <summary>Master switch from PaymentGateway:Enabled. Offline / UPI still work when false.</summary>
+    private bool IsPaymentGatewayEnabled() => _gatewayOptions.Enabled;
 
     public PlatformPaymentStatusResponse GetPlatformStatus()
     {
         return new PlatformPaymentStatusResponse
         {
-            Enabled = _platformOptions.Enabled
+            Enabled = IsPaymentGatewayEnabled()
                 && !string.IsNullOrWhiteSpace(_platformOptions.KeyId)
                 && !string.IsNullOrWhiteSpace(_platformOptions.KeySecret),
             DisplayName = _platformOptions.DisplayName,
@@ -101,6 +107,12 @@ public class PaymentService : IPaymentService
                 CreatedBy = userId
             };
             _dbContext.PaymentAccounts.Add(account);
+        }
+
+        if (request.Mode == PaymentAccountMode.Razorpay && !IsPaymentGatewayEnabled())
+        {
+            throw new InvalidOperationException(
+                "Online payment gateway is not enabled. Use Offline or UPI collection instead.");
         }
 
         account.Mode = request.Mode;
@@ -160,6 +172,12 @@ public class PaymentService : IPaymentService
                 break;
 
             case PaymentAccountMode.Razorpay:
+                if (!IsPaymentGatewayEnabled())
+                {
+                    throw new InvalidOperationException(
+                        "Online payment gateway is not enabled. Use Offline or UPI collection instead.");
+                }
+
                 if (string.IsNullOrWhiteSpace(account.RazorpayKeyId))
                 {
                     throw new InvalidOperationException("Razorpay key id is required.");
@@ -412,7 +430,7 @@ public class PaymentService : IPaymentService
     /// </summary>
     private void EnsurePlatformGatewayIsUsable()
     {
-        if (!_platformOptions.Enabled ||
+        if (!IsPaymentGatewayEnabled() ||
             string.IsNullOrWhiteSpace(_platformOptions.KeyId) ||
             string.IsNullOrWhiteSpace(_platformOptions.KeySecret))
         {
@@ -467,6 +485,12 @@ public class PaymentService : IPaymentService
         }
         else
         {
+            if (!IsPaymentGatewayEnabled())
+            {
+                throw new InvalidOperationException(
+                    "Online payment is not enabled. Please use the offline payment option.");
+            }
+
             var credentials = account is null
                 ? new RazorpayCredentials(_platformOptions.KeyId!, _platformOptions.KeySecret!)
                 : ResolveInstitutionCredentials(account);
@@ -1161,7 +1185,7 @@ public class PaymentService : IPaymentService
         };
     }
 
-    private static bool IsReadyToCollect(PaymentAccount account)
+    private bool IsReadyToCollect(PaymentAccount account)
     {
         if (!account.IsActive || account.IsDeleted)
         {
@@ -1171,7 +1195,8 @@ public class PaymentService : IPaymentService
         return account.Mode switch
         {
             PaymentAccountMode.UpiManual => !string.IsNullOrWhiteSpace(account.UpiVpa),
-            PaymentAccountMode.Razorpay => !string.IsNullOrWhiteSpace(account.RazorpayKeyId)
+            PaymentAccountMode.Razorpay => IsPaymentGatewayEnabled()
+                && !string.IsNullOrWhiteSpace(account.RazorpayKeyId)
                 && !string.IsNullOrWhiteSpace(account.RazorpayKeySecretProtected),
             _ => false
         };

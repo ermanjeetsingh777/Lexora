@@ -211,7 +211,7 @@ The seam is `PaymentAccountMode` + `BuildInstructionAsync`. To add, say, Cashfre
 - [ ] Tamper with the webhook body → `400`, transaction untouched
 - [ ] Webhook for an unknown token → `400`; for an unknown order → logged and ignored
 - [ ] Save gateway keys, reopen settings → secret fields show *Saved*, plain secrets never appear in the response
-- [ ] `Razorpay:Enabled = false` → no *Pay now* on `/pending-approval`; offline WhatsApp route still works
+- [ ] `PaymentGateway:Enabled = false` → no *Pay now* on `/pending-approval`; offline WhatsApp route still works
 - [ ] Tenant pays their subscription → package marked paid, tenant approved, onboarding step follows the usual `hasWorkspace` rule
 - [ ] Partial payment (amount less than dues) → dues reduce by exactly that amount
 - [ ] Member portal user pays their own fees → same dialog, no staff-only actions visible
@@ -226,4 +226,4 @@ The seam is `PaymentAccountMode` + `BuildInstructionAsync`. To add, say, Cashfre
 - [ ] Submit a plan upgrade → pending banner shows **Pay online** and **Send Slip via WhatsApp**; online pay activates the new plan and retires the old one
 - [ ] Submit a capacity add-on → row shows **Pay online** and **Send Slip**; online pay applies quota without touching other pending add-ons
 - [ ] Online upgrade does not auto-approve an unpaid pending add-on (`ApproveLinkedAddons = false`)
-- [ ] `Razorpay:Enabled = false` → subscriptions page keeps only WhatsApp; no Pay online buttons
+- [ ] `PaymentGateway:Enabled = false` → subscriptions page keeps only WhatsApp; no Pay online buttons

@@ -27,6 +27,10 @@
   box-shadow: 0 0 0 2px hsl(var(--ring));
 }
 
+.kpi-filter-btn--active app-kpi-card {
+  box-shadow: none;
+}
+
 .filter-pill {
   display: inline-flex;
   align-items: center;

@@ -18,25 +18,25 @@
 
 <!-- KPI row -->
 <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
-  <app-kpi-card label="Active" [value]="activeCount().toLocaleString()">
+  <app-kpi-card label="Active" tone="success" [value]="activeCount().toLocaleString()">
     <svg icon lucideUsers class="h-4 w-4"></svg>
   </app-kpi-card>
   <button type="button" class="kpi-filter-btn" [class.kpi-filter-btn--active]="activeExpiryQuick() === 'expiring'"
     (click)="applyExpiryQuick('expiring')" title="Filter expiring memberships">
-    <app-kpi-card label="Expiring ≤ 7d" [value]="expiringSoon().toLocaleString()">
+    <app-kpi-card label="Expiring ≤ 7d" tone="warning" [value]="expiringSoon().toLocaleString()">
       <svg icon lucideCalendarClock class="h-4 w-4"></svg>
     </app-kpi-card>
   </button>
   <button type="button" class="kpi-filter-btn" [class.kpi-filter-btn--active]="activeExpiryQuick() === 'expired'"
     (click)="applyExpiryQuick('expired')" title="Filter expired memberships">
-    <app-kpi-card label="Expired" [value]="expiredCount().toLocaleString()">
+    <app-kpi-card label="Expired" tone="destructive" [value]="expiredCount().toLocaleString()">
       <svg icon lucideBellRing class="h-4 w-4"></svg>
     </app-kpi-card>
   </button>
-  <app-kpi-card label="Fees due" [value]="'₹' + feesDue().toLocaleString()">
+  <app-kpi-card label="Fees due" tone="destructive" [value]="'₹' + feesDue().toLocaleString()">
     <svg icon lucideAlertCircle class="h-4 w-4"></svg>
   </app-kpi-card>
-  <app-kpi-card label="Premium" [value]="premiumCount().toLocaleString()">
+  <app-kpi-card label="Premium" tone="premium" [value]="premiumCount().toLocaleString()">
     <svg icon lucideCrown class="h-4 w-4"></svg>
   </app-kpi-card>
 </div>

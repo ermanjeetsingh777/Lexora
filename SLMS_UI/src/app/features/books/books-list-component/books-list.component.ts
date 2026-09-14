@@ -247,10 +247,10 @@ export class BooksListComponent implements OnInit {
         },
       });
 
-    this.memberService.getAllMembers()
+    this.memberService.getAllMembers({ page: 1, pageSize: 500 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res) => this.members.set(res.data ?? []),
+        next: (res) => this.members.set(res.data?.items ?? []),
         error: () => this.members.set([]),
       });
   }

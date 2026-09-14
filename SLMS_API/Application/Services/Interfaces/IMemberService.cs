@@ -1,5 +1,7 @@
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations.Responses;
+using SLMS_API.Application.Contracts.Organizations.Queries;
+using SLMS_API.Application.Contracts.Common;
 using Microsoft.AspNetCore.Http;
 
 namespace SLMS_API.Application.Services.Interfaces;
@@ -13,7 +15,7 @@ public interface IMemberService
     Task<IReadOnlyCollection<MemberListResponse>> GetLibraryMemberListAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<MemberListResponse>> GetInstitutionMemberListAsync(Guid institutionId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<MemberListResponse>> GetBranchMemberListAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyCollection<MemberListResponse>> GetAllMemberListAsync(CancellationToken cancellationToken = default);
+    Task<PagedResult<MemberListResponse>> GetAllMemberListAsync(MemberListQuery query, CancellationToken cancellationToken = default);
     Task<MemberDetailResponse?> GetMemberDetailsByIdAsync(Guid memberId, CancellationToken cancellationToken = default);
     Task<Guid?> GetCurrentMemberIdAsync(CancellationToken cancellationToken = default);
     Task<MemberContactResponse> AddContactAsync(Guid memberId, CreateMemberContactRequest request, string? userId, CancellationToken cancellationToken = default);

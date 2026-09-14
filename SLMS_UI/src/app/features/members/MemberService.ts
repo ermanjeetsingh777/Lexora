@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, BulkMemberUploadResponse, ChangeMemberPasswordRequest, MemberContactResponse, MemberDetailResponse, MemberListResponse, UpdateMemberRequest } from '@core/models/MemberRequest';
+import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, BulkMemberUploadResponse, ChangeMemberPasswordRequest, MemberContactResponse, MemberDetailResponse, MemberListQuery, MemberListResponse, MembershipSummary, PagedMemberList, UpdateMemberRequest } from '@core/models/MemberRequest';
 import { ApiService } from '@core/services/api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
@@ -61,8 +61,24 @@ export class MemberService {
         return this.httpApi.get<MemberListResponse[]>(`institutions/${institutionId}/branches/${branchId}/members`);
     }
 
-    getAllMembers(): Observable<APIResponseModel<MemberListResponse[]>> {
-        return this.httpApi.get<MemberListResponse[]>('members');
+    getAllMembers(query?: MemberListQuery): Observable<APIResponseModel<PagedMemberList>> {
+        const params: Record<string, string | number | boolean> = {};
+        if (query?.page != null) params['page'] = query.page;
+        if (query?.pageSize != null) params['pageSize'] = query.pageSize;
+        if (query?.search) params['search'] = query.search;
+        if (query?.statuses) params['statuses'] = query.statuses;
+        if (query?.branches) params['branches'] = query.branches;
+        if (query?.shifts) params['shifts'] = query.shifts;
+        if (query?.plans) params['plans'] = query.plans;
+        if (query?.lifecycles) params['lifecycles'] = query.lifecycles;
+        if (query?.needsAction) params['needsAction'] = query.needsAction;
+        if (query?.sortBy) params['sortBy'] = query.sortBy;
+        if (query?.sortDir) params['sortDir'] = query.sortDir;
+        return this.httpApi.get<PagedMemberList>('members', { params });
+    }
+
+    getMembershipSummary(): Observable<APIResponseModel<MembershipSummary>> {
+        return this.httpApi.get<MembershipSummary>('members/summary');
     }
 
     getMemberById(memberId: string): Observable<APIResponseModel<MemberDetailResponse>> {

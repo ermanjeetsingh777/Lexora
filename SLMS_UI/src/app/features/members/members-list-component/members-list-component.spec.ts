@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { MembersListComponent } from './members-list-component';
 import {
   configureComponentTestBed,
@@ -16,7 +17,11 @@ import { CommonService } from '@core/services/common.service';
 describe('MembersListComponent', () => {
   let fixture: ComponentFixture<MembersListComponent>;
   let component: MembersListComponent;
-  const memberServiceStub = createServiceStub(['changeMemberPassword', 'changePlanOrShift', 'getAllMembers', 'getLibraryPlan', 'getMemberById', 'renewMembership']);
+  const memberServiceStub = createServiceStub(['changeMemberPassword', 'changePlanOrShift', 'getAllMembers', 'getLibraryPlan', 'getMemberById', 'getMembershipSummary', 'renewMembership']);
+  // Paged list shape expected by members page effect.
+  memberServiceStub.getAllMembers.mockReturnValue(
+    of({ success: true, data: { items: [], pageNumber: 1, pageSize: 12, totalCount: 0, totalPages: 1 }, message: '', errors: null }),
+  );
   const authServiceStub = createServiceStub(['currentUser', 'hasPermission', 'hasRole', 'isAuthenticated', 'user']);
   const organizationEntitlementServiceStub = createServiceStub(['canCreateMember', 'load']);
   const attendanceExportServiceStub = createServiceStub(['fetchAllModuleRecords']);
@@ -44,9 +49,9 @@ describe('MembersListComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should call OrganizationEntitlementService.load when loadAllMembers()', () => {
-    organizationEntitlementServiceStub.load.mockClear();
+  it('should call MemberService.getMembershipSummary when loadAllMembers()', () => {
+    memberServiceStub.getMembershipSummary.mockClear();
     invokeComponentMethod(component, 'loadAllMembers');
-    expect(organizationEntitlementServiceStub.load).toHaveBeenCalled();
+    expect(memberServiceStub.getMembershipSummary).toHaveBeenCalled();
   });
 });

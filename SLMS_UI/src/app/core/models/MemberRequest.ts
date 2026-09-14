@@ -98,6 +98,50 @@ export interface MemberListResponse {
   daysRemaining: number
 }
 
+export interface PagedMemberList {
+  items: MemberListResponse[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export interface MemberListQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  statuses?: string;
+  branches?: string;
+  shifts?: string;
+  plans?: string;
+  lifecycles?: string;
+  needsAction?: boolean;
+  sortBy?: string;
+  sortDir?: string;
+}
+
+export interface MembershipSummary {
+  totalMembers: number;
+  activeCount: number;
+  expiredCount: number;
+  expiringSoonCount: number;
+  graceCount: number;
+  noPlanCount: number;
+  needsActionCount: number;
+  feesDueTotal: number;
+  premiumCount: number;
+  branches: string[];
+  plans: string[];
+  shifts: string[];
+  statusCounts: Record<string, number>;
+  planCounts: Record<string, number>;
+  branchCounts: Record<string, number>;
+  shiftCounts: Record<string, number>;
+  lifecycleCounts: Record<string, number>;
+}
+
 export interface MemberDetailResponse {
   id: string;
 

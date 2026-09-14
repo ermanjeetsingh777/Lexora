@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal, WritableSignal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, OnInit, signal, WritableSignal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
@@ -13,6 +14,7 @@ import {
   LucideKeyRound,
   LucideMessageCircle,
 } from '@lucide/angular';
+import { Subject, catchError, debounceTime, of, switchMap, tap } from 'rxjs';
 import { WhatsAppService } from '@core/services/whatsapp.service';
 import { AttendanceModuleQuery } from '@core/models/attendanceModels';
 import { AttendanceExportService } from '@features/attendance/attendance-export.service';
@@ -33,7 +35,7 @@ import { AuthService } from '@core/services/auth.service';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { PermissionKey } from '@core/constants/permissions';
 import { MemberService } from '../MemberService';
-import { MemberDetailResponse, MemberListResponse } from '@core/models/MemberRequest';
+import { MemberDetailResponse, MemberListQuery, MemberListResponse, MembershipSummary } from '@core/models/MemberRequest';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
 import { ViewMode } from '@core/constType';
 import { CommonService } from '@core/services/common.service';
@@ -62,7 +64,7 @@ type SortKey = 'name' | 'status' | 'plan' | 'shift' | 'branch' | 'attendanceRate
 type SortDir = 'asc' | 'desc';
 
 const STATUS_OPTS = ['Active', 'Inactive', 'Suspended'] as const;
-const PAGE_SIZE_OPTS = [10, 25, 50, 100] as const;
+const PAGE_SIZE_OPTS = [12, 24, 48, 96] as const;
 const DEFAULT_SORT_KEY: SortKey = 'name';
 const DEFAULT_SORT_DIR: SortDir = 'asc';
 
@@ -110,11 +112,16 @@ export class MembersListComponent implements OnInit {
   private readonly entitlements = inject(OrganizationEntitlementService);
   private readonly exportService = inject(AttendanceExportService);
   private readonly whatsapp = inject(WhatsAppService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly membersReload$ = new Subject<void>();
   readonly commonService = inject(CommonService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly membersList = signal<MemberListResponse[]>([]);
+  readonly summary = signal<MembershipSummary | null>(null);
+  readonly totalCount = signal(0);
+  readonly totalPages = signal(1);
   readonly attendanceExporting = signal(false);
   readonly showAttendanceDownloadPanel = signal(false);
   readonly attendanceDateFrom = signal(monthStartIsoDate());
@@ -131,7 +138,7 @@ export class MembersListComponent implements OnInit {
   readonly view = signal<ViewMode>('grid');
   readonly sortKey = signal<SortKey>(DEFAULT_SORT_KEY);
   readonly sortDir = signal<SortDir>(DEFAULT_SORT_DIR);
-  readonly pageSize = signal(25);
+  readonly pageSize = signal(12);
   readonly page = signal(1);
   readonly quickId = signal<string | null>(null);
   readonly openDropdownId = signal<string | null>(null);
@@ -170,65 +177,26 @@ export class MembersListComponent implements OnInit {
     }))
   );
 
-  readonly shiftOptions = computed(() =>
-    [...new Set(this.members().map(m => m.shift).filter((s): s is string => !!s && s !== '—'))].sort()
-  );
+  readonly shiftOptions = computed(() => this.summary()?.shifts ?? []);
+  readonly branchOptions = computed(() => this.summary()?.branches ?? []);
+  readonly planOptions = computed(() => this.summary()?.plans ?? []);
 
-  readonly branchOptions = computed(() =>
-    [...new Set(this.members().map(m => m.branch).filter(b => b && b !== '—'))].sort()
-  );
+  readonly statusCounts = computed(() => this.summary()?.statusCounts ?? {});
+  readonly planCounts = computed(() => this.summary()?.planCounts ?? {});
+  readonly lifecycleCounts = computed(() => this.summary()?.lifecycleCounts ?? {} as Partial<Record<LifecycleState, number>>);
 
-  readonly planOptions = computed(() =>
-    [...new Set(
-      this.members().map(m => {
-        const plan = m.plan?.trim();
-        return plan && plan !== '—' ? plan : 'No plan';
-      }),
-    )].sort((a, b) => a.localeCompare(b))
-  );
-
-  readonly statusCounts = computed(() => {
-    const counts: Record<string, number> = {};
-    for (const m of this.members()) counts[m.status] = (counts[m.status] ?? 0) + 1;
-    return counts;
-  });
-
-  readonly planCounts = computed(() => {
-    const counts: Record<string, number> = {};
-    for (const m of this.members()) {
-      const plan = m.plan?.trim();
-      const key = plan && plan !== '—' ? plan : 'No plan';
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-    return counts;
-  });
-
-  readonly activeCount = computed(() => this.members().filter(m => m.status === 'Active').length);
-  readonly expiringSoon = computed(() =>
-    this.members().filter(m => m.life.state === 'Expiring soon' || m.life.state === 'Grace').length
-  );
-  readonly expiredCount = computed(() => this.members().filter(m => m.life.state === 'Expired').length);
-  readonly actionCount = computed(() => this.members().filter(m => m.life.needsAction).length);
-  readonly feesDue = computed(() => this.members().reduce((s, m) => s + m.feesOwed, 0));
-  readonly premiumCount = computed(() =>
-    this.members().filter(m => {
-      const plan = m.plan?.trim();
-      return plan === 'Yearly' || plan === 'Half Yearly';
-    }).length
-  );
-
-  readonly lifecycleCounts = computed(() => {
-    const counts: Partial<Record<LifecycleState, number>> = {};
-    for (const m of this.members()) {
-      counts[m.life.state] = (counts[m.life.state] ?? 0) + 1;
-    }
-    return counts;
-  });
+  readonly activeCount = computed(() => this.summary()?.activeCount ?? 0);
+  readonly expiringSoon = computed(() => this.summary()?.expiringSoonCount ?? 0);
+  readonly expiredCount = computed(() => this.summary()?.expiredCount ?? 0);
+  readonly actionCount = computed(() => this.summary()?.needsActionCount ?? 0);
+  readonly feesDue = computed(() => this.summary()?.feesDueTotal ?? 0);
+  readonly premiumCount = computed(() => this.summary()?.premiumCount ?? 0);
 
   readonly expiryQuickOptions = computed<ExpiryQuickOption[]>(() => {
     const counts = this.lifecycleCounts();
+    const total = this.summary()?.totalMembers ?? 0;
     return [
-      { id: 'all', label: 'All', count: this.members().length },
+      { id: 'all', label: 'All', count: total },
       { id: 'expiring', label: 'Expiring ≤7d', count: (counts['Expiring soon'] ?? 0) + (counts['Grace'] ?? 0), tone: 'warning' },
       { id: 'expired', label: 'Expired', count: counts['Expired'] ?? 0, tone: 'destructive' },
       { id: 'grace', label: 'Grace', count: counts['Grace'] ?? 0, tone: 'warning' },
@@ -263,115 +231,77 @@ export class MembersListComponent implements OnInit {
     this.sortKey() === DEFAULT_SORT_KEY && this.sortDir() === DEFAULT_SORT_DIR
   );
 
-  readonly filtered = computed(() => {
-    const q = this.query().toLowerCase();
-    const statuses = this.statuses();
-    const plans = this.plans();
-    const branches = this.branches();
-    const shifts = this.shifts();
-    const lifecycles = this.lifecycles();
-    const needsAction = this.needsAction();
-
-    return this.members().filter(m => {
-      const memberPlan = m.plan?.trim();
-      const normalizedPlan = memberPlan && memberPlan !== '—' ? memberPlan : 'No plan';
-
-      return (statuses.length === 0 || statuses.includes(m.status)) &&
-      (plans.length === 0 || plans.includes(normalizedPlan)) &&
-      (branches.length === 0 || branches.includes(m.branch)) &&
-      (shifts.length === 0 || shifts.includes(m.shift ?? '')) &&
-      (lifecycles.length === 0 || lifecycles.includes(m.life.state)) &&
-      (!needsAction || m.life.needsAction) &&
-      (q === '' ||
-        m.id.toLowerCase().includes(q) ||
-        m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q) ||
-        m.phone.includes(q) ||
-        m.institution.toLowerCase().includes(q) ||
-        m.branch.toLowerCase().includes(q) ||
-        m.library.toLowerCase().includes(q) ||
-        (m.shift ?? '').toLowerCase().includes(q) ||
-        normalizedPlan.toLowerCase().includes(q));
-    });
-  });
-
-  readonly sorted = computed(() => {
-    const arr = [...this.filtered()];
-    const key = this.sortKey();
-    const dir = this.sortDir() === 'asc' ? 1 : -1;
-
-    arr.sort((a, b) => {
-      let av: string | number;
-      let bv: string | number;
-      switch (key) {
-        case 'planExpiry':
-          av = a.life.expiry;
-          bv = b.life.expiry;
-          break;
-        case 'plan':
-          av = a.plan ?? '';
-          bv = b.plan ?? '';
-          break;
-        case 'attendanceRate':
-          av = a.attendanceRate;
-          bv = b.attendanceRate;
-          break;
-        case 'feesOwed':
-          av = a.feesOwed;
-          bv = b.feesOwed;
-          break;
-        case 'joinDate':
-          av = a.joinDate ?? '';
-          bv = b.joinDate ?? '';
-          break;
-        case 'name':
-          av = a.name ?? '';
-          bv = b.name ?? '';
-          break;
-        case 'status':
-          av = a.status ?? '';
-          bv = b.status ?? '';
-          break;
-        case 'shift':
-          av = a.shift ?? '';
-          bv = b.shift ?? '';
-          break;
-        case 'branch':
-          av = a.branch ?? '';
-          bv = b.branch ?? '';
-          break;
-        default:
-          av = '';
-          bv = '';
-      }
-      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
-      return String(av ?? '').localeCompare(String(bv ?? '')) * dir;
-    });
-    return arr;
-  });
-
-  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.sorted().length / this.pageSize())));
+  /** Filtered match count from server (not just current page). */
+  readonly sorted = computed(() => this.members());
+  readonly matchedCount = computed(() => this.totalCount());
   readonly currentPage = computed(() => Math.min(this.page(), this.totalPages()));
   readonly pageStart = computed(() => (this.currentPage() - 1) * this.pageSize());
-  readonly paged = computed(() => {
-    const start = this.pageStart();
-    return this.sorted().slice(start, start + this.pageSize());
-  });
+  readonly paged = computed(() => this.members());
 
   readonly quickMember = computed(() =>
     this.quickId() ? this.members().find(m => m.id === this.quickId()) ?? null : null
   );
 
   readonly headerDescription = computed(() => {
-    const total = this.members().length;
+    const total = this.summary()?.totalMembers ?? this.totalCount();
     const active = this.activeCount();
     const action = this.actionCount();
     return `${total.toLocaleString()} total · ${active} active · ${action} need action`;
   });
 
+  constructor() {
+    this.membersReload$.pipe(
+      debounceTime(150),
+      tap(() => {
+        this.loading.set(true);
+        this.error.set(null);
+      }),
+      switchMap(() =>
+        this.memberService.getAllMembers(this.buildMemberListQuery()).pipe(
+          catchError((error) => {
+            this.membersList.set([]);
+            this.totalCount.set(0);
+            this.totalPages.set(1);
+            this.error.set(error?.error?.message ?? 'Failed to load members.');
+            this.loading.set(false);
+            return of(null);
+          }),
+        ),
+      ),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((response) => {
+      if (!response) return;
+      const page = response.data;
+      const pages = Math.max(1, page?.totalPages ?? 1);
+      this.membersList.set(page?.items ?? []);
+      this.totalCount.set(page?.totalCount ?? 0);
+      this.totalPages.set(pages);
+      if (this.page() > pages) {
+        this.page.set(pages);
+        return;
+      }
+      this.loading.set(false);
+    });
+
+    effect(() => {
+      this.query();
+      this.statuses();
+      this.plans();
+      this.branches();
+      this.shifts();
+      this.lifecycles();
+      this.needsAction();
+      this.sortKey();
+      this.sortDir();
+      this.page();
+      this.pageSize();
+      this.membersReload$.next();
+    });
+  }
+
   ngOnInit(): void {
-    // this.hydrateFilters();
-    this.loadAllMembers();
+    this.entitlements.load().subscribe();
+    this.loadMembershipSummary();
   }
 
  /*  private hydrateFilters(): void {
@@ -698,11 +628,11 @@ export class MembersListComponent implements OnInit {
   }
 
   branchOptionCount(branch: string): number {
-    return this.members().filter(m => m.branch === branch).length;
+    return this.summary()?.branchCounts?.[branch] ?? 0;
   }
 
   shiftOptionCount(shift: string): number {
-    return this.members().filter(m => m.shift === shift).length;
+    return this.summary()?.shiftCounts?.[shift] ?? 0;
   }
 
   resetSort(persist = true): void {
@@ -786,21 +716,33 @@ export class MembersListComponent implements OnInit {
     this.closeDropdown();
   }
 
+  /** Reload current page + KPI summary (after renew / password / etc.). */
   loadAllMembers(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.entitlements.load().subscribe();
+    this.loadMembershipSummary();
+    this.membersReload$.next();
+  }
 
-    this.memberService.getAllMembers().subscribe({
-      next: (response) => {
-        this.membersList.set(response.data ?? []);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        this.membersList.set([]);
-        this.error.set(error?.error?.message ?? 'Failed to load members.');
-        this.loading.set(false);
-      }
+  private buildMemberListQuery(): MemberListQuery {
+    const join = (values: string[]) => (values.length ? values.join(',') : undefined);
+    return {
+      page: this.page(),
+      pageSize: this.pageSize(),
+      search: this.query().trim() || undefined,
+      statuses: join(this.statuses()),
+      plans: join(this.plans()),
+      branches: join(this.branches()),
+      shifts: join(this.shifts()),
+      lifecycles: join(this.lifecycles()),
+      needsAction: this.needsAction() || undefined,
+      sortBy: this.sortKey(),
+      sortDir: this.sortDir(),
+    };
+  }
+
+  private loadMembershipSummary(): void {
+    this.memberService.getMembershipSummary().subscribe({
+      next: (response) => this.summary.set(response.data ?? null),
+      error: () => this.summary.set(null),
     });
   }
 

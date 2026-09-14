@@ -44,6 +44,19 @@ namespace SLMS_API.Application.Contracts.Organizations.Responses
         public int ActiveCount { get; set; }
         public int ExpiredCount { get; set; }
         public int ExpiringSoonCount { get; set; }
+        public int GraceCount { get; set; }
+        public int NoPlanCount { get; set; }
+        public int NeedsActionCount { get; set; }
+        public decimal FeesDueTotal { get; set; }
+        public int PremiumCount { get; set; }
+        public IReadOnlyList<string> Branches { get; set; } = [];
+        public IReadOnlyList<string> Plans { get; set; } = [];
+        public IReadOnlyList<string> Shifts { get; set; } = [];
+        public IReadOnlyDictionary<string, int> StatusCounts { get; set; } = new Dictionary<string, int>();
+        public IReadOnlyDictionary<string, int> PlanCounts { get; set; } = new Dictionary<string, int>();
+        public IReadOnlyDictionary<string, int> BranchCounts { get; set; } = new Dictionary<string, int>();
+        public IReadOnlyDictionary<string, int> ShiftCounts { get; set; } = new Dictionary<string, int>();
+        public IReadOnlyDictionary<string, int> LifecycleCounts { get; set; } = new Dictionary<string, int>();
     }
 
 }

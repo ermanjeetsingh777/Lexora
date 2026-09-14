@@ -387,7 +387,7 @@
       Clear all
     </button>
     <span class="text-xs text-muted-foreground ml-auto self-center tabular-nums">
-      {{ sorted().length }} match{{ sorted().length === 1 ? '' : 'es' }}
+      {{ matchedCount() }} match{{ matchedCount() === 1 ? '' : 'es' }}
     </span>
   </div>
   } -->
@@ -791,11 +791,11 @@
     </div>
     }
 
-    @if (!loading() && sorted().length > 0) {
+    @if (!loading() && matchedCount() > 0) {
     <div class="flex flex-wrap items-center justify-between gap-3 mt-4 pt-3 border-t">
       <div class="text-xs text-muted-foreground">
-        Showing <span class="tabular-nums font-medium text-foreground">{{ pageStart() + 1 }}–{{ Math.min(pageStart() + pageSize(), sorted().length) }}</span>
-        of <span class="tabular-nums font-medium text-foreground">{{ sorted().length }}</span>
+        Showing <span class="tabular-nums font-medium text-foreground">{{ pageStart() + 1 }}–{{ Math.min(pageStart() + pageSize(), matchedCount()) }}</span>
+        of <span class="tabular-nums font-medium text-foreground">{{ matchedCount() }}</span>
       </div>
       <div class="flex items-center gap-3 ml-auto">
         <div class="flex items-center gap-1.5 text-xs text-muted-foreground">

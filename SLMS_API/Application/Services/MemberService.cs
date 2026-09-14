@@ -15,6 +15,8 @@ using SLMS_API.Infrastructure.Data;
 using System.Net;
 using System.Numerics;
 using SLMS_API.Application.Contracts.Organizations.Responses;
+using SLMS_API.Application.Contracts.Organizations.Queries;
+using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Helpers;
 namespace SLMS_API.Application.Services;
 
@@ -790,23 +792,69 @@ public class MemberService : IMemberService
 
     public async Task<MembershipSummaryResponse> GetMembershipSummaryAsync(CancellationToken cancellationToken = default)
     {
-        var members = await GetAllMemberListAsync(cancellationToken);
+        var members = await BuildScopedMemberListAsync(cancellationToken);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var active = members.Count(x => x.Status == "Active");
-        var expired = members.Count(x =>
-            x.PlanEndDate.HasValue && x.PlanEndDate.Value < today &&
-            (today.DayNumber - x.PlanEndDate.Value.DayNumber) > 7);
-        var expiringSoon = members.Count(x =>
-            x.PlanEndDate.HasValue &&
-            x.PlanEndDate.Value.DayNumber - today.DayNumber is > 0 and <= 7);
+        var statusCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var planCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var branchCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var shiftCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var lifecycleCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        var active = 0;
+        var expired = 0;
+        var expiringSoon = 0;
+        var grace = 0;
+        var noPlan = 0;
+        var needsAction = 0;
+        var premium = 0;
+        decimal feesDue = 0;
+
+        foreach (var m in members)
+        {
+            statusCounts[m.Status] = statusCounts.GetValueOrDefault(m.Status) + 1;
+            if (m.Status == "Active") active++;
+
+            var planKey = string.IsNullOrWhiteSpace(m.Plan) || m.Plan == "—" ? "No plan" : m.Plan.Trim();
+            planCounts[planKey] = planCounts.GetValueOrDefault(planKey) + 1;
+            if (planKey is "Yearly" or "Half Yearly") premium++;
+
+            if (!string.IsNullOrWhiteSpace(m.Branch) && m.Branch != "—")
+                branchCounts[m.Branch] = branchCounts.GetValueOrDefault(m.Branch) + 1;
+
+            var shift = m.Shift?.ToString() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(shift) && shift != "—")
+                shiftCounts[shift] = shiftCounts.GetValueOrDefault(shift) + 1;
+
+            var life = MemberLifecycleHelper.Compute(m.PlanEndDate, m.JoinDate, m.FeesOwed, today);
+            lifecycleCounts[life.State] = lifecycleCounts.GetValueOrDefault(life.State) + 1;
+            if (life.State == "Expired") expired++;
+            if (life.State is "Expiring soon" or "Grace") expiringSoon++;
+            if (life.State == "Grace") grace++;
+            if (life.State == "No plan") noPlan++;
+            if (life.NeedsAction) needsAction++;
+            feesDue += m.FeesOwed;
+        }
 
         return new MembershipSummaryResponse
         {
             TotalMembers = members.Count,
             ActiveCount = active,
             ExpiredCount = expired,
-            ExpiringSoonCount = expiringSoon
+            ExpiringSoonCount = expiringSoon,
+            GraceCount = grace,
+            NoPlanCount = noPlan,
+            NeedsActionCount = needsAction,
+            FeesDueTotal = feesDue,
+            PremiumCount = premium,
+            Branches = branchCounts.Keys.OrderBy(x => x).ToList(),
+            Plans = planCounts.Keys.OrderBy(x => x).ToList(),
+            Shifts = shiftCounts.Keys.OrderBy(x => x).ToList(),
+            StatusCounts = statusCounts,
+            PlanCounts = planCounts,
+            BranchCounts = branchCounts,
+            ShiftCounts = shiftCounts,
+            LifecycleCounts = lifecycleCounts,
         };
     }
 
@@ -1120,13 +1168,31 @@ public class MemberService : IMemberService
         }).ToList();
     }
 
-    public async Task<IReadOnlyCollection<MemberListResponse>> GetAllMemberListAsync(CancellationToken cancellationToken = default)
+    public async Task<PagedResult<MemberListResponse>> GetAllMemberListAsync(MemberListQuery query, CancellationToken cancellationToken = default)
+    {
+        query ??= new MemberListQuery();
+        var page = Math.Max(1, query.Page);
+        var pageSize = Math.Clamp(query.PageSize <= 0 ? 12 : query.PageSize, 1, 500);
+
+        var all = await BuildScopedMemberListAsync(cancellationToken);
+        var filtered = ApplyMemberListFilters(all, query);
+        var sorted = ApplyMemberListSort(filtered, query);
+
+        var totalCount = sorted.Count;
+        var items = sorted
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<MemberListResponse>(items, totalCount, page, pageSize);
+    }
+
+    private async Task<List<MemberListResponse>> BuildScopedMemberListAsync(CancellationToken cancellationToken)
     {
         var userId = await RequireCurrentUserIdAsync(cancellationToken);
         var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
 
         var now = DateTime.UtcNow;
-        var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var membersQuery = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope);
@@ -1208,7 +1274,6 @@ public class MemberService : IMemberService
                     today);
                 var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(dueAmount);
 
-
                 return new MemberListResponse
                 {
                     Id = x.Id,
@@ -1230,7 +1295,7 @@ public class MemberService : IMemberService
 
                     Plan = x.CurrentPlan?.PlanName,
                     PlanId = x.CurrentPlan?.PlanId.ToString(),
-                    Shift = x.Shift,
+                    Shift = x.Shift?.ToString(),
 
                     Seat = x.LibraryMapping?.SeatNumber,
                     SeatNumber = x.LibraryMapping?.SeatNumber,
@@ -1254,6 +1319,92 @@ public class MemberService : IMemberService
                 };
             })
             .ToList();
+    }
+
+    private static List<MemberListResponse> ApplyMemberListFilters(IReadOnlyList<MemberListResponse> members, MemberListQuery query)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var statuses = SplitCsv(query.Statuses);
+        var branches = SplitCsv(query.Branches);
+        var shifts = SplitCsv(query.Shifts);
+        var plans = SplitCsv(query.Plans);
+        var lifecycles = SplitCsv(query.Lifecycles);
+        var search = query.Search?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        return members.Where(m =>
+        {
+            var planKey = string.IsNullOrWhiteSpace(m.Plan) || m.Plan == "—" ? "No plan" : m.Plan.Trim();
+            var life = MemberLifecycleHelper.Compute(m.PlanEndDate, m.JoinDate, m.FeesOwed, today);
+            var shift = m.Shift ?? string.Empty;
+
+            if (statuses.Count > 0 && !statuses.Contains(m.Status)) return false;
+            if (plans.Count > 0 && !plans.Contains(planKey)) return false;
+            if (branches.Count > 0 && !branches.Contains(m.Branch)) return false;
+            if (shifts.Count > 0 && !shifts.Contains(shift)) return false;
+            if (lifecycles.Count > 0 && !lifecycles.Contains(life.State)) return false;
+            if (query.NeedsAction && !life.NeedsAction) return false;
+
+            if (search.Length == 0) return true;
+
+            return m.Id.ToString().Contains(search, StringComparison.OrdinalIgnoreCase)
+                || (m.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (m.Email?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (m.Phone?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (m.Membership?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (m.Institution?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (m.Branch?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (m.Library?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || shift.Contains(search, StringComparison.OrdinalIgnoreCase)
+                || planKey.Contains(search, StringComparison.OrdinalIgnoreCase);
+        }).ToList();
+    }
+
+    private static List<MemberListResponse> ApplyMemberListSort(List<MemberListResponse> members, MemberListQuery query)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var dirAsc = !string.Equals(query.SortDir, "desc", StringComparison.OrdinalIgnoreCase);
+        var sortBy = (query.SortBy ?? "planExpiry").Trim().ToLowerInvariant();
+
+        IOrderedEnumerable<MemberListResponse> ordered = sortBy switch
+        {
+            "name" => dirAsc
+                ? members.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
+                : members.OrderByDescending(m => m.Name, StringComparer.OrdinalIgnoreCase),
+            "status" => dirAsc
+                ? members.OrderBy(m => m.Status, StringComparer.OrdinalIgnoreCase)
+                : members.OrderByDescending(m => m.Status, StringComparer.OrdinalIgnoreCase),
+            "branch" => dirAsc
+                ? members.OrderBy(m => m.Branch, StringComparer.OrdinalIgnoreCase)
+                : members.OrderByDescending(m => m.Branch, StringComparer.OrdinalIgnoreCase),
+            "shift" => dirAsc
+                ? members.OrderBy(m => m.Shift ?? "", StringComparer.OrdinalIgnoreCase)
+                : members.OrderByDescending(m => m.Shift ?? "", StringComparer.OrdinalIgnoreCase),
+            "plan" => dirAsc
+                ? members.OrderBy(m => m.Plan ?? "", StringComparer.OrdinalIgnoreCase)
+                : members.OrderByDescending(m => m.Plan ?? "", StringComparer.OrdinalIgnoreCase),
+            "joindate" => dirAsc
+                ? members.OrderBy(m => m.JoinDate)
+                : members.OrderByDescending(m => m.JoinDate),
+            "feesowed" => dirAsc
+                ? members.OrderBy(m => m.FeesOwed)
+                : members.OrderByDescending(m => m.FeesOwed),
+            "attendancerate" => dirAsc
+                ? members.OrderBy(m => m.AttendanceRate)
+                : members.OrderByDescending(m => m.AttendanceRate),
+            _ => dirAsc
+                ? members.OrderBy(m => MemberLifecycleHelper.Compute(m.PlanEndDate, m.JoinDate, m.FeesOwed, today).ExpiryIso)
+                : members.OrderByDescending(m => MemberLifecycleHelper.Compute(m.PlanEndDate, m.JoinDate, m.FeesOwed, today).ExpiryIso),
+        };
+
+        return ordered.ToList();
+    }
+
+    private static HashSet<string> SplitCsv(string? csv)
+    {
+        if (string.IsNullOrWhiteSpace(csv)) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        return csv
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<MemberDetailResponse?> GetMemberDetailsByIdAsync(Guid memberId, CancellationToken cancellationToken = default)

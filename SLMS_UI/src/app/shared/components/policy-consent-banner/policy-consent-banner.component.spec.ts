@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { PolicyConsentBannerComponent } from './policy-consent-banner.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('PolicyConsentBannerComponent', () => {
+  let fixture: ComponentFixture<PolicyConsentBannerComponent>;
+  let component: PolicyConsentBannerComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(PolicyConsentBannerComponent);
+    fixture = TestBed.createComponent(PolicyConsentBannerComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

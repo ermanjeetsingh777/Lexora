@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { MemberContactComponent } from './member-contact-component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('MemberContactComponent', () => {
+  let fixture: ComponentFixture<MemberContactComponent>;
+  let component: MemberContactComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(MemberContactComponent);
+    fixture = TestBed.createComponent(MemberContactComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

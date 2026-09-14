@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { LibraryPlanFormDialogComponent } from './library-plan-form-dialog.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('LibraryPlanFormDialogComponent', () => {
+  let fixture: ComponentFixture<LibraryPlanFormDialogComponent>;
+  let component: LibraryPlanFormDialogComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(LibraryPlanFormDialogComponent);
+    fixture = TestBed.createComponent(LibraryPlanFormDialogComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

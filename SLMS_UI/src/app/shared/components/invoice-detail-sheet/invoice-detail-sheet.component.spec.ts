@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { InvoiceDetailSheetComponent } from './invoice-detail-sheet.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('InvoiceDetailSheetComponent', () => {
+  let fixture: ComponentFixture<InvoiceDetailSheetComponent>;
+  let component: InvoiceDetailSheetComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(InvoiceDetailSheetComponent);
+    fixture = TestBed.createComponent(InvoiceDetailSheetComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

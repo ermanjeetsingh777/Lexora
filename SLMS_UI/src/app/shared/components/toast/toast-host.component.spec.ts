@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { ToastHostComponent } from './toast-host.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('ToastHostComponent', () => {
+  let fixture: ComponentFixture<ToastHostComponent>;
+  let component: ToastHostComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(ToastHostComponent);
+    fixture = TestBed.createComponent(ToastHostComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

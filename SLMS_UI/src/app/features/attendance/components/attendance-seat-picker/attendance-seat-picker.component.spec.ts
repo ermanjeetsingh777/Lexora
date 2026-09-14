@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { AttendanceSeatPickerComponent } from './attendance-seat-picker.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('AttendanceSeatPickerComponent', () => {
+  let fixture: ComponentFixture<AttendanceSeatPickerComponent>;
+  let component: AttendanceSeatPickerComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(AttendanceSeatPickerComponent);
+    fixture = TestBed.createComponent(AttendanceSeatPickerComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

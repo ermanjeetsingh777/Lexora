@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { PwaInstallBannerComponent } from './pwa-install-banner.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('PwaInstallBannerComponent', () => {
+  let fixture: ComponentFixture<PwaInstallBannerComponent>;
+  let component: PwaInstallBannerComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(PwaInstallBannerComponent);
+    fixture = TestBed.createComponent(PwaInstallBannerComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

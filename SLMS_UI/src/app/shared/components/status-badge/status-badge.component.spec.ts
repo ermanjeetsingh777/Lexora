@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { StatusBadgeComponent } from './status-badge.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,14 +7,15 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('StatusBadgeComponent', () => {
+  let fixture: ComponentFixture<StatusBadgeComponent>;
+  let component: StatusBadgeComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(StatusBadgeComponent);
+    fixture = TestBed.createComponent(StatusBadgeComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('status', []);
     await detectChangesStable(fixture);
   });
 

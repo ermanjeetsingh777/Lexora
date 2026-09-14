@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { KpiCardComponent } from './kpi-card.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,14 +7,16 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('KpiCardComponent', () => {
+  let fixture: ComponentFixture<KpiCardComponent>;
+  let component: KpiCardComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(KpiCardComponent);
+    fixture = TestBed.createComponent(KpiCardComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('label', 'Test');
+    fixture.componentRef.setInput('value', null);
     await detectChangesStable(fixture);
   });
 

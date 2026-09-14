@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { NonAuthHeader } from './non-auth-header';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('NonAuthHeader', () => {
+  let fixture: ComponentFixture<NonAuthHeader>;
+  let component: NonAuthHeader;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(NonAuthHeader);
+    fixture = TestBed.createComponent(NonAuthHeader);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

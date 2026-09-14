@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { RenewPlanDialogComponent } from './renew-plan-dialog.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('RenewPlanDialogComponent', () => {
+  let fixture: ComponentFixture<RenewPlanDialogComponent>;
+  let component: RenewPlanDialogComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(RenewPlanDialogComponent);
+    fixture = TestBed.createComponent(RenewPlanDialogComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

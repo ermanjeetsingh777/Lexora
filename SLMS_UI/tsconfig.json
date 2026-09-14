@@ -25,7 +25,9 @@
       // "@theme": ["src/app/theme"],
       // "@theme/*": ["src/app/theme/*"],
       "@env": ["src/environments"],
-      "@env/*": ["src/environments/*"]
+      "@env/*": ["src/environments/*"],
+      "@testing": ["src/testing"],
+      "@testing/*": ["src/testing/*"]
     }
   },
   "angularCompilerOptions": {

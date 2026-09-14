@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { QrCameraScannerModalComponent } from './qr-camera-scanner-modal.component';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('QrCameraScannerModalComponent', () => {
+  let fixture: ComponentFixture<QrCameraScannerModalComponent>;
+  let component: QrCameraScannerModalComponent;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(QrCameraScannerModalComponent);
+    fixture = TestBed.createComponent(QrCameraScannerModalComponent);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

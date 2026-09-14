@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { OnBoardingInstitution } from './on-boarding-institution';
 import {
   configureComponentTestBed,
   createServiceStub,
@@ -7,13 +7,13 @@ import {
   invokeComponentMethod,
 } from '@testing/component-test';
 
-describe('App', () => {
-  let fixture: ComponentFixture<App>;
-  let component: App;
+describe('OnBoardingInstitution', () => {
+  let fixture: ComponentFixture<OnBoardingInstitution>;
+  let component: OnBoardingInstitution;
 
   beforeEach(async () => {
-    await configureComponentTestBed(App);
-    fixture = TestBed.createComponent(App);
+    await configureComponentTestBed(OnBoardingInstitution);
+    fixture = TestBed.createComponent(OnBoardingInstitution);
     component = fixture.componentInstance;
     await detectChangesStable(fixture);
   });

@@ -114,6 +114,7 @@ export interface MemberListQuery {
   search?: string;
   statuses?: string;
   branches?: string;
+  libraries?: string;
   shifts?: string;
   plans?: string;
   lifecycles?: string;

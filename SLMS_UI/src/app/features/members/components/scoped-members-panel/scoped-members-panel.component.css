@@ -172,3 +172,42 @@
 .inst-detail-branch-table thead th {
   font-weight: 500;
 }
+
+.scoped-members-table--page-loading {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.scoped-members-skeleton {
+  border-radius: 0.25rem;
+  background: color-mix(in oklch, var(--muted) 70%, transparent);
+  animation: scoped-members-shimmer 1.2s ease-in-out infinite;
+}
+
+.scoped-members-skeleton--avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.scoped-members-skeleton--line {
+  height: 0.625rem;
+}
+
+.scoped-members-skeleton--badge {
+  width: 3.5rem;
+  height: 1.25rem;
+  border-radius: 0.375rem;
+}
+
+@keyframes scoped-members-shimmer {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}

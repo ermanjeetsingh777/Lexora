@@ -23,6 +23,9 @@ public class MemberListQuery
     /// <summary>Comma-separated plan names; use "No plan" for members without a current plan.</summary>
     public string? Plans { get; set; }
 
+    /// <summary>Comma-separated library names (scoped panels).</summary>
+    public string? Libraries { get; set; }
+
     /// <summary>Comma-separated lifecycle: Active, Expiring soon, Grace, Expired, No plan.</summary>
     public string? Lifecycles { get; set; }
 

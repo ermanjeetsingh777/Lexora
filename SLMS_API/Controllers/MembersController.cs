@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Auth.Responses;
 using SLMS_API.Application.Contracts.Common;
+using SLMS_API.Application.Contracts.Organizations.Queries;
 using SLMS_API.Application.Contracts.Organizations.Requests;
 using SLMS_API.Application.Contracts.Organizations.Responses;
 using SLMS_API.Application.Services;
@@ -99,21 +100,26 @@ public class MembersController : ControllerBase
 
     [HttpGet]
     [Permission(PermissionKey.MembersList)]
-    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<MemberListResponse>>>> GetLibraryMemberListAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<PagedResult<MemberListResponse>>>> GetLibraryMemberListAsync(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        [FromQuery] MemberListQuery query,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var members = await _memberService.GetLibraryMemberListAsync(institutionId, branchId, libraryId, cancellationToken);
+            var members = await _memberService.GetLibraryMemberListAsync(institutionId, branchId, libraryId, query ?? new MemberListQuery(), cancellationToken);
 
-            return Ok(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Ok(members));
+            return Ok(ApiResponse<PagedResult<MemberListResponse>>.Ok(members));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Fail(ex.Message));
+            return BadRequest(ApiResponse<PagedResult<MemberListResponse>>.Fail(ex.Message));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Fail(ex.Message));
+            return Unauthorized(ApiResponse<PagedResult<MemberListResponse>>.Fail(ex.Message));
         }
     }
 

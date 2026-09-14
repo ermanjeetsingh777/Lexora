@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SLMS_API.Application.Contracts.Common;
+using SLMS_API.Application.Contracts.Organizations.Queries;
 using SLMS_API.Application.Contracts.Organizations.Responses;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Enums;
@@ -26,9 +27,10 @@ public class BranchMembersController : ControllerBase
 
     [HttpGet]
     [Permission(PermissionKey.MembersList)]
-    public async Task<ActionResult<ApiResponse<IReadOnlyCollection<MemberListResponse>>>> GetMembers(
+    public async Task<ActionResult<ApiResponse<PagedResult<MemberListResponse>>>> GetMembers(
         Guid institutionId,
         Guid branchId,
+        [FromQuery] MemberListQuery query,
         CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(_currentUserService.UserId, out _))
@@ -38,16 +40,16 @@ public class BranchMembersController : ControllerBase
 
         try
         {
-            var members = await _memberService.GetBranchMemberListAsync(institutionId, branchId, cancellationToken);
-            return Ok(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Ok(members));
+            var members = await _memberService.GetBranchMemberListAsync(institutionId, branchId, query ?? new MemberListQuery(), cancellationToken);
+            return Ok(ApiResponse<PagedResult<MemberListResponse>>.Ok(members));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Fail(ex.Message));
+            return BadRequest(ApiResponse<PagedResult<MemberListResponse>>.Fail(ex.Message));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(ApiResponse<IReadOnlyCollection<MemberListResponse>>.Fail(ex.Message));
+            return Unauthorized(ApiResponse<PagedResult<MemberListResponse>>.Fail(ex.Message));
         }
     }
 }

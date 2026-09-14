@@ -1,6 +1,6 @@
 import { Component, computed, DestroyRef, effect, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import {
@@ -14,7 +14,7 @@ import {
   LucideKeyRound,
   LucideMessageCircle,
 } from '@lucide/angular';
-import { Subject, catchError, debounceTime, of, switchMap, tap } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, forkJoin, of, switchMap, tap } from 'rxjs';
 import { WhatsAppService } from '@core/services/whatsapp.service';
 import { AttendanceModuleQuery } from '@core/models/attendanceModels';
 import { AttendanceExportService } from '@features/attendance/attendance-export.service';
@@ -35,7 +35,7 @@ import { AuthService } from '@core/services/auth.service';
 import { OrganizationEntitlementService } from '@core/services/organization-entitlement.service';
 import { PermissionKey } from '@core/constants/permissions';
 import { MemberService } from '../MemberService';
-import { MemberDetailResponse, MemberListQuery, MemberListResponse, MembershipSummary } from '@core/models/MemberRequest';
+import { MemberDetailResponse, MemberListQuery, MemberListResponse, MembershipSummary, PagedMemberList } from '@core/models/MemberRequest';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
 import { ViewMode } from '@core/constType';
 import { CommonService } from '@core/services/common.service';
@@ -64,7 +64,7 @@ type SortKey = 'name' | 'status' | 'plan' | 'shift' | 'branch' | 'attendanceRate
 type SortDir = 'asc' | 'desc';
 
 const STATUS_OPTS = ['Active', 'Inactive', 'Suspended'] as const;
-const PAGE_SIZE_OPTS = [12, 24, 48, 96] as const;
+const PAGE_SIZE_OPTS = [12, 24, 48] as const;
 const DEFAULT_SORT_KEY: SortKey = 'name';
 const DEFAULT_SORT_DIR: SortDir = 'asc';
 
@@ -79,6 +79,10 @@ function monthStartIsoDate(): string {
 
 interface MemberRow extends MemberListResponse {
   life: MemberLifecycle;
+}
+
+function cacheKey(query: MemberListQuery): string {
+  return JSON.stringify(query);
 }
 
 @Component({
@@ -113,10 +117,18 @@ export class MembersListComponent implements OnInit {
   private readonly exportService = inject(AttendanceExportService);
   private readonly whatsapp = inject(WhatsAppService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly membersReload$ = new Subject<void>();
+  private readonly searchInput$ = new Subject<string>();
+  private readonly pageCache = new Map<string, PagedMemberList>();
+  private syncingUrl = false;
+  private hydrated = false;
   readonly commonService = inject(CommonService);
 
   readonly loading = signal(true);
+  readonly initialLoading = signal(true);
+  readonly pageLoading = signal(false);
   readonly error = signal<string | null>(null);
   readonly membersList = signal<MemberListResponse[]>([]);
   readonly summary = signal<MembershipSummary | null>(null);
@@ -129,6 +141,7 @@ export class MembersListComponent implements OnInit {
   readonly attendanceReportQuery = memberAttendanceReportQuery();
 
   readonly query = signal('');
+  readonly searchDebounced = signal('');
   readonly statuses = signal<string[]>([]);
   readonly plans = signal<string[]>([]);
   readonly branches = signal<string[]>([]);
@@ -224,19 +237,21 @@ export class MembersListComponent implements OnInit {
 
   readonly activeFilterCount = computed(() =>
     this.statuses().length + this.plans().length + this.branches().length + this.shifts().length +
-    this.lifecycles().length + (this.needsAction() ? 1 : 0) + (this.query() ? 1 : 0)
+    this.lifecycles().length + (this.needsAction() ? 1 : 0) + (this.searchDebounced() ? 1 : 0)
   );
+
+  readonly hasActiveFilters = computed(() => this.activeFilterCount() > 0);
 
   readonly isSortDefault = computed(() =>
     this.sortKey() === DEFAULT_SORT_KEY && this.sortDir() === DEFAULT_SORT_DIR
   );
 
-  /** Filtered match count from server (not just current page). */
   readonly sorted = computed(() => this.members());
   readonly matchedCount = computed(() => this.totalCount());
   readonly currentPage = computed(() => Math.min(this.page(), this.totalPages()));
   readonly pageStart = computed(() => (this.currentPage() - 1) * this.pageSize());
   readonly paged = computed(() => this.members());
+  readonly skeletonSlots = computed(() => Array.from({ length: Math.min(this.pageSize(), 12) }, (_, i) => i));
 
   readonly quickMember = computed(() =>
     this.quickId() ? this.members().find(m => m.id === this.quickId()) ?? null : null
@@ -250,41 +265,58 @@ export class MembersListComponent implements OnInit {
   });
 
   constructor() {
+    this.searchInput$.pipe(
+      debounceTime(350),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((value) => {
+      this.searchDebounced.set(value);
+      this.page.set(1);
+      this.persistFilters();
+    });
+
     this.membersReload$.pipe(
-      debounceTime(150),
       tap(() => {
-        this.loading.set(true);
+        if (this.initialLoading() || this.membersList().length === 0) {
+          this.loading.set(true);
+        } else {
+          this.pageLoading.set(true);
+        }
         this.error.set(null);
       }),
-      switchMap(() =>
-        this.memberService.getAllMembers(this.buildMemberListQuery()).pipe(
+      switchMap(() => {
+        const query = this.buildMemberListQuery();
+        const key = cacheKey(query);
+        const cached = this.pageCache.get(key);
+        if (cached) {
+          return of({ success: true, data: cached, message: '', errors: null });
+        }
+        return this.memberService.getAllMembers(query).pipe(
           catchError((error) => {
             this.membersList.set([]);
             this.totalCount.set(0);
             this.totalPages.set(1);
             this.error.set(error?.error?.message ?? 'Failed to load members.');
             this.loading.set(false);
+            this.pageLoading.set(false);
+            this.initialLoading.set(false);
             return of(null);
           }),
-        ),
-      ),
+        );
+      }),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe((response) => {
       if (!response) return;
       const page = response.data;
-      const pages = Math.max(1, page?.totalPages ?? 1);
-      this.membersList.set(page?.items ?? []);
-      this.totalCount.set(page?.totalCount ?? 0);
-      this.totalPages.set(pages);
-      if (this.page() > pages) {
-        this.page.set(pages);
-        return;
-      }
-      this.loading.set(false);
+      if (!page) return;
+      const query = this.buildMemberListQuery();
+      this.pageCache.set(cacheKey(query), page);
+      this.applyPageResult(page);
+      this.prefetchNextPage(query, page);
     });
 
     effect(() => {
-      this.query();
+      this.searchDebounced();
       this.statuses();
       this.plans();
       this.branches();
@@ -295,33 +327,133 @@ export class MembersListComponent implements OnInit {
       this.sortDir();
       this.page();
       this.pageSize();
+      if (!this.hydrated) return;
+      this.syncUrlFromState();
       this.membersReload$.next();
     });
   }
 
   ngOnInit(): void {
+    this.hydrateFilters();
+    this.hydrateFromUrl();
+    this.hydrated = true;
     this.entitlements.load().subscribe();
     this.loadMembershipSummary();
+    this.membersReload$.next();
   }
 
- /*  private hydrateFilters(): void {
+  private applyPageResult(page: PagedMemberList): void {
+    const pages = Math.max(1, page.totalPages ?? 1);
+    this.membersList.set(page.items ?? []);
+    this.totalCount.set(page.totalCount ?? 0);
+    this.totalPages.set(pages);
+    if (this.page() > pages) {
+      this.page.set(pages);
+      return;
+    }
+    this.loading.set(false);
+    this.pageLoading.set(false);
+    this.initialLoading.set(false);
+  }
+
+  private prefetchNextPage(query: MemberListQuery, page: PagedMemberList): void {
+    if (!page.hasNextPage) return;
+    const nextQuery = { ...query, page: (page.pageNumber ?? this.page()) + 1 };
+    const key = cacheKey(nextQuery);
+    if (this.pageCache.has(key)) return;
+    this.memberService.getAllMembers(nextQuery).subscribe({
+      next: (res) => {
+        if (res.data) this.pageCache.set(key, res.data);
+      },
+    });
+  }
+
+  private hydrateFilters(): void {
     try {
       const raw = localStorage.getItem(MEMBERS_FILTER_STORAGE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw);
-      if (saved.q !== undefined) this.query.set(saved.q);
+      if (saved.q !== undefined) {
+        this.query.set(saved.q);
+        this.searchDebounced.set(saved.q);
+      }
       if (saved.statuses) this.statuses.set(saved.statuses);
       if (saved.plans) this.plans.set(saved.plans);
       if (saved.branches) this.branches.set(saved.branches);
       if (saved.shifts) this.shifts.set(saved.shifts);
       if (saved.lifecycles) this.lifecycles.set(saved.lifecycles);
-      if (saved.needsAction) this.needsAction.set(saved.needsAction);
+      if (saved.needsAction) this.needsAction.set(!!saved.needsAction);
       if (saved.view) this.view.set(saved.view);
       if (saved.sortKey) this.sortKey.set(saved.sortKey);
       if (saved.sortDir) this.sortDir.set(saved.sortDir);
-      if (saved.pageSize) this.pageSize.set(saved.pageSize);
-    } catch { ignore corrupt storage }
-  } */
+      if (saved.pageSize && PAGE_SIZE_OPTS.includes(saved.pageSize)) this.pageSize.set(saved.pageSize);
+    } catch {
+      /* ignore corrupt storage */
+    }
+  }
+
+  private hydrateFromUrl(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const q = params.get('q');
+    if (q != null) {
+      this.query.set(q);
+      this.searchDebounced.set(q);
+    }
+    const csv = (key: string) => {
+      const v = params.get(key);
+      return v ? v.split(',').map(s => s.trim()).filter(Boolean) : null;
+    };
+    const statuses = csv('statuses');
+    if (statuses) this.statuses.set(statuses);
+    const plans = csv('plans');
+    if (plans) this.plans.set(plans);
+    const branches = csv('branches');
+    if (branches) this.branches.set(branches);
+    const shifts = csv('shifts');
+    if (shifts) this.shifts.set(shifts);
+    const lifecycles = csv('lifecycles');
+    if (lifecycles) this.lifecycles.set(lifecycles);
+    if (params.get('needsAction') === '1' || params.get('needsAction') === 'true') this.needsAction.set(true);
+    const sortKey = params.get('sortBy') as SortKey | null;
+    if (sortKey) this.sortKey.set(sortKey);
+    const sortDir = params.get('sortDir') as SortDir | null;
+    if (sortDir === 'asc' || sortDir === 'desc') this.sortDir.set(sortDir);
+    const page = Number(params.get('page'));
+    if (page > 0) this.page.set(page);
+    const pageSize = Number(params.get('pageSize'));
+    if (PAGE_SIZE_OPTS.includes(pageSize as 12 | 24 | 48)) this.pageSize.set(pageSize as 12 | 24 | 48);
+    const view = params.get('view') as ViewMode | null;
+    if (view === 'grid' || view === 'table') this.view.set(view);
+  }
+
+  private syncUrlFromState(): void {
+    if (this.syncingUrl) return;
+    this.syncingUrl = true;
+    const queryParams: Record<string, string | number | null> = {
+      q: this.searchDebounced() || null,
+      statuses: this.statuses().length ? this.statuses().join(',') : null,
+      plans: this.plans().length ? this.plans().join(',') : null,
+      branches: this.branches().length ? this.branches().join(',') : null,
+      shifts: this.shifts().length ? this.shifts().join(',') : null,
+      lifecycles: this.lifecycles().length ? this.lifecycles().join(',') : null,
+      needsAction: this.needsAction() ? '1' : null,
+      sortBy: this.isSortDefault() ? null : this.sortKey(),
+      sortDir: this.isSortDefault() ? null : this.sortDir(),
+      page: this.page() > 1 ? this.page() : null,
+      pageSize: this.pageSize() !== 12 ? this.pageSize() : null,
+      view: this.view() !== 'grid' ? this.view() : null,
+    };
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    }).finally(() => {
+      this.syncingUrl = false;
+    });
+  }
+
+ /* removed old hydrateFilters comment block */
 
   private persistFilters(): void {
     localStorage.setItem(MEMBERS_FILTER_STORAGE_KEY, JSON.stringify({
@@ -561,6 +693,7 @@ export class MembersListComponent implements OnInit {
 
   clearAll(): void {
     this.query.set('');
+    this.searchDebounced.set('');
     this.statuses.set([]);
     this.plans.set([]);
     this.branches.set([]);
@@ -568,6 +701,7 @@ export class MembersListComponent implements OnInit {
     this.clearExpiryFilters(false);
     this.resetSort(false);
     this.page.set(1);
+    this.pageCache.clear();
     this.persistFilters();
   }
 
@@ -718,6 +852,7 @@ export class MembersListComponent implements OnInit {
 
   /** Reload current page + KPI summary (after renew / password / etc.). */
   loadAllMembers(): void {
+    this.pageCache.clear();
     this.loadMembershipSummary();
     this.membersReload$.next();
   }
@@ -727,7 +862,7 @@ export class MembersListComponent implements OnInit {
     return {
       page: this.page(),
       pageSize: this.pageSize(),
-      search: this.query().trim() || undefined,
+      search: this.searchDebounced().trim() || undefined,
       statuses: join(this.statuses()),
       plans: join(this.plans()),
       branches: join(this.branches()),
@@ -762,26 +897,36 @@ export class MembersListComponent implements OnInit {
     if (this.attendanceExporting()) return;
 
     this.attendanceExporting.set(true);
-    const search = this.query().trim();
-    const query: AttendanceModuleQuery = {
+    const filterQuery = this.buildMemberListQuery();
+    const attendanceQuery: AttendanceModuleQuery = {
       dateFrom: this.attendanceDateFrom(),
       dateTo: this.attendanceDateTo(),
-      search: search || undefined,
     };
 
-    this.exportService.fetchAllModuleRecords(query).subscribe({
-      next: (records) => {
-        if (records.length === 0) {
-          this.toast.error('No attendance records found for the selected date range.');
+    forkJoin({
+      members: this.memberService.fetchAllFilteredMembers({ ...filterQuery, page: 1, pageSize: 200 }),
+      records: this.exportService.fetchAllModuleRecords(attendanceQuery),
+    }).subscribe({
+      next: ({ members, records }) => {
+        const memberIds = new Set(members.map((m) => m.id));
+        const filtered = this.hasActiveFilters()
+          ? records.filter((r) => memberIds.has(r.memberId))
+          : records;
+
+        if (filtered.length === 0) {
+          this.toast.error('No attendance records found for the selected filters / date range.');
           this.attendanceExporting.set(false);
           return;
         }
 
-        const rows = records.map(mapModuleRecordToExportRow);
+        const rows = filtered.map(mapModuleRecordToExportRow);
+        const filterLabel = this.hasActiveFilters()
+          ? ` · ${memberIds.size} filtered members`
+          : '';
         const meta: AttendanceExportMeta = {
           title: 'Members Attendance Report',
-          subtitle: `${query.dateFrom} to ${query.dateTo} · ${records.length} records${search ? ` · search: ${search}` : ''}`,
-          filenameBase: buildExportFilename('members-attendance-report', query.dateFrom ?? 'start', query.dateTo ?? 'end'),
+          subtitle: `${attendanceQuery.dateFrom} to ${attendanceQuery.dateTo} · ${filtered.length} records${filterLabel}`,
+          filenameBase: buildExportFilename('members-attendance-report', attendanceQuery.dateFrom ?? 'start', attendanceQuery.dateTo ?? 'end'),
         };
 
         if (format === 'excel') {
@@ -812,8 +957,7 @@ export class MembersListComponent implements OnInit {
 
   onQueryChange(value: string): void {
     this.query.set(value);
-    this.page.set(1);
-    this.persistFilters();
+    this.searchInput$.next(value.trim());
   }
 
   sortLabel(): string {

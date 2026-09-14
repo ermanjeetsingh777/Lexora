@@ -792,74 +792,22 @@ public class MemberService : IMemberService
 
     public async Task<MembershipSummaryResponse> GetMembershipSummaryAsync(CancellationToken cancellationToken = default)
     {
-        var members = await BuildScopedMemberListAsync(cancellationToken);
+        var userId = await RequireCurrentUserIdAsync(cancellationToken);
+        var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var statusCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var planCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var branchCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var shiftCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var lifecycleCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-        var active = 0;
-        var expired = 0;
-        var expiringSoon = 0;
-        var grace = 0;
-        var noPlan = 0;
-        var needsAction = 0;
-        var premium = 0;
-        decimal feesDue = 0;
-
-        foreach (var m in members)
-        {
-            statusCounts[m.Status] = statusCounts.GetValueOrDefault(m.Status) + 1;
-            if (m.Status == "Active") active++;
-
-            var planKey = string.IsNullOrWhiteSpace(m.Plan) || m.Plan == "—" ? "No plan" : m.Plan.Trim();
-            planCounts[planKey] = planCounts.GetValueOrDefault(planKey) + 1;
-            if (planKey is "Yearly" or "Half Yearly") premium++;
-
-            if (!string.IsNullOrWhiteSpace(m.Branch) && m.Branch != "—")
-                branchCounts[m.Branch] = branchCounts.GetValueOrDefault(m.Branch) + 1;
-
-            var shift = m.Shift?.ToString() ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(shift) && shift != "—")
-                shiftCounts[shift] = shiftCounts.GetValueOrDefault(shift) + 1;
-
-            var life = MemberLifecycleHelper.Compute(m.PlanEndDate, m.JoinDate, m.FeesOwed, today);
-            lifecycleCounts[life.State] = lifecycleCounts.GetValueOrDefault(life.State) + 1;
-            if (life.State == "Expired") expired++;
-            if (life.State is "Expiring soon" or "Grace") expiringSoon++;
-            if (life.State == "Grace") grace++;
-            if (life.State == "No plan") noPlan++;
-            if (life.NeedsAction) needsAction++;
-            feesDue += m.FeesOwed;
-        }
-
-        return new MembershipSummaryResponse
-        {
-            TotalMembers = members.Count,
-            ActiveCount = active,
-            ExpiredCount = expired,
-            ExpiringSoonCount = expiringSoon,
-            GraceCount = grace,
-            NoPlanCount = noPlan,
-            NeedsActionCount = needsAction,
-            FeesDueTotal = feesDue,
-            PremiumCount = premium,
-            Branches = branchCounts.Keys.OrderBy(x => x).ToList(),
-            Plans = planCounts.Keys.OrderBy(x => x).ToList(),
-            Shifts = shiftCounts.Keys.OrderBy(x => x).ToList(),
-            StatusCounts = statusCounts,
-            PlanCounts = planCounts,
-            BranchCounts = branchCounts,
-            ShiftCounts = shiftCounts,
-            LifecycleCounts = lifecycleCounts,
-        };
+        var baseQ = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope);
+        var rows = await MemberListQueryExecutor.ProjectSummary(baseQ).ToListAsync(cancellationToken);
+        return MemberListQueryExecutor.BuildSummary(rows, today);
     }
 
-    public async Task<IReadOnlyCollection<MemberListResponse>> GetLibraryMemberListAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<MemberListResponse>> GetLibraryMemberListAsync(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        MemberListQuery query,
+        CancellationToken cancellationToken = default)
     {
+        query ??= new MemberListQuery();
         var userId = await RequireCurrentUserIdAsync(cancellationToken);
         var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
 
@@ -877,129 +825,25 @@ public class MemberService : IMemberService
         if (!CanAccessLibrary(institutionId, branchId, libraryId, scope))
             throw new UnauthorizedAccessException("You do not have access to this library.");
 
-        var today = DateTime.UtcNow;
-        var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
-        var members = await _dbContext.Members
-        .AsNoTracking()
-        .Where(m => m.MemberLibraries.Any(ml =>
-            ml.InstitutionId == institutionId &&
-            ml.BranchId == branchId &&
-            ml.LibraryId == libraryId))
-        .Select(m => new
-        {
-            m.Id,
-            m.IsActive,
-            m.MembershipNo,
-            m.Shift,
-            m.PhotoStoragePath,
-
-            fullName = m.User.FullName,
-            UserName = m.User.UserName,
-            Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
-            Phone = m.User.PhoneNumber,
-
-            LibraryMapping = m.MemberLibraries
-                .Where(ml =>
-                    ml.InstitutionId == institutionId &&
-                    ml.BranchId == branchId &&
-                    ml.LibraryId == libraryId &&
-                    ml.IsCurrent)
-                .Select(ml => new
-                {
-                    InstitutionName = ml.Institution.Name,
-                    BranchName = ml.Branch.Name,
-                    LibraryName = ml.Library.Name,
-
-                    ml.JoinedOn,
-
-                    SeatNumber = ml.Seat != null
-                        ? ml.Seat.SeatNumber
-                        : null
-                })
-                .FirstOrDefault(),
-
-            CurrentPlan = m.MemberPlans
-                .Where(mp =>
-                    mp.IsCurrent &&
-                    mp.Plan.LibraryId == libraryId)
-                .Select(mp => new
-                {
-                    PlanName = mp.Plan.Name,
-                })
-                .FirstOrDefault(),
-
-            //LastVisit = m.Attendances
-            //    .Where(a => a.LibraryId == libraryId)
-            //    .OrderByDescending(a => a.CheckInTime)
-            //    .Select(a => (DateTime?)a.CheckInTime)
-            //    .FirstOrDefault(),
-
-            LastVisit = m.Attendances
-                .Where(a => a.LibraryId == libraryId)
-                .OrderByDescending(a => a.AttendanceDate)
-                .Select(a => (DateOnly?)a.AttendanceDate)
-                .FirstOrDefault(),
-
-            Visits30d = m.Attendances.Count(a =>
-                a.LibraryId == libraryId &&
-                a.AttendanceDate >= thirtyDaysAgo)
-        })
-        .ToListAsync(cancellationToken);
-
-        return members.Select(x =>
-        {
-
-
-            return new MemberListResponse
-            {
-                Id = x.Id,
-
-                Name = x.fullName,
-                UserName = x.UserName,
-                Email = x.Email,
-                Phone = x.Phone,
-
-                Avatar =
-                    $"https://api.dicebear.com/9.x/initials/svg?seed={Uri.EscapeDataString(x.fullName ?? x.UserName)}&backgroundType=gradientLinear",
-
-                AvatarHue = 0,
-                HasPhoto = !string.IsNullOrWhiteSpace(x.PhotoStoragePath),
-
-                Institution = x.LibraryMapping?.InstitutionName ?? string.Empty,
-                Branch = x.LibraryMapping?.BranchName ?? string.Empty,
-                Library = x.LibraryMapping?.LibraryName ?? string.Empty,
-
-                Membership = x.MembershipNo,
-
-                Plan = x.CurrentPlan?.PlanName,
-                Shift = x.Shift,
-
-                Seat = x.LibraryMapping?.SeatNumber,
-                SeatNumber = x.LibraryMapping?.SeatNumber,
-
-                Status = x.IsActive ? "Active" : "Inactive",
-
-                JoinDate = DateOnly.FromDateTime(
-                    x.LibraryMapping?.JoinedOn ?? today),
-
-                LastVisit = x.LastVisit.HasValue
-                    ? x.LastVisit.Value
-                    : null,
-
-                Visits30d = x.Visits30d,
-
-                // Calculate when attendance rules are finalized
-                AttendanceRate = 0,
-
-                // Calculate from payment/invoice table
-                FeesOwed = 0
-            };
-        }).ToList();
-
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var baseQ = _dbContext.Members
+            .AsNoTracking()
+            .Where(m => m.MemberLibraries.Any(ml =>
+                ml.InstitutionId == institutionId &&
+                ml.BranchId == branchId &&
+                ml.LibraryId == libraryId));
+        var projected = MemberListQueryExecutor.Project(baseQ);
+        projected = MemberListQueryExecutor.ApplyFilters(projected, query, today);
+        projected = MemberListQueryExecutor.ApplySort(projected, query);
+        return await MemberListQueryExecutor.ToPagedAsync(projected, query, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<MemberListResponse>> GetInstitutionMemberListAsync(Guid institutionId, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<MemberListResponse>> GetInstitutionMemberListAsync(
+        Guid institutionId,
+        MemberListQuery query,
+        CancellationToken cancellationToken = default)
     {
+        query ??= new MemberListQuery();
         var userId = await RequireCurrentUserIdAsync(cancellationToken);
         var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
 
@@ -1013,11 +857,24 @@ public class MemberService : IMemberService
         if (!await CanAccessInstitutionAsync(institutionId, scope, cancellationToken))
             throw new UnauthorizedAccessException("You do not have access to this institution.");
 
-        return await GetScopedMemberListAsync(institutionId, branchId: null, libraryId: null, scope, cancellationToken);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var baseQ = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope)
+            .Where(m => m.MemberLibraries.Any(ml =>
+                ml.InstitutionId == institutionId &&
+                ml.IsCurrent));
+        var projected = MemberListQueryExecutor.Project(baseQ);
+        projected = MemberListQueryExecutor.ApplyFilters(projected, query, today);
+        projected = MemberListQueryExecutor.ApplySort(projected, query);
+        return await MemberListQueryExecutor.ToPagedAsync(projected, query, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<MemberListResponse>> GetBranchMemberListAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<MemberListResponse>> GetBranchMemberListAsync(
+        Guid institutionId,
+        Guid branchId,
+        MemberListQuery query,
+        CancellationToken cancellationToken = default)
     {
+        query ??= new MemberListQuery();
         var userId = await RequireCurrentUserIdAsync(cancellationToken);
         var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
 
@@ -1034,377 +891,29 @@ public class MemberService : IMemberService
         if (!CanAccessBranch(institutionId, branchId, scope))
             throw new UnauthorizedAccessException("You do not have access to this branch.");
 
-        return await GetScopedMemberListAsync(institutionId, branchId, libraryId: null, scope, cancellationToken);
-    }
-
-    private async Task<IReadOnlyCollection<MemberListResponse>> GetScopedMemberListAsync(
-        Guid institutionId,
-        Guid? branchId,
-        Guid? libraryId,
-        MemberAccessScope scope,
-        CancellationToken cancellationToken)
-    {
-        var now = DateTime.UtcNow;
-        var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var membersQuery = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope);
-
-        var members = await membersQuery
+        var baseQ = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope)
             .Where(m => m.MemberLibraries.Any(ml =>
                 ml.InstitutionId == institutionId &&
-                ml.IsCurrent &&
-                (branchId == null || ml.BranchId == branchId) &&
-                (libraryId == null || ml.LibraryId == libraryId)))
-            .Select(m => new
-            {
-                m.Id,
-                m.IsActive,
-                m.MembershipNo,
-                m.Shift,
-                m.PhotoStoragePath,
-                fullName = m.User.FullName,
-                UserName = m.User.UserName,
-                Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
-                Phone = m.User.PhoneNumber,
-                LibraryMapping = m.MemberLibraries
-                    .Where(ml =>
-                        ml.InstitutionId == institutionId &&
-                        ml.IsCurrent &&
-                        (branchId == null || ml.BranchId == branchId) &&
-                        (libraryId == null || ml.LibraryId == libraryId))
-                    .Select(ml => new
-                    {
-                        InstitutionName = ml.Institution.Name,
-                        BranchName = ml.Branch.Name,
-                        LibraryName = ml.Library.Name,
-                        ml.JoinedOn,
-                        SeatNumber = ml.Seat != null ? ml.Seat.SeatNumber : null
-                    })
-                    .FirstOrDefault(),
-                CurrentPlan = m.MemberPlans
-                    .Where(mp =>
-                        mp.IsCurrent &&
-                        (libraryId == null || mp.Plan.LibraryId == libraryId))
-                    .Select(mp => new
-                    {
-                        mp.PlanId,
-                        PlanName = mp.Plan.Name,
-                        mp.Plan.Price,
-                        Amount = mp.Amount,
-                        PaidAmount = mp.PaidAmount,
-                        AdjustmentAmount = mp.AdjustmentAmount ?? 0,
-                        DueAmount = mp.DueAmount,
-                        mp.Plan.DurationInDays,
-                        mp.StartDate,
-                        mp.EndDate
-                    })
-                    .FirstOrDefault(),
-                LastVisit = m.Attendances
-                    .Where(a => libraryId == null || a.LibraryId == libraryId)
-                    .OrderByDescending(a => a.AttendanceDate)
-                    .Select(a => (DateOnly?)a.AttendanceDate)
-                    .FirstOrDefault(),
-                Visits30d = m.Attendances.Count(a =>
-                    (libraryId == null || a.LibraryId == libraryId) &&
-                    a.AttendanceDate >= thirtyDaysAgo)
-            })
-            .ToListAsync(cancellationToken);
-
-        return members.Select(x =>
-        {
-            var name = x.fullName?.Trim() ?? x.UserName?.Trim() ?? string.Empty;
-            var joinedDate = x.LibraryMapping?.JoinedOn.Date ?? now.Date;
-            var totalMembershipDays = Math.Max(1, (now.Date - joinedDate).Days + 1);
-            var attendanceRate = Math.Min(
-                Math.Round((decimal)x.Visits30d / totalMembershipDays * 100, 1),
-                100);
-            var currentPlan = x.CurrentPlan;
-            var planAmount = currentPlan?.Amount > 0 ? currentPlan.Amount : (currentPlan?.Price ?? 0);
-            var paidAmount = currentPlan?.PaidAmount ?? 0;
-            var adjustmentAmount = currentPlan?.AdjustmentAmount ?? 0;
-            var dueAmount = currentPlan?.DueAmount ?? 0;
-            var (daysRemaining, _, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
-                currentPlan?.EndDate,
-                planAmount,
-                today);
-            var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(dueAmount);
-
-            return new MemberListResponse
-            {
-                Id = x.Id,
-                Name = name,
-                UserName = x.UserName ?? string.Empty,
-                Email = x.Email,
-                Phone = x.Phone,
-                Avatar = $"https://api.dicebear.com/9.x/initials/svg?seed={Uri.EscapeDataString(name)}&backgroundType=gradientLinear",
-                AvatarHue = 0,
-                HasPhoto = !string.IsNullOrWhiteSpace(x.PhotoStoragePath),
-                Institution = x.LibraryMapping?.InstitutionName ?? string.Empty,
-                Branch = x.LibraryMapping?.BranchName ?? string.Empty,
-                Library = x.LibraryMapping?.LibraryName ?? string.Empty,
-                Membership = x.MembershipNo,
-                Plan = currentPlan?.PlanName,
-                PlanId = currentPlan?.PlanId.ToString(),
-                Shift = x.Shift,
-                Seat = x.LibraryMapping?.SeatNumber,
-                SeatNumber = x.LibraryMapping?.SeatNumber,
-                Status = x.IsActive ? "Active" : "Inactive",
-                PlanStatus = planStatus,
-                JoinDate = DateOnly.FromDateTime(x.LibraryMapping?.JoinedOn ?? now),
-                LastVisit = x.LastVisit,
-                Visits30d = x.Visits30d,
-                AttendanceRate = attendanceRate,
-                FeesOwed = feesOwed,
-                PlanPrice = planAmount,
-                PaidAmount = paidAmount,
-                AdjustmentAmount = adjustmentAmount,
-                DueAmount = dueAmount,
-                DaysRemaining = daysRemaining,
-                PlanStartDate = currentPlan?.StartDate,
-                PlanEndDate = currentPlan?.EndDate,
-                PlanDurationInDays = currentPlan?.DurationInDays ?? 0
-            };
-        }).ToList();
+                ml.BranchId == branchId &&
+                ml.IsCurrent));
+        var projected = MemberListQueryExecutor.Project(baseQ);
+        projected = MemberListQueryExecutor.ApplyFilters(projected, query, today);
+        projected = MemberListQueryExecutor.ApplySort(projected, query);
+        return await MemberListQueryExecutor.ToPagedAsync(projected, query, cancellationToken);
     }
 
     public async Task<PagedResult<MemberListResponse>> GetAllMemberListAsync(MemberListQuery query, CancellationToken cancellationToken = default)
     {
         query ??= new MemberListQuery();
-        var page = Math.Max(1, query.Page);
-        var pageSize = Math.Clamp(query.PageSize <= 0 ? 12 : query.PageSize, 1, 500);
-
-        var all = await BuildScopedMemberListAsync(cancellationToken);
-        var filtered = ApplyMemberListFilters(all, query);
-        var sorted = ApplyMemberListSort(filtered, query);
-
-        var totalCount = sorted.Count;
-        var items = sorted
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-
-        return new PagedResult<MemberListResponse>(items, totalCount, page, pageSize);
-    }
-
-    private async Task<List<MemberListResponse>> BuildScopedMemberListAsync(CancellationToken cancellationToken)
-    {
         var userId = await RequireCurrentUserIdAsync(cancellationToken);
         var scope = await ResolveMemberAccessScopeAsync(userId, cancellationToken);
-
-        var now = DateTime.UtcNow;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var membersQuery = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope);
-
-        var members = await membersQuery
-            .Select(m => new
-            {
-                m.Id,
-                m.IsActive,
-                m.MembershipNo,
-                m.Shift,
-                m.PhotoStoragePath,
-
-                fullName = m.User.FullName,
-                Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
-                Phone = m.User.PhoneNumber,
-
-                LibraryMapping = m.MemberLibraries
-                    .Where(x => x.IsCurrent)
-                    .Select(x => new
-                    {
-                        x.LibraryId,
-                        InstitutionName = x.Institution.Name,
-                        BranchName = x.Branch.Name,
-                        LibraryName = x.Library.Name,
-                        x.JoinedOn,
-
-                        SeatNumber = x.Seat != null
-                            ? x.Seat.SeatNumber
-                            : null
-                    })
-                    .FirstOrDefault(),
-
-                CurrentPlan = m.MemberPlans
-                    .Where(x => x.IsCurrent)
-                    .Select(x => new
-                    {
-                        x.PlanId,
-                        PlanName = x.Plan.Name,
-                        x.Plan.Price,
-                        Amount = x.Amount,
-                        PaidAmount = x.PaidAmount,
-                        AdjustmentAmount = x.AdjustmentAmount ?? 0,
-                        DueAmount = x.DueAmount,
-                        x.Plan.DurationInDays,
-                        x.StartDate,
-                        x.EndDate
-
-                    })
-                    .FirstOrDefault(),
-
-                LastVisit = m.Attendances
-                    .OrderByDescending(x => x.AttendanceDate)
-                    .Select(x => (DateOnly?)x.AttendanceDate)
-                    .FirstOrDefault(),
-
-                Visits30d = m.Attendances.Count()
-            })
-            .ToListAsync(cancellationToken);
-
-        return members
-            .Select(x =>
-            {
-                var name = x.fullName?.Trim() ?? string.Empty;
-                var joinedDate = x.LibraryMapping?.JoinedOn.Date ?? now.Date;
-                var totalMembershipDays = Math.Max(1, (now.Date - joinedDate).Days + 1);
-                var presentDays = x.Visits30d;
-                var attendanceRate = Math.Round((decimal)presentDays / totalMembershipDays * 100, 1);
-                attendanceRate = Math.Min(attendanceRate, 100);
-                var currentPlan = x.CurrentPlan;
-
-                var planAmount = currentPlan?.Amount > 0 ? currentPlan.Amount : (currentPlan?.Price ?? 0);
-                var paidAmount = currentPlan?.PaidAmount ?? 0;
-                var adjustmentAmount = currentPlan?.AdjustmentAmount ?? 0;
-                var dueAmount = currentPlan?.DueAmount ?? 0;
-                var (daysRemaining, _, planStatus) = MemberPlanMetricsHelper.ComputePlanMetrics(
-                    currentPlan?.EndDate,
-                    planAmount,
-                    today);
-                var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(dueAmount);
-
-                return new MemberListResponse
-                {
-                    Id = x.Id,
-                    Name = name,
-                    Email = x.Email,
-                    Phone = x.Phone,
-
-                    Avatar =
-                        $"https://api.dicebear.com/9.x/initials/svg?seed={Uri.EscapeDataString(name)}&backgroundType=gradientLinear",
-
-                    AvatarHue = 0,
-                    HasPhoto = !string.IsNullOrWhiteSpace(x.PhotoStoragePath),
-
-                    Institution = x.LibraryMapping?.InstitutionName ?? string.Empty,
-                    Branch = x.LibraryMapping?.BranchName ?? string.Empty,
-                    Library = x.LibraryMapping?.LibraryName ?? string.Empty,
-
-                    Membership = x.MembershipNo,
-
-                    Plan = x.CurrentPlan?.PlanName,
-                    PlanId = x.CurrentPlan?.PlanId.ToString(),
-                    Shift = x.Shift?.ToString(),
-
-                    Seat = x.LibraryMapping?.SeatNumber,
-                    SeatNumber = x.LibraryMapping?.SeatNumber,
-
-                    Status = x.IsActive ? "Active" : "Inactive",
-                    PlanStatus = planStatus,
-
-                    JoinDate = DateOnly.FromDateTime(x.LibraryMapping?.JoinedOn ?? now),
-                    LastVisit = x.LastVisit.HasValue ? x.LastVisit.Value : null,
-                    Visits30d = x.Visits30d,
-                    AttendanceRate = attendanceRate,
-                    FeesOwed = feesOwed,
-                    PlanPrice = planAmount,
-                    PaidAmount = paidAmount,
-                    AdjustmentAmount = adjustmentAmount,
-                    DueAmount = dueAmount,
-                    DaysRemaining = daysRemaining,
-                    PlanStartDate = currentPlan?.StartDate,
-                    PlanEndDate = currentPlan?.EndDate,
-                    PlanDurationInDays = currentPlan?.DurationInDays ?? 0
-                };
-            })
-            .ToList();
-    }
-
-    private static List<MemberListResponse> ApplyMemberListFilters(IReadOnlyList<MemberListResponse> members, MemberListQuery query)
-    {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var statuses = SplitCsv(query.Statuses);
-        var branches = SplitCsv(query.Branches);
-        var shifts = SplitCsv(query.Shifts);
-        var plans = SplitCsv(query.Plans);
-        var lifecycles = SplitCsv(query.Lifecycles);
-        var search = query.Search?.Trim().ToLowerInvariant() ?? string.Empty;
-
-        return members.Where(m =>
-        {
-            var planKey = string.IsNullOrWhiteSpace(m.Plan) || m.Plan == "—" ? "No plan" : m.Plan.Trim();
-            var life = MemberLifecycleHelper.Compute(m.PlanEndDate, m.JoinDate, m.FeesOwed, today);
-            var shift = m.Shift ?? string.Empty;
-
-            if (statuses.Count > 0 && !statuses.Contains(m.Status)) return false;
-            if (plans.Count > 0 && !plans.Contains(planKey)) return false;
-            if (branches.Count > 0 && !branches.Contains(m.Branch)) return false;
-            if (shifts.Count > 0 && !shifts.Contains(shift)) return false;
-            if (lifecycles.Count > 0 && !lifecycles.Contains(life.State)) return false;
-            if (query.NeedsAction && !life.NeedsAction) return false;
-
-            if (search.Length == 0) return true;
-
-            return m.Id.ToString().Contains(search, StringComparison.OrdinalIgnoreCase)
-                || (m.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (m.Email?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (m.Phone?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (m.Membership?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (m.Institution?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (m.Branch?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (m.Library?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                || shift.Contains(search, StringComparison.OrdinalIgnoreCase)
-                || planKey.Contains(search, StringComparison.OrdinalIgnoreCase);
-        }).ToList();
-    }
-
-    private static List<MemberListResponse> ApplyMemberListSort(List<MemberListResponse> members, MemberListQuery query)
-    {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var dirAsc = !string.Equals(query.SortDir, "desc", StringComparison.OrdinalIgnoreCase);
-        var sortBy = (query.SortBy ?? "planExpiry").Trim().ToLowerInvariant();
-
-        IOrderedEnumerable<MemberListResponse> ordered = sortBy switch
-        {
-            "name" => dirAsc
-                ? members.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
-                : members.OrderByDescending(m => m.Name, StringComparer.OrdinalIgnoreCase),
-            "status" => dirAsc
-                ? members.OrderBy(m => m.Status, StringComparer.OrdinalIgnoreCase)
-                : members.OrderByDescending(m => m.Status, StringComparer.OrdinalIgnoreCase),
-            "branch" => dirAsc
-                ? members.OrderBy(m => m.Branch, StringComparer.OrdinalIgnoreCase)
-                : members.OrderByDescending(m => m.Branch, StringComparer.OrdinalIgnoreCase),
-            "shift" => dirAsc
-                ? members.OrderBy(m => m.Shift ?? "", StringComparer.OrdinalIgnoreCase)
-                : members.OrderByDescending(m => m.Shift ?? "", StringComparer.OrdinalIgnoreCase),
-            "plan" => dirAsc
-                ? members.OrderBy(m => m.Plan ?? "", StringComparer.OrdinalIgnoreCase)
-                : members.OrderByDescending(m => m.Plan ?? "", StringComparer.OrdinalIgnoreCase),
-            "joindate" => dirAsc
-                ? members.OrderBy(m => m.JoinDate)
-                : members.OrderByDescending(m => m.JoinDate),
-            "feesowed" => dirAsc
-                ? members.OrderBy(m => m.FeesOwed)
-                : members.OrderByDescending(m => m.FeesOwed),
-            "attendancerate" => dirAsc
-                ? members.OrderBy(m => m.AttendanceRate)
-                : members.OrderByDescending(m => m.AttendanceRate),
-            _ => dirAsc
-                ? members.OrderBy(m => MemberLifecycleHelper.Compute(m.PlanEndDate, m.JoinDate, m.FeesOwed, today).ExpiryIso)
-                : members.OrderByDescending(m => MemberLifecycleHelper.Compute(m.PlanEndDate, m.JoinDate, m.FeesOwed, today).ExpiryIso),
-        };
-
-        return ordered.ToList();
-    }
-
-    private static HashSet<string> SplitCsv(string? csv)
-    {
-        if (string.IsNullOrWhiteSpace(csv)) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        return csv
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var baseQ = ApplyMemberAccessScope(_dbContext.Members.AsNoTracking(), scope);
+        var projected = MemberListQueryExecutor.Project(baseQ);
+        projected = MemberListQueryExecutor.ApplyFilters(projected, query, today);
+        projected = MemberListQueryExecutor.ApplySort(projected, query);
+        return await MemberListQueryExecutor.ToPagedAsync(projected, query, cancellationToken);
     }
 
     public async Task<MemberDetailResponse?> GetMemberDetailsByIdAsync(Guid memberId, CancellationToken cancellationToken = default)

@@ -1,12 +1,29 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, EMPTY, expand, map, of, reduce } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ChangeMemberPlanShiftRequest, CreateMemberContactRequest, CreateMemberRequest, CreateMemberResponse, BulkMemberUploadResponse, ChangeMemberPasswordRequest, MemberContactResponse, MemberDetailResponse, MemberListQuery, MemberListResponse, MembershipSummary, PagedMemberList, UpdateMemberRequest } from '@core/models/MemberRequest';
 import { ApiService } from '@core/services/api.service';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { PlanResponse } from '@core/models/institution-dropdown.model';
+
+function toMemberListParams(query?: MemberListQuery): Record<string, string | number | boolean> {
+    const params: Record<string, string | number | boolean> = {};
+    if (!query) return params;
+    if (query.page != null) params['page'] = query.page;
+    if (query.pageSize != null) params['pageSize'] = query.pageSize;
+    if (query.search) params['search'] = query.search;
+    if (query.statuses) params['statuses'] = query.statuses;
+    if (query.branches) params['branches'] = query.branches;
+    if (query.libraries) params['libraries'] = query.libraries;
+    if (query.shifts) params['shifts'] = query.shifts;
+    if (query.plans) params['plans'] = query.plans;
+    if (query.lifecycles) params['lifecycles'] = query.lifecycles;
+    if (query.needsAction) params['needsAction'] = query.needsAction;
+    if (query.sortBy) params['sortBy'] = query.sortBy;
+    if (query.sortDir) params['sortDir'] = query.sortDir;
+    return params;
+}
 
 @Injectable()
 export class MemberService {
@@ -44,37 +61,41 @@ export class MemberService {
         return this.httpApi.upload<BulkMemberUploadResponse>(url, file);
     }
 
-    getLibraryMember(institutionId: string, branchId: string, libraryId: string): Observable<APIResponseModel<MemberListResponse[]>> {
+    getLibraryMember(institutionId: string, branchId: string, libraryId: string, query?: MemberListQuery): Observable<APIResponseModel<PagedMemberList>> {
         const url =
             `institutions/${institutionId}` +
             `/branches/${branchId}` +
             `/libraries/${libraryId}` +
             `/members`;
-        return this.httpApi.get<MemberListResponse[]>(url);
+        return this.httpApi.get<PagedMemberList>(url, { params: toMemberListParams(query) });
     }
 
-    getInstitutionMembers(institutionId: string): Observable<APIResponseModel<MemberListResponse[]>> {
-        return this.httpApi.get<MemberListResponse[]>(`institutions/${institutionId}/members`);
+    getInstitutionMembers(institutionId: string, query?: MemberListQuery): Observable<APIResponseModel<PagedMemberList>> {
+        return this.httpApi.get<PagedMemberList>(`institutions/${institutionId}/members`, { params: toMemberListParams(query) });
     }
 
-    getBranchMembers(institutionId: string, branchId: string): Observable<APIResponseModel<MemberListResponse[]>> {
-        return this.httpApi.get<MemberListResponse[]>(`institutions/${institutionId}/branches/${branchId}/members`);
+    getBranchMembers(institutionId: string, branchId: string, query?: MemberListQuery): Observable<APIResponseModel<PagedMemberList>> {
+        return this.httpApi.get<PagedMemberList>(`institutions/${institutionId}/branches/${branchId}/members`, { params: toMemberListParams(query) });
     }
 
     getAllMembers(query?: MemberListQuery): Observable<APIResponseModel<PagedMemberList>> {
-        const params: Record<string, string | number | boolean> = {};
-        if (query?.page != null) params['page'] = query.page;
-        if (query?.pageSize != null) params['pageSize'] = query.pageSize;
-        if (query?.search) params['search'] = query.search;
-        if (query?.statuses) params['statuses'] = query.statuses;
-        if (query?.branches) params['branches'] = query.branches;
-        if (query?.shifts) params['shifts'] = query.shifts;
-        if (query?.plans) params['plans'] = query.plans;
-        if (query?.lifecycles) params['lifecycles'] = query.lifecycles;
-        if (query?.needsAction) params['needsAction'] = query.needsAction;
-        if (query?.sortBy) params['sortBy'] = query.sortBy;
-        if (query?.sortDir) params['sortDir'] = query.sortDir;
-        return this.httpApi.get<PagedMemberList>('members', { params });
+        return this.httpApi.get<PagedMemberList>('members', { params: toMemberListParams(query) });
+    }
+
+    /** Walk all pages for the current filter set (exports / bulk ops). */
+    fetchAllFilteredMembers(query: MemberListQuery = {}): Observable<MemberListResponse[]> {
+        const pageSize = Math.min(query.pageSize ?? 200, 500);
+        const first = this.getAllMembers({ ...query, page: 1, pageSize });
+
+        return first.pipe(
+            expand((res) => {
+                const data = res.data;
+                if (!data?.hasNextPage) return EMPTY;
+                return this.getAllMembers({ ...query, page: (data.pageNumber ?? 1) + 1, pageSize });
+            }),
+            map((res) => res.data?.items ?? []),
+            reduce((acc, items) => acc.concat(items), [] as MemberListResponse[]),
+        );
     }
 
     getMembershipSummary(): Observable<APIResponseModel<MembershipSummary>> {
@@ -134,4 +155,4 @@ export class MemberService {
     changeMemberPassword(memberId: string, request: ChangeMemberPasswordRequest): Observable<APIResponseModel<{ message: string }>> {
         return this.httpApi.post<{ message: string }>(`members/${memberId}/password`, request);
     }
-} 
+}

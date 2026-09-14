@@ -12,9 +12,9 @@ public interface IMemberService
     Task<MemberResponse> CreateAsync(Guid institutionId, Guid branchId, Guid libraryId, CreateMemberRequest request, string? userId, CancellationToken cancellationToken = default);
     Task<byte[]> GetBulkUploadTemplateAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default);
     Task<BulkMemberUploadResponse> BulkCreateAsync(Guid institutionId, Guid branchId, Guid libraryId, IFormFile file, string? userId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyCollection<MemberListResponse>> GetLibraryMemberListAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyCollection<MemberListResponse>> GetInstitutionMemberListAsync(Guid institutionId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyCollection<MemberListResponse>> GetBranchMemberListAsync(Guid institutionId, Guid branchId, CancellationToken cancellationToken = default);
+    Task<PagedResult<MemberListResponse>> GetLibraryMemberListAsync(Guid institutionId, Guid branchId, Guid libraryId, MemberListQuery query, CancellationToken cancellationToken = default);
+    Task<PagedResult<MemberListResponse>> GetInstitutionMemberListAsync(Guid institutionId, MemberListQuery query, CancellationToken cancellationToken = default);
+    Task<PagedResult<MemberListResponse>> GetBranchMemberListAsync(Guid institutionId, Guid branchId, MemberListQuery query, CancellationToken cancellationToken = default);
     Task<PagedResult<MemberListResponse>> GetAllMemberListAsync(MemberListQuery query, CancellationToken cancellationToken = default);
     Task<MemberDetailResponse?> GetMemberDetailsByIdAsync(Guid memberId, CancellationToken cancellationToken = default);
     Task<Guid?> GetCurrentMemberIdAsync(CancellationToken cancellationToken = default);

@@ -5,6 +5,9 @@ namespace SLMS_API.Application.Contracts.Books.Responses;
 public class BookListItemResponse
 {
     public Guid Id { get; set; }
+    public Guid InstitutionId { get; set; }
+    public Guid BranchId { get; set; }
+    public Guid LibraryId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Author { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;

@@ -48,6 +48,16 @@ public interface IBookService
         string? actorName,
         CancellationToken cancellationToken = default);
 
+    Task<BookDetailResponse> AssignAsync(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        Guid bookId,
+        AssignBookRequest request,
+        string? userId,
+        string? actorName,
+        CancellationToken cancellationToken = default);
+
     Task<BookDetailResponse> AdjustStockAsync(
         Guid institutionId,
         Guid branchId,

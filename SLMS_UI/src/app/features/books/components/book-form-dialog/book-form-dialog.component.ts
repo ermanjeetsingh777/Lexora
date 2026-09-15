@@ -46,6 +46,8 @@ export class BookFormDialogComponent {
   readonly userInstitutions = input<InstitutionDropdownResponse[]>([]);
   readonly defaultScope = input<LibraryScope | null>(null);
   readonly busy = input(false);
+  /** When true (SuperAdmin / assign permission), edit can change institution → library. */
+  readonly allowAssign = input(false);
 
   readonly submitted = output<BookFormPayload>();
   readonly closed = output<void>();
@@ -75,13 +77,14 @@ export class BookFormDialogComponent {
   readonly titleTouched = signal(false);
 
   readonly isEdit = computed(() => !!this.book());
+  readonly scopeLocked = computed(() => this.isEdit() && !this.allowAssign());
 
-  readonly institutionSelectDisabled = computed(() => this.isEdit() || this.institutions().length <= 1);
+  readonly institutionSelectDisabled = computed(() => this.scopeLocked() || this.institutions().length <= 1);
   readonly branchDisabled = computed(() =>
-    this.isEdit() || !this.institutionId() || this.branches().length <= 1
+    this.scopeLocked() || !this.institutionId() || this.branches().length <= 1
   );
   readonly libraryDisabled = computed(() =>
-    this.isEdit() || !this.branchId()
+    this.scopeLocked() || !this.branchId()
   );
 
   readonly scopeValid = computed(() =>

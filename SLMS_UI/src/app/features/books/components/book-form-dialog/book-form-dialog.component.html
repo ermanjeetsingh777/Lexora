@@ -7,7 +7,13 @@
           <svg lucideBookOpen class="h-4 w-4"></svg>
           {{ isEdit() ? 'Edit book' : 'Add a book' }}
         </h2>
-        <p class="text-sm text-muted-foreground mt-0.5">ISBN-10 or ISBN-13 is validated before save.</p>
+        <p class="text-sm text-muted-foreground mt-0.5">
+          @if (isEdit() && allowAssign()) {
+            Change institution / library to reassign this book. Members of that institution can use it.
+          } @else {
+            Books belong to an institution library. Members of that institution can borrow or read digital copies.
+          }
+        </p>
       </div>
       <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" (click)="onClose()">
         <svg lucideX class="h-4 w-4"></svg>
@@ -48,6 +54,9 @@
           </select>
           @if (!isEdit() && !institutionId() && !institutionSelectDisabled()) {
           <p class="text-[11px] text-muted-foreground">Choose an institution to see branches.</p>
+          }
+          @if (isEdit() && allowAssign()) {
+          <p class="text-[11px] text-muted-foreground">Reassign to another institution if needed.</p>
           }
           @if (!isEdit() && institutionSelectDisabled()) {
           <p class="text-[11px] text-muted-foreground">Your mapped institution.</p>

@@ -39,6 +39,18 @@ export class BookService {
     return this.http.put<BookDetail>(this.base(scope), bookId, payload);
   }
 
+  assignBook(
+    scope: LibraryScope,
+    bookId: string,
+    target: LibraryScope,
+  ): Observable<APIResponseModel<BookDetail>> {
+    return this.http.post<BookDetail>(`${this.base(scope)}/${bookId}/assign`, {
+      targetInstitutionId: target.institutionId,
+      targetBranchId: target.branchId,
+      targetLibraryId: target.libraryId,
+    });
+  }
+
   adjustStock(scope: LibraryScope, bookId: string, delta: number, note?: string): Observable<APIResponseModel<BookDetail>> {
     return this.http.post<BookDetail>(`${this.base(scope)}/${bookId}/stock/adjust`, { delta, note });
   }

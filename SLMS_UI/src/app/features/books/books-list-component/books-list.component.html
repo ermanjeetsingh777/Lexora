@@ -227,6 +227,7 @@
   [userInstitutions]="institutions()"
   [defaultScope]="formDefaultScope()"
   [busy]="formBusy()"
+  [allowAssign]="canAssign()"
   (submitted)="onBookSubmitted($event)"
   (closed)="closeForm()" />
 
@@ -354,12 +355,16 @@
         </app-button>
         } @else {
         <div class="space-y-2">
+          <p class="text-xs text-muted-foreground">Only members of this book's institution can be issued a copy.</p>
           <select class="w-full h-9 rounded-md border bg-background px-2 text-sm" [ngModel]="checkoutMemberId()" (ngModelChange)="checkoutMemberId.set($event)">
             <option value="">Select member…</option>
-            @for (m of members(); track m.id) {
+            @for (m of checkoutMembers(); track m.id) {
             <option [ngValue]="m.id">{{ m.name }} ({{ m.membership }})</option>
             }
           </select>
+          @if (!checkoutMembers().length) {
+          <p class="text-[11px] text-amber-600">No members found for this institution in the loaded list.</p>
+          }
           <div class="flex items-center gap-2">
             <label class="text-xs text-muted-foreground whitespace-nowrap">Loan period (days)</label>
             <input type="number" min="1" max="90" class="w-20 h-9 rounded-md border bg-background px-2 text-sm"

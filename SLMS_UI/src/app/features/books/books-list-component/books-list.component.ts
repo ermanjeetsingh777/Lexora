@@ -7,7 +7,7 @@ import {
   LucideDownload, LucideFileText, LucideLayoutGrid, LucideLibrary, LucideList, LucideMinus, LucidePackageX, LucidePencil,
   LucidePlus, LucideSearch, LucideWrench, LucideX, LucideChevronLeft, LucideChevronsLeft, LucideChevronsRight,
 } from '@lucide/angular';
-import { catchError, forkJoin, map, of } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { ToastService } from '@core/services/toast.service';
 import { WhatsAppService } from '@core/services/whatsapp.service';
 import {
@@ -44,6 +44,7 @@ type SortKey = 'newest' | 'title' | 'author' | 'available' | 'category';
 type DrawerTab = 'activity' | 'stock' | 'audit';
 
 const PAGE_SIZE_OPTS = [10, 25, 50, 100] as const;
+const SUPER_ADMIN_ROLE = 'SuperAdmin';
 
 @Component({
   selector: 'app-books-list',
@@ -72,6 +73,9 @@ export class BooksListComponent implements OnInit {
 
   readonly canCreate = computed(() => this.auth.hasPermission(PermissionKey.BooksCreate));
   readonly canUpdate = computed(() => this.auth.hasPermission(PermissionKey.BooksUpdate));
+  readonly isSuperAdmin = computed(() => this.auth.hasRole(SUPER_ADMIN_ROLE));
+  /** Only SuperAdmin can reassign a book to another institution / library. */
+  readonly canAssign = computed(() => this.isSuperAdmin());
 
   readonly BookStockStatus = BookStockStatus;
   readonly BOOK_STATUS_LABELS = BOOK_STATUS_LABELS;
@@ -184,15 +188,22 @@ export class BooksListComponent implements OnInit {
     const institutionId = this.filterInstitutionId();
     const branchId = this.filterBranchId();
     const libraryId = this.filterLibraryId();
+    const scopeHint = this.isSuperAdmin()
+      ? 'SuperAdmin can view, edit, and assign books across all institutions.'
+      : 'Members of an institution can borrow or read books mapped to that institution.';
 
-    if (!institutionId) return 'All books across your mapped libraries.';
+    if (!institutionId) {
+      return this.isSuperAdmin()
+        ? `All books across institutions. ${scopeHint}`
+        : `All books across your mapped libraries. ${scopeHint}`;
+    }
     if (!branchId) {
       const name = this.institutions().find(i => i.value === institutionId)?.key ?? 'institution';
-      return `Books in ${name}.`;
+      return `Books in ${name}. ${scopeHint}`;
     }
     if (!libraryId) {
       const branch = this.filterBranches().find(b => b.value === branchId)?.key ?? 'branch';
-      return `Books in ${branch}.`;
+      return `Books in ${branch}. ${scopeHint}`;
     }
 
     const labels = libraryScopeLabels(this.institutions(), {
@@ -200,7 +211,17 @@ export class BooksListComponent implements OnInit {
       branchId,
       libraryId,
     });
-    return `Books in ${labels.libraryName}.`;
+    return `Books in ${labels.libraryName}. ${scopeHint}`;
+  });
+
+  readonly checkoutMembers = computed(() => {
+    const book = this.selectedBook();
+    if (!book) return [] as MemberListResponse[];
+    const institutionName = this.institutions().find(i => i.value === book.institutionId)?.key;
+    if (!institutionName) return this.members();
+    return this.members().filter(m =>
+      (m.institution ?? '').localeCompare(institutionName, undefined, { sensitivity: 'accent' }) === 0
+    );
   });
 
   readonly showLibraryColumn = computed(() => !this.filterLibraryId());
@@ -376,24 +397,43 @@ export class BooksListComponent implements OnInit {
     const editScope = edit
       ? { institutionId: edit.institutionId, branchId: edit.branchId, libraryId: edit.libraryId }
       : scope;
-    const req$ = edit
-      ? this.bookService.updateBook(editScope, edit.id, bookPayload)
-      : this.bookService.createBook(scope, bookPayload);
-    req$.subscribe({
-      next: (res) => {
-        const bookId = res.data?.id;
+
+    const scopeChanged = !!edit && (
+      edit.institutionId !== scope.institutionId
+      || edit.branchId !== scope.branchId
+      || edit.libraryId !== scope.libraryId
+    );
+
+    const save$ = edit
+      ? (scopeChanged
+          ? this.bookService.assignBook(editScope, edit.id, scope).pipe(
+              switchMap((assignRes) =>
+                this.bookService.updateBook(scope, edit.id, bookPayload).pipe(
+                  map((updateRes) => updateRes.data ?? assignRes.data ?? null),
+                ),
+              ),
+            )
+          : this.bookService.updateBook(editScope, edit.id, bookPayload).pipe(
+              map((res) => res.data ?? null),
+            ))
+      : this.bookService.createBook(scope, bookPayload).pipe(
+          map((res) => res.data ?? null),
+        );
+
+    save$.subscribe({
+      next: (book) => {
+        const bookId = book?.id;
         if (bookId && pdfFile) {
-          const pdfScope = edit ? editScope : scope;
-          this.bookService.uploadPdf(pdfScope, bookId, pdfFile).subscribe({
-            next: (pdfRes) => this.finishBookSave(edit, pdfRes.data ?? res.data ?? null, scope),
+          this.bookService.uploadPdf(scope, bookId, pdfFile).subscribe({
+            next: (pdfRes) => this.finishBookSave(edit, pdfRes.data ?? book, scope),
             error: () => {
-              this.finishBookSave(edit, res.data ?? null, scope);
+              this.finishBookSave(edit, book, scope);
               this.toast.error('Book saved but PDF upload failed.');
             },
           });
           return;
         }
-        this.finishBookSave(edit, res.data ?? null, scope);
+        this.finishBookSave(edit, book, scope);
       },
       error: (err) => {
         this.formBusy.set(false);
@@ -407,12 +447,16 @@ export class BooksListComponent implements OnInit {
     this.showForm.set(false);
     this.editBook.set(null);
 
-    if (!edit && savedScope) {
+    if (savedScope) {
       this.filterInstitutionId.set(savedScope.institutionId);
       this.filterBranchId.set(savedScope.branchId);
       this.filterLibraryId.set(savedScope.libraryId);
       const labels = libraryScopeLabels(this.institutions(), savedScope);
-      this.toast.success(`Book added to ${labels.libraryName || 'library'}`);
+      if (!edit) {
+        this.toast.success(`Book added to ${labels.libraryName || 'library'}`);
+      } else {
+        this.toast.success(`Book updated${labels.libraryName ? ` · ${labels.libraryName}` : ''}`);
+      }
     } else {
       this.toast.success(edit ? 'Book updated' : 'Book added');
     }

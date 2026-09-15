@@ -130,6 +130,29 @@ public class BooksController : ControllerBase
         }
     }
 
+    [HttpPost("{bookId:guid}/assign")]
+    [Permission(PermissionKey.BooksUpdate)]
+    public async Task<ActionResult<ApiResponse<BookDetailResponse>>> Assign(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        Guid bookId,
+        [FromBody] AssignBookRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var book = await _bookService.AssignAsync(
+                institutionId, branchId, libraryId, bookId, request,
+                _currentUserService.UserId, null, cancellationToken);
+            return Ok(ApiResponse<BookDetailResponse>.Ok(book, "Book assigned successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<BookDetailResponse>.Fail(ex.Message));
+        }
+    }
+
     [HttpPost("{bookId:guid}/stock/adjust")]
     [Permission(PermissionKey.BooksUpdate)]
     public async Task<ActionResult<ApiResponse<BookDetailResponse>>> AdjustStock(

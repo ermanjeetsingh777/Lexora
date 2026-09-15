@@ -54,6 +54,9 @@ public class BookService : IBookService
                 return new BookListItemResponse
                 {
                     Id = b.Id,
+                    InstitutionId = b.InstitutionId,
+                    BranchId = b.BranchId,
+                    LibraryId = b.LibraryId,
                     Title = b.Title,
                     Author = b.Author,
                     Category = b.Category,
@@ -204,6 +207,93 @@ public class BookService : IBookService
         return (await GetByIdAsync(institutionId, branchId, libraryId, book.Id, cancellationToken))!;
     }
 
+    public async Task<BookDetailResponse> AssignAsync(
+        Guid institutionId,
+        Guid branchId,
+        Guid libraryId,
+        Guid bookId,
+        AssignBookRequest request,
+        string? userId,
+        string? actorName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var book = await LoadBookForWriteAsync(institutionId, branchId, libraryId, bookId, cancellationToken);
+
+        if (book.InstitutionId == request.TargetInstitutionId
+            && book.BranchId == request.TargetBranchId
+            && book.LibraryId == request.TargetLibraryId)
+        {
+            return (await GetByIdAsync(institutionId, branchId, libraryId, bookId, cancellationToken))!;
+        }
+
+        await EnsureLibraryAsync(
+            request.TargetInstitutionId,
+            request.TargetBranchId,
+            request.TargetLibraryId,
+            cancellationToken);
+
+        var hasActiveLoans = await _db.BookLoans.AnyAsync(l =>
+            l.BookId == book.Id
+            && !l.IsDeleted
+            && l.Status != BookLoanStatus.Returned,
+            cancellationToken);
+
+        if (hasActiveLoans)
+        {
+            throw new InvalidOperationException(
+                "Cannot reassign a book while copies are on loan. Return all copies first.");
+        }
+
+        await EnsureUniqueIsbnAsync(request.TargetLibraryId, book.Isbn, book.Id, cancellationToken);
+
+        var fromLibraryId = book.LibraryId;
+        var targetLibrary = await _db.Libraries.AsNoTracking()
+            .Where(l => l.Id == request.TargetLibraryId)
+            .Select(l => new { l.Name })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (HasPdf(book) && !string.IsNullOrWhiteSpace(book.PdfStoragePath) && File.Exists(book.PdfStoragePath))
+        {
+            var uploadRoot = Path.Combine(
+                _environment.ContentRootPath,
+                "uploads",
+                "books",
+                request.TargetLibraryId.ToString("N"));
+            Directory.CreateDirectory(uploadRoot);
+            var newPath = Path.Combine(uploadRoot, $"{book.Id:N}.pdf");
+            if (!string.Equals(book.PdfStoragePath, newPath, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Copy(book.PdfStoragePath, newPath, overwrite: true);
+                try { File.Delete(book.PdfStoragePath); } catch { /* best effort */ }
+                book.PdfStoragePath = newPath;
+            }
+        }
+
+        book.InstitutionId = request.TargetInstitutionId;
+        book.BranchId = request.TargetBranchId;
+        book.LibraryId = request.TargetLibraryId;
+        book.UpdatedAtUtc = DateTime.UtcNow;
+        book.UpdatedBy = userId;
+
+        AddAuditEntry(
+            book.Id,
+            BookAuditType.Assigned,
+            $"Assigned to {targetLibrary?.Name ?? "library"} (from library {fromLibraryId:N})",
+            null,
+            userId,
+            actorName);
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return (await GetByIdAsync(
+            request.TargetInstitutionId,
+            request.TargetBranchId,
+            request.TargetLibraryId,
+            book.Id,
+            cancellationToken))!;
+    }
+
     public async Task<BookDetailResponse> AdjustStockAsync(
         Guid institutionId,
         Guid branchId,
@@ -279,6 +369,20 @@ public class BookService : IBookService
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == request.MemberId && !m.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Member not found.");
+
+        var memberBelongsToInstitution = await _db.MemberLibraries.AsNoTracking()
+            .AnyAsync(ml =>
+                ml.MemberId == member.Id
+                && ml.InstitutionId == institutionId
+                && !ml.IsDeleted
+                && ml.IsCurrent,
+                cancellationToken);
+
+        if (!memberBelongsToInstitution)
+        {
+            throw new InvalidOperationException(
+                "This member does not belong to the book's institution. Issue books only to members of the same institution.");
+        }
 
         var memberName = string.IsNullOrWhiteSpace(member.FullName) ? member.MembershipNo : member.FullName;
 
@@ -498,9 +602,60 @@ public class BookService : IBookService
         string? category,
         CancellationToken cancellationToken = default)
     {
-        var (institutionId, branchId, libraryId) = await ResolveMemberLibraryAsync(memberId, cancellationToken);
-        var books = await GetBooksAsync(institutionId, branchId, libraryId, search, category, null, cancellationToken);
-        return books.Where(b => b.HasPdf).ToList();
+        var institutionId = await ResolveMemberInstitutionAsync(memberId, cancellationToken);
+        var now = DateTime.UtcNow;
+        var queryText = search?.Trim().ToLowerInvariant();
+
+        var books = await _db.Books
+            .AsNoTracking()
+            .Where(b =>
+                !b.IsDeleted
+                && b.InstitutionId == institutionId
+                && b.PdfStoragePath != null
+                && b.PdfStoragePath != string.Empty)
+            .Include(b => b.Loans.Where(l => !l.IsDeleted))
+            .ToListAsync(cancellationToken);
+
+        return books
+            .Select(b =>
+            {
+                var activeLoans = b.Loans.Where(l => l.Status != BookLoanStatus.Returned).ToList();
+                var overdue = activeLoans.Count(l => ResolveLoanStatus(l, b, now) == BookLoanStatus.Overdue);
+                return new BookListItemResponse
+                {
+                    Id = b.Id,
+                    InstitutionId = b.InstitutionId,
+                    BranchId = b.BranchId,
+                    LibraryId = b.LibraryId,
+                    Title = b.Title,
+                    Author = b.Author,
+                    Category = b.Category,
+                    Isbn = b.Isbn,
+                    TotalCopies = b.TotalCopies,
+                    AvailableCopies = b.AvailableCopies,
+                    Status = ComputeStockStatus(b.AvailableCopies, b.TotalCopies),
+                    OnLoanCount = activeLoans.Count,
+                    OverdueCount = overdue,
+                    HasPdf = true,
+                    CreatedAtUtc = b.CreatedAtUtc,
+                    UpdatedAtUtc = b.UpdatedAtUtc,
+                };
+            })
+            .Where(b =>
+            {
+                if (!string.IsNullOrWhiteSpace(category)
+                    && !string.Equals(b.Category, category, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                if (string.IsNullOrWhiteSpace(queryText)) return true;
+                return b.Title.ToLowerInvariant().Contains(queryText)
+                    || b.Author.ToLowerInvariant().Contains(queryText)
+                    || b.Isbn.Contains(queryText, StringComparison.OrdinalIgnoreCase);
+            })
+            .OrderBy(b => b.Title)
+            .ToList();
     }
 
     public async Task<(string FilePath, string ContentType, string FileName)?> GetMemberDigitalBookPdfAsync(
@@ -508,13 +663,11 @@ public class BookService : IBookService
         Guid bookId,
         CancellationToken cancellationToken = default)
     {
-        var (institutionId, branchId, libraryId) = await ResolveMemberLibraryAsync(memberId, cancellationToken);
+        var institutionId = await ResolveMemberInstitutionAsync(memberId, cancellationToken);
         var book = await _db.Books.AsNoTracking()
             .FirstOrDefaultAsync(b =>
                 b.Id == bookId
                 && !b.IsDeleted
-                && b.LibraryId == libraryId
-                && b.BranchId == branchId
                 && b.InstitutionId == institutionId,
                 cancellationToken);
 
@@ -523,7 +676,7 @@ public class BookService : IBookService
             return null;
         }
 
-        return await GetPdfAsync(institutionId, branchId, libraryId, bookId, cancellationToken);
+        return await GetPdfAsync(book.InstitutionId, book.BranchId, book.LibraryId, bookId, cancellationToken);
     }
 
     public async Task<BookDetailResponse> UploadPdfAsync(
@@ -678,19 +831,19 @@ public class BookService : IBookService
         if (!exists) throw new InvalidOperationException("Library not found.");
     }
 
-    private async Task<(Guid InstitutionId, Guid BranchId, Guid LibraryId)> ResolveMemberLibraryAsync(
+    private async Task<Guid> ResolveMemberInstitutionAsync(
         Guid memberId,
         CancellationToken cancellationToken)
     {
-        var mapping = await _db.MemberLibraries
+        var institutionId = await _db.MemberLibraries
             .AsNoTracking()
             .Where(x => x.MemberId == memberId && !x.IsDeleted && x.IsCurrent)
             .OrderByDescending(x => x.JoinedOn)
-            .Select(x => new { x.InstitutionId, x.BranchId, x.LibraryId })
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new InvalidOperationException("Member library not found.");
+            .Select(x => (Guid?)x.InstitutionId)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return (mapping.InstitutionId, mapping.BranchId, mapping.LibraryId);
+        return institutionId
+            ?? throw new InvalidOperationException("Member is not assigned to an institution.");
     }
 
     private async Task<Book> LoadBookForWriteAsync(

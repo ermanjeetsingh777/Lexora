@@ -7,4 +7,5 @@ public enum BookAuditType
     Lost = 3,
     Added = 4,
     Edited = 5,
+    Assigned = 6,
 }

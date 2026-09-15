@@ -856,6 +856,11 @@ public class InstitutionService : IInstitutionService
     {
         var userIdString = userId.ToString();
 
+        if (await IsSuperAdminAsync(userId, cancellationToken))
+        {
+            return await BuildFullInstitutionDropdownForBooksAsync(cancellationToken);
+        }
+
          var institutions = await _dbContext.UserInstitutions
             .AsNoTracking()
             .Where(x => x.UserId == userIdString && x.IsActive)
@@ -916,6 +921,64 @@ public class InstitutionService : IInstitutionService
                     .ToList()
             })
             .ToList();
+    }
+
+    private async Task<List<InstitutionDropdownResponse>> BuildFullInstitutionDropdownForBooksAsync(
+        CancellationToken cancellationToken)
+    {
+        var institutionEntities = await _dbContext.Institutions
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .OrderBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+
+        var branchEntities = await _dbContext.Branches
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .ToListAsync(cancellationToken);
+
+        var libraryEntities = await _dbContext.Libraries
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .ToListAsync(cancellationToken);
+
+        var plans = await _dbContext.Plans
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .ToListAsync(cancellationToken);
+
+        return institutionEntities.Select(inst => new InstitutionDropdownResponse
+        {
+            Value = inst.Id,
+            Key = inst.Name,
+            Branches = branchEntities
+                .Where(b => b.InstitutionId == inst.Id)
+                .OrderBy(b => b.Name)
+                .Select(b => new BranchDropdownResponse
+                {
+                    Value = b.Id,
+                    Key = b.Name,
+                    Libraries = libraryEntities
+                        .Where(l => l.BranchId == b.Id)
+                        .OrderBy(l => l.Name)
+                        .Select(l => new LibraryDropdownResponse
+                        {
+                            Value = l.Id,
+                            Key = l.Name,
+                            Plans = plans
+                                .Where(p => p.LibraryId == l.Id)
+                                .OrderBy(p => p.Name)
+                                .Select(p => new PlanDropdownResponse
+                                {
+                                    Value = p.Id,
+                                    Key = p.Name
+                                })
+                                .ToList()
+                        })
+                        .ToList()
+                })
+                .ToList()
+        }).ToList();
     }
 
     private async Task<IQueryable<Library>> ApplyInstitutionLibrariesAccessScopeAsync(

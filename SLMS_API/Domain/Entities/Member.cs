@@ -13,6 +13,8 @@ namespace SLMS_API.Domain.Entities
 
         public DateOnly? DateOfBirth { get; set; }
         public string FullName { get; set; } = string.Empty;
+        /// <summary>Contact email for this library enrollment (may differ from Identity login email).</summary>
+        public string? Email { get; set; }
         public string PhoneNumber { get; set; } = string.Empty;
 
         public string? PhotoStoragePath { get; set; }

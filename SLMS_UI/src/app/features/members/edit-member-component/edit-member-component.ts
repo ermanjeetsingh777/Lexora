@@ -11,6 +11,7 @@ import { LucideLoaderCircle } from '@lucide/angular';
 import { concat, last, Observable, of, switchMap } from 'rxjs';
 import { APIResponseModel } from '@core/models/APIResponseModel';
 import { MemberService } from '../MemberService';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-edit-member-component',
@@ -114,7 +115,7 @@ export class EditMemberComponent implements OnInit, OnDestroy {
         }
 
         this.member.set(member);
-        const displayEmail = member.email?.endsWith('@member.lexora.local') ? '' : (member.email ?? '');
+        const displayEmail = this.toDisplayEmail(member.email);
         this.memberForm.patchValue({
           name: member.name,
           phone: member.phone ?? '',
@@ -241,7 +242,7 @@ export class EditMemberComponent implements OnInit, OnDestroy {
     const formValue = this.memberForm.getRawValue();
     const request: UpdateMemberRequest = {};
 
-    const currentEmail = member.email?.endsWith('@member.lexora.local') ? '' : (member.email ?? '');
+    const currentEmail = this.toDisplayEmail(member.email);
     const newEmail = formValue.email?.trim() ?? '';
 
     if (formValue.name !== member.name) request.fullName = formValue.name;
@@ -299,5 +300,11 @@ export class EditMemberComponent implements OnInit, OnDestroy {
         this.saving.set(false);
       },
     });
+  }
+
+  private toDisplayEmail(email: string | null | undefined): string {
+    if (!email) return '';
+    const suffix = `@${environment.memberSyntheticEmailDomain}`;
+    return email.toLowerCase().endsWith(suffix.toLowerCase()) ? '' : email;
   }
 }

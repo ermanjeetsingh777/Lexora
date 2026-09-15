@@ -211,6 +211,7 @@ export function validateBulkMemberRow(
   planByName: Map<string, PlanResponse>,
   seenEmails: Set<string>,
   seenPhones: Set<string>,
+  seenNamePhones: Set<string>,
   seenMembershipNos: Set<string>,
 ): string | null {
   if (!row.fullName.trim()) return 'FullName is required.';
@@ -235,6 +236,11 @@ export function validateBulkMemberRow(
   const normalizedPhone = row.phoneNumber.trim();
   if (seenPhones.has(normalizedPhone)) {
     return `Duplicate phone number '${normalizedPhone}' found in the uploaded file.`;
+  }
+
+  const namePhoneKey = `${row.fullName.trim().toLowerCase()}|${normalizedPhone}`;
+  if (seenNamePhones.has(namePhoneKey)) {
+    return 'Duplicate name and phone combination found in the uploaded file.';
   }
 
   if (row.rawDateOfBirth && row.rawDateOfBirth.trim() && !row.dateOfBirth) {

@@ -54,6 +54,9 @@ internal static class MemberListQueryExecutor
 
     public static IQueryable<Row> Project(IQueryable<Member> members)
     {
+        var syntheticSuffix = MemberContactHelper.SyntheticEmailSuffix;
+        var defaultSyntheticSuffix = "@" + MemberContactHelper.DefaultSyntheticEmailDomain;
+
         return members.Select(m => new Row
         {
             Id = m.Id,
@@ -61,9 +64,12 @@ internal static class MemberListQueryExecutor
             MembershipNo = m.MembershipNo,
             Shift = m.Shift,
             PhotoStoragePath = m.PhotoStoragePath,
-            FullName = m.User.FullName,
-            Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
-            Phone = m.User.PhoneNumber,
+            FullName = m.FullName,
+            Email = m.Email ?? (m.User.Email != null
+                && (m.User.Email.EndsWith(syntheticSuffix) || m.User.Email.EndsWith(defaultSyntheticSuffix))
+                    ? null
+                    : m.User.Email),
+            Phone = m.PhoneNumber,
             InstitutionName = m.MemberLibraries.Where(x => x.IsCurrent).Select(x => x.Institution.Name).FirstOrDefault() ?? string.Empty,
             BranchName = m.MemberLibraries.Where(x => x.IsCurrent).Select(x => x.Branch.Name).FirstOrDefault() ?? string.Empty,
             LibraryName = m.MemberLibraries.Where(x => x.IsCurrent).Select(x => x.Library.Name).FirstOrDefault() ?? string.Empty,

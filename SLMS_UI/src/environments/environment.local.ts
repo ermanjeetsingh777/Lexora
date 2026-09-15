@@ -16,6 +16,8 @@ export const environment = {
   password: 'Demo@12345',
   supportEmail: 'support@uniappx.in',
   noReplyEmail: 'noreply@uniappx.in',
+  /** Synthetic identity email domain for members without a real email (must match API Identity:MemberSyntheticEmailDomain). */
+  memberSyntheticEmailDomain: 'member.lexora.local',
   TOKEN_KEY: 'access_token',
   REFRESH_TOKEN_KEY: 'refresh_token',
   ACCESS_TOKEN_EXPIRES_KEY: 'access_token_expires',

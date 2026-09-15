@@ -217,6 +217,7 @@ export class BulkUploadMembersComponent implements OnInit {
       const results: BulkMemberUploadRowResult[] = [];
       const seenEmails = new Set<string>();
       const seenPhones = new Set<string>();
+      const seenNamePhones = new Set<string>();
       const seenMembershipNos = new Set<string>();
       let successCount = 0;
       let failedCount = 0;
@@ -236,7 +237,7 @@ export class BulkUploadMembersComponent implements OnInit {
           currentLabel,
         }));
 
-        const validationError = validateBulkMemberRow(row, planByName, seenEmails, seenPhones, seenMembershipNos);
+        const validationError = validateBulkMemberRow(row, planByName, seenEmails, seenPhones, seenNamePhones, seenMembershipNos);
         if (validationError) {
           failedCount++;
           results.push({
@@ -251,6 +252,7 @@ export class BulkUploadMembersComponent implements OnInit {
             seenEmails.add(row.email.trim().toLowerCase());
           }
           seenPhones.add(row.phoneNumber.trim());
+          seenNamePhones.add(`${row.fullName.trim().toLowerCase()}|${row.phoneNumber.trim()}`);
           if (row.membershipNo.trim()) {
             seenMembershipNos.add(row.membershipNo.trim().toLowerCase());
           }

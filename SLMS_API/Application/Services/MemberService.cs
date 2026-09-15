@@ -79,32 +79,40 @@ public class MemberService : IMemberService
             throw new InvalidOperationException("A valid 10-digit mobile number is required.");
         }
 
-        // Email is optional
+        // Email is optional (contact email; uniqueness is enforced per library)
         var rawEmail = request.Email?.Trim();
         var hasEmail = !string.IsNullOrWhiteSpace(rawEmail);
+        var fullName = request.FullName.Trim();
+
+        await EnsureMemberContactUniqueInLibraryAsync(
+            libraryId,
+            rawPhone,
+            rawEmail,
+            fullName,
+            excludeMemberId: null,
+            cancellationToken);
+
+        var useScopedIdentity = await IsGlobalIdentityTakenAsync(rawPhone, rawEmail, cancellationToken);
         string effectiveEmail;
         string effectiveUserName;
 
-        if (hasEmail)
+        if (!useScopedIdentity)
         {
-            if (await _userManager.FindByEmailAsync(rawEmail!) is not null)
-                throw new InvalidOperationException($"A user with email '{rawEmail}' already exists.");
-
-            effectiveEmail = rawEmail!;
-            effectiveUserName = rawEmail!;
+            if (hasEmail)
+            {
+                effectiveEmail = rawEmail!;
+                effectiveUserName = rawEmail!;
+            }
+            else
+            {
+                effectiveUserName = rawPhone;
+                effectiveEmail = MemberContactHelper.BuildPhoneSyntheticEmail(rawPhone);
+            }
         }
         else
         {
-            // Generate synthetic username & email for member without email
-            effectiveUserName = rawPhone;
-            effectiveEmail = $"{rawPhone}@member.lexora.local";
-
-            // If existing user already has this phone/synthetic email, verify
-            var existingByPhone = await _userManager.FindByNameAsync(effectiveUserName);
-            if (existingByPhone is not null)
-            {
-                throw new InvalidOperationException($"A member account with phone number '{rawPhone}' already exists.");
-            }
+            effectiveUserName = MemberContactHelper.BuildLibraryScopedUserName(libraryId, rawPhone);
+            effectiveEmail = MemberContactHelper.BuildLibraryScopedEmail(libraryId, rawPhone);
         }
 
         // Validate Plan
@@ -161,6 +169,7 @@ public class MemberService : IMemberService
                 Id = Guid.NewGuid(),
                 UserId = applicationUser.Id,
                 FullName = request.FullName,
+                Email = hasEmail ? rawEmail : null,
                 PhoneNumber = request.PhoneNumber,
                 MembershipNo = membershipNo,
                 DateOfBirth = request.DateOfBirth.HasValue ? DateOnly.FromDateTime(request.DateOfBirth.Value) : null,
@@ -236,7 +245,7 @@ public class MemberService : IMemberService
                             .FirstOrDefaultAsync();
 
                         await _appEmailService.SendMemberWelcomeAsync(
-                            applicationUser.Email,
+                            rawEmail!,
                             applicationUser.FullName ?? "Member",
                             member.MembershipNo,
                             libraryName,
@@ -340,6 +349,7 @@ public class MemberService : IMemberService
         var results = new List<BulkMemberUploadRowResult>();
         var seenEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var seenPhones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenNamePhones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var seenMembershipNos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var row in rows)
@@ -359,6 +369,7 @@ public class MemberService : IMemberService
             }
 
             var normalizedPhone = row.PhoneNumber.Trim();
+            var normalizedName = row.FullName.Trim();
             if (!seenPhones.Add(normalizedPhone))
             {
                 results.Add(new BulkMemberUploadRowResult
@@ -368,6 +379,20 @@ public class MemberService : IMemberService
                     Email = row.Email,
                     Success = false,
                     Message = $"Duplicate phone number '{normalizedPhone}' found in the uploaded file."
+                });
+                continue;
+            }
+
+            var namePhoneKey = $"{normalizedName.ToLowerInvariant()}|{normalizedPhone}";
+            if (!seenNamePhones.Add(namePhoneKey))
+            {
+                results.Add(new BulkMemberUploadRowResult
+                {
+                    RowNumber = row.RowNumber,
+                    FullName = row.FullName,
+                    Email = row.Email,
+                    Success = false,
+                    Message = $"Duplicate name and phone combination found in the uploaded file."
                 });
                 continue;
             }
@@ -922,6 +947,9 @@ public class MemberService : IMemberService
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
 
+        var syntheticSuffix = MemberContactHelper.SyntheticEmailSuffix;
+        var defaultSyntheticSuffix = "@" + MemberContactHelper.DefaultSyntheticEmailDomain;
+
         var member = await _dbContext.Members
             .AsNoTracking()
             .Where(x => x.Id == memberId)
@@ -937,7 +965,10 @@ public class MemberService : IMemberService
                 m.AadhaarStoragePath,
 
                 Name = m.User.FullName,
-                Email = m.User.Email != null && m.User.Email.EndsWith("@member.lexora.local") ? null : m.User.Email,
+                Email = m.Email ?? (m.User.Email != null
+                    && (m.User.Email.EndsWith(syntheticSuffix) || m.User.Email.EndsWith(defaultSyntheticSuffix))
+                        ? null
+                        : m.User.Email),
                 Phone = m.User.PhoneNumber,
 
                 Shift = m.Shift.ToString(),
@@ -1430,6 +1461,72 @@ public class MemberService : IMemberService
         }
     }
 
+    private async Task EnsureMemberContactUniqueInLibraryAsync(
+        Guid libraryId,
+        string phone,
+        string? email,
+        string fullName,
+        Guid? excludeMemberId,
+        CancellationToken cancellationToken)
+    {
+        var trimmedName = fullName.Trim();
+        var normalizedEmail = email?.Trim();
+        var hasRealEmail = !string.IsNullOrWhiteSpace(normalizedEmail);
+        var syntheticSuffix = MemberContactHelper.SyntheticEmailSuffix;
+        var defaultSyntheticSuffix = "@" + MemberContactHelper.DefaultSyntheticEmailDomain;
+
+        var membersInLibrary = _dbContext.MemberLibraries
+            .AsNoTracking()
+            .Where(ml =>
+                ml.LibraryId == libraryId &&
+                ml.IsCurrent &&
+                !ml.IsDeleted &&
+                !ml.Member.IsDeleted);
+
+        if (excludeMemberId.HasValue)
+        {
+            membersInLibrary = membersInLibrary.Where(ml => ml.MemberId != excludeMemberId.Value);
+        }
+
+        var duplicate = await membersInLibrary.AnyAsync(ml =>
+            ml.Member.PhoneNumber == phone
+            || (hasRealEmail && (
+                (ml.Member.Email != null && ml.Member.Email.ToLower() == normalizedEmail!.ToLower())
+                || (ml.Member.User.Email != null
+                    && !ml.Member.User.Email.EndsWith(syntheticSuffix)
+                    && !ml.Member.User.Email.EndsWith(defaultSyntheticSuffix)
+                    && ml.Member.User.Email.ToLower() == normalizedEmail!.ToLower())))
+            || (ml.Member.FullName.ToLower() == trimmedName.ToLower()
+                && ml.Member.PhoneNumber == phone),
+            cancellationToken);
+
+        if (duplicate)
+        {
+            throw new InvalidOperationException(
+                "A member with the same name, phone, or email already exists in this library.");
+        }
+    }
+
+    private async Task<bool> IsGlobalIdentityTakenAsync(
+        string phone,
+        string? email,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(email)
+            && await _userManager.FindByEmailAsync(email.Trim()) is not null)
+        {
+            return true;
+        }
+
+        if (await _userManager.FindByNameAsync(phone) is not null)
+        {
+            return true;
+        }
+
+        return await _dbContext.Users.AsNoTracking()
+            .AnyAsync(u => u.UserName != null && u.UserName.EndsWith($"_{phone}"), cancellationToken);
+    }
+
     private async Task EnsureMembershipNoUniqueInLibraryAsync(
         Guid libraryId,
         string membershipNo,
@@ -1566,6 +1663,12 @@ public class MemberService : IMemberService
             throw new UnauthorizedAccessException("You do not have access to update this member.");
         }
 
+        if (currentLibrary is null)
+        {
+            throw new InvalidOperationException("Member is not assigned to a library.");
+        }
+
+        var currentLibraryId = currentLibrary.LibraryId;
         var hasChanges = false;
 
         if (!string.IsNullOrWhiteSpace(request.FullName))
@@ -1578,65 +1681,92 @@ public class MemberService : IMemberService
 
             if (!string.Equals(member.FullName, fullName, StringComparison.Ordinal))
             {
+                await EnsureMemberContactUniqueInLibraryAsync(
+                    currentLibraryId,
+                    !string.IsNullOrWhiteSpace(request.PhoneNumber) ? request.PhoneNumber.Trim() : member.PhoneNumber,
+                    request.Email != null
+                        ? (string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim())
+                        : member.Email,
+                    fullName,
+                    member.Id,
+                    cancellationToken);
+
                 member.FullName = fullName;
                 member.User.FullName = fullName;
                 hasChanges = true;
             }
         }
 
-        // Email update handling (can add, change, or remove)
+        // Email update handling (can add, change, or remove) — unique within library only
         if (request.Email != null)
         {
             var email = request.Email.Trim();
+            var nextPhone = !string.IsNullOrWhiteSpace(request.PhoneNumber) ? request.PhoneNumber.Trim() : member.PhoneNumber;
+            var nextName = !string.IsNullOrWhiteSpace(request.FullName) ? request.FullName.Trim() : member.FullName;
+
+            await EnsureMemberContactUniqueInLibraryAsync(
+                currentLibraryId,
+                nextPhone,
+                string.IsNullOrWhiteSpace(email) ? null : email,
+                nextName,
+                member.Id,
+                cancellationToken);
+
             if (!string.IsNullOrWhiteSpace(email))
             {
+                if (!string.Equals(member.Email, email, StringComparison.OrdinalIgnoreCase))
+                {
+                    member.Email = email;
+                    hasChanges = true;
+                }
+
                 if (!string.Equals(member.User.Email, email, StringComparison.OrdinalIgnoreCase))
                 {
                     var existingUser = await _userManager.FindByEmailAsync(email);
-                    if (existingUser is not null && existingUser.Id != member.UserId)
+                    if (existingUser is null || existingUser.Id == member.UserId)
                     {
-                        throw new InvalidOperationException($"A user with email '{email}' already exists.");
-                    }
+                        var setEmailResult = await _userManager.SetEmailAsync(member.User, email);
+                        if (!setEmailResult.Succeeded)
+                        {
+                            throw new InvalidOperationException(string.Join(Environment.NewLine, setEmailResult.Errors.Select(x => x.Description)));
+                        }
 
-                    var setEmailResult = await _userManager.SetEmailAsync(member.User, email);
-                    if (!setEmailResult.Succeeded)
-                    {
-                        throw new InvalidOperationException(string.Join(Environment.NewLine, setEmailResult.Errors.Select(x => x.Description)));
-                    }
+                        var setUserNameResult = await _userManager.SetUserNameAsync(member.User, email);
+                        if (!setUserNameResult.Succeeded)
+                        {
+                            throw new InvalidOperationException(string.Join(Environment.NewLine, setUserNameResult.Errors.Select(x => x.Description)));
+                        }
 
-                    var setUserNameResult = await _userManager.SetUserNameAsync(member.User, email);
-                    if (!setUserNameResult.Succeeded)
-                    {
-                        throw new InvalidOperationException(string.Join(Environment.NewLine, setUserNameResult.Errors.Select(x => x.Description)));
+                        member.User.EmailConfirmed = true;
+                        hasChanges = true;
                     }
-
-                    member.User.EmailConfirmed = true;
-                    hasChanges = true;
                 }
             }
-            else
+            else if (member.Email is not null)
             {
-                // Cleared email -> revert to synthetic email using phone
-                var phone = !string.IsNullOrWhiteSpace(request.PhoneNumber) ? request.PhoneNumber.Trim() : member.PhoneNumber;
-                var syntheticUserName = phone;
-                var syntheticEmail = $"{phone}@member.lexora.local";
+                member.Email = null;
+                hasChanges = true;
 
-                if (!string.Equals(member.User.Email, syntheticEmail, StringComparison.OrdinalIgnoreCase))
+                // Cleared contact email -> revert login to phone-based synthetic when not library-scoped
+                if (!MemberContactHelper.IsSyntheticIdentityEmail(member.User.Email)
+                    && member.User.UserName?.StartsWith("m_", StringComparison.Ordinal) != true)
                 {
+                    var phone = nextPhone;
+                    var syntheticEmail = MemberContactHelper.BuildPhoneSyntheticEmail(phone);
+
                     var setEmailResult = await _userManager.SetEmailAsync(member.User, syntheticEmail);
                     if (!setEmailResult.Succeeded)
                     {
                         throw new InvalidOperationException(string.Join(Environment.NewLine, setEmailResult.Errors.Select(x => x.Description)));
                     }
 
-                    var setUserNameResult = await _userManager.SetUserNameAsync(member.User, syntheticUserName);
+                    var setUserNameResult = await _userManager.SetUserNameAsync(member.User, phone);
                     if (!setUserNameResult.Succeeded)
                     {
                         throw new InvalidOperationException(string.Join(Environment.NewLine, setUserNameResult.Errors.Select(x => x.Description)));
                     }
 
                     member.User.EmailConfirmed = false;
-                    hasChanges = true;
                 }
             }
         }
@@ -1651,15 +1781,36 @@ public class MemberService : IMemberService
 
             if (!string.Equals(member.PhoneNumber, phoneNumber, StringComparison.Ordinal))
             {
+                var nextEmail = request.Email != null
+                    ? (string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim())
+                    : member.Email;
+
+                await EnsureMemberContactUniqueInLibraryAsync(
+                    currentLibraryId,
+                    phoneNumber,
+                    nextEmail,
+                    !string.IsNullOrWhiteSpace(request.FullName) ? request.FullName.Trim() : member.FullName,
+                    member.Id,
+                    cancellationToken);
+
                 member.PhoneNumber = phoneNumber;
                 member.User.PhoneNumber = phoneNumber;
 
-                // If user currently uses synthetic email/username based on old phone, update it
-                if (member.User.Email != null && member.User.Email.EndsWith("@member.lexora.local", StringComparison.OrdinalIgnoreCase))
+                if (MemberContactHelper.IsSyntheticIdentityEmail(member.User.Email))
                 {
-                    var newSyntheticEmail = $"{phoneNumber}@member.lexora.local";
-                    await _userManager.SetEmailAsync(member.User, newSyntheticEmail);
-                    await _userManager.SetUserNameAsync(member.User, phoneNumber);
+                    if (member.User.UserName?.StartsWith("m_", StringComparison.Ordinal) == true)
+                    {
+                        var scopedUserName = MemberContactHelper.BuildLibraryScopedUserName(currentLibraryId, phoneNumber);
+                        var scopedEmail = MemberContactHelper.BuildLibraryScopedEmail(currentLibraryId, phoneNumber);
+                        await _userManager.SetEmailAsync(member.User, scopedEmail);
+                        await _userManager.SetUserNameAsync(member.User, scopedUserName);
+                    }
+                    else
+                    {
+                        var newSyntheticEmail = MemberContactHelper.BuildPhoneSyntheticEmail(phoneNumber);
+                        await _userManager.SetEmailAsync(member.User, newSyntheticEmail);
+                        await _userManager.SetUserNameAsync(member.User, phoneNumber);
+                    }
                 }
 
                 hasChanges = true;
@@ -1987,7 +2138,7 @@ public class MemberService : IMemberService
         {
             Id = entity.Id,
             FullName = entity.FullName,
-            Email = entity.User?.Email?.EndsWith("@member.lexora.local", StringComparison.OrdinalIgnoreCase) == true ? null : entity.User?.Email,
+            Email = MemberContactHelper.ResolveContactEmail(entity.Email, entity.User?.Email),
             PhoneNumber = entity.PhoneNumber,
         };
 

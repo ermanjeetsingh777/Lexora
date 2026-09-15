@@ -225,6 +225,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
 
         builder.Entity<Member>(entity =>
         {
+            entity.Property(x => x.Email).HasMaxLength(255);
             entity.Property(x => x.PhotoStoragePath).HasMaxLength(500);
             entity.Property(x => x.PhotoFileName).HasMaxLength(260);
             entity.Property(x => x.AadhaarStoragePath).HasMaxLength(500);

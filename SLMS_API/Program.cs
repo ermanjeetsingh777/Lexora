@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Serilog;
 using SLMS_API;
+using SLMS_API.Application.Helpers;
 using SLMS_API.Application.Options;
 using SLMS_API.Extensions;
 using SLMS_API.Infrastructure.Data;
@@ -9,6 +10,8 @@ using SLMS_API.Infrastructure.Payments;
 using System.Reflection;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+MemberContactHelper.Configure(builder.Configuration["Identity:MemberSyntheticEmailDomain"]);
 
 // User secrets load automatically only under Development, but the Local/Dev/QA/UAT profiles
 // need them too — gateway keys must never sit in a checked-in appsettings file.

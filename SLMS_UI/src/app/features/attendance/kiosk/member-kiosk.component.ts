@@ -35,16 +35,26 @@ export class MemberKioskComponent implements OnInit {
   readonly librarySeats = signal<AttendanceSeatOption[]>([]);
   readonly seatsLoading = signal(false);
   readonly selectedSeatNumber = signal<string | null>(null);
+  readonly autoApplied = signal(false);
 
   readonly canCheckIn = computed(() => this.memberStatus()?.suggestedAction === 'check-in');
   readonly canCheckOut = computed(() => this.memberStatus()?.suggestedAction === 'check-out');
   readonly isDone = computed(() => this.memberStatus()?.suggestedAction === 'done');
   readonly formatAttendanceTime = formatAttendanceDisplayTime;
 
+  readonly needsSeatPicker = computed(() =>
+    this.canCheckIn() && !this.selectedSeatNumber() && !this.context()?.assignedSeatNumber,
+  );
+
   readonly actionHint = computed(() => {
     if (this.isDone()) return 'Attendance completed for today.';
-    if (this.canCheckIn()) return 'Tap Check in or use Auto to mark arrival.';
-    if (this.canCheckOut()) return 'Tap Check out or use Auto to mark departure.';
+    if (this.canCheckIn() && this.selectedSeatNumber()) {
+      return this.autoApplied()
+        ? `Checked in on seat ${this.selectedSeatNumber()}.`
+        : `Ready to check in on seat ${this.selectedSeatNumber()}.`;
+    }
+    if (this.canCheckIn()) return 'Select a seat, then check in — or ask staff to assign your seat.';
+    if (this.canCheckOut()) return 'Tap Check out or wait — auto checkout may already have run.';
     return '';
   });
 
@@ -68,8 +78,11 @@ export class MemberKioskComponent implements OnInit {
         }
 
         this.context.set(ctx);
+        if (ctx.assignedSeatNumber) {
+          this.selectedSeatNumber.set(ctx.assignedSeatNumber);
+        }
         this.loading.set(false);
-        this.loadStatus(ctx.token);
+        this.loadStatusAndMaybeAuto(ctx.token);
         this.loadSeats(ctx.token);
       },
       error: (err) => {
@@ -79,7 +92,7 @@ export class MemberKioskComponent implements OnInit {
     });
   }
 
-  record(action: 'check-in' | 'check-out' | 'auto'): void {
+  record(action: 'check-in' | 'check-out' | 'auto', opts?: { silent?: boolean }): void {
     const ctx = this.context();
     if (!ctx) return;
 
@@ -87,7 +100,12 @@ export class MemberKioskComponent implements OnInit {
       ? (this.canCheckIn() ? 'check-in' : this.canCheckOut() ? 'check-out' : action)
       : action;
 
-    if (resolvedAction === 'check-in' && !this.selectedSeatNumber()) {
+    const seat =
+      this.selectedSeatNumber()
+      || ctx.assignedSeatNumber
+      || undefined;
+
+    if (resolvedAction === 'check-in' && !seat) {
       this.setMessage('Please select an available seat before checking in.', true);
       return;
     }
@@ -97,31 +115,53 @@ export class MemberKioskComponent implements OnInit {
       memberToken: ctx.token,
       action,
       deviceId: this.device.getDeviceId(),
-      seatNumber: resolvedAction === 'check-in' ? this.selectedSeatNumber() ?? undefined : undefined,
+      seatNumber: resolvedAction === 'check-in' ? seat : undefined,
     }).subscribe({
       next: (result) => {
         this.busy.set(false);
-        this.setMessage(result.message, false);
-        this.device.bindMember(ctx.memberId, ctx.fullName);
-        this.selectedSeatNumber.set(null);
+        this.setMessage(result.message ?? 'Attendance updated.', false);
+        if (!opts?.silent) {
+          this.autoApplied.set(true);
+        } else {
+          this.autoApplied.set(true);
+        }
         this.loadStatus(ctx.token);
-        this.loadSeats(ctx.token);
       },
       error: (err) => {
         this.busy.set(false);
-        this.setMessage(err?.error?.message ?? 'Attendance action failed', true);
+        this.setMessage(err?.error?.message ?? 'Could not record attendance.', true);
       },
     });
   }
 
-  private setMessage(message: string | null, isError = false): void {
-    this.lastMessage.set(message);
-    this.lastMessageIsError.set(isError);
+  private loadStatusAndMaybeAuto(token: string): void {
+    this.kiosk.getMemberSelfStatus(token).subscribe({
+      next: (status) => {
+        this.memberStatus.set(status);
+        if (status.seatNumber) {
+          this.selectedSeatNumber.set(status.seatNumber);
+        }
+
+        const ctx = this.context();
+        const seat = this.selectedSeatNumber() || ctx?.assignedSeatNumber;
+        if (status.suggestedAction === 'check-in' && seat) {
+          this.selectedSeatNumber.set(seat);
+          this.record('check-in', { silent: true });
+        } else if (status.suggestedAction === 'check-out') {
+          this.record('check-out', { silent: true });
+        }
+      },
+      error: (err) => this.setMessage(err?.error?.message ?? 'Could not load status.', true),
+    });
   }
 
   private loadStatus(token: string): void {
     this.kiosk.getMemberSelfStatus(token).subscribe({
-      next: (status) => this.memberStatus.set(status),
+      next: (status) => {
+        this.memberStatus.set(status);
+        if (status.seatNumber) this.selectedSeatNumber.set(status.seatNumber);
+      },
+      error: (err) => this.setMessage(err?.error?.message ?? 'Could not load status.', true),
     });
   }
 
@@ -137,5 +177,10 @@ export class MemberKioskComponent implements OnInit {
         this.seatsLoading.set(false);
       },
     });
+  }
+
+  private setMessage(message: string, isError: boolean): void {
+    this.lastMessage.set(message);
+    this.lastMessageIsError.set(isError);
   }
 }

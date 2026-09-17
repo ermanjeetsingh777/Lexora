@@ -79,6 +79,9 @@ public class MemberScannerContextResponse
     public string LibraryName { get; set; } = string.Empty;
     public string BranchName { get; set; } = string.Empty;
     public string InstitutionName { get; set; } = string.Empty;
+    /// <summary>Seat permanently assigned on the member's current library enrollment.</summary>
+    public string? AssignedSeatNumber { get; set; }
+    public string? LibraryAddress { get; set; }
 }
 
 public class MemberScannerRecordRequest

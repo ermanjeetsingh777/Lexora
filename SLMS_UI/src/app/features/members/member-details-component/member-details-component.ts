@@ -79,6 +79,7 @@ import {
 import { AttendanceExportService } from '@features/attendance/attendance-export.service';
 import { collectRouteParams, memberBackNav, memberEditLink } from '@core/utils/entity-routes.util';
 import { AuthService } from '@core/services/auth.service';
+import { exportMemberIdCardPdf, imageUrlToDataUrl } from '../member-id-card-pdf.util';
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -199,6 +200,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   readonly aadhaarUploading = signal(false);
   readonly memberAttendanceQr = signal<string | null>(null);
   readonly memberAttendanceScanUrl = signal<string | null>(null);
+  readonly downloadingIdCard = signal(false);
   readonly plans = signal<PlanResponse[]>([]);
 
   readonly activeTab = signal<TabId>('overview');
@@ -931,6 +933,42 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   openAadhaarInNewTab(): void {
     const url = this.memberAadhaarPreview();
     if (url) window.open(url, '_blank', 'noopener');
+  }
+
+  async downloadMemberIdCard(): Promise<void> {
+    const m = this.memberDetails();
+    const qr = this.memberAttendanceQr();
+    const scanUrl = this.memberAttendanceScanUrl();
+    if (!m || !qr || !scanUrl) {
+      this.toast.error('Attendance QR is not ready yet. Refresh and try again.');
+      return;
+    }
+
+    this.downloadingIdCard.set(true);
+    this.actionsOpen.set(false);
+    try {
+      const photoDataUrl = await imageUrlToDataUrl(this.memberPhotoPreview());
+      exportMemberIdCardPdf({
+        fullName: m.name,
+        membershipNo: m.membershipNo || m.id,
+        phone: m.phone,
+        email: m.email,
+        photoDataUrl,
+        libraryName: m.library,
+        branchName: m.branch,
+        institutionName: m.institution,
+        seatNumber: m.seatNumber,
+        planName: m.plan,
+        scanUrl,
+        qrCodeBase64: qr,
+      });
+      this.toast.success('Member ID card downloaded');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not generate ID card';
+      this.toast.error(message);
+    } finally {
+      this.downloadingIdCard.set(false);
+    }
   }
 
   private loadMemberAttendanceQr(): void {

@@ -5,6 +5,8 @@ import {
   AttendanceResponse,
   AttendanceSeatOption,
   MemberQrCode,
+  MemberScannerContext,
+  MemberScannerRecordRequest,
   ScannerAttendanceRequest,
   ScannerAttendanceResult,
   ScannerContext,
@@ -62,6 +64,18 @@ export class AttendanceScannerService {
   getMemberQr(memberId: string): Observable<MemberQrCode> {
     return this.api
       .get<MemberQrCode>(`${this.base}/members/${memberId}/qr`)
+      .pipe(map((r) => r.data!));
+  }
+
+  resolveMemberByToken(token: string): Observable<MemberScannerContext> {
+    return this.api
+      .get<MemberScannerContext>(`${this.base}/members/resolve`, { params: { token } })
+      .pipe(map((r) => r.data!));
+  }
+
+  recordByMemberToken(request: MemberScannerRecordRequest): Observable<ScannerAttendanceResult> {
+    return this.api
+      .post<ScannerAttendanceResult>(`${this.base}/members/record-by-token`, request)
       .pipe(map((r) => r.data!));
   }
 }

@@ -191,6 +191,8 @@ export interface MemberScannerContext {
     libraryName: string;
     branchName: string;
     institutionName: string;
+    assignedSeatNumber?: string | null;
+    libraryAddress?: string | null;
 }
 
 export interface MemberScannerRecordRequest {

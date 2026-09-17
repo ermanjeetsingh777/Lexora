@@ -42,6 +42,12 @@
           class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
           <svg lucideArmchair class="h-4 w-4"></svg> Reassign seat
         </button> -->
+        <button type="button" (click)="downloadMemberIdCard()"
+          class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent"
+          [disabled]="downloadingIdCard()">
+          <svg lucideIdCard class="h-4 w-4"></svg>
+          {{ downloadingIdCard() ? 'Generating ID…' : 'Download ID card' }}
+        </button>
         <button type="button" (click)="openDialog('shift')"
           class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-accent">
           <svg lucideClock class="h-4 w-4"></svg> Change shift
@@ -513,15 +519,39 @@
       </div>
     </div>
 
-    <!-- Attendance QR -->
+    <!-- Attendance QR + ID card -->
     <app-glass-card class="block">
-      <app-section-header title="Attendance QR" description="Member scans this to check in or check out — no login required" />
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <app-section-header
+          title="Attendance QR & ID card"
+          description="Front: name, photo, ID, phone, email · Back: library address + QR. Scan applies attendance with assigned seat."
+        />
+        <app-button
+          variant="outline"
+          size="sm"
+          [disabled]="downloadingIdCard() || !memberAttendanceQr()"
+          (click)="downloadMemberIdCard()"
+        >
+          <svg lucideIdCard class="h-4 w-4 mr-1"></svg>
+          {{ downloadingIdCard() ? 'Generating…' : 'Download ID card' }}
+        </app-button>
+      </div>
       @if (memberAttendanceQr()) {
         <div class="mt-4 flex flex-wrap items-center gap-4">
           <img [src]="memberAttendanceQr()!" alt="Member attendance QR" class="h-36 w-36 rounded-lg border bg-white p-2" />
-          <div class="text-xs text-muted-foreground break-all max-w-md">
-            <p class="font-medium text-foreground mb-1">Scan URL</p>
-            {{ memberAttendanceScanUrl() }}
+          <div class="text-xs text-muted-foreground break-all max-w-md space-y-2">
+            <div>
+              <p class="font-medium text-foreground mb-1">Scan URL</p>
+              {{ memberAttendanceScanUrl() }}
+            </div>
+            <p class="text-[11px] leading-relaxed">
+              When the member scans this QR, check-in / check-out runs automatically using their assigned seat
+              @if (m.seatNumber) {
+                (<span class="font-mono text-foreground">{{ m.seatNumber }}</span>).
+              } @else {
+                (assign a seat first, or they pick one on the kiosk).
+              }
+            </p>
           </div>
         </div>
       } @else {

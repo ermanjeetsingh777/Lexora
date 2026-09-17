@@ -23,6 +23,7 @@ export const SIDEBAR_NAV: NavGroup[] = [
       { title: 'Seats', route: '/seats', icon: 'armchair' },
       { title: 'Attendance', route: '/attendance', icon: 'calendar-check' },
       { title: 'Scanner', route: '/attendance/scanner', icon: 'qr-code' },
+      { title: 'Member QR', route: '/attendance/member-scan', icon: 'scan-line' },
     ],
   },
   {

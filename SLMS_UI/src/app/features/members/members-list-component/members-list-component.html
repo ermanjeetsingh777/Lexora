@@ -1,6 +1,12 @@
 <app-page-header eyebrow="People" title="Members" [description]="headerDescription()">
   <div actions class="flex flex-wrap items-center gap-2">
     <app-quota-badge resourceType="member" variant="pill" />
+    <a routerLink="/members/scan" title="Scan member ID QR">
+      <app-button size="sm" variant="outline">
+        <svg lucideScanLine class="h-4 w-4 md:mr-1"></svg>
+        <span class="hidden md:inline">Scan ID</span>
+      </app-button>
+    </a>
     @if (canCreate()) {
       <a routerLink="/members/bulk-upload" title="Bulk upload">
         <app-button size="sm" variant="outline">

@@ -13,6 +13,7 @@ import {
   LucideFileSpreadsheet,
   LucideKeyRound,
   LucideMessageCircle,
+  LucideScanLine,
 } from '@lucide/angular';
 import { Subject, catchError, debounceTime, distinctUntilChanged, forkJoin, of, switchMap, tap } from 'rxjs';
 import { WhatsAppService } from '@core/services/whatsapp.service';
@@ -99,6 +100,7 @@ function cacheKey(query: MemberListQuery): string {
     LucideFileSpreadsheet,
     LucideKeyRound,
     LucideMessageCircle,
+    LucideScanLine,
     RenewPlanDialogComponent,
     MemberAvatarComponent,
   ],

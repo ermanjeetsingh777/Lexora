@@ -34,14 +34,14 @@
             </div>
           </div>
 
-          @if (status.seatNumber) {
+          @if (status.seatNumber || selectedSeatNumber()) {
             <div class="rounded-lg border border-white/10 p-3 mt-4 text-left">
               <p class="text-xs text-slate-400">Seat</p>
-              <p class="font-medium mt-1 font-mono">{{ status.seatNumber }}</p>
+              <p class="font-medium mt-1 font-mono">{{ status.seatNumber || selectedSeatNumber() }}</p>
             </div>
           }
 
-          @if (canCheckIn()) {
+          @if (needsSeatPicker()) {
             <div class="rounded-lg border border-white/10 p-3 mt-4 text-left kiosk-seat-picker">
               <app-attendance-seat-picker
                 [seats]="librarySeats()"
@@ -57,7 +57,7 @@
             type="button"
             class="kiosk-btn kiosk-btn--check-in"
             [class.kiosk-btn--highlight]="canCheckIn()"
-            [disabled]="busy() || !canCheckIn() || !selectedSeatNumber()"
+            [disabled]="busy() || !canCheckIn() || (!selectedSeatNumber() && !context()?.assignedSeatNumber)"
             (click)="record('check-in')"
           >
             <svg lucideLogIn class="kiosk-btn__icon"></svg>
@@ -77,7 +77,7 @@
             type="button"
             class="kiosk-btn kiosk-btn--auto"
             [class.kiosk-btn--highlight]="!isDone()"
-            [disabled]="busy() || isDone()"
+            [disabled]="busy() || isDone() || (canCheckIn() && !selectedSeatNumber() && !context()?.assignedSeatNumber)"
             (click)="record('auto')"
           >
             <span>Auto check in / out</span>

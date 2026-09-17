@@ -215,6 +215,89 @@ public class AttendanceScannerController : ControllerBase
         }
     }
 
+    /// <summary>Resolve a member attendance QR token (ID card / personal QR) for staff.</summary>
+    [HttpGet("members/resolve")]
+    public async Task<ActionResult<ApiResponse<MemberScannerContextResponse>>> ResolveMemberByToken(
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
+    {
+        if (!CanResolveMemberQr())
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<MemberScannerContextResponse>.Fail("You do not have permission to scan member QR codes."));
+        }
+
+        try
+        {
+            // Skip kiosk device binding for staff resolve
+            var context = await _scannerService.GetMemberContextAsync(
+                token,
+                GetMemberKioskUrlBase(),
+                deviceId: $"staff:{_currentUserService.UserId}",
+                cancellationToken);
+
+            await EnsureLibraryAccessAsync(context.LibraryId, cancellationToken);
+            return Ok(ApiResponse<MemberScannerContextResponse>.Ok(context));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<MemberScannerContextResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<MemberScannerContextResponse>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Mark attendance from a member personal QR (uses assigned seat when present).</summary>
+    [HttpPost("members/record-by-token")]
+    [Permission(PermissionKey.AttendanceScannerUse)]
+    public async Task<ActionResult<ApiResponse<ScannerAttendanceResultResponse>>> RecordByMemberToken(
+        [FromBody] MemberScannerRecordRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var context = await _scannerService.GetMemberContextAsync(
+                request.MemberToken,
+                GetMemberKioskUrlBase(),
+                deviceId: $"staff:{_currentUserService.UserId}",
+                cancellationToken);
+            await EnsureLibraryAccessAsync(context.LibraryId, cancellationToken);
+
+            request.DeviceId = string.IsNullOrWhiteSpace(request.DeviceId)
+                ? $"staff:{_currentUserService.UserId}"
+                : request.DeviceId;
+
+            var result = await _scannerService.RecordByMemberTokenAsync(
+                request,
+                _currentUserService.UserId,
+                cancellationToken);
+            return Ok(ApiResponse<ScannerAttendanceResultResponse>.Ok(result, result.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ScannerAttendanceResultResponse>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<ScannerAttendanceResultResponse>.Fail(ex.Message));
+        }
+    }
+
+    private bool CanResolveMemberQr()
+    {
+        if (User.IsInRole(RoleDefinitions.SuperAdmin)) return true;
+        var scannerClaim = PermissionKey.AttendanceScannerUse.ToClaimValue();
+        var attendanceViewClaim = PermissionKey.AttendanceView.ToClaimValue();
+        var membersViewClaim = PermissionKey.MembersView.ToClaimValue();
+        var membersListClaim = PermissionKey.MembersList.ToClaimValue();
+        return User.Claims.Any(x => x.Type == "permission" &&
+            (string.Equals(x.Value, scannerClaim, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(x.Value, attendanceViewClaim, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(x.Value, membersViewClaim, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(x.Value, membersListClaim, StringComparison.OrdinalIgnoreCase)));
+    }
+
     private async Task EnsureLibraryAccessForTokenAsync(string libraryToken, CancellationToken cancellationToken)
     {
         var libraryId = await _scannerService.ResolveLibraryIdByTokenAsync(libraryToken, cancellationToken);

@@ -297,7 +297,7 @@ public class AttendanceScannerService : IAttendanceScannerService
         string? deviceId = null,
         CancellationToken cancellationToken = default)
     {
-        var (member, library) = await ResolveMemberWithLibraryAsync(memberToken, cancellationToken);
+        var (member, library, assignedSeat) = await ResolveMemberWithLibraryAsync(memberToken, cancellationToken);
         await EnsureMemberTokenAsync(member, cancellationToken);
         await EnsureDeviceAllowsMemberAsync(deviceId, member.Id, cancellationToken);
 
@@ -312,6 +312,8 @@ public class AttendanceScannerService : IAttendanceScannerService
             LibraryName = library.Name,
             BranchName = library.Branch?.Name ?? string.Empty,
             InstitutionName = library.Institution?.Name ?? string.Empty,
+            AssignedSeatNumber = assignedSeat,
+            LibraryAddress = library.Address,
         };
     }
 
@@ -319,7 +321,7 @@ public class AttendanceScannerService : IAttendanceScannerService
         string memberToken,
         CancellationToken cancellationToken = default)
     {
-        var (member, library) = await ResolveMemberWithLibraryAsync(memberToken, cancellationToken);
+        var (member, library, _) = await ResolveMemberWithLibraryAsync(memberToken, cancellationToken);
         return await GetMemberStatusAsync(library.AttendanceQrToken!, member.Id, cancellationToken);
     }
 
@@ -328,11 +330,27 @@ public class AttendanceScannerService : IAttendanceScannerService
         string? userId,
         CancellationToken cancellationToken = default)
     {
-        var (member, library) = await ResolveMemberWithLibraryAsync(request.MemberToken, cancellationToken);
+        var (member, library, assignedSeat) = await ResolveMemberWithLibraryAsync(request.MemberToken, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(library.AttendanceQrToken))
         {
             throw new InvalidOperationException("Library attendance QR is not configured.");
+        }
+
+        var action = (request.Action ?? "auto").Trim().ToLowerInvariant();
+        var seatNumber = string.IsNullOrWhiteSpace(request.SeatNumber)
+            ? assignedSeat
+            : request.SeatNumber.Trim();
+
+        if ((action is "check-in" or "auto") && string.IsNullOrWhiteSpace(seatNumber))
+        {
+            // For auto, seat is only required when check-in is the next step — validate inside RecordAsync path.
+            // Pre-check for explicit check-in.
+            if (action == "check-in")
+            {
+                throw new InvalidOperationException(
+                    "No seat assigned on your membership. Select a seat or ask staff to assign one.");
+            }
         }
 
         return await RecordAsync(new ScannerAttendanceRequest
@@ -340,7 +358,7 @@ public class AttendanceScannerService : IAttendanceScannerService
             LibraryToken = library.AttendanceQrToken,
             MemberId = member.Id,
             Action = request.Action,
-            SeatNumber = request.SeatNumber,
+            SeatNumber = seatNumber,
             DeviceId = request.DeviceId ?? $"member-qr:{member.Id}",
             Remarks = request.Remarks,
         }, userId ?? "kiosk", cancellationToken);
@@ -388,7 +406,7 @@ public class AttendanceScannerService : IAttendanceScannerService
             $"This device is already used for {otherMember.FullName}'s attendance today. One device can mark attendance for only one member.");
     }
 
-    private async Task<(Domain.Entities.Member Member, Library Library)> ResolveMemberWithLibraryAsync(
+    private async Task<(Domain.Entities.Member Member, Library Library, string? AssignedSeatNumber)> ResolveMemberWithLibraryAsync(
         string memberToken,
         CancellationToken cancellationToken)
     {
@@ -409,6 +427,7 @@ public class AttendanceScannerService : IAttendanceScannerService
                 .ThenInclude(l => l.Branch)
             .Include(ml => ml.Library)
                 .ThenInclude(l => l.Institution)
+            .Include(ml => ml.Seat)
             .Where(ml => ml.MemberId == member.Id && ml.IsActive && !ml.IsDeleted)
             .OrderByDescending(ml => ml.IsCurrent)
             .ThenByDescending(ml => ml.JoinedOn)
@@ -423,7 +442,8 @@ public class AttendanceScannerService : IAttendanceScannerService
             throw new InvalidOperationException("Member library is inactive.");
         }
 
-        return (member, library);
+        var assignedSeat = memberLibrary.Seat?.SeatNumber;
+        return (member, library, assignedSeat);
     }
 
     private async Task EnsureMemberTokenAsync(Domain.Entities.Member member, CancellationToken cancellationToken)

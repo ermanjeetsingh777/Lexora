@@ -21,6 +21,7 @@ export class AttendanceShellComponent implements OnInit {
     { label: 'Live', link: '/attendance/live' },
     { label: 'Records', link: '/attendance/records' },
     { label: 'Scanner', link: '/attendance/scanner' },
+    { label: 'Member QR', link: '/attendance/member-scan' },
   ];
 
   readonly libraryOptions = computed(() => this.filters.libraries());

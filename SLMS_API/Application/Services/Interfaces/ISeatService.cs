@@ -9,5 +9,7 @@ public interface ISeatService
     Task<SeatResponse> CreateAsync(Guid institutionId, Guid branchId, CreateSeatRequest request, string? userId, CancellationToken cancellationToken = default);
     Task<SeatResponse?> GetByIdAsync(Guid institutionId, Guid branchId, Guid seatId, CancellationToken cancellationToken = default);
     Task<SeatResponse> UpdateAsync(Guid institutionId, Guid branchId, Guid seatId, UpdateSeatRequest request, string? userId, CancellationToken cancellationToken = default);
+    Task<SeatResponse> AssignAsync(Guid institutionId, Guid branchId, Guid seatId, AssignSeatRequest request, string? userId, CancellationToken cancellationToken = default);
+    Task<SeatResponse> ReleaseAsync(Guid institutionId, Guid branchId, Guid seatId, string? userId, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid institutionId, Guid branchId, Guid seatId, string? userId, CancellationToken cancellationToken = default);
 }

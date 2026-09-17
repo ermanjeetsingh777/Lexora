@@ -7,6 +7,8 @@ export interface CreatePlanRequest {
   /** HH:mm — defaults to library hours when omitted on create */
   startTime?: string | null;
   endTime?: string | null;
+  /** Late check-in grace (0–120). Default 10. */
+  graceMinutes?: number | null;
   isActive: boolean;
 }
 
@@ -19,5 +21,6 @@ export interface UpdatePlanRequest {
   maxSeats?: number | null;
   startTime?: string | null;
   endTime?: string | null;
+  graceMinutes?: number | null;
   isActive: boolean;
 }

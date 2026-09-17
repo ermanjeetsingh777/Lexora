@@ -31,6 +31,7 @@ export interface PlanResponse {
     maxSeats : number,
     startTime?: string | null,
     endTime?: string | null,
+    graceMinutes?: number,
     isActive : boolean,
     createdAtUtc : Date
 }

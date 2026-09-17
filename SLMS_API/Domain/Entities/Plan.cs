@@ -31,6 +31,9 @@
         /// <summary>Daily attendance window end.</summary>
         public TimeOnly? EndTime { get; set; }
 
+        /// <summary>Minutes after StartTime before check-in counts as late (default 10).</summary>
+        public int GraceMinutes { get; set; } = 10;
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

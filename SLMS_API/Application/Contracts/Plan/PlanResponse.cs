@@ -24,6 +24,8 @@
 
         public TimeOnly? EndTime { get; set; }
 
+        public int GraceMinutes { get; set; }
+
         public bool IsActive { get; set; }
 
         public DateTime CreatedAtUtc { get; set; }

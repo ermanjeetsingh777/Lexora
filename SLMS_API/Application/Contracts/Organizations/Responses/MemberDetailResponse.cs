@@ -44,6 +44,9 @@ namespace SLMS_API.Application.Contracts.Organizations.Responses
         public DateOnly? PlanStartDate { get; set; }
         public DateOnly? PlanEndDate { get; set; }
         public int PlanDurationInDays { get; set; }
+        public TimeOnly? PlanStartTime { get; set; }
+        public TimeOnly? PlanEndTime { get; set; }
+        public int? PlanGraceMinutes { get; set; }
 
         // Shift
         public string? Shift { get; set; }

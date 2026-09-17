@@ -29,6 +29,7 @@ namespace SLMS_API.Application.Services
             MaxSeats = x.MaxSeats,
             StartTime = x.StartTime,
             EndTime = x.EndTime,
+            GraceMinutes = x.GraceMinutes,
             IsActive = x.IsActive,
             CreatedAtUtc = x.CreatedAtUtc
         };
@@ -53,6 +54,7 @@ namespace SLMS_API.Application.Services
                     MaxSeats = x.MaxSeats,
                     StartTime = x.StartTime,
                     EndTime = x.EndTime,
+                    GraceMinutes = x.GraceMinutes,
                     IsActive = x.IsActive,
                     CreatedAtUtc = x.CreatedAtUtc
                 })
@@ -90,6 +92,7 @@ namespace SLMS_API.Application.Services
                     MaxSeats = x.MaxSeats,
                     StartTime = x.StartTime,
                     EndTime = x.EndTime,
+                    GraceMinutes = x.GraceMinutes,
                     IsActive = x.IsActive,
                     CreatedAtUtc = x.CreatedAtUtc
                 })
@@ -142,12 +145,13 @@ namespace SLMS_API.Application.Services
             if (request.DurationInDays <= 0)
                 throw new InvalidOperationException("Duration must be greater than zero.");
 
-            var (defaultStart, defaultEnd) = await PlanAttendanceTimingHelper.ResolveLibraryDefaultHoursAsync(
+            var defaults = await PlanAttendanceTimingHelper.ResolveLibraryDefaultHoursAsync(
                 _context, libraryId, branchId, cancellationToken);
 
-            var startTime = request.StartTime ?? defaultStart;
-            var endTime = request.EndTime ?? defaultEnd;
+            var startTime = request.StartTime ?? defaults.Start;
+            var endTime = request.EndTime ?? defaults.End;
             PlanAttendanceTimingHelper.ValidatePlanWindow(startTime, endTime);
+            var graceMinutes = PlanAttendanceTimingHelper.ClampGraceMinutes(request.GraceMinutes);
 
             var plan = new Plan
             {
@@ -162,6 +166,7 @@ namespace SLMS_API.Application.Services
                 MaxSeats = request.MaxSeats,
                 StartTime = startTime,
                 EndTime = endTime,
+                GraceMinutes = graceMinutes,
                 IsActive = request.IsActive,
                 CreatedAtUtc = DateTime.UtcNow
             };
@@ -256,6 +261,11 @@ namespace SLMS_API.Application.Services
                 PlanAttendanceTimingHelper.ValidatePlanWindow(start, end);
                 plan.StartTime = start;
                 plan.EndTime = end;
+            }
+
+            if (request.GraceMinutes.HasValue)
+            {
+                plan.GraceMinutes = PlanAttendanceTimingHelper.ClampGraceMinutes(request.GraceMinutes);
             }
             plan.IsActive = request.IsActive;
             plan.UpdatedAtUtc = DateTime.UtcNow;
@@ -382,13 +392,13 @@ namespace SLMS_API.Application.Services
                 throw new InvalidOperationException(
                     $"Plan already exists: {string.Join(", ", duplicateDbNames)}");
 
-            var (defaultStart, defaultEnd) = await PlanAttendanceTimingHelper.ResolveLibraryDefaultHoursAsync(
+            var defaults = await PlanAttendanceTimingHelper.ResolveLibraryDefaultHoursAsync(
                 _context, libraryId, branchId, cancellationToken);
 
             var plans = requests.Select(x =>
             {
-                var start = x.StartTime ?? defaultStart;
-                var end = x.EndTime ?? defaultEnd;
+                var start = x.StartTime ?? defaults.Start;
+                var end = x.EndTime ?? defaults.End;
                 PlanAttendanceTimingHelper.ValidatePlanWindow(start, end);
                 return new Plan
                 {
@@ -403,6 +413,7 @@ namespace SLMS_API.Application.Services
                     MaxSeats = x.MaxSeats,
                     StartTime = start,
                     EndTime = end,
+                    GraceMinutes = PlanAttendanceTimingHelper.ClampGraceMinutes(x.GraceMinutes),
                     IsActive = x.IsActive,
                     CreatedAtUtc = DateTime.UtcNow
                 };
@@ -427,6 +438,7 @@ namespace SLMS_API.Application.Services
                     MaxSeats = x.MaxSeats,
                     StartTime = x.StartTime,
                     EndTime = x.EndTime,
+                    GraceMinutes = x.GraceMinutes,
                     IsActive = x.IsActive,
                     CreatedAtUtc = x.CreatedAtUtc
                 })

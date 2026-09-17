@@ -89,6 +89,13 @@ function monthStartIsoDate(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
+/** API TimeOnly may arrive as "09:00:00" or "09:00". */
+function formatPlanTime(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length >= 5 ? trimmed.slice(0, 5) : trimmed;
+}
+
 type TabId = 'overview' | 'attendance' | 'library-calendar' | 'payments' | 'contacts' | 'plans' | 'books' | 'ebooks' | 'password';
 
 const ATTENDANCE_LOG_PAGE_SIZE_OPTS = [5, 10, 15, 30] as const;
@@ -310,6 +317,15 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
       // checkInLocal: attendance.checkInTime ? new Date(attendance.checkInTime) : null,
       // checkOutLocal: attendance.checkOutTime ? new Date(attendance.checkOutTime) : null
     };
+  });
+
+  /** e.g. "09:00–18:00" from current plan window */
+  readonly planHoursLabel = computed(() => {
+    const m = this.memberDetails();
+    const start = formatPlanTime(m?.planStartTime);
+    const end = formatPlanTime(m?.planEndTime);
+    if (!start || !end) return null;
+    return `${start}–${end}`;
   });
 
   readonly remainingDays = computed(() => {

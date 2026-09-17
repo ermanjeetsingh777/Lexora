@@ -192,6 +192,11 @@ export class QrCameraScannerModalComponent implements OnInit, OnDestroy {
       } catch {}
     }
 
+    if (this.modalService.consumeScan(trimmed)) {
+      this.close();
+      return;
+    }
+
     this.navigateToTarget(trimmed);
   }
 

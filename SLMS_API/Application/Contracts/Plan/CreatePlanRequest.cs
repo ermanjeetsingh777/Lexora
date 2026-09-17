@@ -24,6 +24,8 @@
         /// <summary>HH:mm — defaults to library hours when omitted.</summary>
         public TimeOnly? EndTime { get; set; }
 
+        public int? GraceMinutes { get; set; }
+
         public bool IsActive { get; set; } = true;
     }
 }

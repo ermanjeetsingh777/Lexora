@@ -101,6 +101,22 @@
         </p>
 
         <div class="space-y-1.5">
+          <label class="text-sm font-medium">Grace minutes</label>
+          <input
+            type="number"
+            min="0"
+            max="120"
+            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            [ngModel]="graceMinutes()"
+            (ngModelChange)="graceMinutes.set(+$event)"
+            name="graceMinutes"
+          />
+          <p class="text-[11px] text-muted-foreground">
+            Check-ins within this window after start time stay Present (e.g. 5–10). Beyond grace = Late. Under half the plan window = Half day.
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
           <label class="text-sm font-medium">Max seats</label>
           <input
             type="number"

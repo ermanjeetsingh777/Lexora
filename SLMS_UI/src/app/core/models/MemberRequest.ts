@@ -178,6 +178,9 @@ export interface MemberDetailResponse {
   planStartDate: string | null;
   planEndDate: string | null;
   planDurationInDays: number;
+  planStartTime?: string | null;
+  planEndTime?: string | null;
+  planGraceMinutes?: number | null;
 
   shift: string | null;
 

@@ -42,6 +42,7 @@ export class LibraryPlanFormDialogComponent {
   readonly maxSeats = signal<number | null>(null);
   readonly startTime = signal('09:00');
   readonly endTime = signal('18:00');
+  readonly graceMinutes = signal(10);
   readonly isActive = signal(true);
   readonly formError = signal<string | null>(null);
 
@@ -64,6 +65,7 @@ export class LibraryPlanFormDialogComponent {
         this.maxSeats.set(plan.maxSeats ?? null);
         this.startTime.set(toTimeInput(plan.startTime, this.defaultStartTime()));
         this.endTime.set(toTimeInput(plan.endTime, this.defaultEndTime()));
+        this.graceMinutes.set(plan.graceMinutes ?? 10);
         this.isActive.set(plan.isActive);
         return;
       }
@@ -74,6 +76,7 @@ export class LibraryPlanFormDialogComponent {
       this.maxSeats.set(null);
       this.startTime.set(this.defaultStartTime());
       this.endTime.set(this.defaultEndTime());
+      this.graceMinutes.set(10);
       this.isActive.set(true);
     });
   }
@@ -106,6 +109,9 @@ export class LibraryPlanFormDialogComponent {
       return;
     }
 
+    const grace = Math.min(120, Math.max(0, Math.round(this.graceMinutes() || 0)));
+    this.graceMinutes.set(grace);
+
     const payloadBase = {
       name: this.nameLocked() && plan ? plan.name : this.name().trim(),
       description: this.description().trim() || null,
@@ -114,6 +120,7 @@ export class LibraryPlanFormDialogComponent {
       maxSeats: this.maxSeats(),
       startTime: this.startTime(),
       endTime: this.endTime(),
+      graceMinutes: grace,
       isActive: this.isActive(),
     };
 

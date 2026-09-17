@@ -47,4 +47,12 @@ public class NotificationsController : ControllerBase
         await _notificationService.MarkAsReadAsync(userId, notificationId, cancellationToken);
         return Ok(ApiResponse<object>.Ok(new { message = "Marked as read." }));
     }
+
+    [HttpPost("generate-alerts")]
+    public async Task<ActionResult<ApiResponse<object>>> GenerateAlerts(CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId ?? string.Empty;
+        var created = await _notificationService.GenerateOperationalAlertsAsync(userId, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { created }, $"Generated {created} alert(s)."));
+    }
 }

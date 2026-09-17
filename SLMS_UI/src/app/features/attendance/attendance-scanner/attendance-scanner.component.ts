@@ -3,11 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import {
   LucideCheckCircle2, LucideDownload, LucideLogIn, LucideLogOut, LucideQrCode,
-  LucideScanLine, LucideSearch, LucideXCircle,
+  LucideScanLine, LucideSearch, LucideXCircle, LucideCamera,
 } from '@lucide/angular';
 import { AttendanceScannerService } from '@core/services/attendance-scanner.service';
 import { AuthService } from '@core/services/auth.service';
 import { KioskDeviceService } from '@core/services/kiosk-device.service';
+import { QrScannerModalService } from '@core/services/qr-scanner-modal.service';
 import { ToastService } from '@core/services/toast.service';
 import { ButtonComponent } from '@shared/components/button/button.component';
 import { GlassCardComponent, PageHeaderComponent } from '@shared/components/page-header/page-header.component';
@@ -30,7 +31,7 @@ import { exportLibraryQrPdf } from '../../libraries/library-qr-pdf.util';
     FormsModule,
     PageHeaderComponent, GlassCardComponent, ButtonComponent, StatusBadgeComponent, AttendanceSeatPickerComponent,
     LucideScanLine, LucideQrCode, LucideSearch, LucideLogIn, LucideLogOut,
-    LucideCheckCircle2, LucideXCircle, LucideDownload,
+    LucideCheckCircle2, LucideXCircle, LucideDownload, LucideCamera,
   ],
   templateUrl: './attendance-scanner.component.html',
   styleUrl: './attendance-scanner.component.css',
@@ -42,6 +43,7 @@ export class AttendanceScannerComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly device = inject(KioskDeviceService);
+  private readonly qrCamera = inject(QrScannerModalService);
 
   readonly loading = signal(true);
   readonly busy = signal(false);
@@ -272,5 +274,52 @@ export class AttendanceScannerComponent implements OnInit {
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.toast.error('Failed to generate QR PDF: ' + message);
     }
+  }
+
+  openCameraScan(): void {
+    this.qrCamera.open((raw) => {
+      const token = this.extractAttendanceToken(raw);
+      if (!token) {
+        this.toast.error('Unrecognized QR code. Scan a library attendance QR.');
+        return true;
+      }
+      this.tokenInput.set(token);
+      this.loadContext(token);
+      this.toast.success('Library QR scanned');
+      return true;
+    });
+  }
+
+  private extractAttendanceToken(raw: string): string | null {
+    const cleaned = (raw || '').trim();
+    if (!cleaned) return null;
+
+    try {
+      if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+        const parsed = new URL(cleaned);
+        const token = parsed.searchParams.get('token');
+        if (token) return token;
+        if (parsed.pathname.includes('/kiosk/attendance')) {
+          return parsed.searchParams.get('token');
+        }
+      }
+    } catch {
+      /* fall through */
+    }
+
+    if (cleaned.startsWith('/kiosk/') || cleaned.startsWith('kiosk/')) {
+      try {
+        const url = new URL(cleaned.startsWith('/') ? cleaned : `/${cleaned}`, window.location.origin);
+        return url.searchParams.get('token');
+      } catch {
+        return null;
+      }
+    }
+
+    // Raw library token
+    if (cleaned.length >= 8 && !cleaned.includes(' ')) {
+      return cleaned;
+    }
+    return null;
   }
 }

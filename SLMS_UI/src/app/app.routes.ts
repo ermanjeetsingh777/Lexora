@@ -161,6 +161,29 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/subscriptions/subscriptions.component').then((m) => m.SubscriptionsComponent),
             },
 
+            // --- Payments hub ---
+            {
+                path: 'payments',
+                canActivate: [permissionGuard],
+                data: { permissions: [PermissionKey.PaymentsView, PermissionKey.PaymentsList], requireAll: false },
+                loadComponent: () => import('./features/payments/payments-hub/payments-hub.component').then((m) => m.PaymentsHubComponent),
+            },
+
+            // --- Notifications center ---
+            {
+                path: 'notifications',
+                canActivate: [authGuard],
+                loadComponent: () => import('./features/notifications/notifications-center.component').then((m) => m.NotificationsCenterComponent),
+            },
+
+            // --- Seats ---
+            {
+                path: 'seats',
+                canActivate: [permissionGuard],
+                data: { permissions: [PermissionKey.SeatsView, PermissionKey.SeatsList], requireAll: false },
+                loadComponent: () => import('./features/seats/seats-hub.component').then((m) => m.SeatsHubComponent),
+            },
+
             // --- Attendance ---
             {
                 path: 'attendance',

@@ -58,6 +58,24 @@ public class SeatsController : ControllerBase
         return Ok(ApiResponse<SeatResponse>.Ok(item, "Seat updated successfully."));
     }
 
+    [HttpPost("{seatId:guid}/assign")]
+    [Permission(PermissionKey.SeatsUpdate)]
+    public async Task<ActionResult<ApiResponse<SeatResponse>>> Assign(Guid institutionId, Guid branchId, Guid seatId, [FromBody] AssignSeatRequest request, CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        var item = await _seatService.AssignAsync(institutionId, branchId, seatId, request, userId, cancellationToken);
+        return Ok(ApiResponse<SeatResponse>.Ok(item, "Seat assigned."));
+    }
+
+    [HttpPost("{seatId:guid}/release")]
+    [Permission(PermissionKey.SeatsUpdate)]
+    public async Task<ActionResult<ApiResponse<SeatResponse>>> Release(Guid institutionId, Guid branchId, Guid seatId, CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        var item = await _seatService.ReleaseAsync(institutionId, branchId, seatId, userId, cancellationToken);
+        return Ok(ApiResponse<SeatResponse>.Ok(item, "Seat released."));
+    }
+
     [HttpDelete("{seatId:guid}")]
     [Permission(PermissionKey.SeatsUpdate)]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid institutionId, Guid branchId, Guid seatId, CancellationToken cancellationToken)

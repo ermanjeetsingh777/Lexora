@@ -46,6 +46,9 @@
               <td class="px-4 py-3 tabular-nums text-xs">
                 @if (plan.startTime && plan.endTime) {
                   {{ plan.startTime | slice:0:5 }}–{{ plan.endTime | slice:0:5 }}
+                  @if (plan.graceMinutes != null) {
+                    <span class="block text-muted-foreground">{{ plan.graceMinutes }}m grace</span>
+                  }
                 } @else {
                   —
                 }

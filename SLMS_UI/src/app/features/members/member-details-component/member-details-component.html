@@ -151,9 +151,16 @@
         <svg lucideCreditCard class="h-4 w-4 text-muted-foreground mt-0.5 shrink-0"></svg>
         <div class="flex-1 min-w-0">
           <div class="label-mono">Plan</div>
-          <div class="mt-0.5">
+          <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
             <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium"
               [class]="commonService.planClasses(m.plan)">{{ m.plan }}</span>
+            @if (planHoursLabel(); as hours) {
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-muted/40 text-[10px] font-medium text-muted-foreground"
+                title="Plan attendance window{{ m.planGraceMinutes != null ? ' · ' + m.planGraceMinutes + ' min grace' : '' }}">
+                <svg lucideClock class="h-3 w-3"></svg>
+                {{ hours }}
+              </span>
+            }
           </div>
         </div>
       </div>
@@ -440,6 +447,9 @@
           </div>
           <div class="text-sm font-semibold mt-1 truncate text-muted-foreground">
             {{m.plan}}
+            @if (planHoursLabel(); as hours) {
+              <span class="ml-1.5 text-[10px] font-medium text-muted-foreground/90">{{ hours }}</span>
+            }
           </div>
         </div>
         <div class="border rounded-lg p-3 bg-muted/20">

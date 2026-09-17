@@ -1001,6 +1001,9 @@ public class MemberService : IMemberService
                         AdjustmentAmount = x.AdjustmentAmount ?? 0,
                         DueAmount = x.DueAmount,
                         x.Plan.DurationInDays,
+                        x.Plan.StartTime,
+                        x.Plan.EndTime,
+                        x.Plan.GraceMinutes,
                         x.StartDate,
                         x.EndDate
                     })
@@ -1166,6 +1169,9 @@ public class MemberService : IMemberService
             PlanStartDate = member.CurrentPlan?.StartDate,
             PlanEndDate = member.CurrentPlan?.EndDate,
             PlanDurationInDays = member.CurrentPlan?.DurationInDays ?? 0,
+            PlanStartTime = member.CurrentPlan?.StartTime,
+            PlanEndTime = member.CurrentPlan?.EndTime,
+            PlanGraceMinutes = member.CurrentPlan?.GraceMinutes,
             Shift = member.Shift,
             SeatId = member.Library?.SeatId,
             SeatNumber = member.Library?.SeatNumber,

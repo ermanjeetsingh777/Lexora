@@ -4,12 +4,18 @@ using SLMS_API.Infrastructure.Data;
 
 namespace SLMS_API.Application.Helpers;
 
+public sealed record PlanScheduleWindow(TimeOnly Start, TimeOnly End, int GraceMinutes)
+{
+    public int PlannedMinutes => Math.Max(0, (int)(End.ToTimeSpan() - Start.ToTimeSpan()).TotalMinutes);
+}
+
 public static class PlanAttendanceTimingHelper
 {
     public static readonly TimeOnly FallbackStart = new(9, 0);
     public static readonly TimeOnly FallbackEnd = new(18, 0);
+    public const int DefaultGraceMinutes = 10;
 
-    public static async Task<(TimeOnly Start, TimeOnly End)> ResolveLibraryDefaultHoursAsync(
+    public static async Task<PlanScheduleWindow> ResolveLibraryDefaultHoursAsync(
         ApplicationDbContext db,
         Guid libraryId,
         Guid branchId,
@@ -34,7 +40,7 @@ public static class PlanAttendanceTimingHelper
 
         if (todayHours?.OpenTime is { } open && todayHours.CloseTime is { } close && close > open)
         {
-            return (open, close);
+            return new PlanScheduleWindow(open, close, DefaultGraceMinutes);
         }
 
         var anyOpen = await db.LibraryWeeklyHours.AsNoTracking()
@@ -45,7 +51,7 @@ public static class PlanAttendanceTimingHelper
 
         if (anyOpen?.OpenTime is { } anyOpenTime && anyOpen.CloseTime is { } anyClose && anyClose > anyOpenTime)
         {
-            return (anyOpenTime, anyClose);
+            return new PlanScheduleWindow(anyOpenTime, anyClose, DefaultGraceMinutes);
         }
 
         var branch = await db.Branches.AsNoTracking()
@@ -57,13 +63,13 @@ public static class PlanAttendanceTimingHelper
             && branch.OperatingHoursEnd is { } branchEnd
             && branchEnd > branchStart)
         {
-            return (branchStart, branchEnd);
+            return new PlanScheduleWindow(branchStart, branchEnd, DefaultGraceMinutes);
         }
 
-        return (FallbackStart, FallbackEnd);
+        return new PlanScheduleWindow(FallbackStart, FallbackEnd, DefaultGraceMinutes);
     }
 
-    public static async Task<(TimeOnly Start, TimeOnly End)?> ResolveMemberPlanHoursAsync(
+    public static async Task<PlanScheduleWindow?> ResolveMemberPlanHoursAsync(
         ApplicationDbContext db,
         Guid memberId,
         Guid libraryId,
@@ -72,15 +78,16 @@ public static class PlanAttendanceTimingHelper
     {
         var planTimes = await db.MemberPlans.AsNoTracking()
             .Where(mp => mp.MemberId == memberId && mp.IsCurrent && !mp.IsDeleted)
-            .Select(mp => new { mp.Plan.StartTime, mp.Plan.EndTime, mp.Plan.LibraryId })
+            .Select(mp => new { mp.Plan.StartTime, mp.Plan.EndTime, mp.Plan.GraceMinutes })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (planTimes is not null)
+        if (planTimes is not null
+            && planTimes.StartTime is { } start
+            && planTimes.EndTime is { } end
+            && end > start)
         {
-            if (planTimes.StartTime is { } start && planTimes.EndTime is { } end && end > start)
-            {
-                return (start, end);
-            }
+            var grace = planTimes.GraceMinutes < 0 ? DefaultGraceMinutes : planTimes.GraceMinutes;
+            return new PlanScheduleWindow(start, end, grace);
         }
 
         return await ResolveLibraryDefaultHoursAsync(db, libraryId, branchId, cancellationToken);
@@ -111,4 +118,7 @@ public static class PlanAttendanceTimingHelper
             throw new InvalidOperationException("Plan end time must be after start time.");
         }
     }
+
+    public static int ClampGraceMinutes(int? graceMinutes) =>
+        Math.Clamp(graceMinutes ?? DefaultGraceMinutes, 0, 120);
 }

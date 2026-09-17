@@ -8,4 +8,6 @@ public interface INotificationService
     Task<IReadOnlyCollection<NotificationResponse>> GetForUserAsync(string userId, CancellationToken cancellationToken = default);
     Task<NotificationResponse> CreateAsync(string userId, NotificationRequest request, CancellationToken cancellationToken = default);
     Task MarkAsReadAsync(string userId, Guid notificationId, CancellationToken cancellationToken = default);
+    /// <summary>Creates inbox alerts for plan expiry (7/3/1), dues, and today's late arrivals.</summary>
+    Task<int> GenerateOperationalAlertsAsync(string userId, CancellationToken cancellationToken = default);
 }

@@ -810,6 +810,8 @@
       [plan]="plansPanel()?.editingPlan() ?? null"
       [plans]="plansPanel()?.plans() ?? []"
       [busy]="plansPanel()?.saving() ?? false"
+      [defaultStartTime]="(detail()?.hoursStart || '09:00').slice(0, 5)"
+      [defaultEndTime]="(detail()?.hoursEnd || '18:00').slice(0, 5)"
       (submitted)="plansPanel()?.onFormSubmit($event)"
       (closed)="plansPanel()?.closeDialog()"
     />

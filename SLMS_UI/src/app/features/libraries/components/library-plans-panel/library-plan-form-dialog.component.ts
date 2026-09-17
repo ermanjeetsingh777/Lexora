@@ -10,6 +10,12 @@ export interface LibraryPlanFormSubmit {
   payload: CreatePlanRequest | UpdatePlanRequest;
 }
 
+function toTimeInput(value: string | null | undefined, fallback: string): string {
+  if (!value) return fallback;
+  // API may return HH:mm:ss
+  return value.length >= 5 ? value.slice(0, 5) : value;
+}
+
 @Component({
   selector: 'app-library-plan-form-dialog',
   standalone: true,
@@ -21,6 +27,10 @@ export class LibraryPlanFormDialogComponent {
   readonly plan = input<PlanResponse | null>(null);
   readonly plans = input<PlanResponse[]>([]);
   readonly busy = input(false);
+  /** Library default open time (HH:mm) used when creating a plan. */
+  readonly defaultStartTime = input('09:00');
+  /** Library default close time (HH:mm) used when creating a plan. */
+  readonly defaultEndTime = input('18:00');
 
   readonly submitted = output<LibraryPlanFormSubmit>();
   readonly closed = output<void>();
@@ -30,6 +40,8 @@ export class LibraryPlanFormDialogComponent {
   readonly price = signal(0);
   readonly durationInDays = signal(30);
   readonly maxSeats = signal<number | null>(null);
+  readonly startTime = signal('09:00');
+  readonly endTime = signal('18:00');
   readonly isActive = signal(true);
   readonly formError = signal<string | null>(null);
 
@@ -50,6 +62,8 @@ export class LibraryPlanFormDialogComponent {
         this.price.set(plan.price);
         this.durationInDays.set(plan.durationInDays);
         this.maxSeats.set(plan.maxSeats ?? null);
+        this.startTime.set(toTimeInput(plan.startTime, this.defaultStartTime()));
+        this.endTime.set(toTimeInput(plan.endTime, this.defaultEndTime()));
         this.isActive.set(plan.isActive);
         return;
       }
@@ -58,6 +72,8 @@ export class LibraryPlanFormDialogComponent {
       this.price.set(0);
       this.durationInDays.set(30);
       this.maxSeats.set(null);
+      this.startTime.set(this.defaultStartTime());
+      this.endTime.set(this.defaultEndTime());
       this.isActive.set(true);
     });
   }
@@ -81,12 +97,23 @@ export class LibraryPlanFormDialogComponent {
       return;
     }
 
+    if (!this.startTime() || !this.endTime()) {
+      this.formError.set('Start time and end time are required.');
+      return;
+    }
+    if (this.endTime() <= this.startTime()) {
+      this.formError.set('End time must be after start time.');
+      return;
+    }
+
     const payloadBase = {
       name: this.nameLocked() && plan ? plan.name : this.name().trim(),
       description: this.description().trim() || null,
       price: this.price(),
       durationInDays: this.durationInDays(),
       maxSeats: this.maxSeats(),
+      startTime: this.startTime(),
+      endTime: this.endTime(),
       isActive: this.isActive(),
     };
 

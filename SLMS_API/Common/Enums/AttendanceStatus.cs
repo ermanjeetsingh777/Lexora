@@ -12,6 +12,7 @@
         Holiday = 8,
         Present = 9,
         HalfDay = 10,
+        Overtime = 11,
     }
 
     public enum AttendanceSource

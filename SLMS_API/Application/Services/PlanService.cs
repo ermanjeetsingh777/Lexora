@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SLMS_API.Application.Contracts.Plan;
+using SLMS_API.Application.Helpers;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Domain.Entities;
 using SLMS_API.Infrastructure.Data;
@@ -14,6 +15,23 @@ namespace SLMS_API.Application.Services
         {
             _context = context;
         }
+
+        private static PlanResponse ToResponse(Plan x) => new()
+        {
+            Id = x.Id,
+            InstitutionId = x.InstitutionId,
+            BranchId = x.BranchId,
+            LibraryId = x.LibraryId,
+            Name = x.Name,
+            Description = x.Description,
+            Price = x.Price,
+            DurationInDays = x.DurationInDays,
+            MaxSeats = x.MaxSeats,
+            StartTime = x.StartTime,
+            EndTime = x.EndTime,
+            IsActive = x.IsActive,
+            CreatedAtUtc = x.CreatedAtUtc
+        };
 
         public async Task<IReadOnlyCollection<PlanResponse>> GetByLibraryAsync(Guid institutionId, Guid branchId, Guid libraryId, CancellationToken cancellationToken = default)
         {
@@ -33,6 +51,8 @@ namespace SLMS_API.Application.Services
                     Price = x.Price,
                     DurationInDays = x.DurationInDays,
                     MaxSeats = x.MaxSeats,
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
                     IsActive = x.IsActive,
                     CreatedAtUtc = x.CreatedAtUtc
                 })
@@ -68,6 +88,8 @@ namespace SLMS_API.Application.Services
                     Price = x.Price,
                     DurationInDays = x.DurationInDays,
                     MaxSeats = x.MaxSeats,
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
                     IsActive = x.IsActive,
                     CreatedAtUtc = x.CreatedAtUtc
                 })
@@ -120,8 +142,12 @@ namespace SLMS_API.Application.Services
             if (request.DurationInDays <= 0)
                 throw new InvalidOperationException("Duration must be greater than zero.");
 
-            //if (request.MaxSeats.HasValue && request.MaxSeats <= 0)
-            //    throw new InvalidOperationException("Max seats must be greater than zero.");
+            var (defaultStart, defaultEnd) = await PlanAttendanceTimingHelper.ResolveLibraryDefaultHoursAsync(
+                _context, libraryId, branchId, cancellationToken);
+
+            var startTime = request.StartTime ?? defaultStart;
+            var endTime = request.EndTime ?? defaultEnd;
+            PlanAttendanceTimingHelper.ValidatePlanWindow(startTime, endTime);
 
             var plan = new Plan
             {
@@ -134,6 +160,8 @@ namespace SLMS_API.Application.Services
                 Price = request.Price,
                 DurationInDays = request.DurationInDays,
                 MaxSeats = request.MaxSeats,
+                StartTime = startTime,
+                EndTime = endTime,
                 IsActive = request.IsActive,
                 CreatedAtUtc = DateTime.UtcNow
             };
@@ -212,6 +240,23 @@ namespace SLMS_API.Application.Services
             plan.Price = request.Price;
             plan.DurationInDays = request.DurationInDays;
             plan.MaxSeats = request.MaxSeats;
+
+            if (request.StartTime.HasValue || request.EndTime.HasValue)
+            {
+                var start = request.StartTime ?? plan.StartTime;
+                var end = request.EndTime ?? plan.EndTime;
+                if (!start.HasValue || !end.HasValue)
+                {
+                    var defaults = await PlanAttendanceTimingHelper.ResolveLibraryDefaultHoursAsync(
+                        _context, libraryId, branchId, cancellationToken);
+                    start ??= defaults.Start;
+                    end ??= defaults.End;
+                }
+
+                PlanAttendanceTimingHelper.ValidatePlanWindow(start, end);
+                plan.StartTime = start;
+                plan.EndTime = end;
+            }
             plan.IsActive = request.IsActive;
             plan.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -337,19 +382,30 @@ namespace SLMS_API.Application.Services
                 throw new InvalidOperationException(
                     $"Plan already exists: {string.Join(", ", duplicateDbNames)}");
 
-            var plans = requests.Select(x => new Plan
+            var (defaultStart, defaultEnd) = await PlanAttendanceTimingHelper.ResolveLibraryDefaultHoursAsync(
+                _context, libraryId, branchId, cancellationToken);
+
+            var plans = requests.Select(x =>
             {
-                Id = Guid.NewGuid(),
-                InstitutionId = institutionId,
-                BranchId = branchId,
-                LibraryId = libraryId,
-                Name = x.Name.Trim(),
-                Description = x.Description?.Trim(),
-                Price = x.Price,
-                DurationInDays = x.DurationInDays,
-                MaxSeats = x.MaxSeats,
-                IsActive = x.IsActive,
-                CreatedAtUtc = DateTime.UtcNow
+                var start = x.StartTime ?? defaultStart;
+                var end = x.EndTime ?? defaultEnd;
+                PlanAttendanceTimingHelper.ValidatePlanWindow(start, end);
+                return new Plan
+                {
+                    Id = Guid.NewGuid(),
+                    InstitutionId = institutionId,
+                    BranchId = branchId,
+                    LibraryId = libraryId,
+                    Name = x.Name.Trim(),
+                    Description = x.Description?.Trim(),
+                    Price = x.Price,
+                    DurationInDays = x.DurationInDays,
+                    MaxSeats = x.MaxSeats,
+                    StartTime = start,
+                    EndTime = end,
+                    IsActive = x.IsActive,
+                    CreatedAtUtc = DateTime.UtcNow
+                };
             }).ToList();
 
             _context.Plans.AddRange(plans);
@@ -369,6 +425,8 @@ namespace SLMS_API.Application.Services
                     Price = x.Price,
                     DurationInDays = x.DurationInDays,
                     MaxSeats = x.MaxSeats,
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
                     IsActive = x.IsActive,
                     CreatedAtUtc = x.CreatedAtUtc
                 })

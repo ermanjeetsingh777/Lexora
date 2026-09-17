@@ -406,7 +406,9 @@ export class MemberAttendanceCalendarComponent {
       : record.status === AttendanceStatus.CheckedIn ? 'In session' : '—';
     const duration = this.sessionDurationMinutes(record, dayDate);
     const durationLabel = duration != null ? this.formatDuration(duration) : '—';
-    return `${dateLabel}\n${status}\nIn: ${checkIn} · Out: ${checkOut}\nOn premises: ${durationLabel}`;
+    const late = record.lateMinutes && record.lateMinutes > 0 ? `\nLate: ${record.lateMinutes} min` : '';
+    const overtime = record.overtimeMinutes && record.overtimeMinutes > 0 ? `\nOvertime: ${record.overtimeMinutes} min` : '';
+    return `${dateLabel}\n${status}\nIn: ${checkIn} · Out: ${checkOut}\nOn premises: ${durationLabel}${late}${overtime}`;
   }
 
   private toDayStatus(status?: AttendanceStatus | null, date?: Date): AttendanceDayStatus {
@@ -423,6 +425,8 @@ export class MemberAttendanceCalendarComponent {
         return 'present';
       case AttendanceStatus.Late:
         return 'late';
+      case AttendanceStatus.Overtime:
+        return 'present';
       case AttendanceStatus.Absent:
         return 'absent';
       case AttendanceStatus.Leave:

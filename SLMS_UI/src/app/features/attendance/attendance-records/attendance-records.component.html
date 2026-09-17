@@ -39,6 +39,7 @@
             <option [ngValue]="AttendanceStatus.CheckedOut">CheckedOut</option>
             <option [ngValue]="AttendanceStatus.Present">Present</option>
             <option [ngValue]="AttendanceStatus.Late">Late</option>
+            <option [ngValue]="AttendanceStatus.Overtime">Overtime</option>
             <option [ngValue]="AttendanceStatus.Absent">Absent</option>
           </select>
         </div>
@@ -110,6 +111,12 @@
               <td class="font-mono">{{ record.seatNo || '—' }}</td>
               <td>
                 <app-status-badge [status]="statusLabel(record.status)" />
+                @if (record.lateMinutes && record.lateMinutes > 0) {
+                  <p class="text-[11px] text-amber-600 mt-0.5">Late {{ record.lateMinutes }}m</p>
+                }
+                @if (record.overtimeMinutes && record.overtimeMinutes > 0) {
+                  <p class="text-[11px] text-sky-600 mt-0.5">OT {{ record.overtimeMinutes }}m</p>
+                }
               </td>
               <td>{{ sourceLabel(record.source) }}</td>
             </tr>

@@ -18,6 +18,12 @@
 
         public int? MaxSeats { get; set; }
 
+        /// <summary>HH:mm — defaults to library hours when omitted.</summary>
+        public TimeOnly? StartTime { get; set; }
+
+        /// <summary>HH:mm — defaults to library hours when omitted.</summary>
+        public TimeOnly? EndTime { get; set; }
+
         public bool IsActive { get; set; } = true;
     }
 }

@@ -43,6 +43,10 @@ export interface AttendanceResponse {
     checkInAtUtc?: Date | null;
     checkOutAtUtc?: Date | null;
     durationMinutes: number;
+    lateMinutes?: number;
+    overtimeMinutes?: number;
+    planStartTime?: string | null;
+    planEndTime?: string | null;
     status: AttendanceStatus;
     source: AttendanceSource;
     seatNo?: string;
@@ -66,6 +70,8 @@ export interface AttendanceStatisticsResponse {
     absentDays: number;
     leaveDays: number;
     lateDays: number;
+    overtimeDays?: number;
+    totalOvertimeMinutes?: number;
     attendancePercentage: number;
     totalStudyMinutes: number;
     currentStreak: number;
@@ -94,7 +100,8 @@ export enum AttendanceStatus {
     Leave = 7,
     Holiday = 8,
     Present = 9,
-    HalfDay = 10
+    HalfDay = 10,
+    Overtime = 11,
 }
 
 export enum AttendanceSource {
@@ -244,6 +251,8 @@ export interface AttendanceRecordListItem {
     checkInAtUtc?: string | Date | null;
     checkOutAtUtc?: string | Date | null;
     durationMinutes: number;
+    lateMinutes?: number;
+    overtimeMinutes?: number;
     status: AttendanceStatus;
     source: AttendanceSource;
     seatNo?: string | null;

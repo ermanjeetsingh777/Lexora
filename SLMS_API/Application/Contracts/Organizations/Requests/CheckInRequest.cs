@@ -46,6 +46,10 @@ namespace SLMS_API.Application.Contracts.Organizations.Requests
         public DateTime? CheckInAtUtc { get; set; }
         public DateTime? CheckOutAtUtc { get; set; }
         public int DurationMinutes { get; set; }
+        public int LateMinutes { get; set; }
+        public int OvertimeMinutes { get; set; }
+        public TimeOnly? PlanStartTime { get; set; }
+        public TimeOnly? PlanEndTime { get; set; }
         public AttendanceStatus Status { get; set; }
         public AttendanceSource Source { get; set; }
         public string? SeatNo { get; set; }
@@ -74,6 +78,8 @@ namespace SLMS_API.Application.Contracts.Organizations.Requests
         public int AbsentDays { get; set; }
         public int LeaveDays { get; set; }
         public int LateDays { get; set; }
+        public int OvertimeDays { get; set; }
+        public int TotalOvertimeMinutes { get; set; }
         public double AttendancePercentage { get; set; }
         public int TotalStudyMinutes { get; set; }
         public int CurrentStreak { get; set; }

@@ -29,6 +29,8 @@ export interface PlanResponse {
     price : number,
     durationInDays: number,
     maxSeats : number,
+    startTime?: string | null,
+    endTime?: string | null,
     isActive : boolean,
     createdAtUtc : Date
 }

@@ -20,6 +20,10 @@
 
         public int? MaxSeats { get; set; }
 
+        public TimeOnly? StartTime { get; set; }
+
+        public TimeOnly? EndTime { get; set; }
+
         public bool IsActive { get; set; }
 
         public DateTime CreatedAtUtc { get; set; }

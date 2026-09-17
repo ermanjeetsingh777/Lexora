@@ -23,6 +23,7 @@
             <th class="px-4 py-3 font-medium">Plan</th>
             <th class="px-4 py-3 font-medium">Price</th>
             <th class="px-4 py-3 font-medium">Duration</th>
+            <th class="px-4 py-3 font-medium">Hours</th>
             <th class="px-4 py-3 font-medium">Max seats</th>
             <th class="px-4 py-3 font-medium">Status</th>
             <th class="px-4 py-3 font-medium text-right">Actions</th>
@@ -42,6 +43,13 @@
               </td>
               <td class="px-4 py-3">{{ plan.price | currency:'INR':'symbol-narrow':'1.0-0' }}</td>
               <td class="px-4 py-3">{{ plan.durationInDays }} days</td>
+              <td class="px-4 py-3 tabular-nums text-xs">
+                @if (plan.startTime && plan.endTime) {
+                  {{ plan.startTime | slice:0:5 }}–{{ plan.endTime | slice:0:5 }}
+                } @else {
+                  —
+                }
+              </td>
               <td class="px-4 py-3">{{ plan.maxSeats ?? '—' }}</td>
               <td class="px-4 py-3">
                 <app-status-badge [status]="plan.isActive ? 'Active' : 'Inactive'" />

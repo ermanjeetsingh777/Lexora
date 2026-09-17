@@ -74,6 +74,32 @@
           />
         </div>
 
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">From time</label>
+            <input
+              type="time"
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              [ngModel]="startTime()"
+              (ngModelChange)="startTime.set($event)"
+              name="startTime"
+            />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium">To time</label>
+            <input
+              type="time"
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              [ngModel]="endTime()"
+              (ngModelChange)="endTime.set($event)"
+              name="endTime"
+            />
+          </div>
+        </div>
+        <p class="text-[11px] text-muted-foreground -mt-2">
+          Defaults to this library’s hours. Late / absent / overtime are calculated from these times for members on this plan.
+        </p>
+
         <div class="space-y-1.5">
           <label class="text-sm font-medium">Max seats</label>
           <input

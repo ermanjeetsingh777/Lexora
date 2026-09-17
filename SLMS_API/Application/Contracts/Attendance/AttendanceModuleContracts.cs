@@ -41,6 +41,8 @@ public class AttendanceRecordListItemResponse
     public DateTime? CheckInAtUtc { get; set; }
     public DateTime? CheckOutAtUtc { get; set; }
     public int DurationMinutes { get; set; }
+    public int LateMinutes { get; set; }
+    public int OvertimeMinutes { get; set; }
     public AttendanceStatus Status { get; set; }
     public AttendanceSource Source { get; set; }
     public string? SeatNo { get; set; }

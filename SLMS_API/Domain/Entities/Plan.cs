@@ -25,6 +25,12 @@
         // Optional
         public int? MaxSeats { get; set; }
 
+        /// <summary>Daily attendance window start (member late/overtime measured against this).</summary>
+        public TimeOnly? StartTime { get; set; }
+
+        /// <summary>Daily attendance window end.</summary>
+        public TimeOnly? EndTime { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

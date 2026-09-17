@@ -90,6 +90,19 @@ public class AttendanceService : IAttendanceService
                 request.SeatNumber,
                 cancellationToken);
 
+            var checkInTime = TimeOnly.FromDateTime(DateTime.UtcNow);
+            var planHours = await PlanAttendanceTimingHelper.ResolveMemberPlanHoursAsync(
+                _context,
+                memberId,
+                memberLibrary.LibraryId,
+                memberLibrary.BranchId,
+                cancellationToken);
+            var planStart = planHours?.Start;
+            var planEnd = planHours?.End;
+            var lateMinutes = planStart.HasValue
+                ? PlanAttendanceTimingHelper.ComputeLateMinutes(checkInTime, planStart.Value)
+                : 0;
+
             attendance = new MemberAttendance
             {
                 Id = Guid.NewGuid(),
@@ -98,8 +111,10 @@ public class AttendanceService : IAttendanceService
                 BranchId = memberLibrary.BranchId,
                 LibraryId = memberLibrary.LibraryId,
                 AttendanceDate = today,
-                CheckInTime = TimeOnly.FromDateTime(DateTime.UtcNow),
-                Status = AttendanceStatus.CheckedIn,
+                CheckInTime = checkInTime,
+                Status = lateMinutes > 0 ? AttendanceStatus.Late : AttendanceStatus.CheckedIn,
+                LateMinutes = lateMinutes,
+                OvertimeMinutes = 0,
                 Source = request.Source ?? AttendanceSource.MobileApp,
                 SeatNo = seatNumber,
                 DeviceId = request.DeviceId,
@@ -128,6 +143,10 @@ public class AttendanceService : IAttendanceService
                 AttendanceDate = attendance.AttendanceDate,
                 CheckInTime = attendance.CheckInTime,
                 DurationMinutes = 0,
+                LateMinutes = attendance.LateMinutes,
+                OvertimeMinutes = attendance.OvertimeMinutes,
+                PlanStartTime = planStart,
+                PlanEndTime = planEnd,
                 Status = attendance.Status,
                 SeatNo = attendance.SeatNo,
                 IsActive = true,
@@ -191,9 +210,29 @@ public class AttendanceService : IAttendanceService
                 throw new InvalidOperationException("Check out time must be greater than check in time.");
             }
 
+            var planHours = await PlanAttendanceTimingHelper.ResolveMemberPlanHoursAsync(
+                _context,
+                memberId,
+                attendance.LibraryId,
+                attendance.BranchId,
+                cancellationToken);
+            var planStart = planHours?.Start;
+            var planEnd = planHours?.End;
+            var overtimeMinutes = planEnd.HasValue
+                ? PlanAttendanceTimingHelper.ComputeOvertimeMinutes(checkOutTime, planEnd.Value)
+                : 0;
+
+            // Recalculate late in case check-in was before plan times existed
+            if (attendance.CheckInTime.HasValue && planStart.HasValue && attendance.LateMinutes == 0)
+            {
+                attendance.LateMinutes = PlanAttendanceTimingHelper.ComputeLateMinutes(
+                    attendance.CheckInTime.Value, planStart.Value);
+            }
+
             attendance.CheckOutTime = checkOutTime;
             attendance.DurationMinutes = (int)(checkOutTime.ToTimeSpan() - attendance.CheckInTime.Value.ToTimeSpan()).TotalMinutes;
-            attendance.Status = AttendanceStatus.Present;
+            attendance.OvertimeMinutes = overtimeMinutes;
+            attendance.Status = ResolveFinalAttendanceStatus(attendance.LateMinutes, overtimeMinutes);
             attendance.Remarks = request.Remarks;
             attendance.UpdatedAtUtc = DateTime.UtcNow;
             attendance.UpdatedBy = userId;
@@ -213,6 +252,10 @@ public class AttendanceService : IAttendanceService
                 CheckInTime = attendance.CheckInTime,
                 CheckOutTime = attendance.CheckOutTime,
                 DurationMinutes = attendance.DurationMinutes,
+                LateMinutes = attendance.LateMinutes,
+                OvertimeMinutes = attendance.OvertimeMinutes,
+                PlanStartTime = planStart,
+                PlanEndTime = planEnd,
                 Status = attendance.Status,
                 Source = attendance.Source,
                 SeatNo = attendance.SeatNo,
@@ -313,6 +356,8 @@ public class AttendanceService : IAttendanceService
                         CheckInTime = attendance.CheckInTime,
                         CheckOutTime = attendance.CheckOutTime,
                         DurationMinutes = attendance.DurationMinutes,
+                        LateMinutes = attendance.LateMinutes,
+                        OvertimeMinutes = attendance.OvertimeMinutes,
                         Remarks = attendance.Remarks,
                         IsActive = attendance.IsActive,
                         IsWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday,
@@ -412,8 +457,11 @@ public class AttendanceService : IAttendanceService
             or AttendanceStatus.CheckedOut
             or AttendanceStatus.AutoCheckedOut
             or AttendanceStatus.MissedCheckout
-            or AttendanceStatus.HalfDay);
+            or AttendanceStatus.HalfDay
+            or AttendanceStatus.Overtime);
         var lateDays = calendar.Count(x => x.Status == AttendanceStatus.Late);
+        var overtimeDays = calendar.Count(x => x.OvertimeMinutes > 0 || x.Status == AttendanceStatus.Overtime);
+        var totalOvertimeMinutes = calendar.Sum(x => x.OvertimeMinutes);
         var absentDays = calendar.Count(x => x.Status == AttendanceStatus.Absent);
         var leaveDays = calendar.Count(x => x.Status is AttendanceStatus.Leave or AttendanceStatus.Holiday);
         var workDays = calendar.Count - leaveDays;
@@ -439,7 +487,8 @@ public class AttendanceService : IAttendanceService
                 or AttendanceStatus.AutoCheckedOut
                 or AttendanceStatus.MissedCheckout
                 or AttendanceStatus.HalfDay
-                or AttendanceStatus.Late)
+                or AttendanceStatus.Late
+                or AttendanceStatus.Overtime)
             {
                 streak++;
                 longestStreak = Math.Max(longestStreak, streak);
@@ -459,7 +508,8 @@ public class AttendanceService : IAttendanceService
                 or AttendanceStatus.AutoCheckedOut
                 or AttendanceStatus.MissedCheckout
                 or AttendanceStatus.HalfDay
-                or AttendanceStatus.Late)
+                or AttendanceStatus.Late
+                or AttendanceStatus.Overtime)
             {
                 currentStreak++;
             }
@@ -476,6 +526,8 @@ public class AttendanceService : IAttendanceService
             AbsentDays = absentDays,
             LeaveDays = leaveDays,
             LateDays = lateDays,
+            OvertimeDays = overtimeDays,
+            TotalOvertimeMinutes = totalOvertimeMinutes,
             AttendancePercentage = attendancePercentage,
             TotalStudyMinutes = totalStudyMinutes,
             CurrentStreak = currentStreak,
@@ -664,6 +716,8 @@ public class AttendanceService : IAttendanceService
                     ? attendance.AttendanceDate.ToDateTime(attendance.CheckOutTime.Value, DateTimeKind.Utc)
                     : null,
                 DurationMinutes = attendance.DurationMinutes,
+                LateMinutes = attendance.LateMinutes,
+                OvertimeMinutes = attendance.OvertimeMinutes,
                 Status = attendance.Status,
                 Source = attendance.Source,
                 SeatNo = attendance.SeatNo,
@@ -1200,6 +1254,8 @@ public class AttendanceService : IAttendanceService
                 CheckInTime = a.CheckInTime,
                 CheckOutTime = a.CheckOutTime,
                 DurationMinutes = a.DurationMinutes,
+                LateMinutes = a.LateMinutes,
+                OvertimeMinutes = a.OvertimeMinutes,
                 Status = a.Status,
                 Source = a.Source,
                 SeatNo = a.SeatNo,
@@ -1213,6 +1269,13 @@ public class AttendanceService : IAttendanceService
                     : null,
             })
             .ToListAsync(cancellationToken);
+    }
+
+    private static AttendanceStatus ResolveFinalAttendanceStatus(int lateMinutes, int overtimeMinutes)
+    {
+        if (lateMinutes > 0) return AttendanceStatus.Late;
+        if (overtimeMinutes > 0) return AttendanceStatus.Overtime;
+        return AttendanceStatus.Present;
     }
 
     private async Task<IReadOnlyList<AttendanceResponse>> GetAttendanceCalendarRangeAsync(

@@ -13,6 +13,10 @@ namespace SLMS_API.Domain.Entities
         public TimeOnly? CheckInTime { get; set; }
         public TimeOnly? CheckOutTime { get; set; }
         public int DurationMinutes { get; set; }
+        /// <summary>Minutes checked in after the member's plan start time.</summary>
+        public int LateMinutes { get; set; }
+        /// <summary>Minutes checked out after the member's plan end time.</summary>
+        public int OvertimeMinutes { get; set; }
         public AttendanceStatus Status { get; set; }
         public Guid InstitutionId { get; set; }
         public Guid BranchId { get; set; }

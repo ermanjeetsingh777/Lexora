@@ -1,4 +1,4 @@
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, SlicePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import {
   LucideLogOut,
@@ -22,6 +22,7 @@ import { LibraryPlanFormSubmit } from './library-plan-form-dialog.component';
   standalone: true,
   imports: [
     CurrencyPipe,
+    SlicePipe,
     ButtonComponent,
     SectionHeaderComponent,
     StatusBadgeComponent,

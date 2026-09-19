@@ -9,6 +9,7 @@ using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
 using SLMS_API.Domain.Entities;
 using SLMS_API.Infrastructure.Data;
+using SLMS_API.Infrastructure.Repositories.Interfaces;
 
 namespace SLMS_API.Application.Services;
 
@@ -19,19 +20,22 @@ public class ProfileService : IProfileService
     private readonly IAdminService _adminService;
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
 
     public ProfileService(
         UserManager<ApplicationUser> userManager,
         IPermissionResolver permissionResolver,
         IAdminService adminService,
         ApplicationDbContext dbContext,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        IRefreshTokenRepository refreshTokenRepository)
     {
         _userManager = userManager;
         _permissionResolver = permissionResolver;
         _adminService = adminService;
         _dbContext = dbContext;
         _auditLogService = auditLogService;
+        _refreshTokenRepository = refreshTokenRepository;
     }
 
     public async Task<UserProfileResponse?> GetProfileAsync(string userId, CancellationToken cancellationToken = default)
@@ -143,8 +147,13 @@ public class ProfileService : IProfileService
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
         }
 
+        user.MustChangePassword = false;
         user.UpdatedAtUtc = DateTime.UtcNow;
         await _userManager.UpdateAsync(user);
+        await _userManager.UpdateSecurityStampAsync(user);
+
+        await _refreshTokenRepository.RevokeAllForUserAsync(user.Id, "PasswordChanged", cancellationToken);
+        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
 
         await _auditLogService.WriteAsync(
             AuditEventTypes.PasswordReset,
@@ -153,7 +162,10 @@ public class ProfileService : IProfileService
             ipAddress,
             cancellationToken);
 
-        return new MessageResponse { Message = "Password updated successfully." };
+        return new MessageResponse
+        {
+            Message = "Password updated successfully. Please sign in again.",
+        };
     }
 
     private async Task<IReadOnlyCollection<UserPermissionDetailResponse>> LoadPermissionDetailsAsync(

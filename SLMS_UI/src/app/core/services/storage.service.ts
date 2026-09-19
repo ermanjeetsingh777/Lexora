@@ -43,7 +43,13 @@ export class StorageService {
         this.setRefreshToken(auth.refreshToken);
         this.setAccessTokenExpiry(auth.accessTokenExpiresAtUtc);
         this.setRefreshTokenExpiry(auth.refreshTokenExpiresAtUtc);
-        this.setUser(auth.user);
+        const user = auth.user
+            ? {
+                ...auth.user,
+                mustChangePassword: auth.user.mustChangePassword === true || auth.mustChangePassword === true,
+              }
+            : auth.user;
+        this.setUser(user);
     }
 
     setToken(token: string): void {

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
@@ -23,6 +24,8 @@ public static class SuperAdminSeedData
 
         var email = configuration["Identity:SuperAdminEmail"] ?? DefaultEmail;
         var password = configuration["Identity:SuperAdminPassword"] ?? DefaultPassword;
+        var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+        var allowSeed = configuration.GetValue("Identity:AllowSuperAdminSeed", !env.IsProduction());
 
         if (!await roleManager.RoleExistsAsync(RoleDefinitions.SuperAdmin))
         {
@@ -41,6 +44,23 @@ public static class SuperAdminSeedData
             return;
         }
 
+        if (!allowSeed)
+        {
+            logger.LogWarning(
+                "SuperAdmin user {Email} is missing and Identity:AllowSuperAdminSeed is false — skipping seed (Production-safe).",
+                email);
+            return;
+        }
+
+        if (env.IsProduction()
+            && (string.IsNullOrWhiteSpace(password)
+                || password.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase)
+                || password == DefaultPassword))
+        {
+            logger.LogError(
+                "Refusing to seed SuperAdmin with a default/placeholder password. Set Identity:SuperAdminPassword via environment.");
+            return;
+        }
         var now = DateTime.UtcNow;
         var user = new ApplicationUser
         {

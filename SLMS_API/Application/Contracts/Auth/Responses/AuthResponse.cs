@@ -7,6 +7,7 @@ public class AuthResponse
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime RefreshTokenExpiresAtUtc { get; set; }
     public bool RequiresTwoFactor { get; set; }
+    public bool MustChangePassword { get; set; }
     public string? UserId { get; set; }
     public CurrentUserResponse? User { get; set; }
 }

@@ -140,6 +140,7 @@ public class MemberService : IMemberService
                 OnboardingStep = OnboardingStep.Completed,
                 UserType = UserType.Member,
                 IsActive = true,
+                MustChangePassword = true,
                 CreatedAtUtc = now
             };
 
@@ -1930,6 +1931,11 @@ public class MemberService : IMemberService
             throw new InvalidOperationException("Only JPG, PNG, or WEBP images are allowed.");
         }
 
+        EnsureAllowedUploadContentType(
+            file.ContentType,
+            extension,
+            allowed: ["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+
         var member = await _dbContext.Members
             .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Member not found.");
@@ -2019,6 +2025,11 @@ public class MemberService : IMemberService
             throw new InvalidOperationException("Only JPG, PNG, WEBP, or PDF files are allowed.");
         }
 
+        EnsureAllowedUploadContentType(
+            file.ContentType,
+            extension,
+            allowed: ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"]);
+
         var member = await _dbContext.Members
             .FirstOrDefaultAsync(x => x.Id == memberId && !x.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Member not found.");
@@ -2052,7 +2063,7 @@ public class MemberService : IMemberService
     {
         var callerId = await RequireCurrentUserIdAsync(cancellationToken);
         var callerIdString = callerId.ToString();
-        var isSuperOrOrgAdmin = await CanChangeAccountPasswordAsync(callerId, cancellationToken);
+        var canStaffReset = await CanChangeAccountPasswordAsync(callerId, cancellationToken);
 
         var member = await _dbContext.Members
             .Include(m => m.User)
@@ -2061,19 +2072,23 @@ public class MemberService : IMemberService
             ?? throw new InvalidOperationException("Member not found.");
 
         var isSelf = member.UserId == callerIdString;
-        if (!isSuperOrOrgAdmin && !isSelf)
+        if (isSelf)
         {
-            throw new UnauthorizedAccessException("Only SuperAdmin, OrganisationAdmin or the member themselves can change passwords.");
+            throw new InvalidOperationException(
+                "After signing in, change your own password from Profile → Security (current password required).");
         }
 
-        if (!isSelf)
+        if (!canStaffReset)
         {
-            var scope = await ResolveMemberAccessScopeAsync(callerId, cancellationToken);
-            var currentLibrary = member.MemberLibraries.FirstOrDefault(ml => ml.IsCurrent);
-            if (!CanAccessMemberLibrary(currentLibrary?.InstitutionId, currentLibrary?.BranchId, currentLibrary?.LibraryId, scope))
-            {
-                throw new InvalidOperationException("Member not found.");
-            }
+            throw new UnauthorizedAccessException(
+                "Only a signed-in SuperAdmin or OrganisationAdmin can set a temporary member password.");
+        }
+
+        var scope = await ResolveMemberAccessScopeAsync(callerId, cancellationToken);
+        var currentLibrary = member.MemberLibraries.FirstOrDefault(ml => ml.IsCurrent);
+        if (!CanAccessMemberLibrary(currentLibrary?.InstitutionId, currentLibrary?.BranchId, currentLibrary?.LibraryId, scope))
+        {
+            throw new InvalidOperationException("Member not found.");
         }
 
         if (member.User is null)
@@ -2088,10 +2103,16 @@ public class MemberService : IMemberService
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
         }
 
+        // Temporary password — member must sign in, then change it themselves.
+        member.User.MustChangePassword = true;
+        member.User.UpdatedAtUtc = DateTime.UtcNow;
+        await _userManager.UpdateAsync(member.User);
+        await _userManager.UpdateSecurityStampAsync(member.User);
+
         await _auditLogService.WriteAsync(
             AuditEventTypes.PasswordReset,
             member.UserId,
-            isSelf ? $"Member changed their own password for {member.User.Email}" : $"Admin changed password for member {member.User.Email}",
+            $"Staff set temporary password for member {member.User.Email}; member must change after login",
             _currentUserService.IpAddress,
             cancellationToken);
     }
@@ -2127,6 +2148,20 @@ public class MemberService : IMemberService
             : member.AadhaarFileName;
 
         return (member.AadhaarStoragePath, contentType, fileName);
+    }
+
+    private static void EnsureAllowedUploadContentType(string? contentType, string extension, string[] allowed)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+        {
+            throw new InvalidOperationException("Upload Content-Type header is required.");
+        }
+
+        var normalized = contentType.Split(';', 2)[0].Trim().ToLowerInvariant();
+        if (!allowed.Contains(normalized))
+        {
+            throw new InvalidOperationException($"Content-Type '{normalized}' is not allowed for {extension} uploads.");
+        }
     }
 
     private static void DeleteAadhaarIfExists(Domain.Entities.Member member)

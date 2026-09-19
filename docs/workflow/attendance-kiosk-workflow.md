@@ -49,6 +49,7 @@ flowchart TB
 | **BR-13.3** Member QR uses current library assignment | `MemberLibraries` where `IsCurrent`, fallback latest `JoinedOn` |
 | **BR-13.4** One check-in and one check-out per day | `AttendanceService` + `GetMemberStatusAsync` suggested action |
 | **BR-13.5** Public APIs secured by token, not JWT | `[AllowAnonymous]` on kiosk controller; token in query/body |
+| **BR-13.5b** Rate limit public kiosk + member QR APIs | Sliding window per client IP (`RateLimiting:Kiosk` / `MemberQr`); `429` + `Retry-After` |
 | **BR-13.6** Attendance source = QR | `AttendanceSource.QRCode` on scanner record |
 | **BR-13.7** One device → one member per day (kiosk) | `KioskDeviceService` + `EnsureDeviceAllowsMemberAsync`; staff scanner exempt (`staff:` prefix) |
 | **BR-13.8** Membership plan gate (aligned with BR-06.1) | `MemberLifecycleHelper`: **Grace** (≤7 days past `EndDate`, dues = 0) and Active/New/Expiring soon **allow** check-in; **Expired** (past grace) and **No plan** **block** check-in. Check-out remains allowed. Enforced in `AttendanceService.CheckInAsync`, scanner `RecordAsync`, and status/`MemberScannerContext` (`SuggestedAction = blocked`, `PlanBlockMessage`). UI constant: `MEMBERSHIP_GRACE_DAYS = 7` in `member-lifecycle.util.ts`. |
@@ -374,5 +375,5 @@ SLMS_UI/src/app/
 
 ## 8. Planned enhancements
 
-- Rate limiting on public kiosk endpoints
 - Production `Attendance:*KioskUrlBase` in `appsettings.json`
+- Prefer edge/CDN rate limits in front of the API for multi-instance deployments (in-process limiter is per node)

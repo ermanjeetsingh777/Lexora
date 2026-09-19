@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SLMS_API.Application.Contracts.Admin;
 using SLMS_API.Application.Contracts.Auth.Requests;
 using SLMS_API.Application.Contracts.Auth.Responses;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Contracts.Package.Response;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Extensions;
 
 namespace SLMS_API.Controllers;
 
@@ -35,6 +37,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingExtensions.Auth)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register(
         [FromBody] RegisterRequest request,
         CancellationToken cancellationToken)
@@ -53,6 +56,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingExtensions.Auth)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login(
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
@@ -71,6 +75,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("refresh-token")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingExtensions.Auth)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken(
         [FromBody] RefreshTokenRequest request,
         CancellationToken cancellationToken)
@@ -105,6 +110,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("send-otp")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingExtensions.Otp)]
     public async Task<ActionResult<ApiResponse<MessageResponse>>> SendOtp(
         [FromBody] SendOtpRequest request,
         CancellationToken cancellationToken)
@@ -122,6 +128,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("verify-otp")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingExtensions.Otp)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> VerifyOtp(
         [FromBody] VerifyOtpRequest request,
         CancellationToken cancellationToken)
@@ -143,6 +150,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingExtensions.Auth)]
     public async Task<ActionResult<ApiResponse<MessageResponse>>> ForgotPassword(
         [FromBody] ForgotPasswordRequest request,
         CancellationToken cancellationToken)
@@ -153,6 +161,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingExtensions.Auth)]
     public async Task<ActionResult<ApiResponse<MessageResponse>>> ResetPassword(
         [FromBody] ResetPasswordRequest request,
         CancellationToken cancellationToken)

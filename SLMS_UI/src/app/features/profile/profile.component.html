@@ -113,8 +113,16 @@
     <!-- Security tab -->
     @if (isTab('security')) {
       <div class="grid gap-6">
+        @if (mustChangePassword()) {
+          <div class="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+            <p class="font-medium">Password change required</p>
+            <p class="mt-1 opacity-90">
+              Sign in first, then set a new password here using your current (temporary) password. You cannot use the app until this is done.
+            </p>
+          </div>
+        }
         <app-glass-card class="block">
-          <app-section-header title="Password" description="Keep your account secure with a strong password." />
+          <app-section-header title="Password" description="Keep your account secure with a strong password. You must be signed in." />
           <div class="space-y-3 mb-2">
             <div class="space-y-1.5">
               <label class="text-sm font-medium" for="currentPassword">Current password</label>
@@ -127,7 +135,7 @@
               <input id="newPassword" type="password"
                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" autocomplete="new-password" />
-              <p class="text-xs text-muted-foreground">At least 8 characters with upper, lower, and a number.</p>
+              <p class="text-xs text-muted-foreground">At least 10 characters with upper, lower, number, and special character.</p>
             </div>
             <div class="space-y-1.5">
               <label class="text-sm font-medium" for="confirmPassword">Confirm new password</label>

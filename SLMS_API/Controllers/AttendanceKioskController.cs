@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Services.Interfaces;
+using SLMS_API.Extensions;
 
 namespace SLMS_API.Controllers;
 
@@ -12,6 +14,7 @@ namespace SLMS_API.Controllers;
 [ApiController]
 [Route("api/v1/attendance/kiosk")]
 [AllowAnonymous]
+[EnableRateLimiting(RateLimitingExtensions.Kiosk)]
 public class AttendanceKioskController : ControllerBase
 {
     private readonly IAttendanceScannerService _scannerService;

@@ -5,16 +5,17 @@ import { MemberPortalService } from '@core/services/member-portal.service';
 import { StorageService } from '@core/services/storage.service';
 import { map } from 'rxjs';
 
-function isAllowedMemberPortalUrl(url: string, memberId: string): boolean {
+function isProfileUrl(url: string): boolean {
   const path = url.split('?')[0];
-  if (path === `/members/${memberId}`) {
-    return true;
-  }
-
-  return false;
+  return path === '/profile' || path.startsWith('/profile/');
 }
 
-/** Restricts member-portal users to their own member details page. */
+function isOwnMemberUrl(url: string, memberId: string): boolean {
+  const path = url.split('?')[0];
+  return !!memberId && path === `/members/${memberId}`;
+}
+
+/** Restricts member-portal users to their own member page + Profile. */
 export const memberPortalGuard: CanActivateFn = (_route, state) => {
   const storage = inject(StorageService);
   const router = inject(Router);
@@ -25,8 +26,21 @@ export const memberPortalGuard: CanActivateFn = (_route, state) => {
     return true;
   }
 
+  const mustChangePassword =
+    storage.user()?.mustChangePassword === true || state.url.includes('mustChangePassword=1');
+
+  // Profile is always allowed for members (account + password).
+  if (isProfileUrl(state.url)) {
+    return true;
+  }
+
+  // Until password is changed, keep them on Profile (not other app pages).
+  if (mustChangePassword) {
+    return router.createUrlTree(['/profile'], { queryParams: { mustChangePassword: '1' } });
+  }
+
   const cachedId = memberPortal.memberId();
-  if (cachedId && isAllowedMemberPortalUrl(state.url, cachedId)) {
+  if (cachedId && isOwnMemberUrl(state.url, cachedId)) {
     return true;
   }
 
@@ -35,12 +49,17 @@ export const memberPortalGuard: CanActivateFn = (_route, state) => {
   }
 
   return memberPortal.resolveMemberId().pipe(
-    map((memberId) =>
-      memberId
-        ? isAllowedMemberPortalUrl(state.url, memberId)
-          ? true
-          : router.createUrlTree(['/members', memberId])
-        : router.createUrlTree(['/unauthorized']),
-    ),
+    map((memberId) => {
+      if (!memberId) {
+        // Still allow Profile even if member record is missing.
+        return router.createUrlTree(['/profile']);
+      }
+
+      if (isOwnMemberUrl(state.url, memberId)) {
+        return true;
+      }
+
+      return router.createUrlTree(['/members', memberId]);
+    }),
   );
 };

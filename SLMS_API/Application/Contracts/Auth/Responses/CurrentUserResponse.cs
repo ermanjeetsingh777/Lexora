@@ -11,6 +11,7 @@ public class CurrentUserResponse
     public string? FullName { get; set; }
     public bool IsActive { get; set; }
     public bool TwoFactorEnabled { get; set; }
+    public bool MustChangePassword { get; set; }
     public UserType UserType { get; set; }
     public OnboardingStep OnboardingStep { get; set; }
     public string ApprovalStatus { get; set; } = "Pending";

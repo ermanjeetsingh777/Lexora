@@ -236,9 +236,12 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByEmailAsync(normalizedInput)
             ?? await _userManager.FindByNameAsync(normalizedInput);
 
+        // Uniform message — avoid account enumeration.
+        const string invalidCredentials = "Invalid email or password.";
+
         if (user == null)
         {
-            throw new UnauthorizedAccessException("Email or phone number is not registered.");
+            throw new UnauthorizedAccessException(invalidCredentials);
         }
 
         if (!user.IsActive)
@@ -246,18 +249,35 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Your account is inactive. Please contact the administrator.");
         }
 
+        if (await _userManager.IsLockedOutAsync(user))
+        {
+            throw new UnauthorizedAccessException(
+                "Account temporarily locked due to too many failed sign-in attempts. Try again later.");
+        }
+
         var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!passwordValid)
         {
-            throw new UnauthorizedAccessException("Please enter the correct password.");
+            await _userManager.AccessFailedAsync(user);
+            if (await _userManager.IsLockedOutAsync(user))
+            {
+                _logger.LogWarning("User {UserId} locked out after failed login from {Ip}", user.Id, ipAddress);
+                throw new UnauthorizedAccessException(
+                    "Account temporarily locked due to too many failed sign-in attempts. Try again later.");
+            }
+
+            throw new UnauthorizedAccessException(invalidCredentials);
         }
+
+        await _userManager.ResetAccessFailedCountAsync(user);
 
         if (user.TwoFactorEnabled)
         {
             return new AuthResponse
             {
                 RequiresTwoFactor = true,
-                UserId = user.Id
+                UserId = user.Id,
+                MustChangePassword = user.MustChangePassword,
             };
         }
 
@@ -276,8 +296,33 @@ public class AuthService : IAuthService
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, CancellationToken cancellationToken = default)
     {
         var existingToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken, cancellationToken);
-        if (existingToken is null || !existingToken.IsActive)
+        if (existingToken is null)
         {
+            throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+        }
+
+        if (!existingToken.IsActive)
+        {
+            // Reuse of a rotated/revoked refresh token → revoke the whole family for that user.
+            if (existingToken.RevokedAtUtc is not null)
+            {
+                _logger.LogWarning(
+                    "Refresh token reuse detected for user {UserId} from {IpAddress}",
+                    existingToken.UserId,
+                    ipAddress);
+                await _refreshTokenRepository.RevokeAllForUserAsync(
+                    existingToken.UserId,
+                    "RefreshTokenReuseDetected",
+                    cancellationToken);
+                await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+                await _auditLogService.WriteAsync(
+                    AuditEventTypes.Login,
+                    existingToken.UserId,
+                    "Refresh token reuse detected — all sessions revoked",
+                    ipAddress,
+                    cancellationToken);
+            }
+
             throw new UnauthorizedAccessException("Invalid or expired refresh token.");
         }
 
@@ -475,6 +520,7 @@ public class AuthService : IAuthService
             AdminRemarks = user.AdminRemarks,
             FinalApprovedAmount = user.FinalApprovedAmount,
             TwoFactorEnabled = user.TwoFactorEnabled,
+            MustChangePassword = user.MustChangePassword,
             Roles = roles.ToArray(),
             Permissions = await _permissionResolver.GetPermissionsForRolesAsync(roles, cancellationToken)
         };
@@ -749,6 +795,7 @@ public class AuthService : IAuthService
             AccessTokenExpiresAtUtc = tokens.AccessTokenExpiresAtUtc,
             RefreshToken = tokens.RefreshToken,
             RefreshTokenExpiresAtUtc = tokens.RefreshTokenExpiresAtUtc,
+            MustChangePassword = userInfo.MustChangePassword,
             User = userInfo
         };
 

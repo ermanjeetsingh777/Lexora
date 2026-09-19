@@ -57,12 +57,15 @@ import { InputDirective } from '@shared/components/input/input.directive';
                 <div class="text-xs text-muted-foreground">{{ storageService.user()?.email }}</div>
               </div>
               <div class="my-1 h-px bg-border"></div>
-              @if (!memberPortalMode()) {
-                <a routerLink="/profile" class="flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-muted" (click)="userOpen.set(false)">
-                  <svg lucideUser class="mr-2 h-4 w-4"></svg> Profile
+              <a routerLink="/profile" class="flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-muted" (click)="userOpen.set(false)">
+                <svg lucideUser class="mr-2 h-4 w-4"></svg> Profile
+              </a>
+              @if (memberPortalMode() && memberHomeLink()) {
+                <a [routerLink]="memberHomeLink()" class="flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-muted" (click)="userOpen.set(false)">
+                  My membership
                 </a>
-                <div class="my-1 h-px bg-border"></div>
               }
+              <div class="my-1 h-px bg-border"></div>
               <button type="button" (click)="signOut()" class="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted">
                 <svg lucideLogOut class="mr-2 h-4 w-4"></svg> Sign out
               </button>
@@ -81,10 +84,16 @@ export class TopbarComponent {
   protected readonly theme = inject(ThemeService);
   protected readonly auth = inject(AuthService);
   protected readonly storageService = inject(StorageService);
+  private readonly memberPortal = inject(MemberPortalService);
   private readonly router = inject(Router);
 
   readonly notifOpen = signal(false);
   readonly userOpen = signal(false);
+
+  readonly memberHomeLink = computed(() => {
+    const id = this.memberPortal.memberId();
+    return id ? `/members/${id}` : null;
+  });
 
   readonly initials = computed(() => {
     const name = this.storageService.user()?.fullName ?? this.storageService.user()?.userName ?? this.storageService.user()?.email;

@@ -69,6 +69,17 @@ export class LoginComponent {
     this.auth.login(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
+          const mustChange =
+            response.data.mustChangePassword === true ||
+            response.data.user?.mustChangePassword === true;
+
+          if (mustChange) {
+            this.toast.info('Please change your password before continuing.');
+            // void this.router.navigate(['/profile'], { queryParams: { mustChangePassword: '1' } });
+            // this.loader.set(false);
+            // return;
+          }
+
           if (this.auth.isMemberPortalUser()) {
             this.memberPortal.resolveMemberId(true).subscribe((memberId) => {
               if (memberId) {

@@ -9,6 +9,9 @@ public class ApplicationUser : IdentityUser
     public string? FullName { get; set; }
     public bool IsActive { get; set; } = true;
 
+    /// <summary>When true, login succeeds but API use is limited until password is changed.</summary>
+    public bool MustChangePassword { get; set; }
+
     public UserType UserType { get; set; } = UserType.Member;
     // Current onboarding step
     public OnboardingStep OnboardingStep { get; set; } = OnboardingStep.Registered;

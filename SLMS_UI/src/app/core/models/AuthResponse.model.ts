@@ -6,6 +6,7 @@ export interface AuthResponse {
     refreshToken: string;
     refreshTokenExpiresAtUtc: string;
     requiresTwoFactor: boolean;
+    mustChangePassword?: boolean;
     userId: string;
     user: CurrentUser;
 }
@@ -17,6 +18,7 @@ export interface CurrentUser {
     fullName: string;
     isActive: boolean;
     twoFactorEnabled: boolean;
+    mustChangePassword?: boolean;
     onboardingStep: OnboardingSteps;
     approvalStatus?: string;
     adminRemarks?: string;

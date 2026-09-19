@@ -201,6 +201,7 @@ namespace SLMS_API.Controllers
         }
 
         [HttpPost("{memberId:guid}/password")]
+        [Authorize]
         public async Task<ActionResult<ApiResponse<MessageResponse>>> ChangePassword(
             Guid memberId,
             [FromBody] ChangeMemberPasswordRequest request,
@@ -208,22 +209,20 @@ namespace SLMS_API.Controllers
         {
             try
             {
-                var updateClaim = PermissionKey.MembersUpdate.ToClaimValue();
-                var hasPermission = User.IsInRole(RoleDefinitions.SuperAdmin) ||
-                                    User.IsInRole(RoleDefinitions.OrganisationAdmin) ||
-                                    User.Claims.Any(x => x.Type == "permission" && string.Equals(x.Value, updateClaim, StringComparison.OrdinalIgnoreCase));
-
-                if (!hasPermission)
+                // Staff only (logged-in SuperAdmin / OrganisationAdmin). Members change via Profile after login.
+                if (!User.IsInRole(RoleDefinitions.SuperAdmin) && !User.IsInRole(RoleDefinitions.OrganisationAdmin))
                 {
-                    var currentMemberId = await _memberService.GetCurrentMemberIdAsync(cancellationToken);
-                    if (currentMemberId == null || currentMemberId.Value != memberId)
-                    {
-                        return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<MessageResponse>.Fail("You do not have permission to change password for this member."));
-                    }
+                    return StatusCode(
+                        StatusCodes.Status403Forbidden,
+                        ApiResponse<MessageResponse>.Fail(
+                            "Only SuperAdmin or OrganisationAdmin can set a temporary member password. Members must sign in and change password from Profile."));
                 }
 
                 await _memberService.ChangeMemberPasswordAsync(memberId, request, _currentUserService.UserId, cancellationToken);
-                return Ok(ApiResponse<MessageResponse>.Ok(new MessageResponse { Message = "Member password updated successfully." }));
+                return Ok(ApiResponse<MessageResponse>.Ok(new MessageResponse
+                {
+                    Message = "Temporary password set. The member must sign in and change it from Profile → Security.",
+                }));
             }
             catch (UnauthorizedAccessException ex)
             {

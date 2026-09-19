@@ -7,6 +7,7 @@ using SLMS_API.Extensions;
 using SLMS_API.Infrastructure.Data;
 using SLMS_API.Infrastructure.DependencyInjection;
 using SLMS_API.Infrastructure.Payments;
+using SLMS_API.Infrastructure.Security;
 using System.Reflection;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,7 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 
 builder.Services.AddSwaggerGenWithAuth();
 builder.Services.AddPresentation();
+builder.Services.AddSlmsRateLimiting(builder.Configuration);
 
 builder.Services.AddApplicationInfrastructure(builder.Configuration);
 builder.Services.AddCors(options =>
@@ -44,6 +46,15 @@ builder.Services.AddCors(options =>
                 .AllowAnyMethod()
                 .AllowCredentials();
             return;
+        }
+
+        // Never open CORS to the world in Production / UAT / QA.
+        if (builder.Environment.IsProduction()
+            || builder.Environment.IsEnvironment("UAT")
+            || builder.Environment.IsEnvironment("QA"))
+        {
+            throw new InvalidOperationException(
+                "Cors:AllowedOrigins must be configured for this environment (AllowAnyOrigin is disabled).");
         }
 
         policy.AllowAnyOrigin()
@@ -103,7 +114,11 @@ if (isSwaggerEnabled)
 
 app.UseHttpsRedirection();
 
+app.UseSlmsSecurityHeaders();
+
 app.UseCors("DefaultCorsPolicy");
+
+app.UseSlmsRateLimiting();
 
 app.UseRequestContextLogging();
 
@@ -111,6 +126,7 @@ app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMustChangePasswordGate();
 
 app.MapControllers();
 

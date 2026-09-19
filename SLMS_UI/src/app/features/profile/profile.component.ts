@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   LucideBuilding2, LucideChevronDown, LucideChevronUp, LucideKeyRound, LucideLibrary,
   LucideLoader2, LucideMapPin, LucidePencil, LucideRefreshCw, LucideSave, LucideShield, LucideUser,
@@ -8,6 +8,7 @@ import {
 import { OnboardingSteps, UserTypes } from '@core/enums/OnbardingSteps';
 import { CurrentUser } from '@core/models/AuthResponse.model';
 import { UserProfile } from '@core/models/profile.models';
+import { AuthService } from '@core/services/auth.service';
 import { StorageService } from '@core/services/storage.service';
 import { ToastService } from '@core/services/toast.service';
 import { formatAppDateTime } from '@core/utils/date-format.util';
@@ -54,7 +55,9 @@ interface PermissionGroup {
 export class ProfileComponent implements OnInit {
   private readonly profileService = inject(ProfileService);
   private readonly storage = inject(StorageService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
   readonly savingProfile = signal(false);
@@ -64,6 +67,7 @@ export class ProfileComponent implements OnInit {
   readonly editingAccount = signal(false);
   readonly showTechnicalPermissions = signal(false);
   readonly expandedModules = signal<Set<string>>(new Set());
+  readonly mustChangePassword = signal(false);
 
   readonly editFullName = signal('');
   readonly editUserName = signal('');
@@ -131,6 +135,13 @@ export class ProfileComponent implements OnInit {
   readonly formatRoleName = formatRoleName;
 
   ngOnInit(): void {
+    const forceChange =
+      this.route.snapshot.queryParamMap.get('mustChangePassword') === '1' ||
+      this.storage.user()?.mustChangePassword === true;
+    if (forceChange) {
+      this.mustChangePassword.set(true);
+      this.activeTab.set('security');
+    }
     this.refreshProfile();
   }
 
@@ -211,6 +222,10 @@ export class ProfileComponent implements OnInit {
       this.toast.error('New passwords do not match');
       return;
     }
+    if (this.newPassword().length < 10) {
+      this.toast.error('Password must be at least 10 characters');
+      return;
+    }
 
     this.changingPassword.set(true);
     this.profileService.changePassword({
@@ -223,7 +238,9 @@ export class ProfileComponent implements OnInit {
         this.currentPassword.set('');
         this.newPassword.set('');
         this.confirmPassword.set('');
-        this.toast.success('Password updated');
+        this.mustChangePassword.set(false);
+        this.toast.success('Password updated. Please sign in again.');
+        this.auth.logout();
       },
       error: (err) => {
         this.changingPassword.set(false);

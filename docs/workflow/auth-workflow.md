@@ -122,6 +122,16 @@ Seeded on API startup (see [administration-workflow.md](./administration-workflo
 | POST | `/enable-2fa` | Enable two-factor auth |
 | POST | `/disable-2fa` | Disable two-factor auth |
 
+**Rate limiting:** Anonymous auth endpoints use policy `auth`; OTP send/verify use tighter policy `otp` — sliding window per client IP (`RateLimiting` in appsettings). Exceeded → HTTP `429` + `Retry-After` + warning log.  
+
+**Login lockout:** Identity lockout — 5 failed attempts → 15 minute lock. Uniform “Invalid email or password.” message (no user enumeration).  
+
+**Must change password:** New members get `MustChangePassword=true`; JWT claim gates APIs until `POST /auth/change-password`.  
+
+**Refresh reuse:** Presenting a revoked refresh token revokes all sessions for that user.  
+
+**Production:** Swagger off; JWT access ~20 min; secrets via environment only; SuperAdmin seed disabled (`Identity:AllowSuperAdminSeed=false`).
+
 ---
 
 ## 4. File Map
@@ -145,6 +155,10 @@ SLMS_UI/src/app/core/
 
 SLMS_API/
 ├── Controllers/AuthController.cs
+├── Extensions/RateLimitingExtensions.cs
+├── Infrastructure/Security/SecurityHeadersMiddleware.cs
+├── Infrastructure/Security/MustChangePasswordMiddleware.cs
+├── Application/Options/RateLimitingOptions.cs
 ├── Application/Services/AuthService.cs
 └── Application/Services/ProfileService.cs
 ```

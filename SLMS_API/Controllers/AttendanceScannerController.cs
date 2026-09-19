@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SLMS_API.Application.Contracts.Attendance;
 using SLMS_API.Application.Contracts.Common;
 using SLMS_API.Application.Services.Interfaces;
 using SLMS_API.Common.Constants;
 using SLMS_API.Common.Enums;
+using SLMS_API.Extensions;
 using SLMS_API.Infrastructure.Authorization;
 
 namespace SLMS_API.Controllers;
@@ -217,6 +219,7 @@ public class AttendanceScannerController : ControllerBase
 
     /// <summary>Resolve a member attendance QR token (ID card / personal QR) for staff.</summary>
     [HttpGet("members/resolve")]
+    [EnableRateLimiting(RateLimitingExtensions.MemberQr)]
     public async Task<ActionResult<ApiResponse<MemberScannerContextResponse>>> ResolveMemberByToken(
         [FromQuery] string token,
         CancellationToken cancellationToken)
@@ -251,6 +254,7 @@ public class AttendanceScannerController : ControllerBase
     /// <summary>Mark attendance from a member personal QR (uses assigned seat when present).</summary>
     [HttpPost("members/record-by-token")]
     [Permission(PermissionKey.AttendanceScannerUse)]
+    [EnableRateLimiting(RateLimitingExtensions.MemberQr)]
     public async Task<ActionResult<ApiResponse<ScannerAttendanceResultResponse>>> RecordByMemberToken(
         [FromBody] MemberScannerRecordRequest request,
         CancellationToken cancellationToken)

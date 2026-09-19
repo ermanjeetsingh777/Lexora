@@ -217,15 +217,13 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     { value: 'plans', label: 'Payments & Plans' },
     // { id: 'payments', label: 'Payments' },
     { value: 'contacts', label: 'Contacts' },
-    { value: 'password', label: 'Change Password' },
+    { value: 'password', label: 'Set temporary password' },
   ];
 
   readonly canChangePassword = computed(
     () =>
-      this.isMemberPortalView() ||
-      this.auth.hasRole('SuperAdmin') ||
-      this.auth.hasRole('OrganisationAdmin') ||
-      this.auth.hasPermission(PermissionKey.MembersUpdate),
+      !this.isMemberPortalView() &&
+      (this.auth.hasRole('SuperAdmin') || this.auth.hasRole('OrganisationAdmin')),
   );
 
   readonly tabs = computed(() => {
@@ -1515,8 +1513,8 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
     const password = this.newPassword().trim();
     const confirm = this.confirmPassword().trim();
 
-    if (password.length < 8) {
-      this.toast.error('Password must be at least 8 characters');
+    if (password.length < 10) {
+      this.toast.error('Password must be at least 10 characters');
       return;
     }
 
@@ -1533,7 +1531,10 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.dialogBusy.set(false);
         this.closeDialog();
-        this.toast.success(response.message ?? 'Member password updated');
+        this.toast.success(
+          response.message ??
+            'Temporary password set. Member must sign in and change it from Profile.',
+        );
       },
       error: (error) => {
         this.dialogBusy.set(false);

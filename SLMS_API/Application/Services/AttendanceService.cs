@@ -46,6 +46,7 @@ public class AttendanceService : IAttendanceService
             }
 
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            await EnsureMemberPlanAllowsCheckInAsync(memberId, today, cancellationToken);
 
             // Check existing attendance
             var attendance = await _context.MemberAttendances
@@ -1275,6 +1276,20 @@ public class AttendanceService : IAttendanceService
                     : null,
             })
             .ToListAsync(cancellationToken);
+    }
+
+    private async Task EnsureMemberPlanAllowsCheckInAsync(
+        Guid memberId,
+        DateOnly today,
+        CancellationToken cancellationToken)
+    {
+        var plan = await _context.MemberPlans.AsNoTracking()
+            .Where(mp => mp.MemberId == memberId && mp.IsCurrent && !mp.IsDeleted)
+            .Select(mp => new { mp.EndDate, mp.DueAmount })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(plan?.DueAmount ?? 0);
+        MemberLifecycleHelper.EnsureAllowsAttendanceCheckIn(plan?.EndDate, feesOwed, today);
     }
 
     private static AttendanceStatus ResolveFinalAttendanceStatus(

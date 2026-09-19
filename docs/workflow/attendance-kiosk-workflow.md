@@ -8,14 +8,15 @@ End-to-end workflow for **M-13 Attendance QR Kiosk** across **SLMS_UI** (Angular
 
 ## 1. Overview
 
-Two QR-based attendance flows — **no login required** on public kiosk pages:
+Three QR-based attendance flows:
 
-| Flow | QR owner | Scan opens | User action |
-|------|----------|------------|-------------|
-| **Library kiosk** | One shared QR per library | Member list for that library | Select member → Check in / Check out |
-| **Member kiosk** | One personal QR per member | Member self-service screen | Check in / Check out directly |
+| Flow | QR owner | Auth | Scan opens | User action |
+|------|----------|------|------------|-------------|
+| **Library kiosk** | One shared QR per library | None | Member list for that library | Select member → Check in / Check out |
+| **Member kiosk** | One personal QR per member | None | Member self-service screen | Check in / Check out directly |
+| **Staff member QR scan** | Same personal QR (ID card) | Staff login | Resolve member → record attendance | Check in / out with assigned seat |
 
-Staff can generate and print QR codes from authenticated admin pages.
+Staff can generate, print, and camera-scan QR codes from authenticated admin pages (library standee PDF, member ID card PDF, library / attendance scanners).
 
 ```mermaid
 flowchart TB
@@ -28,12 +29,14 @@ flowchart TB
 
   subgraph staff [Staff — login + permission]
     SC[/attendance/scanner] --> APIS[AttendanceScannerController]
-    MD[Member details → Attendance QR] --> APIS
+    MS[/attendance/member-scan · /members/scan] --> APIS
+    MD[Member details → ID card / Attendance QR] --> APIS
   end
 
   APIK --> SVC[AttendanceScannerService]
   APIS --> SVC
   SVC --> ATT[AttendanceService CheckIn / CheckOut]
+  ATT --> LIFE[MemberLifecycleHelper plan gate]
   ATT --> DB[(Members / Libraries / MemberAttendances)]
 ```
 
@@ -48,6 +51,9 @@ flowchart TB
 | **BR-13.5** Public APIs secured by token, not JWT | `[AllowAnonymous]` on kiosk controller; token in query/body |
 | **BR-13.6** Attendance source = QR | `AttendanceSource.QRCode` on scanner record |
 | **BR-13.7** One device → one member per day (kiosk) | `KioskDeviceService` + `EnsureDeviceAllowsMemberAsync`; staff scanner exempt (`staff:` prefix) |
+| **BR-13.8** Membership plan gate (aligned with BR-06.1) | `MemberLifecycleHelper`: **Grace** (≤7 days past `EndDate`, dues = 0) and Active/New/Expiring soon **allow** check-in; **Expired** (past grace) and **No plan** **block** check-in. Check-out remains allowed. Enforced in `AttendanceService.CheckInAsync`, scanner `RecordAsync`, and status/`MemberScannerContext` (`SuggestedAction = blocked`, `PlanBlockMessage`). UI constant: `MEMBERSHIP_GRACE_DAYS = 7` in `member-lifecycle.util.ts`. |
+
+> **Note:** Plan *daily* late grace (`Plan.GraceMinutes`) is separate — it only affects Late vs on-time status after a successful check-in, not whether check-in is allowed.
 
 ### Functional requirements
 
@@ -57,11 +63,13 @@ flowchart TB
 | FR-13.2 | Public library kiosk — member list + check-in/out | Done |
 | FR-13.3 | Member personal QR generation | Done |
 | FR-13.4 | Public member kiosk — self check-in/out | Done |
-| FR-13.5 | Staff scanner page (authenticated) | Done |
-| FR-13.6 | Member QR on member details (print) | Done |
-| FR-13.7 | Camera QR scanning in browser | Planned |
-| FR-13.8 | Library list QR print UI | Planned |
+| FR-13.5 | Staff library scanner page (authenticated) | Done |
+| FR-13.6 | Member QR on member details + printable ID card (front/back + QR) | Done |
+| FR-13.7 | Browser camera QR scanning (`QrScannerModalService`) | Done |
+| FR-13.8 | Library QR printable standee PDF | Done |
 | FR-13.9 | One device per member (QR kiosk) | Done |
+| FR-13.10 | Staff scan member ID QR (`/attendance/member-scan`, `/members/scan`) | Done |
+| FR-13.11 | Block QR/manual check-in when plan Expired / No plan (grace OK) | Done |
 
 ---
 
@@ -73,7 +81,9 @@ flowchart TB
 |-------|------|-----------|---------|
 | `/kiosk/attendance/library?token=` | **None** | `LibraryKioskComponent` | Library QR → member picker → attendance |
 | `/kiosk/attendance/member?token=` | **None** | `MemberKioskComponent` | Member QR → self check-in/out |
-| `/attendance/scanner?token=` | `attendance.scanner.use` | `AttendanceScannerComponent` | Staff scanner + QR display |
+| `/attendance/scanner?token=` | `attendance.scanner.use` | `AttendanceScannerComponent` | Staff library scanner + QR display |
+| `/attendance/member-scan?token=` | Staff login | `MemberQrScanPageComponent` | Scan member ID QR → check-in/out (attendance mode) |
+| `/members/scan?token=` | Staff login | `MemberQrScanPageComponent` | Scan member ID QR → open profile (or `?mode=attendance`) |
 
 Route config: `SLMS_UI/src/app/app.routes.ts`  
 Kiosk routes are **outside** `AppShellComponent` and have no `permissionGuard`.
@@ -86,13 +96,16 @@ LibraryKioskComponent
 ├── Member list (search + select)
 └── Action panel
     ├── Today's check-in / check-out times
+    ├── Seat picker (when check-in allowed)
+    ├── Check-in blocked banner (Expired / No plan)
     ├── Check in | Check out | Auto buttons
     └── Action hint text
 
 MemberKioskComponent
 ├── Member name + membership no + library
 ├── Status badge + today's times
-└── Check in | Check out | Auto buttons (full width)
+├── Check-in blocked banner when SuggestedAction = blocked
+└── Check in | Check out | Auto buttons (full width; check-in disabled when blocked)
 ```
 
 **Files:**
@@ -105,23 +118,34 @@ MemberKioskComponent
 | `features/attendance/kiosk/member-kiosk.component.ts` | Member self-service logic |
 | `features/attendance/kiosk/member-kiosk.component.html` | Member kiosk UI |
 | `features/attendance/kiosk/member-kiosk.component.css` | Shared kiosk button styles |
+| `features/attendance/member-qr-scan/member-qr-scan-page.component.ts` | Staff camera / paste member ID QR |
+| `features/attendance/member-qr-token.util.ts` | Extract token from raw QR / URL |
 | `core/services/attendance-kiosk.service.ts` | Public API client (`attendance/kiosk/*`) |
 | `core/services/kiosk-device.service.ts` | Persistent browser `deviceId`; local member binding |
 | `core/services/attendance-scanner.service.ts` | Staff API client (`attendance/scanner/*`) |
+| `core/services/qr-scanner-modal.service.ts` | In-browser camera QR modal |
 | `core/models/attendanceModels.ts` | `Scanner*`, `MemberScanner*`, `MemberQrCode` types |
 
 ### 2.3 Member details integration
 
-Member profile **Overview** tab shows **Attendance QR** card (staff view):
+Member profile (staff view):
 
-- `GET attendance/scanner/members/{memberId}/qr`
-- Displays QR image + scan URL for printing member badge
+- **Attendance QR** card — `GET attendance/scanner/members/{memberId}/qr`
+- **Download ID card PDF** — front/back card with personal QR (`member-id-card-pdf.util.ts`); scan URL targets member kiosk / staff resolve
+- Today's attendance — Check In disabled + **Check-in blocked** banner when lifecycle is `Expired` or `No plan` (Grace still allowed)
 
-File: `features/members/member-details-component/`
+File: `features/members/member-details-component/` · util: `features/members/member-id-card-pdf.util.ts`
 
 ### 2.4 Suggested action UX
 
 Buttons use custom `.kiosk-btn` styles (not theme `app-button`) for dark kiosk background:
+
+| `SuggestedAction` | Meaning | UI |
+|-------------------|---------|-----|
+| `check-in` | Not yet checked in today | Enable Check in / Auto |
+| `check-out` | Checked in, not out | Enable Check out / Auto |
+| `done` | Both done | Disable attendance actions |
+| `blocked` | Plan Expired or No plan | Show **Check-in blocked** + `planBlockMessage`; disable Check in / Auto; Check out still allowed if already in |
 
 | State | Visual |
 |-------|--------|
@@ -129,6 +153,7 @@ Buttons use custom `.kiosk-btn` styles (not theme `app-button`) for dark kiosk b
 | **Disabled** | Flat slate + dashed border, muted text |
 | **Active action** | White ring highlight on the currently available action |
 | **Hint** | Text below: e.g. "Tap Check in or use Auto to mark arrival." |
+| **Plan blocked** | Destructive banner with renew message |
 
 ---
 
@@ -160,10 +185,12 @@ Buttons use custom `.kiosk-btn` styles (not theme `app-button`) for dark kiosk b
 |--------|----------|-------------|
 | `GET` | `/context?token=` | Same as kiosk library context |
 | `GET` | `/members?token=` | Member search |
-| `GET` | `/members/{id}/status?token=` | Member status |
+| `GET` | `/members/{id}/status?token=` | Member status (+ plan lifecycle / block fields) |
 | `POST` | `/record` | Record attendance |
 | `GET` | `/libraries/{libraryId}/qr` | Generate library QR image (base64 PNG) |
 | `GET` | `/members/{memberId}/qr` | Generate member QR image (base64 PNG) |
+| `GET` | `/members/resolve?token=` | Resolve member ID QR → `MemberScannerContext` (incl. `checkInBlocked`) |
+| `POST` | `/members/record-by-token` | Record via member token (staff member QR scan) |
 
 ### 3.4 Service layer
 
@@ -171,11 +198,18 @@ Buttons use custom `.kiosk-btn` styles (not theme `app-button`) for dark kiosk b
 
 - `GetContextAsync` — library token → context; auto-generates `AttendanceQrToken` on library if missing
 - `SearchMembersAsync` — active members in library
-- `GetMemberStatusAsync` — today's check-in/out + `SuggestedAction` (`check-in` | `check-out` | `done`)
-- `RecordAsync` / `RecordByMemberTokenAsync` — delegates to `IAttendanceService` with `Source = QRCode`
+- `GetMemberStatusAsync` — today's check-in/out + `SuggestedAction` (`check-in` \| `check-out` \| `done` \| `blocked`) + `PlanLifecycle` / `PlanBlockMessage`
+- `RecordAsync` / `RecordByMemberTokenAsync` — refuses check-in when status is blocked; delegates to `IAttendanceService` with `Source = QRCode`
+- `GetMemberContextAsync` — optional `deviceId`; returns `CheckInBlocked` / `PlanBlockMessage` for staff resolve UX
 - `EnsureDeviceAllowsMemberAsync` — rejects QR attendance when `deviceId` already used for another member today (skipped for `staff:` prefix)
-- `GetMemberContextAsync` — optional `deviceId` query validates binding before member kiosk loads
 - `GetQrCodeAsync` / `GetMemberQrCodeAsync` — QRCoder PNG base64 + scan URL
+
+**`MemberLifecycleHelper`** (`Application/Helpers/MemberLifecycleHelper.cs`):
+
+- Mirrors UI `member-lifecycle.util.ts` (`MembershipGraceDays = 7`)
+- `AllowsAttendanceCheckIn` / `EnsureAllowsAttendanceCheckIn` / `CheckInBlockedMessage`
+
+**`AttendanceService.CheckInAsync`** — calls `EnsureMemberPlanAllowsCheckInAsync` before creating today's check-in (covers staff web + any path that uses CheckIn).
 
 ### 3.5 Domain & database
 
@@ -266,7 +300,9 @@ SLMS_API/
 │   ├── AttendanceScannerController.cs    # Staff scanner APIs
 │   └── AttendanceController.cs           # General attendance
 ├── Application/
+│   ├── Helpers/MemberLifecycleHelper.cs  # Grace / Expired check-in gate
 │   ├── Services/AttendanceScannerService.cs
+│   ├── Services/AttendanceService.cs     # CheckInAsync plan gate
 │   ├── Services/Interfaces/IAttendanceScannerService.cs
 │   └── Contracts/Attendance/ScannerContracts.cs
 ├── Domain/Entities/
@@ -281,13 +317,20 @@ SLMS_UI/src/app/
 │   ├── kiosk/                            # Public kiosk module
 │   │   ├── library-kiosk.component.*
 │   │   └── member-kiosk.component.*
-│   └── attendance-scanner/               # Staff scanner (authenticated; includes Download QR PDF standee poster)
+│   ├── attendance-scanner/               # Staff library scanner (+ Download QR PDF)
+│   ├── member-qr-scan/                   # Staff scan member ID QR
+│   └── member-qr-token.util.ts
+├── features/members/
+│   ├── member-lifecycle.util.ts          # MEMBERSHIP_GRACE_DAYS = 7
+│   ├── member-id-card-pdf.util.ts        # Printable front/back ID + QR
+│   └── member-details-component/
 ├── features/libraries/
-│   └── library-qr-pdf.util.ts            # A4 QR Standee / Poster PDF export generator (jsPDF)
+│   └── library-qr-pdf.util.ts            # A4 QR standee / poster PDF
 ├── core/services/
 │   ├── attendance-kiosk.service.ts
-│   └── attendance-scanner.service.ts
-└── app.routes.ts                         # /kiosk/attendance/* routes
+│   ├── attendance-scanner.service.ts
+│   └── qr-scanner-modal.service.ts
+└── app.routes.ts                         # /kiosk/attendance/*, /attendance/member-scan, /members/scan
 ```
 
 ---
@@ -303,11 +346,15 @@ SLMS_UI/src/app/
 | 5 | Auto button | Checks in if not in; checks out if checked in |
 | 6 | Open `/kiosk/attendance/member?token={valid}` | Member name + actions, no login |
 | 7 | Invalid token | Error message on kiosk page |
-| 8 | Member details → Attendance QR | QR image loads (staff logged in) |
+| 8 | Member details → Attendance QR / Download ID card | QR image + PDF loads (staff logged in) |
 | 9 | Staff `/attendance/scanner` without permission | Redirect to `/unauthorized` |
 | 10 | Member A marks attendance on device → Member B on same device | Error: device already used for Member A |
 | 11 | Same member check-out on bound device | Allowed |
 | 12 | Staff scanner multiple members | Allowed (no device lock) |
+| 13 | Camera scan on `/attendance/member-scan` | Resolves member; auto-records when seat assigned |
+| 14 | Member in **Grace** (≤7d past end, dues 0) | Check-in allowed |
+| 15 | Member **Expired** (past grace) or **No plan** | `SuggestedAction=blocked`; banner + renew message; Check in / Auto disabled; API rejects check-in |
+| 16 | Expired member already checked in | Check-out still allowed |
 
 ---
 
@@ -316,8 +363,8 @@ SLMS_UI/src/app/
 | Module | Doc | Relation |
 |--------|-----|----------|
 | M-13 Attendance (staff) | [attendance-module-workflow.md](./attendance-module-workflow.md) | Overview, calendar, live, records, export |
-| M-06 Members | [members-list-workflow.md](./members-list-workflow.md) | Member library assignment, QR token |
-| M-06 Members | [members-detail-workflow.md](./members-detail-workflow.md) | Attendance tab, member QR display |
+| M-06 Members | [members-list-workflow.md](./members-list-workflow.md) | Member library assignment, QR token, scan entry |
+| M-06 Members | [members-detail-workflow.md](./members-detail-workflow.md) | Attendance tab, ID card, plan-gated check-in |
 | M-06b Scoped members | [scoped-members-workflow.md](./scoped-members-workflow.md) | Members tabs on detail pages |
 | Libraries list | [libraries-list-workflow.md](./libraries-list-workflow.md) | Global library portfolio |
 | Library detail | [library-detail-workflow.md](./library-detail-workflow.md) | Library QR display / print |
@@ -327,7 +374,5 @@ SLMS_UI/src/app/
 
 ## 8. Planned enhancements
 
-- Browser camera QR scanner (html5-qrcode / zxing)
-- Library QR print from [libraries list](./libraries-list-workflow.md) (`/libraries`)
 - Rate limiting on public kiosk endpoints
 - Production `Attendance:*KioskUrlBase` in `appsettings.json`

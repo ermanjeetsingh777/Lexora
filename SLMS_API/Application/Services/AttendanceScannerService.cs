@@ -102,6 +102,17 @@ public class AttendanceScannerService : IAttendanceScannerService
         var isCheckedIn = attendance?.CheckInTime.HasValue == true;
         var isCheckedOut = attendance?.CheckOutTime.HasValue == true;
 
+        var plan = await _context.MemberPlans.AsNoTracking()
+            .Where(mp => mp.MemberId == memberId && mp.IsCurrent && !mp.IsDeleted)
+            .Select(mp => new { mp.EndDate, mp.DueAmount })
+            .FirstOrDefaultAsync(cancellationToken);
+        var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(plan?.DueAmount ?? 0);
+        var life = MemberLifecycleHelper.Compute(plan?.EndDate, joinDate: null, feesOwed, today);
+        var planBlocksCheckIn = !MemberLifecycleHelper.AllowsAttendanceCheckIn(life);
+        var suggested = planBlocksCheckIn && !isCheckedIn
+            ? "blocked"
+            : ResolveSuggestedAction(isCheckedIn, isCheckedOut);
+
         return new ScannerMemberStatusResponse
         {
             MemberId = member.Id,
@@ -119,7 +130,9 @@ public class AttendanceScannerService : IAttendanceScannerService
                 ? attendance!.AttendanceDate.ToDateTime(attendance.CheckOutTime!.Value, DateTimeKind.Utc)
                 : null,
             SeatNumber = attendance?.SeatNo,
-            SuggestedAction = ResolveSuggestedAction(isCheckedIn, isCheckedOut),
+            SuggestedAction = suggested,
+            PlanLifecycle = life.State,
+            PlanBlockMessage = planBlocksCheckIn ? MemberLifecycleHelper.CheckInBlockedMessage(life) : null,
         };
     }
 
@@ -151,6 +164,14 @@ public class AttendanceScannerService : IAttendanceScannerService
 
         var status = await GetMemberStatusAsync(request.LibraryToken, request.MemberId, cancellationToken);
         var action = NormalizeAction(request.Action, status.SuggestedAction);
+
+        if (action == "blocked"
+            || (status.SuggestedAction == "blocked" && action is "check-in" or "auto"))
+        {
+            throw new InvalidOperationException(
+                status.PlanBlockMessage
+                ?? "Plan expired. Renew the membership before check-in.");
+        }
 
         if (action == "done")
         {
@@ -301,6 +322,15 @@ public class AttendanceScannerService : IAttendanceScannerService
         await EnsureMemberTokenAsync(member, cancellationToken);
         await EnsureDeviceAllowsMemberAsync(deviceId, member.Id, cancellationToken);
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var plan = await _context.MemberPlans.AsNoTracking()
+            .Where(mp => mp.MemberId == member.Id && mp.IsCurrent && !mp.IsDeleted)
+            .Select(mp => new { mp.EndDate, mp.DueAmount })
+            .FirstOrDefaultAsync(cancellationToken);
+        var feesOwed = MemberPlanMetricsHelper.ComputeMemberFeesOwed(plan?.DueAmount ?? 0);
+        var life = MemberLifecycleHelper.Compute(plan?.EndDate, joinDate: null, feesOwed, today);
+        var checkInBlocked = !MemberLifecycleHelper.AllowsAttendanceCheckIn(life);
+
         return new MemberScannerContextResponse
         {
             MemberId = member.Id,
@@ -314,6 +344,9 @@ public class AttendanceScannerService : IAttendanceScannerService
             InstitutionName = library.Institution?.Name ?? string.Empty,
             AssignedSeatNumber = assignedSeat,
             LibraryAddress = library.Address,
+            PlanLifecycle = life.State,
+            PlanBlockMessage = checkInBlocked ? MemberLifecycleHelper.CheckInBlockedMessage(life) : null,
+            CheckInBlocked = checkInBlocked,
         };
     }
 
@@ -561,6 +594,7 @@ public class AttendanceScannerService : IAttendanceScannerService
         var action = (requested ?? "auto").Trim().ToLowerInvariant();
         if (action is "auto" or "")
         {
+            if (suggested == "blocked") return "blocked";
             return suggested == "done" ? "done" : suggested;
         }
 

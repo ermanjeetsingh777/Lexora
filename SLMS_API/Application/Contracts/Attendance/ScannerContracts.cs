@@ -31,13 +31,17 @@ public class ScannerMemberStatusResponse
     public bool IsCheckedInToday { get; set; }
     public bool IsCheckedOutToday { get; set; }
     public AttendanceStatus? Status { get; set; }
-    /// <summary>check-in | check-out | done</summary>
+    /// <summary>check-in | check-out | done | blocked</summary>
     public string SuggestedAction { get; set; } = "check-in";
     public TimeOnly? CheckInTime { get; set; }
     public TimeOnly? CheckOutTime { get; set; }
     public DateTime? CheckInAtUtc { get; set; }
     public DateTime? CheckOutAtUtc { get; set; }
     public string? SeatNumber { get; set; }
+    /// <summary>Active | Grace | Expired | No plan | …</summary>
+    public string? PlanLifecycle { get; set; }
+    /// <summary>Set when SuggestedAction is blocked (expired past grace / no plan).</summary>
+    public string? PlanBlockMessage { get; set; }
 }
 
 public class ScannerAttendanceRequest
@@ -82,6 +86,15 @@ public class MemberScannerContextResponse
     /// <summary>Seat permanently assigned on the member's current library enrollment.</summary>
     public string? AssignedSeatNumber { get; set; }
     public string? LibraryAddress { get; set; }
+
+    /// <summary>Active / Grace / Expired / No plan — same as scanner status.</summary>
+    public string? PlanLifecycle { get; set; }
+
+    /// <summary>Set when check-in is blocked (Expired past grace, or No plan).</summary>
+    public string? PlanBlockMessage { get; set; }
+
+    /// <summary>True when QR / staff check-in must be refused until renew.</summary>
+    public bool CheckInBlocked { get; set; }
 }
 
 public class MemberScannerRecordRequest

@@ -62,6 +62,7 @@ import {
   computeMemberLifecycle,
   LIFECYCLE_TONE_CLASSES,
   lifecycleBannerClass,
+  MEMBERSHIP_GRACE_DAYS,
   MemberLifecycle,
   RenewTarget,
   todayIsoLocal,
@@ -535,6 +536,24 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
       joinDate: member?.joinedOn,
       feesOwed: member?.feesOwed,
     });
+  });
+
+  /** Expired (past grace) or No plan — staff check-in must renew first. Grace still allowed. */
+  readonly checkInBlockedByPlan = computed(() => {
+    const state = this.lifecycle().state;
+    return state === 'Expired' || state === 'No plan';
+  });
+
+  readonly checkInBlockedMessage = computed(() => {
+    const life = this.lifecycle();
+    if (life.state === 'No plan') {
+      return 'No active plan. Assign or renew a membership plan before check-in.';
+    }
+    if (life.state === 'Expired') {
+      const on = life.expiry ? ` on ${life.expiry}` : '';
+      return `Plan expired${on}. Membership grace of ${MEMBERSHIP_GRACE_DAYS} days has ended — renew before check-in.`;
+    }
+    return 'Check-in is not allowed for this membership.';
   });
 
   readonly attendanceStats = computed(() => {
@@ -1710,6 +1729,11 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
   }
 
   checkIn(isCheckIn: boolean) {
+    if (isCheckIn && this.checkInBlockedByPlan()) {
+      this.toast.error(this.checkInBlockedMessage());
+      return;
+    }
+
     if (isCheckIn && !this.selectedSeatNumber()) {
       this.toast.error('Please select an available seat before checking in.');
       return;
@@ -1733,7 +1757,7 @@ export class MemberDetailsComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Check-in error:', error);
-        this.toast.error(error.error.message || 'Unable to check in. Please try again.');
+        this.toast.error(error.error?.message || error.error?.Message || 'Unable to check in. Please try again.');
       }
     });
   }

@@ -40,6 +40,7 @@ export class MemberKioskComponent implements OnInit {
   readonly canCheckIn = computed(() => this.memberStatus()?.suggestedAction === 'check-in');
   readonly canCheckOut = computed(() => this.memberStatus()?.suggestedAction === 'check-out');
   readonly isDone = computed(() => this.memberStatus()?.suggestedAction === 'done');
+  readonly isPlanBlocked = computed(() => this.memberStatus()?.suggestedAction === 'blocked');
   readonly formatAttendanceTime = formatAttendanceDisplayTime;
 
   readonly needsSeatPicker = computed(() =>
@@ -47,6 +48,10 @@ export class MemberKioskComponent implements OnInit {
   );
 
   readonly actionHint = computed(() => {
+    if (this.isPlanBlocked()) {
+      return this.memberStatus()?.planBlockMessage
+        ?? 'Plan expired. Renew membership before check-in.';
+    }
     if (this.isDone()) return 'Attendance completed for today.';
     if (this.canCheckIn() && this.selectedSeatNumber()) {
       return this.autoApplied()
@@ -144,6 +149,13 @@ export class MemberKioskComponent implements OnInit {
 
         const ctx = this.context();
         const seat = this.selectedSeatNumber() || ctx?.assignedSeatNumber;
+        if (status.suggestedAction === 'blocked') {
+          this.setMessage(
+            status.planBlockMessage ?? 'Plan expired. Renew membership before check-in.',
+            true,
+          );
+          return;
+        }
         if (status.suggestedAction === 'check-in' && seat) {
           this.selectedSeatNumber.set(seat);
           this.record('check-in', { silent: true });

@@ -58,9 +58,14 @@ export class LibraryKioskComponent implements OnInit {
   readonly canCheckIn = computed(() => this.memberStatus()?.suggestedAction === 'check-in');
   readonly canCheckOut = computed(() => this.memberStatus()?.suggestedAction === 'check-out');
   readonly isDone = computed(() => this.memberStatus()?.suggestedAction === 'done');
+  readonly isPlanBlocked = computed(() => this.memberStatus()?.suggestedAction === 'blocked');
   readonly formatAttendanceTime = formatAttendanceDisplayTime;
 
   readonly actionHint = computed(() => {
+    if (this.isPlanBlocked()) {
+      return this.memberStatus()?.planBlockMessage
+        ?? 'Plan expired. Renew membership before check-in.';
+    }
     if (this.isDone()) return 'Attendance completed for today.';
     if (this.canCheckIn()) return 'Tap Check in or use Auto to mark arrival.';
     if (this.canCheckOut()) return 'Tap Check out or use Auto to mark departure.';

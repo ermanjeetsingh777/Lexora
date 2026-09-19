@@ -36,6 +36,7 @@ flowchart TB
 | `/attendance/live` | `AttendanceLiveComponent` | Login | `attendance-live/` |
 | `/attendance/records` | `AttendanceRecordsComponent` | `attendance.records.view` | `attendance-records/` |
 | `/attendance/scanner` | `AttendanceScannerComponent` | `attendance.scanner.use` | `attendance-scanner/` |
+| `/attendance/member-scan` | `MemberQrScanPageComponent` | Login | `member-qr-scan/` |
 
 **Shell:** `SLMS_UI/src/app/features/attendance/attendance-shell/`  
 Route config: `SLMS_UI/src/app/app.routes.ts`
@@ -73,10 +74,10 @@ Member detail attendance tab uses per-member endpoints (not module shell):
 | `GET attendance/members/{id}/calendar` | Member calendar |
 | `GET attendance/members/{id}/records` | Member records |
 | `GET attendance/members/{id}/statistics` | Stats |
-| `POST attendance/members/{id}/check-in` | Manual check-in |
+| `POST attendance/members/{id}/check-in` | Manual check-in (blocked if plan Expired / No plan) |
 | `POST attendance/members/{id}/check-out` | Manual check-out |
 
-See [members-detail-workflow.md](./members-detail-workflow.md).
+See [members-detail-workflow.md](./members-detail-workflow.md). QR kiosk, plan gate, and member ID scan: [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md).
 
 ---
 
@@ -111,6 +112,8 @@ SLMS_UI/src/app/features/attendance/
 ├── attendance-calendar/
 ├── attendance-live/
 ├── attendance-records/
+├── attendance-scanner/
+├── member-qr-scan/
 ├── attendance-export.service.ts
 ├── attendance-report-export.util.ts
 ├── attendance-filter.service.ts
@@ -122,7 +125,8 @@ SLMS_UI/src/app/core/
 
 SLMS_API/
 ├── Controllers/AttendanceController.cs
-└── Application/Services/AttendanceService.cs
+├── Application/Services/AttendanceService.cs
+└── Application/Helpers/MemberLifecycleHelper.cs
 ```
 
 ---
@@ -137,11 +141,12 @@ SLMS_API/
 - [ ] Records pagination and filters
 - [ ] Export Excel/PDF with empty-range error handling
 - [ ] Records permission gate blocks unauthorized users
+- [ ] `/attendance/member-scan` resolves ID QR and respects plan block
 
 ---
 
 ## 6. Related docs
 
-- [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md) — QR kiosk + scanner
+- [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md) — QR kiosk + scanner + plan gate
 - [members-detail-workflow.md](./members-detail-workflow.md) — Per-member attendance
 - [library-detail-workflow.md](./library-detail-workflow.md) — Library QR

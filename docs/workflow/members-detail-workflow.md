@@ -64,7 +64,7 @@ PageHeader (back, copy ID, actions)
 
 | Tab ID | Label | Status | Child / content |
 |--------|-------|--------|-----------------|
-| `overview` | Overview | Implemented | Insights, contacts, activity timeline, Aadhaar docs, **Attendance QR** |
+| `overview` | Overview | Implemented | Insights, contacts, activity timeline, Aadhaar docs, **Attendance QR**, **Download ID card** |
 | `attendance` | Attendance | Implemented | KPIs, calendar, check-in log, heatmap |
 | `library-calendar` | Library Calendar | Implemented | `LibraryCalendarComponent` |
 | `books` | Books | Implemented | Loan KPIs + borrow history via `BookService` |
@@ -279,15 +279,26 @@ stateDiagram-v2
 | Check in | `POST attendance/members/{id}/check-in` |
 | Check out | `POST attendance/members/{id}/check-out` |
 
+**Plan gate (BR-13.8 / BR-06.1):** Before check-in, API runs `MemberLifecycleHelper.EnsureAllowsAttendanceCheckIn`. UI mirrors this with `checkInBlockedByPlan` (`Expired` or `No plan`). **Grace** (≤ `MEMBERSHIP_GRACE_DAYS` past end, dues = 0) still allows check-in. When blocked, the today's-attendance card shows a **Check-in blocked** banner and disables the Check In button; check-out is unchanged.
+
 **On success:** reload member details, calendar, and statistics.
 
 ### 2.7 Plan lifecycle & renew
 
 **Utility:** `SLMS_UI/src/app/features/members/member-lifecycle.util.ts`
 
-- `computeMemberLifecycle()` — expiry state, days left, action text
+- `MEMBERSHIP_GRACE_DAYS = 7` — must stay in sync with `MemberLifecycleHelper.MembershipGraceDays` on the API
+- `computeMemberLifecycle()` — expiry state (`Active` / `Expiring soon` / `Grace` / `Expired` / `No plan` / `New`), days left, action text
 - `renewTargetFromListMember()` / banner renew → `RenewPlanDialogComponent`
 - `POST members/{id}/renew` → returns updated `MemberDetailResponse`
+
+### 2.7b Member ID card PDF
+
+Staff can download a printable **front/back ID card** (jsPDF) with the member's personal attendance QR on the back.
+
+- Util: `features/members/member-id-card-pdf.util.ts`
+- QR / scan URL from `GET attendance/scanner/members/{memberId}/qr`
+- Scanning the QR opens the public member kiosk or staff resolve (`/attendance/member-scan`, `/members/scan`) — see [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md)
 
 ### 2.8 Action dialogs (header dropdown)
 

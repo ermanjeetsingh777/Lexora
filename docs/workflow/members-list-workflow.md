@@ -34,6 +34,7 @@ flowchart LR
 | Route | Component | File |
 |-------|-----------|------|
 | `/members` | `MembersListComponent` | `SLMS_UI/src/app/features/members/members-list-component/` |
+| `/members/scan` | `MemberQrScanPageComponent` | `SLMS_UI/src/app/features/attendance/member-qr-scan/` (profile mode by default) |
 | `/members/create` | `CreateMemberComponent` | `SLMS_UI/src/app/features/members/create-member-component/` |
 | `/members/bulk-upload` | `BulkUploadMembersComponent` | `SLMS_UI/src/app/features/members/bulk-upload-members-component/` |
 | `/members/:memberId` | `MemberDetailsComponent` | `SLMS_UI/src/app/features/members/member-details-component/` |
@@ -185,14 +186,14 @@ Computed from `planEndDate`, `joinDate`, `feesOwed`:
 
 | State | Rule (simplified) |
 |-------|-------------------|
-| No plan | No end date |
-| Grace | ≤7 days past expiry, no fees |
-| Expired | Past expiry with fees / grace elapsed |
+| No plan | No end date — **check-in blocked** |
+| Grace | ≤7 days past expiry, no fees — **check-in still allowed** |
+| Expired | Past expiry with fees / grace elapsed — **check-in blocked** until renew |
 | New | Joined ≤14 days |
 | Expiring soon | ≤7 days until expiry |
 | Active | Otherwise |
 
-Drives row styling, filters, KPI clicks, and “needs action” banner.
+Drives row styling, filters, KPI clicks, “needs action” banner, and QR/manual attendance eligibility (see [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md) BR-13.8).
 
 ### 2.7 Angular services & models
 

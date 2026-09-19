@@ -5,6 +5,9 @@ namespace SLMS_API.Application.Helpers;
 /// </summary>
 public static class MemberLifecycleHelper
 {
+    /// <summary>Days after plan EndDate with zero dues where check-in is still allowed.</summary>
+    public const int MembershipGraceDays = 7;
+
     public sealed record LifecycleInfo(
         string State,
         int DaysLeft,
@@ -25,7 +28,7 @@ public static class MemberLifecycleHelper
         {
             state = "No plan";
         }
-        else if (daysLeft < 0 && daysLeft >= -7 && fees == 0)
+        else if (daysLeft < 0 && daysLeft >= -MembershipGraceDays && fees == 0)
         {
             state = "Grace";
         }
@@ -62,5 +65,37 @@ public static class MemberLifecycleHelper
 
         var expiryIso = planEndDate?.ToString("yyyy-MM-dd") ?? string.Empty;
         return new LifecycleInfo(state, daysLeft, expiryIso, action is not null);
+    }
+
+    /// <summary>
+    /// Allows check-in for Active / New / Expiring soon / Grace.
+    /// Blocks Expired (past membership grace) and No plan.
+    /// </summary>
+    public static bool AllowsAttendanceCheckIn(LifecycleInfo life) =>
+        life.State is not ("Expired" or "No plan");
+
+    public static string CheckInBlockedMessage(LifecycleInfo life)
+    {
+        if (life.State == "No plan")
+        {
+            return "No active plan. Assign or renew a membership plan before check-in.";
+        }
+
+        if (life.State == "Expired")
+        {
+            var expiry = string.IsNullOrEmpty(life.ExpiryIso) ? "the plan end date" : life.ExpiryIso;
+            return $"Plan expired on {expiry}. Renew the plan (membership grace of {MembershipGraceDays} days has ended) before check-in.";
+        }
+
+        return "Check-in is not allowed for this membership.";
+    }
+
+    public static void EnsureAllowsAttendanceCheckIn(DateOnly? planEndDate, decimal feesOwed, DateOnly today)
+    {
+        var life = Compute(planEndDate, joinDate: null, feesOwed, today);
+        if (!AllowsAttendanceCheckIn(life))
+        {
+            throw new InvalidOperationException(CheckInBlockedMessage(life));
+        }
     }
 }

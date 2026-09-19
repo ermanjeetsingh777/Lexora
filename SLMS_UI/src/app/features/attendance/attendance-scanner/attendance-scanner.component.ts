@@ -64,6 +64,7 @@ export class AttendanceScannerComponent implements OnInit {
   readonly canCheckIn = computed(() => this.memberStatus()?.suggestedAction === 'check-in');
   readonly canCheckOut = computed(() => this.memberStatus()?.suggestedAction === 'check-out');
   readonly isDone = computed(() => this.memberStatus()?.suggestedAction === 'done');
+  readonly isPlanBlocked = computed(() => this.memberStatus()?.suggestedAction === 'blocked');
   readonly formatAttendanceTime = formatAttendanceDisplayTime;
 
   constructor() {

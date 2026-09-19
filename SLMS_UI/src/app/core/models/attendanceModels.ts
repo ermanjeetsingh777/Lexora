@@ -139,12 +139,14 @@ export interface ScannerMemberStatus {
     isCheckedInToday: boolean;
     isCheckedOutToday: boolean;
     status?: AttendanceStatus | null;
-    suggestedAction: 'check-in' | 'check-out' | 'done';
+    suggestedAction: 'check-in' | 'check-out' | 'done' | 'blocked';
     checkInTime?: string | null;
     checkOutTime?: string | null;
     checkInAtUtc?: string | Date | null;
     checkOutAtUtc?: string | Date | null;
     seatNumber?: string | null;
+    planLifecycle?: string | null;
+    planBlockMessage?: string | null;
 }
 
 export interface AttendanceSeatOption {
@@ -193,6 +195,9 @@ export interface MemberScannerContext {
     institutionName: string;
     assignedSeatNumber?: string | null;
     libraryAddress?: string | null;
+    planLifecycle?: string | null;
+    planBlockMessage?: string | null;
+    checkInBlocked?: boolean;
 }
 
 export interface MemberScannerRecordRequest {

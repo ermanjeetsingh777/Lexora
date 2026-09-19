@@ -378,6 +378,13 @@
 
       @if (!todayAttendance()?.checkInAtUtc) {
       <div class="mt-4 rounded-lg border bg-muted/10 p-3">
+        @if (checkInBlockedByPlan()) {
+          <div class="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive mb-3">
+            <p class="font-medium">Check-in blocked</p>
+            <p class="mt-0.5 opacity-90">{{ checkInBlockedMessage() }}</p>
+            <p class="mt-1 text-xs opacity-80">Status: {{ lifecycle().state }}</p>
+          </div>
+        }
         <app-attendance-seat-picker
           [seats]="librarySeats()"
           [loading]="seatsLoading()"
@@ -389,7 +396,7 @@
       <!-- Actions -->
       <div class="flex flex-wrap justify-end gap-2 mt-5">
         @if(!todayAttendance()?.checkInAtUtc){
-        <app-button (click)="checkIn(true)" [disabled]="!selectedSeatNumber()">
+        <app-button (click)="checkIn(true)" [disabled]="checkInBlockedByPlan() || !selectedSeatNumber()">
           <svg lucideLogIn class="h-4 w-4 mr-1"></svg>
           Check In
         </app-button>

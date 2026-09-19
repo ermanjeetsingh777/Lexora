@@ -95,6 +95,13 @@
                 </div>
               }
 
+              @if (isPlanBlocked()) {
+                <div class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 mb-5 text-left text-sm text-rose-200">
+                  <p class="font-medium">Check-in blocked</p>
+                  <p class="mt-1 opacity-90">{{ memberStatus()?.planBlockMessage }}</p>
+                </div>
+              }
+
               @if (canCheckIn()) {
                 <div class="rounded-lg border border-white/10 p-3 mb-5 kiosk-seat-picker">
                   <app-attendance-seat-picker
@@ -130,8 +137,8 @@
               <button
                 type="button"
                 class="kiosk-btn kiosk-btn--auto"
-                [class.kiosk-btn--highlight]="!isDone()"
-                [disabled]="busy() || isDone()"
+                [class.kiosk-btn--highlight]="!isDone() && !isPlanBlocked()"
+                [disabled]="busy() || isDone() || isPlanBlocked()"
                 (click)="record('auto')"
               >
                 <span>Auto</span>

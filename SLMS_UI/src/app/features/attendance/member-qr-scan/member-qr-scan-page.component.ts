@@ -208,6 +208,23 @@ export type MemberQrScanMode = 'profile' | 'attendance';
                 </p>
               }
 
+              @if (mode() === 'attendance' && m.checkInBlocked) {
+                <div
+                  class="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+                >
+                  <p class="font-medium">Check-in blocked</p>
+                  <p class="mt-0.5 opacity-90">
+                    {{ m.planBlockMessage || 'Plan expired. Renew before check-in.' }}
+                  </p>
+                  @if (m.planLifecycle) {
+                    <p class="mt-1 text-xs opacity-80">Status: {{ m.planLifecycle }}</p>
+                  }
+                  <a class="inline-block mt-3" [routerLink]="['/members', m.memberId]">
+                    <app-button size="sm" variant="outline">Open profile to renew</app-button>
+                  </a>
+                </div>
+              }
+
               @if (mode() === 'profile') {
                 <div class="flex flex-wrap gap-2 pt-2">
                   <a [routerLink]="['/members', m.memberId]">
@@ -218,7 +235,7 @@ export type MemberQrScanMode = 'profile' | 'attendance';
                   </a>
                   <app-button variant="outline" (click)="resetAndScan()">Scan another</app-button>
                 </div>
-              } @else {
+              } @else if (!m.checkInBlocked) {
                 <div class="flex flex-wrap gap-2 pt-2">
                   <app-button [disabled]="busy()" (click)="markAttendance('check-in')">
                     <svg lucideLogIn class="h-4 w-4 mr-1.5"></svg>
@@ -230,6 +247,13 @@ export type MemberQrScanMode = 'profile' | 'attendance';
                   </app-button>
                   <app-button variant="secondary" [disabled]="busy()" (click)="markAttendance('auto')">
                     Auto
+                  </app-button>
+                </div>
+              } @else {
+                <div class="flex flex-wrap gap-2 pt-2">
+                  <app-button variant="outline" [disabled]="busy()" (click)="markAttendance('check-out')">
+                    <svg lucideLogOut class="h-4 w-4 mr-1.5"></svg>
+                    Check out
                   </app-button>
                 </div>
               }
@@ -306,6 +330,14 @@ export class MemberQrScanPageComponent implements OnInit {
   markAttendance(action: 'check-in' | 'check-out' | 'auto'): void {
     const m = this.resolved();
     if (!m) return;
+
+    if (m.checkInBlocked && action !== 'check-out') {
+      const msg = m.planBlockMessage ?? 'Plan expired. Renew before check-in.';
+      this.lastError.set(msg);
+      this.toast.error(msg);
+      return;
+    }
+
     this.busy.set(true);
     this.lastError.set(null);
     this.lastResult.set(null);
@@ -346,6 +378,12 @@ export class MemberQrScanPageComponent implements OnInit {
         if (this.mode() === 'profile') {
           this.toast.success(`Found ${ctx.fullName}`);
           this.router.navigate(['/members', ctx.memberId]);
+          return;
+        }
+
+        if (ctx.checkInBlocked) {
+          this.lastError.set(null);
+          this.toast.error(ctx.planBlockMessage ?? 'Check-in blocked — renew plan first.');
           return;
         }
 

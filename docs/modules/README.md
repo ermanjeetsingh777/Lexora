@@ -22,7 +22,7 @@ Each module has an implementation workflow under [../workflow/](../workflow/) wi
 | M-11 | Profile | `/profile` | [profile-workflow.md](../workflow/profile-workflow.md) | Implemented |
 | M-12 | Books & circulation | `/books` | [books-workflow.md](../workflow/books-workflow.md) | Implemented |
 | M-13 | Attendance (staff) | `/attendance/*` | [attendance-module-workflow.md](../workflow/attendance-module-workflow.md) | Implemented |
-| M-13b | Attendance QR kiosk | `/kiosk/attendance/*`, `/attendance/scanner` | [attendance-kiosk-workflow.md](../workflow/attendance-kiosk-workflow.md) | Implemented |
+| M-13b | Attendance QR kiosk | `/kiosk/attendance/*`, `/attendance/scanner`, `/attendance/member-scan`, `/members/scan` | [attendance-kiosk-workflow.md](../workflow/attendance-kiosk-workflow.md) | Implemented |
 | M-15 | Administration | `/users`, `/roles` | [administration-workflow.md](../workflow/administration-workflow.md), [users-admin-workflow.md](../workflow/users-admin-workflow.md) | Implemented |
 | M-16 | Member portal & self-service | `/members/:memberId` (isolated) | [member-portal-workflow.md](../workflow/member-portal-workflow.md) | Implemented |
 | M-17 | Package entitlements, Add-ons & RBAC | Global creation limits & `[Permission]` claims | [package-entitlements-workflow.md](../workflow/package-entitlements-workflow.md) | Implemented |

@@ -151,6 +151,18 @@
                 </div>
               }
 
+              @if (isPlanBlocked()) {
+                <div class="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  <p class="font-medium">Check-in blocked</p>
+                  <p class="mt-0.5 text-destructive/90">
+                    {{ memberStatus()?.planBlockMessage || 'Plan expired. Renew before check-in.' }}
+                  </p>
+                  @if (memberStatus()?.planLifecycle) {
+                    <p class="mt-1 text-xs opacity-80">Status: {{ memberStatus()?.planLifecycle }}</p>
+                  }
+                </div>
+              }
+
               @if (canCheckIn()) {
                 <div class="rounded-md border p-3">
                   <app-attendance-seat-picker
@@ -169,7 +181,7 @@
               <app-button variant="outline" [disabled]="busy() || !canCheckOut()" (click)="record('check-out')">
                 <svg lucideLogOut class="h-4 w-4 mr-1.5"></svg> Check out
               </app-button>
-              <app-button variant="secondary" [disabled]="busy() || isDone()" (click)="record('auto')">
+              <app-button variant="secondary" [disabled]="busy() || isDone() || isPlanBlocked()" (click)="record('auto')">
                 Auto
               </app-button>
             </div>

@@ -50,6 +50,13 @@
                 (seatSelected)="selectedSeatNumber.set($event)" />
             </div>
           }
+
+          @if (isPlanBlocked()) {
+            <div class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 mt-4 text-left text-sm text-rose-200">
+              <p class="font-medium">Check-in blocked</p>
+              <p class="mt-1 opacity-90">{{ memberStatus()?.planBlockMessage }}</p>
+            </div>
+          }
         }
 
         <div class="kiosk-actions mt-6">
@@ -76,8 +83,8 @@
           <button
             type="button"
             class="kiosk-btn kiosk-btn--auto"
-            [class.kiosk-btn--highlight]="!isDone()"
-            [disabled]="busy() || isDone() || (canCheckIn() && !selectedSeatNumber() && !context()?.assignedSeatNumber)"
+            [class.kiosk-btn--highlight]="!isDone() && !isPlanBlocked()"
+            [disabled]="busy() || isDone() || isPlanBlocked() || (canCheckIn() && !selectedSeatNumber() && !context()?.assignedSeatNumber)"
             (click)="record('auto')"
           >
             <span>Auto check in / out</span>

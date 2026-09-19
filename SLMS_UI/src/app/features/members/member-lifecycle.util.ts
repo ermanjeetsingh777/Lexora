@@ -33,6 +33,8 @@ export interface RenewTarget {
   planPrice?: number;
 }
 
+export const MEMBERSHIP_GRACE_DAYS = 7;
+
 /** Add calendar days to an ISO date (yyyy-mm-dd). */
 export function addDaysIso(isoDate: string, days: number): string {
   const d = new Date(`${isoDate.slice(0, 10)}T00:00:00`);
@@ -97,7 +99,7 @@ export function computeMemberLifecycle(input: {
   if (!hasPlan) {
     state = 'No plan';
     tone = 'warning';
-  } else if (daysLeft < 0 && daysLeft >= -7 && fees === 0) {
+  } else if (daysLeft < 0 && daysLeft >= -MEMBERSHIP_GRACE_DAYS && fees === 0) {
     state = 'Grace';
     tone = 'warning';
   } else if (daysLeft < 0) {

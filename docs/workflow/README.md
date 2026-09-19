@@ -38,7 +38,7 @@ Implementation workflows for **SLMS_UI** (Angular) and **SLMS_API** (.NET). Each
 | Doc | Module | Summary |
 |-----|--------|---------|
 | [attendance-module-workflow.md](./attendance-module-workflow.md) | M-13 Attendance | Overview, calendar, live, records, export |
-| [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md) | M-13b Attendance QR | Library/member kiosk, staff scanner, device binding |
+| [attendance-kiosk-workflow.md](./attendance-kiosk-workflow.md) | M-13b Attendance QR | Library/member kiosk, staff scanner, member ID scan, plan gate (grace OK / expired block) |
 | [books-workflow.md](./books-workflow.md) | M-12 Books | Catalog, loans, member digital books |
 
 ## Admin & support
